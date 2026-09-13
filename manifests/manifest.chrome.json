@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Better CaptionKeep - Chrome Test",
-  "version": "4.7.0",
-  "version_name": "4.7.0 release candidate - Chrome test",
+  "version": "5.0.0",
+  "version_name": "5.0.0 development - Chrome test",
   "description": "Save Microsoft Teams captions in Chrome with local transcript tools and privacy-aware AI handoff.",
   "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
   "icons": {

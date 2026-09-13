@@ -165,7 +165,10 @@ test('Chrome and Edge test manifests preserve the shared runtime contract',()=>{
         assert.deepEqual(manifest.content_scripts,source.content_scripts);
         assert.deepEqual(manifest.storage,source.storage);
         assert(manifest.name.toLowerCase().includes(target));
-        assert(manifest.version_name.toLowerCase().includes('release candidate'));
+        const buildLabel=manifest.version_name.toLowerCase();
+        assert(buildLabel.includes(source.version));
+        assert(buildLabel.includes(target));
+        assert(buildLabel.includes('development')||buildLabel.includes('release candidate'));
     }
 });
 test('Scrubby masks supported sensitive patterns with stable local placeholders',()=>{

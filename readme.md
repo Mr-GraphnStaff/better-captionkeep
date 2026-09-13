@@ -8,6 +8,12 @@
 
 Save live captions from Microsoft Teams in Microsoft Edge, including the Teams PWA. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
+## The 5.0 direction
+
+Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves decisively beyond that starting point: a privacy-first, enterprise-ready caption workspace designed to support Microsoft Teams, Zoom, and Google Meet through a shared provider architecture.
+
+The product direction combines reliable multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs that do not place transcript text in provider URLs. Teams remains the working foundation while Zoom and Google Meet adapters are developed and validated. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
+
 ## Interface previews
 
 Screenshots below show the current packaged HTML and styling rendered in Microsoft Edge, with extension scripts disabled and no meeting connected. They illustrate the interface, not a live capture test. The banner above is approved mascot concept artwork.
@@ -40,12 +46,12 @@ Exports support Save As, a remembered direct folder where the browser permits it
 
 Version 4.6 is published on Microsoft Edge Add-ons. Version 4.7 completed internal QA and now serves as the accepted stabilization baseline for 5.0 development; it will not be submitted as a separate Store update.
 
-### Chrome and Edge release-candidate sideloads
+### Chrome and Edge 5.0 development sideloads
 
 Run `npm run build:targets` to create four ignored test artifacts:
 
-- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-4.7.0.zip`
-- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-4.7.0.zip`
+- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-5.0.0.zip`
+- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-5.0.0.zip`
 
 The unpacked folders each contain the effective browser-labeled `manifest.json`. They use separate extension identities and local storage from the published Edge 4.6 extension, so testing does not update or overwrite the Store installation.
 
