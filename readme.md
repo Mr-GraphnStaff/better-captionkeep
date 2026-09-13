@@ -8,6 +8,12 @@
 
 Save live captions from Microsoft Teams in Microsoft Edge, including the Teams PWA. Export TXT or Markdown, choose a save location, and revisit saved sessions. Scribble is our listening transcript mascot.
 
+## A new direction for 5.0
+
+Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 is a deliberate move beyond that starting point: a privacy-first, enterprise-ready caption workspace designed to support Microsoft Teams, Zoom, and Google Meet through a shared provider architecture.
+
+The 5.0 roadmap brings together reliable multi-platform capture, local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs. Teams is the working foundation; Zoom and Google Meet adapters will be developed and validated before the next public release. This remains an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
+
 ## Interface previews
 
 Screenshots below show the current packaged HTML and styling rendered in Microsoft Edge, with extension scripts disabled and no meeting connected. They illustrate the interface, not a live capture test. The banner above is approved mascot concept artwork.
@@ -48,7 +54,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target store: **Microsoft Edge Add-ons only**. Version 4.6 is awaiting Microsoft certification. Development for later releases remains isolated from the submitted production baseline. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
+Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 completed internal stabilization and QA, then rolled forward into 5.0 instead of being submitted separately. Version 5.0 is the next planned public release. The [privacy policy](PRIVACY.md) is published. This repository does not imply approval of unreleased versions.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
