@@ -1,0 +1,80 @@
+name: Bug report
+description: Report reproducible broken or unreliable behavior
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include real transcripts, attendee information, credentials, signing keys, or Partner Center data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and its effect on your work.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Better CaptionKeep version
+      placeholder: "For example: 4.6"
+    validations:
+      required: true
+  - type: dropdown
+    id: teams_host
+    attributes:
+      label: Teams client address
+      options:
+        - teams.microsoft.com
+        - teams.cloud.microsoft
+        - Another address
+        - Unknown or hidden by the PWA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Edge version, Windows version, and whether Teams was a browser tab or installed PWA.
+      placeholder: "Edge 140, Windows 11, Teams PWA"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use a test meeting and non-sensitive example text.
+      placeholder: |
+        1. Start a test meeting
+        2. Enable live captions
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Include relevant console errors or screenshots only after removing meeting, tenant, attendee, and account information.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed confidential meeting, tenant, attendee, account, and credential information.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true

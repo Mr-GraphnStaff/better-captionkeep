@@ -4,7 +4,7 @@
 
 ![Better CaptionKeep by Señor Farris — Scribble, our listening transcript mascot](branding/scribble-concept.png)
 
-[Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [MIT license](LICENSE)
+[Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
 Save live captions from Microsoft Teams in Microsoft Edge, including the Teams PWA. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
@@ -38,7 +38,7 @@ Exports support Save As, a remembered direct folder where the browser permits it
 
 ## Install for local testing
 
-Version 4.6 is published on Microsoft Edge Add-ons. These steps load the in-development 4.7 extension directly for testing.
+Version 4.6 is published on Microsoft Edge Add-ons. Version 4.7 completed internal QA and now serves as the accepted stabilization baseline for 5.0 development; it will not be submitted as a separate Store update.
 
 ### Chrome and Edge release-candidate sideloads
 
@@ -60,7 +60,7 @@ After the project folder move, reload the extension from its new location if nee
 
 ## Development
 
-Use Node.js 18 or newer, then run `npm install`.
+Use Node.js 20 or newer, then run `npm install`.
 
 - `npm run lint`: validate the extension manifest and assets.
 - `npm run build`: build a ZIP in `dist/`.
@@ -72,7 +72,9 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live. Version 4.7 is in development and must complete live Teams testing and release review before a separate Store submission.
+Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 completed internal QA and has been rolled forward into 5.0 rather than submitted separately. Version 5.0 is the next planned public release. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
+
+Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
 ## Attribution and license
 
