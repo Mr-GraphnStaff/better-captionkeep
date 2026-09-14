@@ -10,3 +10,10 @@ web-ext-artifacts/
 *.xpi
 .DS_Store
 npm-debug.log*
+
+# Local CaptionKeeper Partner Center metadata
+.captionkeeper.local.env
+/captionKeeper public key.txt
+
+# Local browser profiles and generated test packages
+/tmp/

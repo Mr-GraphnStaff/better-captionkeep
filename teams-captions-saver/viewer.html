@@ -26,20 +26,39 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1040px;
             margin: 0 auto;
             background-color: var(--surface-color);
-            padding: 24px;
-            border-radius: 8px;
+            padding: 0;
+            border-radius: 18px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: clip;
         }
 
         h1 {
-            text-align: center;
+            text-align: left;
             margin-top: 0;
-            margin-bottom: 24px;
+            margin-bottom: 4px;
             position: relative;
+            font-size: clamp(25px, 4vw, 36px);
+            line-height: 1.15;
+            letter-spacing: -0.025em;
         }
+
+        .viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 28px 30px 24px;
+            background: radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--ck-primary) 20%, transparent), transparent 34%), var(--ck-surface);
+            border-bottom: 1px solid var(--ck-border);
+        }
+        .viewer-brand { display: flex; align-items: center; gap: 18px; min-width: 0; }
+        .viewer-brand img { width: 68px; height: 68px; flex: 0 0 auto; border-radius: 17px; box-shadow: var(--ck-shadow); }
+        .viewer-eyebrow { margin: 0 0 5px; color: var(--ck-primary); font-size: 12px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
+        .viewer-subtitle { margin: 0; color: var(--ck-text-muted); font-size: 14px; }
+        .viewer-body { padding: 0 30px 30px; }
         
         /* Live Indicator Styles */
         .live-indicator {
@@ -100,11 +119,16 @@
         .controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 12px;
             align-items: center;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+            padding: 18px 30px;
+            margin: 0 0 24px;
             border-bottom: 1px solid var(--border-color);
+            background: var(--ck-surface);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            box-shadow: 0 8px 16px color-mix(in srgb, var(--ck-bg) 80%, transparent);
         }
         
         .export-controls {
@@ -196,6 +220,7 @@
 
         main#captions-container {
             position: relative;
+            min-height: 300px;
         }
 
         .caption {
@@ -306,6 +331,24 @@
             color: var(--secondary-text-color);
             padding: 40px 0;
         }
+
+        .viewer-state { min-height: 300px; display: grid; place-items: center; text-align: center; padding: 44px 24px; border: 1px dashed var(--ck-border); border-radius: 14px; background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--ck-primary) 12%, transparent), transparent 48%), var(--ck-surface-soft); }
+        .viewer-state-content { max-width: 540px; }
+        .viewer-state-mark { width: 64px; height: 64px; margin: 0 auto 18px; display: grid; place-items: center; border-radius: 18px; background: color-mix(in srgb, var(--ck-primary) 16%, var(--ck-surface)); color: var(--ck-primary); font-size: 30px; font-weight: 800; }
+        .viewer-state h2 { margin: 0 0 8px; color: var(--ck-text); font-size: 24px; }
+        .viewer-state p { margin: 0; color: var(--ck-text-muted); font-size: 15px; }
+        .viewer-state-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 22px; }
+        .viewer-state-steps span { padding: 7px 11px; border: 1px solid var(--ck-border); border-radius: 999px; background: var(--ck-surface); color: var(--ck-text); font-size: 12px; font-weight: 650; }
+
+        @media (max-width: 720px) {
+            body { padding: 10px; }
+            .viewer-header { padding: 22px 20px; }
+            .viewer-brand img { width: 54px; height: 54px; }
+            .controls { padding: 16px 20px; position: static; }
+            .viewer-body { padding: 0 20px 20px; }
+            .export-controls { width: 100%; flex-wrap: wrap; }
+            #search-box { width: 100%; }
+        }
         
         /* Session History Modal */
         .modal {
@@ -376,18 +419,34 @@
             color: #6c757d;
         }
     </style>
+    <link rel="stylesheet" href="theme.css">
+    <script src="theme.js" defer></script>
+    <script src="configuration.js" defer></script>
+    <script src="privacyScrubber.js" defer></script>
+    <script src="sessionManager.js" defer></script>
     <script src="viewer.js" defer></script>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Teams Transcript</h1>
-            <div class="controls">
+        <header class="viewer-header">
+            <div class="viewer-brand">
+                <img src="icons/scribble-128.png" alt="Scribble, the Better CaptionKeep listening mascot">
+                <div>
+                    <p class="viewer-eyebrow">Better CaptionKeep · by Señor Farris</p>
+                    <h1>Teams Transcript</h1>
+                    <p class="viewer-subtitle">Keep the words. Stay in the conversation.</p>
+                </div>
+            </div>
+        </header>
+        <div class="controls" aria-label="Transcript tools">
                 <input type="search" id="search-box" placeholder="Search transcript..." aria-label="Search transcript">
                 <div id="speaker-filters" class="speaker-filters">
                     <button id="show-all-btn" class="active" aria-label="Show all speakers">Show All</button>
                 </div>
                 <div class="export-controls">
+                    <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
+                        <input type="checkbox" id="scrub-output-toggle" checked> Scrubby outputs
+                    </label>
                     <button id="copy-all-btn" class="export-btn" title="Copy visible transcript to clipboard">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
@@ -407,11 +466,18 @@
                         History
                     </button>
                 </div>
-            </div>
-        </header>
-        <main id="captions-container">
-            <div class="status-message">Loading captions...</div>
-        </main>
+        </div>
+        <div class="viewer-body">
+            <main id="captions-container">
+                <div class="viewer-state" role="status">
+                    <div class="viewer-state-content">
+                        <div class="viewer-state-mark" aria-hidden="true">•••</div>
+                        <h2>Opening your transcript</h2>
+                        <p>Better CaptionKeep is connecting this viewer to your meeting session.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
     
     <!-- Session History Modal -->

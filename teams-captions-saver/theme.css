@@ -1,0 +1,228 @@
+:root {
+    color-scheme: light;
+    --ck-bg: #f7f8f5;
+    --ck-surface: #ffffff;
+    --ck-surface-soft: #fafafa;
+    --ck-field: #ffffff;
+    --ck-text: #142b3b;
+    --ck-text-muted: #5c6770;
+    --ck-border: #d8dfe1;
+    --ck-primary: #087f8c;
+    --ck-primary-hover: #065e68;
+    --ck-success: #107c41;
+    --ck-warning: #8a6500;
+    --ck-danger: #c9363e;
+    --ck-overlay: rgba(7, 28, 44, 0.5);
+    --ck-shadow: 0 4px 14px rgba(20, 43, 59, 0.1);
+
+    /* Backward-compatible aliases used by the transcript viewer. */
+    --primary-color: var(--ck-primary);
+    --primary-text-color: var(--ck-text);
+    --secondary-text-color: var(--ck-text-muted);
+    --background-color: var(--ck-bg);
+    --surface-color: var(--ck-surface);
+    --border-color: var(--ck-border);
+    --hover-color: color-mix(in srgb, var(--ck-primary) 10%, var(--ck-surface));
+    --success-color: var(--ck-success);
+}
+
+:root[data-theme="light"] {
+    --ck-bg: #eef3f5;
+    --ck-surface: #ffffff;
+    --ck-surface-soft: #f5f8f9;
+    --ck-field: #ffffff;
+    --ck-text: #102a3b;
+    --ck-text-muted: #526773;
+    --ck-border: #cbd8dd;
+    --ck-primary: #007f8c;
+    --ck-primary-hover: #00646e;
+    --ck-shadow: 0 5px 18px rgba(16, 42, 59, 0.12);
+}
+
+:root[data-theme="midnight"] {
+    color-scheme: dark;
+    --ck-bg: #071c2c;
+    --ck-surface: #0e2a3d;
+    --ck-surface-soft: #12354a;
+    --ck-field: #0a2233;
+    --ck-text: #f7f3ea;
+    --ck-text-muted: #b8ccd4;
+    --ck-border: #31536a;
+    --ck-primary: #72d6df;
+    --ck-primary-hover: #9be6ec;
+    --ck-success: #79d49c;
+    --ck-warning: #ffd166;
+    --ck-danger: #ff8b91;
+    --ck-overlay: rgba(0, 0, 0, 0.72);
+    --ck-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root[data-theme="system"] {
+        color-scheme: dark;
+        --ck-bg: #071c2c;
+        --ck-surface: #0e2a3d;
+        --ck-surface-soft: #12354a;
+        --ck-field: #0a2233;
+        --ck-text: #f7f3ea;
+        --ck-text-muted: #b8ccd4;
+        --ck-border: #31536a;
+        --ck-primary: #72d6df;
+        --ck-primary-hover: #9be6ec;
+        --ck-success: #79d49c;
+        --ck-warning: #ffd166;
+        --ck-danger: #ff8b91;
+        --ck-overlay: rgba(0, 0, 0, 0.72);
+        --ck-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+    }
+}
+
+body {
+    background-color: var(--ck-bg) !important;
+    color: var(--ck-text) !important;
+    transition: background-color 160ms ease, color 160ms ease;
+}
+
+.container,
+main,
+.settings-container,
+.split-button-options,
+.modal-content {
+    background-color: var(--ck-surface) !important;
+    color: var(--ck-text) !important;
+    border-color: var(--ck-border) !important;
+    box-shadow: var(--ck-shadow);
+}
+
+.settings-container,
+.session-item,
+#status,
+kbd {
+    background-color: var(--ck-surface-soft) !important;
+    color: var(--ck-text) !important;
+    border-color: var(--ck-border) !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+.settings-header,
+.settings-subheader,
+.setting-label,
+.ai-provider-option,
+.session-title,
+.text {
+    color: var(--ck-text) !important;
+}
+
+.subtitle,
+.info-text,
+.small-info-text,
+.session-meta,
+.time,
+.status-message,
+#folder {
+    color: var(--ck-text-muted) !important;
+}
+
+.signature,
+a,
+.name {
+    color: var(--ck-primary) !important;
+}
+
+input,
+select,
+textarea {
+    background: var(--ck-field) !important;
+    color: var(--ck-text) !important;
+    border-color: var(--ck-border) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--ck-text-muted);
+    opacity: 0.8;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+    outline: 3px solid var(--ck-primary) !important;
+    outline-offset: 3px;
+}
+
+.export-btn,
+#exportSettings,
+#choose-folder,
+#forget-folder,
+#save-as,
+#save-folder,
+#copy,
+#discard {
+    background: var(--ck-surface) !important;
+    color: var(--ck-primary) !important;
+    border-color: var(--ck-primary) !important;
+}
+
+.export-btn:hover,
+#exportSettings:hover,
+#choose-folder:hover,
+#forget-folder:hover,
+#save-as:hover,
+#save-folder:hover,
+#copy:hover,
+#discard:hover {
+    background: var(--ck-primary) !important;
+    color: var(--ck-bg) !important;
+}
+
+.split-button-options a,
+.speaker-filters button {
+    background: var(--ck-surface) !important;
+    color: var(--ck-text) !important;
+}
+
+.split-button-options a:hover,
+.speaker-filters button:hover,
+.session-item:hover,
+.copy-btn:hover {
+    background: var(--ck-surface-soft) !important;
+}
+
+.speaker-filters button.active {
+    background: var(--ck-primary) !important;
+    color: var(--ck-bg) !important;
+}
+
+.caption {
+    border-color: var(--ck-border) !important;
+}
+
+.copy-btn svg {
+    fill: var(--ck-text-muted) !important;
+}
+
+.modal {
+    background-color: var(--ck-overlay) !important;
+}
+
+.close-modal {
+    color: var(--ck-text-muted) !important;
+}
+
+.close-modal:hover {
+    color: var(--ck-text) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

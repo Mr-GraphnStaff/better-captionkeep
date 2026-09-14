@@ -1,6 +1,6 @@
 # Better CaptionKeep Privacy Policy
 
-Effective date: September 9, 2026
+Effective date: September 12, 2026
 
 Better CaptionKeep, by Señor Farris, is an independent Microsoft Edge extension for capturing, reviewing, and exporting live captions from Microsoft Teams. This policy describes the Better CaptionKeep fork, including its optional AI handoff features.
 
@@ -8,7 +8,7 @@ Better CaptionKeep, by Señor Farris, is an independent Microsoft Edge extension
 
 The extension reads displayed Teams captions, speaker names, meeting titles, and timestamps. When attendee tracking is enabled, it also reads participant names, roles, and observed join/leave information. Meeting text may contain personal or sensitive information depending on what participants say. The extension reads captions from the Teams page; it does not record microphone audio or video.
 
-It also handles user preferences, such as capture settings, export format, filename patterns, save locations, and selected AI providers. Optional provider organization identifiers and temporary speaker aliases are handled when entered by the user.
+It also handles user preferences, such as capture settings, export format, filename patterns, save locations, selected AI providers, approved provider workspace URLs, custom masking terms, and temporary speaker aliases. An administrator may supply read-only managed settings through the browser's enterprise-policy system.
 
 ## Storage and use
 
@@ -20,11 +20,17 @@ The extension does not operate a developer-hosted transcript collection service.
 
 ## Optional AI handoffs
 
-If the user enables automatic AI summaries and selects providers, the extension can open provider websites with a prompt containing meeting transcript information after a meeting ends. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), and Gemini (Google).
+If the user enables AI handoff and selects providers, the extension opens an internal review page after a meeting ends. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
 
-The prompt is placed in the destination URL's query parameters. Opening that URL transmits the included text to the selected provider, even before the user submits anything further on its website. URLs may also appear in browser history and provider or network logs. Provider terms and privacy policies govern their handling and retention of this information.
+The transcript prompt is not placed in a provider URL and is not automatically pasted or submitted. A temporary local copy is loaded into extension-page memory for review and then removed from extension storage. The user must explicitly copy it and paste or attach it in a provider workspace. Provider terms and privacy policies govern information the user submits there.
 
-AI handoffs are optional. Keep the automatic AI summary setting disabled if you do not want transcript information sent this way. Disabling it does not delete information already sent. Browser-synchronized preferences may carry an enabled setting to another installation.
+AI handoffs are optional. Better CaptionKeep warns users to verify that the opened destination is the organization-approved workspace rather than a personal session. Browser-synchronized preferences may carry an enabled setting to another installation.
+
+## Privacy Scrubber
+
+Privacy Scrubber performs deterministic pattern matching entirely inside the extension. It can mask common email addresses, phone numbers, valid Social Security number formats, Luhn-valid payment-card numbers, IP addresses, labeled dates of birth, labeled medical or member identifiers, optional profanity, and user-defined terms. It can create cleaned copy/export output and a cleaned AI-handoff prompt while retaining the original captured session.
+
+Pattern matching can miss sensitive information and can mask harmless text. It is a disclosure-reduction aid, not a data-loss-prevention system, legal determination, or guarantee of HIPAA, PCI DSS, GDPR, or other compliance. Users must review cleaned output before sharing it.
 
 ## Sharing and limited use
 
@@ -36,7 +42,7 @@ The use of user data is limited to providing or improving the extension's single
 
 Saved-session history is managed in local browser storage. The current implementation limits session history to ten sessions and may remove older sessions when limits are reached. This limit does not mean all temporary or recovery data is immediately removed.
 
-Users can delete individual saved sessions or use Clear All in session history. These controls do not delete exported files, clipboard contents, browser history, synchronized preferences, or data already transmitted to AI providers. Manage those copies through the applicable browser, operating-system, storage-service, or provider controls. Uninstalling the extension removes its local extension storage through the browser; separately manage synchronized settings and copies outside the extension.
+Users can delete individual saved sessions or use Clear All in session history. These controls do not delete exported files, clipboard contents, browser history, synchronized preferences, managed administrator policy, or data the user submitted to AI providers. Manage those copies through the applicable browser, operating-system, storage-service, administrator, or provider controls. Uninstalling the extension removes its local extension storage through the browser; separately manage synchronized settings and copies outside the extension.
 
 ## Meeting participation and security
 

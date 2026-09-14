@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Better CaptionKeep — Review AI handoff</title>
+    <link rel="stylesheet" href="theme.css">
+    <style>
+        body { max-width: 860px; margin: 0 auto; padding: 36px 24px 56px; color: var(--ck-text); background: var(--ck-bg); font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        main { display: grid; gap: 20px; }
+        h1, h2, p { margin-top: 0; }
+        h1 { margin-bottom: 8px; }
+        .intro { color: var(--ck-text-muted); }
+        .workspace-warning { padding: 16px 18px; border: 1px solid var(--ck-border); border-left: 5px solid var(--ck-primary); border-radius: 12px; background: var(--ck-surface); }
+        .workspace-warning h2 { margin-bottom: 6px; font-size: 1.05rem; }
+        .workspace-warning p { margin-bottom: 0; }
+        .scrubber-control { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border: 1px solid var(--ck-border); border-radius: 12px; background: var(--ck-surface); }
+        .scrubber-control > div { flex: 1; }
+        .scrubby-mascot { width: 64px; height: 64px; object-fit: contain; flex: 0 0 auto; }
+        .scrubber-control h2 { margin-bottom: 4px; font-size: 1.05rem; }
+        .scrubber-control p { margin-bottom: 0; color: var(--ck-text-muted); }
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; flex: 0 0 auto; }
+        .toggle-switch input { width: 1px; height: 1px; opacity: 0; }
+        .slider { position: absolute; inset: 0; border-radius: 26px; background: var(--ck-border); cursor: pointer; transition: background .2s ease; }
+        .slider::before { position: absolute; content: ""; width: 20px; height: 20px; left: 3px; bottom: 3px; border-radius: 50%; background: var(--ck-surface); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s ease; }
+        input:checked + .slider { background: var(--ck-success); }
+        input:checked + .slider::before { transform: translateX(24px); }
+        input:focus-visible + .slider { outline: 3px solid var(--ck-primary); outline-offset: 3px; }
+        textarea { box-sizing: border-box; width: 100%; min-height: 320px; resize: vertical; padding: 14px; border: 1px solid var(--ck-border); border-radius: 12px; color: var(--ck-text); background: var(--ck-surface); font: 14px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
+        .actions, #providers { display: flex; flex-wrap: wrap; gap: 12px; }
+        button, a.provider-link { box-sizing: border-box; min-height: 42px; padding: 9px 14px; border: 1px solid var(--ck-border); border-radius: 9px; color: var(--ck-text); background: var(--ck-surface); font: inherit; text-decoration: none; cursor: pointer; }
+        button.primary, a.provider-link { color: var(--ck-bg); background: var(--ck-primary); border-color: var(--ck-primary); }
+        button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 3px solid var(--ck-primary); outline-offset: 2px; }
+        #providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); }
+        .provider-card { display: grid; align-content: start; gap: 10px; padding: 16px; border: 1px solid var(--ck-border); border-radius: 12px; background: var(--ck-surface); }
+        .provider-card h3, .provider-card p { margin: 0; }
+        .provider-card p { color: var(--ck-text-muted); font-size: .9rem; }
+        .provider-link { justify-self: start; }
+        #status { min-height: 24px; margin-bottom: 0; color: var(--ck-text-muted); }
+        @media (max-width: 560px) { body { padding: 22px 14px 40px; } }
+    </style>
+    <script src="theme.js" defer></script>
+    <script src="configuration.js" defer></script>
+    <script src="aiDestinations.js" defer></script>
+    <script src="privacyScrubber.js" defer></script>
+    <script src="handoff.js" defer></script>
+</head>
+<body>
+<main>
+    <header>
+        <h1>Review your AI handoff</h1>
+        <p class="intro">Review or remove sensitive details before copying. Opening an assistant does not send this transcript—you decide whether to paste or attach it there.</p>
+    </header>
+    <section class="workspace-warning" aria-labelledby="workspaceWarningTitle">
+        <h2 id="workspaceWarningTitle">Confirm the destination workspace</h2>
+        <p>AI assistants can keep personal and enterprise workspaces in the same browser session. Before pasting, confirm the opened page shows the organization approved for this meeting.</p>
+    </section>
+    <section class="scrubber-control" aria-labelledby="scrubberTitle">
+        <img class="scrubby-mascot" src="icons/scrubby-256.png" alt="Scrubby, the Better CaptionKeep privacy mascot">
+        <div>
+            <h2 id="scrubberTitle">Privacy Scrubber</h2>
+            <p id="scrubberMode">Loading your privacy preference…</p>
+        </div>
+        <label class="toggle-switch" aria-label="Privacy Scrubber">
+            <input type="checkbox" id="privacyScrubberToggle" checked aria-describedby="scrubberMode">
+            <span class="slider"></span>
+        </label>
+    </section>
+    <textarea id="prompt" aria-label="Editable cleaned meeting prompt"></textarea>
+    <div class="actions">
+        <button class="primary" id="copy">Copy prompt</button>
+        <button id="discard">Discard handoff</button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <section aria-labelledby="providerTitle">
+        <h2 id="providerTitle">Choose an approved assistant</h2>
+        <div id="providers"></div>
+    </section>
+</main>
+</body>
+</html>

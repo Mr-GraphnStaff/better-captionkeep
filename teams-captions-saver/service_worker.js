@@ -1,3 +1,5 @@
+importScripts('sessionManager.js');
+let historyQueue = Promise.resolve();
 // --- Utility Functions ---
 function getSanitizedMeetingName(fullTitle) {
     if (!fullTitle) return "Meeting";
@@ -18,13 +20,13 @@ function sanitizeSubfolderPath(path) {
     return path
         .split(/[\\/]+/)
         .map(segment => segment.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '_'))
-        .filter(Boolean)
+        .filter(segment => segment && segment !== '.' && segment !== '..')
         .join('/');
 }
 
 async function resolveSavePreferences({ forAutoSave = false } = {}) {
     const settings = await chrome.storage.sync.get(['saveAsType', 'saveLocation']);
-    const saveAsType = settings.saveAsType || 'prompt';
+    const saveAsType = settings.saveAsType === 'default' ? 'downloads' : (settings.saveAsType || 'prompt');
 
     // Auto-save should never show a dialog
     const saveAs = !forAutoSave && saveAsType === 'prompt';
@@ -32,92 +34,18 @@ async function resolveSavePreferences({ forAutoSave = false } = {}) {
         ? sanitizeSubfolderPath(settings.saveLocation || '')
         : '';
 
-    return { saveAs, subfolder };
+    return { saveAs, subfolder, forAutoSave };
 }
 
 
-const AI_ASSISTANT_TARGETS = {
-    chatgpt: {
-        name: 'ChatGPT',
-        buildUrl(prompt) {
-            return `https://chat.openai.com/?q=${encodeURIComponent(prompt)}`;
-        }
-    },
-    claude: {
-        name: 'Claude',
-        buildUrl(prompt) {
-            return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
-        }
-    },
-    claude_console: {
-        name: 'Claude (Console)',
-        buildUrl(prompt, { orgId = '' } = {}) {
-            const url = new URL('https://console.anthropic.com/workbench');
-            url.searchParams.set('input', prompt);
-            if (orgId) {
-                url.searchParams.set('organization', orgId);
-            }
-            return url.toString();
-        }
-    },
-    gemini: {
-        name: 'Gemini',
-        buildUrl(prompt) {
-            return `https://gemini.google.com/app?hl=en&q=${encodeURIComponent(prompt)}`;
-        }
-    }
-};
-
-const AI_ASSISTANT_PROMPT_LIMIT = 12000;
-
-function sanitizePromptForUrl(prompt) {
-    if (typeof prompt !== 'string') {
-        return '';
-    }
-
-    const trimmed = prompt.trim();
-    if (trimmed.length <= AI_ASSISTANT_PROMPT_LIMIT) {
-        return trimmed;
-    }
-
-    const notice = '\n[Prompt truncated for URL length]';
-    const baseLimit = Math.max(0, AI_ASSISTANT_PROMPT_LIMIT - notice.length);
-    const truncated = trimmed.slice(0, baseLimit);
-    return `${truncated}${notice}`;
-}
+const AI_ASSISTANT_TARGETS = {chatgpt:true, claude:true, claude_console:true, copilot:true, gemini:true};
 
 async function openAiAssistantTabs(providers, prompt, meetingTitle) {
-    if (!Array.isArray(providers) || providers.length === 0) {
-        return;
-    }
-
-    const { aiAssistantOrgId } = await chrome.storage.sync.get(['aiAssistantOrgId']);
-    const orgId = typeof aiAssistantOrgId === 'string' ? aiAssistantOrgId.trim() : '';
-
-    const sanitizedPrompt = sanitizePromptForUrl(prompt);
-    if (!sanitizedPrompt) {
-        console.warn('[Service Worker] AI automation skipped because prompt was empty.');
-        return;
-    }
-    const uniqueProviders = [...new Set(providers)];
-
-    for (const [index, providerKey] of uniqueProviders.entries()) {
-        const target = AI_ASSISTANT_TARGETS[providerKey];
-        if (!target || typeof target.buildUrl !== 'function') {
-            console.warn(`[Service Worker] Unknown AI provider requested: ${providerKey}`);
-            continue;
-        }
-
-        const url = target.buildUrl(sanitizedPrompt, { orgId });
-        try {
-            await chrome.tabs.create({ url, active: index === 0 });
-            console.log(`[Service Worker] Opened ${target.name} with meeting prompt: ${meetingTitle || 'Meeting'}`);
-        } catch (error) {
-            console.error(`[Service Worker] Failed to open ${target.name} tab:`, error);
-        }
-    }
+    if (!Array.isArray(providers) || !providers.length || typeof prompt !== 'string') return;
+    const id = `handoff_${crypto.randomUUID()}`;
+    await chrome.storage.local.set({[id]:{providers:providers.filter(key => Object.hasOwn(AI_ASSISTANT_TARGETS,key)),prompt,meetingTitle}});
+    await chrome.tabs.create({url:chrome.runtime.getURL(`handoff.html?id=${id}`)});
 }
-
 
 function applyAliasesToTranscript(transcriptArray, aliases = {}) {
     if (Object.keys(aliases).length === 0) {
@@ -211,75 +139,24 @@ function formatAsMarkdown(transcript, attendeeReport) {
     return content;
 }
 
-function formatAsDoc(transcript, attendeeReport) {
-    let body = '';
-    
-    // Add attendee information if available
-    if (attendeeReport && attendeeReport.totalUniqueAttendees > 0) {
-        body += '<h2>Meeting Attendees</h2>';
-        body += `<p><b>Total Attendees:</b> ${attendeeReport.totalUniqueAttendees}</p>`;
-        body += `<p><b>Meeting Start:</b> ${escapeHtml(new Date(attendeeReport.meetingStartTime).toLocaleString())}</p>`;
-        body += '<h3>Attendee List</h3><ul>';
-        attendeeReport.attendeeList.forEach(name => {
-            body += `<li>${escapeHtml(name)}</li>`;
-        });
-        body += '</ul><hr><h2>Transcript</h2>';
-    }
-    
-    body += transcript.map(entry =>
-        `<p><b>${escapeHtml(entry.Name)}</b> (<i>${escapeHtml(entry.Time)}</i>): ${escapeHtml(entry.Text)}</p>`
-    ).join('');
-    
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Meeting Transcript</title></head><body>${body}</body></html>`;
-}
-
-// A simple HTML escaper for the .doc format
-function escapeHtml(str) {
-    return str.replace(/&/g, "&")
-              .replace(/</g, "<")
-              .replace(/>/g, ">")
-              .replace(/"/g, "&quot;")
-            //   .replace(/'/g, "'");
-              .replace(/'/g, "&#039;");
-}
-
 // --- Core Actions ---
-async function downloadFile(filename, content, mimeType, saveAs) {
-    let downloadUrl = '';
-    let shouldRevokeUrl = false;
-
-    try {
-        // Use a Blob URL to avoid data URL size limits that can truncate large exports.
-        const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
-        downloadUrl = URL.createObjectURL(blob);
-        shouldRevokeUrl = true;
-    } catch (error) {
-        console.warn('[Service Worker] Falling back to data URL for download:', error);
-        downloadUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`;
-    }
-
-    chrome.downloads.download({
-        url: downloadUrl,
-        filename: filename,
-        saveAs: saveAs
-    }, () => {
-        if (shouldRevokeUrl) {
-            // Revoke after the download is initiated to avoid memory leaks.
-            setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-        }
-    });
-    
-    // Notify viewer that transcript was saved
-    try {
-        const tabs = await chrome.tabs.query({});
-        for (const tab of tabs) {
-            if (tab.url && tab.url.includes('viewer.html')) {
-                chrome.tabs.sendMessage(tab.id, { message: 'transcript_saved' });
-            }
-        }
-    } catch (error) {
-        // Silent fail if viewer is not open
-    }
+async function downloadFile(filename, content, mimeType, automatic = false) {
+    const id = `export_${crypto.randomUUID()}`;
+    const pathParts = String(filename || '').split(/[\\/]+/);
+    const leafName = (pathParts.pop() || '').replace(/[<>:"|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '');
+    if (!leafName || leafName === '.' || leafName === '..') throw new Error('Invalid export filename');
+    const safeName = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])\./i.test(leafName) ? '_' + leafName : leafName;
+    const safeFolder = sanitizeSubfolderPath(pathParts.join('/'));
+    const browserFilename = safeFolder ? `${safeFolder}/${safeName}` : safeName;
+    await chrome.storage.local.set({[id]:{
+        filename:safeName.slice(0,200),
+        browserFilename:browserFilename.slice(0,240),
+        content,
+        mimeType,
+        automatic,
+        createdAt:new Date().toISOString()
+    }});
+    await chrome.tabs.create({url:chrome.runtime.getURL(`export.html?job=${id}`), active:!automatic});
 }
 
 async function generateFilename(pattern, meetingTitle, format, attendeeReport, recordingStartTime) {
@@ -324,7 +201,7 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
         normalizedOptions = { saveAs: saveOptions !== false };
     }
 
-    const { saveAs = true, subfolder = '' } = normalizedOptions || {};
+    const { forAutoSave = false, subfolder = '' } = normalizedOptions || {};
     const sanitizedFolder = sanitizeSubfolderPath(subfolder);
 
     let content;
@@ -347,16 +224,18 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
 
     // Add extension to filename
     const fullFilename = sanitizedFolder ? `${sanitizedFolder}/${filename}.${extension}` : `${filename}.${extension}`;
-    downloadFile(fullFilename, content, mimeType, saveAs);
+    await downloadFile(fullFilename, content, mimeType, forAutoSave);
 }
 
 // --- State Management ---
 let lastAutoSaveId = null;
 let autoSaveInProgress = false;
 
-async function createViewerTab(transcriptArray) {
-    await chrome.storage.local.set({ captionsToView: transcriptArray });
-    chrome.tabs.create({ url: chrome.runtime.getURL('viewer.html') });
+async function createViewerTab(transcriptArray, sender, message) {
+    const key = `viewer_payload_${crypto.randomUUID()}`;
+    await chrome.storage.local.set({[key]: {transcriptArray, sourceTabId:sender.tab?.id,
+        sessionId:message.sessionId, meetingTitle:message.meetingTitle}});
+    await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?payload=${key}`)});
 }
 
 function updateBadge(isCapturing) {
@@ -419,77 +298,40 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
+        'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
+    if (!handled.has(message?.message)) return false;
+    if (sender.id !== chrome.runtime.id) return false;
+    if (['delete_session','clear_sessions'].includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
 
         switch (message.message) {
             case 'save_session_history':
-                // Save meeting to session history using chrome.storage directly
-                try {
-                    // Since we can't import in service worker, implement inline
-                    const sessionId = `session_${Date.now()}`;
-                    const transcriptArray = message.transcriptArray;
-                    const meetingTitle = message.meetingTitle;
-                    const attendeeReport = message.attendeeReport;
-                    
-                    // Create session metadata
-                    const metadata = {
-                        id: sessionId,
-                        title: meetingTitle || 'Untitled Meeting',
-                        timestamp: new Date().toISOString(),
-                        date: new Date().toLocaleDateString(),
-                        time: new Date().toLocaleTimeString(),
-                        captionCount: transcriptArray.length,
-                        duration: calculateDuration(transcriptArray),
-                        speakers: [...new Set(transcriptArray.map(c => c.Name))].slice(0, 10),
-                        attendees: attendeeReport?.attendeeList?.slice(0, 20),
-                        attendeeCount: attendeeReport?.totalUniqueAttendees || 0,
-                        preview: transcriptArray.slice(0, 3).map(c => `${c.Name}: ${c.Text.substring(0, 50)}`).join(' | ')
-                    };
-                    
-                    // Save transcript in chunks to avoid size limits
-                    const chunks = chunkArray(transcriptArray, 100); // 100 items per chunk
-                    for (let i = 0; i < chunks.length; i++) {
-                        await chrome.storage.local.set({
-                            [`${sessionId}_chunk_${i}`]: chunks[i]
-                        });
-                    }
-                    metadata.chunkCount = chunks.length;
-                    
-                    // Save attendee report if exists
-                    if (attendeeReport) {
-                        await chrome.storage.local.set({
-                            [`${sessionId}_attendees`]: attendeeReport
-                        });
-                    }
-                    
-                    // Update session index
-                    const { session_index = [] } = await chrome.storage.local.get('session_index');
-                    session_index.push(metadata);
-                    
-                    // Keep only last 10 sessions
-                    if (session_index.length > 10) {
-                        const toDelete = session_index.shift();
-                        // Clean up old session data
-                        const keysToDelete = [];
-                        for (let i = 0; i < toDelete.chunkCount; i++) {
-                            keysToDelete.push(`${toDelete.id}_chunk_${i}`);
-                        }
-                        keysToDelete.push(`${toDelete.id}_attendees`);
-                        await chrome.storage.local.remove(keysToDelete);
-                    }
-                    
-                    // Sort by timestamp (newest first)
-                    session_index.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    
-                    await chrome.storage.local.set({ 'session_index': session_index });
-                    console.log('[Service Worker] Session saved to history:', sessionId);
-                    
-                } catch (error) {
-                    console.error('[Service Worker] Failed to save session:', error);
+                {
+                    const operation = historyQueue.then(async () => {
+                        const manager = new SessionManager(true);
+                        await manager.saveSession(message.transcriptArray, message.meetingTitle, message.attendeeReport);
+                        if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
+                    });
+                    historyQueue = operation.catch(() => {});
+                    await operation;
                 }
                 break;
-                
+            case 'delete_session':
+            case 'clear_sessions':
+                {
+                    const operation = historyQueue.then(() => message.message === 'clear_sessions'
+                        ? new SessionManager(true).clearAllSessions()
+                        : new SessionManager(true).deleteSession(message.sessionId));
+                    historyQueue = operation.catch(() => {});
+                    await operation;
+                }
+                break;
+            case 'reset_aliases':
+                await chrome.storage.session.remove('speakerAliases');
+                break;
+
             case 'download_captions':
                 console.log('[Teams Caption Saver] Download request received:', {
                     format: message.format,
@@ -544,12 +386,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             saveOptions,
                             message.attendeeReport
                         );
-                        console.log('Auto-save completed successfully.');
+                        console.log('Export queued; file completion is shown in the export page.');
                     }
                 } catch (error) {
                     console.error('Auto-save failed:', error);
                     // Reset state on error to allow retry
                     lastAutoSaveId = null;
+                    throw error;
                 } finally {
                     autoSaveInProgress = false;
                 }
@@ -560,7 +403,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
 
             case 'display_captions':
-                await createViewerTab(message.transcriptArray);
+                await createViewerTab(message.transcriptArray, sender, message);
                 break;
             
             case 'update_badge_status':
@@ -579,7 +422,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 // Could implement error reporting here
                 break;
         }
-    })();
+    })().then(() => sendResponse({ok:true}), error => sendResponse({ok:false, error:error.message}));
     
     return true; // Indicates that the response will be sent asynchronously
 });

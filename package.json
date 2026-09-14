@@ -4,8 +4,13 @@
   "private": true,
   "description": "Developer tooling for Better CaptionKeep for Microsoft Edge.",
   "scripts": {
+    "test": "node --test tests/*.test.cjs",
     "lint": "node scripts/check-extension.mjs",
     "build": "web-ext build --source-dir teams-captions-saver --artifacts-dir dist --overwrite-dest",
+    "build:targets": "node scripts/build-browser-targets.mjs && web-ext build --source-dir dist/chrome-unpacked --artifacts-dir dist --overwrite-dest && web-ext build --source-dir dist/edge-unpacked --artifacts-dir dist --overwrite-dest",
+    "build:chrome-test": "node scripts/build-browser-targets.mjs chrome && web-ext build --source-dir dist/chrome-unpacked --artifacts-dir dist --overwrite-dest",
+    "build:edge-test": "node scripts/build-browser-targets.mjs edge && web-ext build --source-dir dist/edge-unpacked --artifacts-dir dist --overwrite-dest",
+    "release:candidate": "npm test && npm run lint && npm run build && npm run build:targets && node scripts/verify-release.mjs",
     "start": "web-ext run --source-dir teams-captions-saver --target=chromium"
   },
   "devDependencies": {
