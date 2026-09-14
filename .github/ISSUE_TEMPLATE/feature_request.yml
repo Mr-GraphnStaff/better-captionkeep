@@ -1,0 +1,55 @@
+name: Feature request
+description: Propose an improvement to Better CaptionKeep
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain the user problem without including confidential meeting information.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe what Better CaptionKeep should do from the user's perspective.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: data_impact
+    attributes:
+      label: Could this change data handling, permissions, or network access?
+      options:
+        - "No"
+        - "Yes"
+        - "Unsure"
+    validations:
+      required: true
+  - type: textarea
+    id: impact_details
+    attributes:
+      label: Data, permission, or privacy details
+      description: Identify any new browser permission, site access, storage, export, or external-service behavior.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that would demonstrate the feature works.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Final check
+      options:
+        - label: I searched existing issues for the same request.
+          required: true
+        - label: I did not include confidential meeting or account information.
+          required: true
