@@ -120,6 +120,40 @@ test('Google Meet empty caption fixture contains structure but no meeting conten
     assert(!JSON.stringify(fixture).includes('pxs-'));
     assert(!JSON.stringify(fixture).includes('@'));
 });
+test('Google Meet coordinator exposes captured captions through the shared popup contract',()=>{
+    const messages=[];
+    let providerEventHandler;
+    let messageHandler;
+    const adapter={
+        isMeetingPresent:()=>true,
+        start(handler){providerEventHandler=handler;},
+        stop(){}
+    };
+    const registry={
+        create:()=>adapter,
+        normalizeCaption:caption=>Object.freeze({...caption})
+    };
+    const chrome={runtime:{
+        sendMessage(message){messages.push(message);return Promise.resolve({ok:true});},
+        onMessage:{addListener(handler){messageHandler=handler;}}
+    }};
+    const context=vm.createContext({
+        CaptionKeepProviderRegistry:registry,chrome,console:{log(){}},Date,MutationObserver:class{},
+        document:{title:'Meet test'},window:{location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){}},globalThis:null
+    });
+    context.globalThis=context;
+    vm.runInContext(read('googleMeetContentScript.js'),context);
+    providerEventHandler({type:'caption-source-available'});
+    providerEventHandler({type:'caption-upsert',caption:{Name:'Tester',Text:'Synthetic words',Time:'08:12',capturedAt:'2026-09-14T13:12:00Z',key:'meet-1'}});
+    let status;
+    messageHandler({message:'get_status'},null,response=>{status=response;});
+    assert.equal(status.capturing,true);
+    assert.equal(status.captionCount,1);
+    let transcript;
+    messageHandler({message:'get_transcript_for_copying'},null,response=>{transcript=response.transcriptArray;});
+    assert.equal(transcript[0].Text,'Synthetic words');
+    assert(messages.some(message=>message.message==='live_caption_update'&&message.type==='new'));
+});
 test('theme choices are shared by every extension page',()=>{
     const themeSource=read('theme.js');
     for(const choice of ['captionkeep','light','midnight','system']) assert(themeSource.includes(`'${choice}'`));
