@@ -42,6 +42,7 @@
         "https://teams.cloud.microsoft/*"
       ],
       "js": [
+        "providerRegistry.js",
         "configuration.js",
         "content_script.js"
       ]
