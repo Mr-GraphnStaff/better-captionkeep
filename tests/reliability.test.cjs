@@ -167,6 +167,27 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     storageListeners[0]({trackCaptions:{newValue:true}},'sync');
     assert.equal(adapter.startCount,2);
 });
+test('Google Meet does not start capture when caption tracking is disabled at load',async()=>{
+    let startCount=0;
+    let messageHandler;
+    const adapter={isMeetingPresent:()=>true,start(){startCount++;},stop(){}};
+    const chrome={
+        runtime:{sendMessage:()=>Promise.resolve(),onMessage:{addListener(handler){messageHandler=handler;}}},
+        storage:{sync:{get:async()=>({trackCaptions:false})},onChanged:{addListener(){}}}
+    };
+    const context=vm.createContext({
+        CaptionKeepProviderRegistry:{create:()=>adapter,normalizeCaption:caption=>caption},chrome,Date,MutationObserver:class{},
+        console:{log(){}},document:{title:'Meet test'},window:{location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){}},globalThis:null
+    });
+    context.globalThis=context;
+    vm.runInContext(read('googleMeetContentScript.js'),context);
+    await Promise.resolve();
+    let status;
+    messageHandler({message:'get_status'},null,response=>{status=response;});
+    assert.equal(startCount,0);
+    assert.equal(status.capturing,false);
+    assert.equal(status.captureState,'paused');
+});
 test('theme choices are shared by every extension page',()=>{
     const themeSource=read('theme.js');
     for(const choice of ['captionkeep','light','midnight','system']) assert(themeSource.includes(`'${choice}'`));
