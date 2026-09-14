@@ -29,4 +29,6 @@ History, export, themes, Scrubby, AI handoff, configuration, and enterprise poli
 
 ## Google Meet implementation gate
 
-Do not invent selectors from third-party examples or documentation. The Google Meet adapter requires sanitized fixtures derived from the live browser surface, followed by Chrome and Edge UAT. Host permissions will be added only with a functioning adapter so the extension keeps least-privilege access during development.
+Do not invent selectors from third-party examples or documentation. The Google Meet adapter requires sanitized fixtures derived from the live browser surface, followed by Chrome and Edge UAT.
+
+The first live probe confirmed an exact `https://meet.google.com/*` scope and a semantic caption source at `[role="region"][aria-label="Captions"]`. The empty-state structure is recorded in `tests/fixtures/google-meet/captions-empty.json` without account, meeting-link, or transcript content. The speaker/text row fixture remains required before caption parsing is considered implemented.

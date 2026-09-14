@@ -68,6 +68,58 @@ test('provider captions require stable identity and capture time',()=>{
     assert.throws(()=>normalize({Text:'Hello',capturedAt:'2026-09-13T15:30:00Z'}),/stable key/);
     assert.throws(()=>normalize({Text:'Hello',key:'meet-1',capturedAt:'later'}),/timestamp/);
 });
+test('Google Meet adapter uses the live semantic caption region and reports lifecycle changes',()=>{
+    const observers=[];
+    class FakeObserver {
+        constructor(callback){this.callback=callback;observers.push(this);}
+        observe(){}
+        disconnect(){this.disconnected=true;}
+    }
+    const captionSource={};
+    let currentSource=captionSource;
+    const listeners={};
+    const pageWindow={
+        location:{href:'https://meet.google.com/abc-defg-hij'},
+        addEventListener(type,callback){listeners[type]=callback;},
+        removeEventListener(type){delete listeners[type];}
+    };
+    const pageDocument={body:{},querySelector(selector){
+        assert.equal(selector,'[role="region"][aria-label="Captions"]');
+        return currentSource;
+    }};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    assert.equal(adapter.isMeetingPresent(),true);
+    assert.equal(adapter.getCaptionSource(),captionSource);
+    assert.equal(events[0].type,'caption-source-available');
+    currentSource=null;observers[0].callback();
+    assert.equal(events.at(-1).type,'caption-source-unavailable');
+    assert.equal(events.at(-1).recoverable,true);
+    pageWindow.location.href='https://meet.google.com/';observers[0].callback();
+    assert.equal(events.at(-1).type,'meeting-ended');
+    adapter.stop();
+    assert.equal(adapter.getCaptionSource(),null);
+});
+test('Google Meet manifest scope is exact and isolated from Teams capture',()=>{
+    const manifest=JSON.parse(read('manifest.json'));
+    assert(manifest.host_permissions.includes('https://meet.google.com/*'));
+    const meetEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://meet.google.com/*'));
+    assert.deepEqual(meetEntry.js,['providerRegistry.js','googleMeetProvider.js','googleMeetContentScript.js']);
+    assert(!meetEntry.js.includes('content_script.js'));
+});
+test('Google Meet empty caption fixture contains structure but no meeting content',()=>{
+    const fixture=JSON.parse(readProject('tests/fixtures/google-meet/captions-empty.json'));
+    assert.equal(fixture.meetingContentIncluded,false);
+    assert.equal(fixture.captionSource.role,'region');
+    assert.equal(fixture.captionSource.ariaLabel,'Captions');
+    assert.equal(fixture.captionSource.empty,true);
+    assert(!JSON.stringify(fixture).includes('pxs-'));
+    assert(!JSON.stringify(fixture).includes('@'));
+});
 test('theme choices are shared by every extension page',()=>{
     const themeSource=read('theme.js');
     for(const choice of ['captionkeep','light','midnight','system']) assert(themeSource.includes(`'${choice}'`));
@@ -289,8 +341,11 @@ test('popup uses a compact three-platform launcher without an inline Teams warni
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
     assert(popup.includes('aria-label="Open Microsoft Teams"'));
     assert(popup.includes('platform-coming-soon.html?platform=zoom'));
-    assert(popup.includes('platform-coming-soon.html?platform=meet'));
-    assert(script.includes("textContent = 'Teams is not open yet.'"));
+    assert(popup.includes('href="https://meet.google.com"'));
+    assert(popup.includes('aria-label="Open Google Meet"'));
+    assert(script.includes('getActiveMeetingTab'));
+    assert(script.includes('https:\\/\\/meet\\.google\\.com'));
+    assert(script.includes("textContent = 'Open Teams or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{

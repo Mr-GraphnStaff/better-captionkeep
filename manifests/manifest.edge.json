@@ -21,7 +21,8 @@
   },
   "host_permissions": [
     "https://teams.microsoft.com/*",
-    "https://teams.cloud.microsoft/*"
+    "https://teams.cloud.microsoft/*",
+    "https://meet.google.com/*"
   ],
   "action": {
     "default_icon": {
@@ -46,6 +47,16 @@
         "providerRegistry.js",
         "configuration.js",
         "content_script.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "providerRegistry.js",
+        "googleMeetProvider.js",
+        "googleMeetContentScript.js"
       ]
     }
   ],
