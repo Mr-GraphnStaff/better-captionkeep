@@ -31,6 +31,43 @@ function harness() {
 test('all shipped scripts parse',()=>{
     for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))) new vm.Script(read(name),{filename:name});
 });
+test('provider registry resolves adapters without leaking provider selectors',()=>{
+    const context=vm.createContext({URL,globalThis:null});
+    context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    const registry=context.CaptionKeepProviderRegistry;
+    registry.register({id:'google-meet',matches:url=>url.hostname==='meet.google.com',create:providerContext=>({providerContext,start(){},stop(){}})});
+    assert.deepEqual(Array.from(registry.list()),['google-meet']);
+    assert.equal(registry.find('https://teams.microsoft.com/'),null);
+    const adapter=registry.create('https://meet.google.com/abc-defg-hij',{debug:true});
+    assert.equal(adapter.providerContext.providerId,'google-meet');
+    assert.equal(adapter.providerContext.url.hostname,'meet.google.com');
+    assert.equal(adapter.providerContext.debug,true);
+});
+test('provider registry rejects malformed and duplicate adapters',()=>{
+    const context=vm.createContext({URL,globalThis:null});
+    context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    const registry=context.CaptionKeepProviderRegistry;
+    assert.throws(()=>registry.register({id:'Google Meet'}),/Provider id/);
+    registry.register({id:'teams',matches:()=>true,create:()=>({start(){},stop(){}})});
+    assert.throws(()=>registry.register({id:'teams',matches:()=>true,create:()=>({})}),/already registered/);
+    const brokenContext=vm.createContext({URL,globalThis:null});
+    brokenContext.globalThis=brokenContext;
+    vm.runInContext(read('providerRegistry.js'),brokenContext);
+    brokenContext.CaptionKeepProviderRegistry.register({id:'broken',matches:()=>true,create:()=>({start(){}})});
+    assert.throws(()=>brokenContext.CaptionKeepProviderRegistry.create('https://example.com/'),/adapter stop/);
+});
+test('provider captions require stable identity and capture time',()=>{
+    const context=vm.createContext({URL,globalThis:null});
+    context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    const normalize=context.CaptionKeepProviderRegistry.normalizeCaption;
+    const caption=normalize({Name:' Speaker ',Text:' Hello ',Time:'10:30',capturedAt:'2026-09-13T15:30:00Z',key:' meet-1 '});
+    assert.deepEqual({...caption},{Name:'Speaker',Text:'Hello',Time:'10:30',capturedAt:'2026-09-13T15:30:00Z',key:'meet-1'});
+    assert.throws(()=>normalize({Text:'Hello',capturedAt:'2026-09-13T15:30:00Z'}),/stable key/);
+    assert.throws(()=>normalize({Text:'Hello',key:'meet-1',capturedAt:'later'}),/timestamp/);
+});
 test('theme choices are shared by every extension page',()=>{
     const themeSource=read('theme.js');
     for(const choice of ['captionkeep','light','midnight','system']) assert(themeSource.includes(`'${choice}'`));
@@ -151,7 +188,7 @@ test('manifest supports both official Teams web hosts',()=>{
         assert(manifest.content_scripts.some(entry=>entry.matches.includes(host)));
     }
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
-    assert.equal(manifest.content_scripts[0].js[0],'configuration.js');
+    assert.deepEqual(manifest.content_scripts[0].js.slice(0,2),['providerRegistry.js','configuration.js']);
 });
 test('Chrome and Edge test manifests preserve the shared runtime contract',()=>{
     const source=JSON.parse(read('manifest.json'));

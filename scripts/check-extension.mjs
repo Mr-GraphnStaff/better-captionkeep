@@ -100,6 +100,7 @@ async function validateManifest(manifest) {
     'configuration.js',
     'content_script.js',
     'privacyScrubber.js',
+    'providerRegistry.js',
     'managed-schema.json',
     'popup.html',
     'popup.js',
@@ -118,7 +119,10 @@ async function validateManifest(manifest) {
   }
 
   const declaredContentScripts = (manifest.content_scripts ?? []).flatMap(entry => entry.js ?? []);
-  if (declaredContentScripts[0] !== 'configuration.js') {
+  if (declaredContentScripts[0] !== 'providerRegistry.js') {
+    errors.push('providerRegistry.js must load before provider content scripts.');
+  }
+  if (declaredContentScripts[1] !== 'configuration.js') {
     errors.push('configuration.js must load before the Teams content script.');
   }
   for (const script of declaredContentScripts) {

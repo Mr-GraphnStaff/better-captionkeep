@@ -44,7 +44,7 @@ Exports support Save As, a remembered direct folder where the browser permits it
 
 ## Install for local testing
 
-Version 4.6 is published on Microsoft Edge Add-ons. Version 4.7 completed internal QA and now serves as the accepted stabilization baseline for 5.0 development; it will not be submitted as a separate Store update.
+Version 4.6 is published on Microsoft Edge Add-ons. Version 4.7 is feature-complete, QA/UAT-approved, and staged as the next Store update once the current 4.6 listing review clears. Version 5.0 development proceeds in parallel from that accepted stabilization baseline.
 
 ### Chrome and Edge 5.0 development sideloads
 
@@ -78,7 +78,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 completed internal QA and has been rolled forward into 5.0 rather than submitted separately. Version 5.0 is the next planned public release. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
+Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 is staged as the next Store update after that review clears. Version 5.0 is in parallel development with Google Meet as its first new capture target. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 

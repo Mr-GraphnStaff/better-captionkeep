@@ -1,18 +1,32 @@
 # Meeting Platform Adapter Boundary
 
-Version 4.7 keeps the production runtime Teams-only. Zoom is a feasibility track, not a hidden beta in the release candidate.
+Version 5.0 introduces a provider boundary so Microsoft Teams, Google Meet, and later meeting platforms can share the same transcript services without sharing fragile DOM assumptions. Google Meet is the first new capture target. Microsoft Teams remains the working baseline while its current capture logic is moved behind this boundary.
 
-A future platform adapter must provide:
+## Provider definition
 
-- exact host match patterns and least-privilege permissions;
-- meeting-presence detection;
-- caption-source discovery and change observation;
-- normalized caption records (`Name`, `Text`, `Time`, `capturedAt`, stable key);
-- explicit source-unavailable and meeting-ended signals;
-- a test fixture set and documented DOM assumptions.
+Each provider registers a small definition with `CaptionKeepProviderRegistry.register`:
 
-Shared services—history, export, themes, Scrubby, AI handoff, configuration, and policy—must not depend on provider DOM selectors. Provider-specific selectors belong only in the adapter.
+- `id`: stable lowercase identifier such as `teams` or `google-meet`;
+- `matches(url)`: returns whether the provider owns the current meeting page;
+- `create(context)`: creates an isolated runtime adapter for that page.
 
-## Zoom 4.7 decision
+The registry rejects duplicate or malformed providers. It loads before configuration and provider content scripts, but it does not contain provider selectors or request additional host permissions.
 
-No-go for the 4.7 production package. A Zoom web prototype would require new host permissions and live validation against Zoom's current caption DOM and meeting lifecycle. Adding that unverified surface would increase Store review and regression risk. The adapter contract above is the completed 4.7 deliverable; Zoom, Webex, and Google Meet follow in isolated branches after the Teams release.
+## Runtime adapter
+
+An adapter must expose:
+
+- `start(emit)`: begin meeting-presence detection, caption-source discovery, and observation;
+- `stop()`: disconnect observers and timers without losing already captured transcript data.
+
+Provider adapters emit lifecycle events to a future provider-neutral coordinator. Caption events use normalized records containing `Name`, `Text`, `Time`, `capturedAt`, and a stable `key`. The registry validates these records before shared services consume them.
+
+Adapters must also make source-unavailable, source-restored, page-reload, and meeting-ended behavior explicit. Provider-specific selectors and DOM interpretation belong only in the provider adapter.
+
+## Shared-service boundary
+
+History, export, themes, Scrubby, AI handoff, configuration, and enterprise policy must not depend on provider DOM selectors. A mandatory backend is not part of the capture contract; local-first capture remains the product baseline and any future enterprise gateway stays optional.
+
+## Google Meet implementation gate
+
+Do not invent selectors from third-party examples or documentation. The Google Meet adapter requires sanitized fixtures derived from the live browser surface, followed by Chrome and Edge UAT. Host permissions will be added only with a functioning adapter so the extension keeps least-privilege access during development.
