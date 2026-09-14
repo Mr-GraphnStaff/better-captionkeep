@@ -54,7 +54,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 completed internal stabilization and QA, then rolled forward into 5.0 instead of being submitted separately. Version 5.0 is the next planned public release. The [privacy policy](PRIVACY.md) is published. This repository does not imply approval of unreleased versions.
+Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 is feature-complete, QA/UAT-approved, and staged as the next Store update once the current 4.6 listing review clears. Version 5.0 is in parallel development with Google Meet as its first new capture target. The [privacy policy](PRIVACY.md) is published. This repository does not imply approval of unreleased versions.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
