@@ -7,7 +7,9 @@
 
     const transcriptArray = [];
     const sessionStartedAt = new Date();
-    let captureState = 'source unavailable';
+    let captureState = 'initializing';
+    let trackingAllowed = true;
+    let adapterStarted = false;
 
     function cleanTranscript() {
         return transcriptArray.map(caption => ({...caption}));
@@ -16,7 +18,11 @@
     function handleProviderEvent(event) {
         if (event.type === 'caption-source-available') captureState = 'capturing';
         if (event.type === 'caption-source-unavailable') captureState = 'source unavailable';
-        if (event.type === 'meeting-ended') captureState = 'meeting ended';
+        if (event.type === 'meeting-ended') {
+            captureState = 'meeting ended';
+            chrome.runtime.sendMessage({message: 'meeting_ended', sessionId: sessionStartedAt.toISOString()}).catch(() => {});
+        }
+        if (!trackingAllowed) return;
         if (event.type !== 'caption-upsert' || !event.caption) return;
 
         const caption = registry.normalizeCaption(event.caption);
@@ -29,13 +35,37 @@
         }).catch(() => {});
     }
 
-    adapter.start(handleProviderEvent);
-    window.addEventListener('beforeunload', () => adapter.stop());
+    function startAdapter() {
+        if (adapterStarted || !trackingAllowed) return;
+        adapter.start(handleProviderEvent);
+        adapterStarted = true;
+    }
+
+    function stopAdapter(nextState = 'paused') {
+        if (adapterStarted) adapter.stop();
+        adapterStarted = false;
+        captureState = nextState;
+    }
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'sync' || !changes.trackCaptions) return;
+        trackingAllowed = changes.trackCaptions.newValue !== false;
+        if (trackingAllowed) startAdapter();
+        else stopAdapter('paused');
+    });
+
+    chrome.storage.sync.get('trackCaptions').then(({trackCaptions}) => {
+        trackingAllowed = trackCaptions !== false;
+        if (trackingAllowed) startAdapter();
+        else captureState = 'paused';
+    }).catch(() => startAdapter());
+
+    window.addEventListener('beforeunload', () => stopAdapter('page unloading'));
 
     chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         switch (request.message) {
             case 'viewer_ready':
-                sendResponse({streaming: adapter.isMeetingPresent(), sessionId: sessionStartedAt.toISOString(), captionCount: transcriptArray.length});
+                sendResponse({streaming: captureState === 'capturing', sessionId: sessionStartedAt.toISOString(), captionCount: transcriptArray.length});
                 return false;
             case 'get_status':
                 sendResponse({capturing: captureState === 'capturing', captureState, checkpointError: '', captionCount: transcriptArray.length, isInMeeting: adapter.isMeetingPresent(), attendeeCount: 0});
