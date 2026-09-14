@@ -31,7 +31,7 @@ Screenshots below show the current packaged HTML and styling rendered in Microso
 - Choose CaptionKeep, Light, Midnight, or Follow system appearance across every extension page.
 - Work in a branded transcript viewer with a sticky search, speaker-filter, copy, save, and history toolbar.
 - Keep the popup calm with expandable settings sections; everyday capture controls remain visible first.
-- Launch Teams from a compact meeting-app row; Zoom and Google Meet use clearly labeled 5.0 preview pages until their capture adapters are ready.
+- Launch Teams or Google Meet from a compact meeting-app row. Google Meet opens the live 5.0 development target; Zoom remains a clearly labeled preview until its adapter is ready.
 - Export/import user preferences or let administrators enforce selected controls through managed browser policy.
 
 AI handoffs prepare a local, editable prompt for review before you choose whether to copy or share it. Privacy Scrubber is visible and on by default: it masks supported sensitive patterns locally, leaves the saved original unchanged, and requires a second confirmation before an unmasked prompt can be copied. Pattern detection reduces accidental disclosure risk but does not guarantee HIPAA, PCI DSS, or other regulatory compliance. For managed ChatGPT or Claude accounts, first open the approved enterprise workspace and copy its URL into **Settings → Enterprise destinations**. Better CaptionKeep accepts only official HTTPS provider domains, never places transcript text in a provider URL, and asks you to confirm the active workspace before pasting. Preferences, including enterprise destinations and the selected theme, may use browser sync; see the [privacy policy](PRIVACY.md) for the full data-handling details.
@@ -72,7 +72,7 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build`: build a ZIP in `dist/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication.
 
-Release and enterprise references: [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), and the [4.7 release checklist](docs/RELEASE-4.7.md).
+Release and enterprise references: [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the [4.7 release checklist](docs/RELEASE-4.7.md), and the evidence-based [5.0 release gate](docs/RELEASE-5.0.md).
 
 Browser API identifiers such as `chrome.storage` remain unchanged because Edge implements those Chromium extension APIs. Internal source paths remain stable.
 
