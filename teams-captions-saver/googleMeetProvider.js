@@ -5,6 +5,7 @@
     if (!registry) throw new Error('CaptionKeepProviderRegistry must load before Google Meet.');
 
     const CAPTION_SOURCE_SELECTOR = '[role="region"][aria-label="Captions"]';
+    const CAPTION_ENABLE_LABEL = 'Turn on captions';
     const MEETING_PATH = /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}(?:\/|$)/i;
 
     function isMeetingUrl(url) {
@@ -58,6 +59,8 @@
         let captionSource = null;
         let sourceAvailable = false;
         let meetingEnded = false;
+        let autoEnableCaptions = true;
+        let captionEnableAttempted = false;
         let nextCaptionId = 0;
         const rowKeys = new WeakMap();
         const lastTextByKey = new Map();
@@ -117,6 +120,17 @@
             }
         }
 
+        function requestCaptionEnable() {
+            if (!autoEnableCaptions || captionSource || captionEnableAttempted) return false;
+            const control = Array.from(pageDocument.querySelectorAll?.('button, [role="button"]') || [])
+                .find(element => element.getAttribute?.('aria-label') === CAPTION_ENABLE_LABEL);
+            if (!control) return false;
+            captionEnableAttempted = true;
+            control.click();
+            signal('caption-enable-requested');
+            return true;
+        }
+
         function observeCaptionSource(source) {
             disconnectCaptionSource();
             captionSource = source;
@@ -131,6 +145,7 @@
             if (!isMeetingUrl(currentUrl())) {
                 if (!meetingEnded) signal('meeting-ended');
                 meetingEnded = true;
+                captionEnableAttempted = false;
                 disconnectCaptionSource();
                 return;
             }
@@ -138,6 +153,7 @@
             meetingEnded = false;
             const nextSource = pageDocument.querySelector(CAPTION_SOURCE_SELECTOR);
             if (nextSource && nextSource !== captionSource) {
+                captionEnableAttempted = true;
                 observeCaptionSource(nextSource);
                 sourceAvailable = true;
                 signal('caption-source-available');
@@ -147,6 +163,7 @@
                 sourceAvailable = false;
                 signal('caption-source-unavailable', {recoverable: true, reason: 'captions-hidden-or-remounting'});
             }
+            if (!nextSource) requestCaptionEnable();
         }
 
         function start(eventHandler) {
@@ -169,15 +186,21 @@
             sourceAvailable = false;
         }
 
+        function setAutoEnableCaptions(enabled) {
+            autoEnableCaptions = enabled !== false;
+            if (pageObserver && autoEnableCaptions) reconcile();
+        }
+
         return Object.freeze({
             getCaptionSource: () => captionSource,
             getSanitizedStructure: () => sanitizeStructure(captionSource),
             isMeetingPresent: () => isMeetingUrl(currentUrl()),
+            setAutoEnableCaptions,
             start,
             stop
         });
     }
 
     registry.register({id: 'google-meet', matches: url => url.hostname === 'meet.google.com', create: createAdapter});
-    root.CaptionKeepGoogleMeet = Object.freeze({CAPTION_SOURCE_SELECTOR, MEETING_PATH, isMeetingUrl, sanitizeStructure});
+    root.CaptionKeepGoogleMeet = Object.freeze({CAPTION_ENABLE_LABEL, CAPTION_SOURCE_SELECTOR, MEETING_PATH, isMeetingUrl, sanitizeStructure});
 })(globalThis);

@@ -164,6 +164,54 @@ test('Google Meet parser emits semantic rows and updates one stable record acros
     assert.equal(captions[1].caption.Text,'Completed test phrase');
     assert.equal(captions[1].caption.key,stableKey);
 });
+test('Google Meet auto-enables captions once and respects a later manual disable',()=>{
+    const observers=[];
+    class FakeObserver {
+        constructor(callback){this.callback=callback;observers.push(this);}
+        observe(){}
+        disconnect(){}
+    }
+    let clickCount=0;
+    let source=null;
+    const captionButton={
+        getAttribute:name=>name==='aria-label'?'Turn on captions':null,
+        click(){clickCount++;}
+    };
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[captionButton]};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.setAutoEnableCaptions(true);
+    adapter.start(event=>events.push(event));
+    assert.equal(clickCount,1);
+    assert(events.some(event=>event.type==='caption-enable-requested'));
+    observers[0].callback();
+    assert.equal(clickCount,1);
+    source={children:[]};
+    observers[0].callback();
+    source=null;
+    observers[0].callback();
+    assert.equal(clickCount,1);
+});
+test('Google Meet caption auto-enable can be disabled before adapter startup',()=>{
+    class FakeObserver { constructor(callback){this.callback=callback;} observe(){} disconnect(){} }
+    let clickCount=0;
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={
+        body:{},querySelector:()=>null,
+        querySelectorAll:()=>[{getAttribute:()=> 'Turn on captions',click(){clickCount++;}}]
+    };
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    adapter.setAutoEnableCaptions(false);
+    adapter.start(()=>{});
+    assert.equal(clickCount,0);
+});
 test('Google Meet structure probe preserves shape without caption text or identifying attribute values',()=>{
     function element(tagName,attributes={},childNodes=[]){
         return {
@@ -198,6 +246,7 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     const adapter={
         getSanitizedStructure:()=>({version:1,nodeCount:2,truncated:false,tree:{type:'element',tag:'DIV'}}),
         isMeetingPresent:()=>true,
+        setAutoEnableCaptions(value){this.autoEnableCaptions=value;},
         start(handler){providerEventHandler=handler;this.startCount=(this.startCount||0)+1;},
         stop(){this.stopped=true;}
     };
@@ -245,7 +294,7 @@ test('Google Meet coordinator exposes captured captions through the shared popup
 test('Google Meet does not start capture when caption tracking is disabled at load',async()=>{
     let startCount=0;
     let messageHandler;
-    const adapter={isMeetingPresent:()=>true,start(){startCount++;},stop(){}};
+    const adapter={isMeetingPresent:()=>true,setAutoEnableCaptions(){},start(){startCount++;},stop(){}};
     const chrome={
         runtime:{sendMessage:()=>Promise.resolve(),onMessage:{addListener(handler){messageHandler=handler;}}},
         storage:{sync:{get:async()=>({trackCaptions:false})},onChanged:{addListener(){}}}

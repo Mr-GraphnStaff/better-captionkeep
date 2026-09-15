@@ -9,6 +9,7 @@
     const sessionStartedAt = new Date();
     let captureState = 'initializing';
     let trackingAllowed = true;
+    let autoEnableCaptions = true;
     let adapterStarted = false;
 
     function cleanTranscript() {
@@ -48,14 +49,22 @@
     }
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'sync' || !changes.trackCaptions) return;
-        trackingAllowed = changes.trackCaptions.newValue !== false;
-        if (trackingAllowed) startAdapter();
-        else stopAdapter('paused');
+        if (areaName !== 'sync') return;
+        if (changes.autoEnableCaptions) {
+            autoEnableCaptions = changes.autoEnableCaptions.newValue !== false;
+            adapter.setAutoEnableCaptions(autoEnableCaptions);
+        }
+        if (changes.trackCaptions) {
+            trackingAllowed = changes.trackCaptions.newValue !== false;
+            if (trackingAllowed) startAdapter();
+            else stopAdapter('paused');
+        }
     });
 
-    chrome.storage.sync.get('trackCaptions').then(({trackCaptions}) => {
+    chrome.storage.sync.get(['trackCaptions', 'autoEnableCaptions']).then(({trackCaptions, autoEnableCaptions: storedAutoEnable}) => {
         trackingAllowed = trackCaptions !== false;
+        autoEnableCaptions = storedAutoEnable !== false;
+        adapter.setAutoEnableCaptions(autoEnableCaptions);
         if (trackingAllowed) startAdapter();
         else captureState = 'paused';
     }).catch(() => startAdapter());
