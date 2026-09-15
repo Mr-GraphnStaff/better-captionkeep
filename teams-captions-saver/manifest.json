@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Better CaptionKeep",
   "version": "5.0.0",
-  "description": "Save live captions from Microsoft Teams in Microsoft Edge, with TXT and Markdown exports and flexible save locations.",
+  "description": "Capture, protect, review, and export live captions from Microsoft Teams and Google Meet.",
   "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
   "icons": {
     "16": "icons/scribble-16.png",

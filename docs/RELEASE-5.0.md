@@ -1,10 +1,11 @@
 # Better CaptionKeep 5.0 release gate
 
-Version 5.0 is the multi-platform release. Google Meet is the first new live-capture provider; Microsoft Teams remains the regression baseline. Do not merge the Google Meet adapter into `release/5.0` until every required item below has direct evidence.
+Version 5.0 is the next public release after 4.6. The 4.7 candidate is retired and its completed work is carried forward here. Google Meet is the first new live-capture provider; Microsoft Teams remains the regression baseline. Do not merge the Google Meet adapter into `release/5.0` until every required item below has direct evidence.
 
 ## Protected baselines
 
-- [x] Preserve the accepted 4.7 source commit and Store package unchanged.
+- [x] Preserve the retired 4.7 source commit and package unchanged as historical evidence.
+- [x] Keep 4.6 as the live Store baseline until 5.0 passes its release gate.
 - [x] Develop 5.0 work outside `master` and `release/4.7`.
 - [x] Use the protected `release/5.0` review lane.
 
