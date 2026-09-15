@@ -58,6 +58,9 @@
         let captionSource = null;
         let sourceAvailable = false;
         let meetingEnded = false;
+        let nextCaptionId = 0;
+        const rowKeys = new WeakMap();
+        const lastTextByKey = new Map();
 
         function signal(type, details = {}) {
             emit(Object.freeze({providerId: 'google-meet', type, observedAt: new Date().toISOString(), ...details}));
@@ -73,10 +76,54 @@
             captionSource = null;
         }
 
+        function normalizedText(node) {
+            return String(node?.textContent || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function containsImage(node) {
+            if (!node) return false;
+            if (String(node.tagName || '').toUpperCase() === 'IMG') return true;
+            return Array.from(node.children || []).some(containsImage);
+        }
+
+        function captionRows(source) {
+            return Array.from(source?.children || []).flatMap(row => {
+                const blocks = Array.from(row.children || []);
+                if (blocks.length < 2 || !containsImage(blocks[0])) return [];
+                const speaker = normalizedText(blocks[0]) || normalizedText(blocks[0].querySelector?.('img')?.alt) || 'Unknown speaker';
+                const text = normalizedText(blocks[1]);
+                if (!text) return [];
+                return [{row, speaker, text}];
+            });
+        }
+
+        function emitCaptionRows() {
+            const capturedAt = new Date();
+            for (const {row, speaker, text} of captionRows(captionSource)) {
+                let key = rowKeys.get(row);
+                if (!key) {
+                    key = `google-meet-${++nextCaptionId}`;
+                    rowKeys.set(row, key);
+                }
+                if (lastTextByKey.get(key) === text) continue;
+                lastTextByKey.set(key, text);
+                signal('caption-upsert', {caption: {
+                    Name: speaker,
+                    Text: text,
+                    Time: capturedAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
+                    capturedAt: capturedAt.toISOString(),
+                    key
+                }});
+            }
+        }
+
         function observeCaptionSource(source) {
             disconnectCaptionSource();
             captionSource = source;
-            captionObserver = new Observer(() => signal('caption-source-mutated'));
+            captionObserver = new Observer(() => {
+                emitCaptionRows();
+                signal('caption-source-mutated');
+            });
             captionObserver.observe(source, {childList: true, subtree: true, characterData: true});
         }
 
@@ -94,6 +141,7 @@
                 observeCaptionSource(nextSource);
                 sourceAvailable = true;
                 signal('caption-source-available');
+                emitCaptionRows();
             } else if (!nextSource && sourceAvailable) {
                 disconnectCaptionSource();
                 sourceAvailable = false;

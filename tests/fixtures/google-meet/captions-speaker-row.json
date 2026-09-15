@@ -1,0 +1,42 @@
+{
+  "capturedAt": "2026-09-15",
+  "source": "sanitized controlled live Google Meet session",
+  "meetingContentIncluded": false,
+  "captionSource": {
+    "tag": "DIV",
+    "role": "region",
+    "ariaLabel": "Captions",
+    "directChildren": [
+      {
+        "kind": "caption-row",
+        "tag": "DIV",
+        "children": [
+          {
+            "kind": "speaker",
+            "tag": "DIV",
+            "containsImage": true,
+            "containsText": true
+          },
+          {
+            "kind": "caption-text",
+            "tag": "DIV",
+            "containsText": true
+          }
+        ]
+      },
+      {
+        "kind": "non-caption-control",
+        "containsImage": false
+      }
+    ]
+  },
+  "discarded": [
+    "meeting code",
+    "account identity",
+    "speaker label",
+    "spoken caption text",
+    "class names",
+    "style values",
+    "attribute values that may identify a participant"
+  ]
+}
