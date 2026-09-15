@@ -120,12 +120,39 @@ test('Google Meet empty caption fixture contains structure but no meeting conten
     assert(!JSON.stringify(fixture).includes('pxs-'));
     assert(!JSON.stringify(fixture).includes('@'));
 });
+test('Google Meet structure probe preserves shape without caption text or identifying attribute values',()=>{
+    function element(tagName,attributes={},childNodes=[]){
+        return {
+            nodeType:1,tagName,childNodes,
+            attributes:Object.keys(attributes).map(name=>({name})),
+            getAttribute(name){return attributes[name]??null;}
+        };
+    }
+    const liveTree=element('DIV',{role:'region','aria-label':'Captions',class:'generated'},[
+        element('DIV',{'data-message-id':'opaque-123','aria-label':'Private Speaker Name'},[
+            {nodeType:3,textContent:'Private Speaker Name'},
+            element('SPAN',{},[{nodeType:3,textContent:'Sensitive spoken content'}])
+        ])
+    ]);
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const diagnostic=context.CaptionKeepGoogleMeet.sanitizeStructure(liveTree);
+    const serialized=JSON.stringify(diagnostic);
+    assert.equal(diagnostic.version,1);
+    assert(serialized.includes('data-message-id'));
+    assert(!serialized.includes('opaque-123'));
+    assert(!serialized.includes('Private Speaker Name'));
+    assert(!serialized.includes('Sensitive spoken content'));
+    assert(!serialized.includes('generated'));
+});
 test('Google Meet coordinator exposes captured captions through the shared popup contract',async()=>{
     const messages=[];
     const storageListeners=[];
     let providerEventHandler;
     let messageHandler;
     const adapter={
+        getSanitizedStructure:()=>({version:1,nodeCount:2,truncated:false,tree:{type:'element',tag:'DIV'}}),
         isMeetingPresent:()=>true,
         start(handler){providerEventHandler=handler;this.startCount=(this.startCount||0)+1;},
         stop(){this.stopped=true;}
@@ -157,6 +184,10 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     let transcript;
     messageHandler({message:'get_transcript_for_copying'},null,response=>{transcript=response.transcriptArray;});
     assert.equal(transcript[0].Text,'Synthetic words');
+    let diagnostic;
+    messageHandler({message:'get_google_meet_diagnostic'},null,response=>{diagnostic=response.diagnostic;});
+    assert.equal(diagnostic.version,1);
+    assert.equal(diagnostic.tree.tag,'DIV');
     assert(messages.some(message=>message.message==='live_caption_update'&&message.type==='new'));
     providerEventHandler({type:'meeting-ended'});
     assert(messages.some(message=>message.message==='meeting_ended'));
