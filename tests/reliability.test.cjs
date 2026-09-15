@@ -120,6 +120,50 @@ test('Google Meet empty caption fixture contains structure but no meeting conten
     assert(!JSON.stringify(fixture).includes('pxs-'));
     assert(!JSON.stringify(fixture).includes('@'));
 });
+test('Google Meet live speaker fixture is sanitized and records the semantic row boundary',()=>{
+    const fixture=JSON.parse(readProject('tests/fixtures/google-meet/captions-speaker-row.json'));
+    assert.equal(fixture.meetingContentIncluded,false);
+    const row=fixture.captionSource.directChildren.find(child=>child.kind==='caption-row');
+    assert.equal(row.children[0].kind,'speaker');
+    assert.equal(row.children[0].containsImage,true);
+    assert.equal(row.children[1].kind,'caption-text');
+    const serialized=JSON.stringify(fixture);
+    assert(!serialized.includes('zog-xfyq-djm'));
+    assert(!serialized.includes('@'));
+});
+test('Google Meet parser emits semantic rows and updates one stable record across interim mutations',()=>{
+    const observers=[];
+    class FakeObserver {
+        constructor(callback){this.callback=callback;observers.push(this);}
+        observe(){}
+        disconnect(){}
+    }
+    const image={tagName:'IMG',children:[],textContent:''};
+    const speaker={tagName:'DIV',children:[image],textContent:'Test Speaker',querySelector:()=>image};
+    const words={tagName:'DIV',children:[],textContent:'First interim phrase'};
+    const row={tagName:'DIV',children:[speaker,words]};
+    const source={children:[row,{tagName:'DIV',children:[]}]};
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    let captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,1);
+    assert.equal(captions[0].caption.Name,'Test Speaker');
+    assert.equal(captions[0].caption.Text,'First interim phrase');
+    const stableKey=captions[0].caption.key;
+    words.textContent='Completed test phrase';
+    observers[1].callback();
+    observers[1].callback();
+    captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,2);
+    assert.equal(captions[1].caption.Text,'Completed test phrase');
+    assert.equal(captions[1].caption.key,stableKey);
+});
 test('Google Meet structure probe preserves shape without caption text or identifying attribute values',()=>{
     function element(tagName,attributes={},childNodes=[]){
         return {
