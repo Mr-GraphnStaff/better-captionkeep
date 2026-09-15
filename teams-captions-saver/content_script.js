@@ -802,7 +802,7 @@ const handleCaptionsStateChange = ErrorHandler.wrap(async function() {
         observedElement = null;
         
         const { autoEnableCaptions } = await chrome.storage.sync.get('autoEnableCaptions');
-        if (autoEnableCaptions) {
+        if (autoEnableCaptions !== false) {
             // Use debounced version to prevent rapid firing
             debouncedAutoEnableCaptions();
         }

@@ -299,7 +299,7 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
 
-    UI_ELEMENTS.autoEnableCaptionsToggle.checked = !!settings.autoEnableCaptions;
+    UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
     UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
@@ -341,7 +341,7 @@ async function loadSettings() {
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.value = CaptionKeepTheme.apply(settings.uiTheme);
     }
-    UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions ? 'none' : 'block';
+    UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions !== false ? 'none' : 'block';
 
     const allowedFormats = ['txt', 'md'];
     currentDefaultFormat = settings.defaultSaveFormat || 'txt';

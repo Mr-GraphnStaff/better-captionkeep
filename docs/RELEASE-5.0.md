@@ -18,6 +18,7 @@ Version 5.0 is the next public release after 4.6. The 4.7 candidate is retired a
 - [x] Capture a sanitized live speaker/text row fixture from a controlled meeting.
 - [x] Parse speaker and evolving caption text without depending on generated CSS classes.
 - [x] Deduplicate interim mutations into stable caption records.
+- [x] Request Google Meet captions automatically once per meeting without overriding a later manual shutoff.
 - [ ] Preserve captured records when captions are hidden, remounted, or the page changes state.
 
 ## Automated verification
