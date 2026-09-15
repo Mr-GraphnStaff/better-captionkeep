@@ -11,6 +11,43 @@
         return url.hostname === 'meet.google.com' && MEETING_PATH.test(url.pathname);
     }
 
+    function sanitizeStructure(rootNode, limits = {}) {
+        const maxDepth = Math.max(1, Math.min(Number(limits.maxDepth) || 8, 12));
+        const maxNodes = Math.max(1, Math.min(Number(limits.maxNodes) || 200, 500));
+        const safeAttributeValues = new Set(['alert', 'dialog', 'group', 'log', 'region', 'status', 'polite', 'assertive', 'off', 'true', 'false']);
+        let nodeCount = 0;
+
+        function visit(node, depth) {
+            if (!node || nodeCount >= maxNodes || depth > maxDepth) return null;
+            nodeCount += 1;
+
+            if (node.nodeType === 3) {
+                return {type: 'text', present: Boolean(node.textContent?.trim())};
+            }
+            if (node.nodeType !== 1) return {type: `node-${node.nodeType}`};
+
+            const attributeNames = Array.from(node.attributes || [], attribute => attribute.name)
+                .filter(name => name !== 'class' && name !== 'style')
+                .sort();
+            const safeAttributes = {};
+            for (const name of ['role', 'aria-live', 'aria-atomic']) {
+                const value = node.getAttribute?.(name);
+                if (safeAttributeValues.has(value)) safeAttributes[name] = value;
+            }
+
+            const children = [];
+            for (const child of Array.from(node.childNodes || [])) {
+                const sanitized = visit(child, depth + 1);
+                if (sanitized) children.push(sanitized);
+                if (nodeCount >= maxNodes) break;
+            }
+            return {type: 'element', tag: String(node.tagName || '').toUpperCase(), attributeNames, safeAttributes, children};
+        }
+
+        const tree = visit(rootNode, 0);
+        return Object.freeze({version: 1, truncated: nodeCount >= maxNodes, nodeCount, tree});
+    }
+
     function createAdapter(context) {
         const pageDocument = context.document || document;
         const pageWindow = context.window || window;
@@ -86,6 +123,7 @@
 
         return Object.freeze({
             getCaptionSource: () => captionSource,
+            getSanitizedStructure: () => sanitizeStructure(captionSource),
             isMeetingPresent: () => isMeetingUrl(currentUrl()),
             start,
             stop
@@ -93,5 +131,5 @@
     }
 
     registry.register({id: 'google-meet', matches: url => url.hostname === 'meet.google.com', create: createAdapter});
-    root.CaptionKeepGoogleMeet = Object.freeze({CAPTION_SOURCE_SELECTOR, MEETING_PATH, isMeetingUrl});
+    root.CaptionKeepGoogleMeet = Object.freeze({CAPTION_SOURCE_SELECTOR, MEETING_PATH, isMeetingUrl, sanitizeStructure});
 })(globalThis);

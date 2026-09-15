@@ -82,6 +82,9 @@
             case 'get_captions_for_viewing':
                 if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'display_captions', sessionId: sessionStartedAt.toISOString(), meetingTitle: document.title || 'Google Meet', transcriptArray: cleanTranscript()});
                 return false;
+            case 'get_google_meet_diagnostic':
+                sendResponse({diagnostic: adapter.getSanitizedStructure()});
+                return false;
             default:
                 return false;
         }
