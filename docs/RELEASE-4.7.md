@@ -1,4 +1,6 @@
-# Better CaptionKeep 4.7 Release Candidate Checklist
+# Better CaptionKeep 4.7 Archived Candidate
+
+Version 4.7 will not be submitted to a browser extension store. Its completed work is preserved in Git as the foundation for 5.0, but all remaining implementation, testing, packaging, and release work belongs to 5.0. Version 4.6 remains the current public release.
 
 ## Automated gates
 
