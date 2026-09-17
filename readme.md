@@ -14,6 +14,12 @@ Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves dec
 
 Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs that do not place transcript text in provider URLs. Teams remains the foundation, Google Meet is now a supported live-capture provider, and Zoom remains a later target. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
 
+## A new direction for 5.0
+
+Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 is a deliberate move beyond that starting point: a privacy-first, enterprise-ready caption workspace designed to support Microsoft Teams, Zoom, and Google Meet through a shared provider architecture.
+
+The 5.0 roadmap brings together reliable multi-platform capture, local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs. Teams is the working foundation; Zoom and Google Meet adapters will be developed and validated before the next public release. This remains an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
+
 ## Interface previews
 
 Screenshots below show the current packaged HTML and styling rendered in Microsoft Edge, with extension scripts disabled and no meeting connected. They illustrate the interface, not a live capture test. The banner above is approved mascot concept artwork.
