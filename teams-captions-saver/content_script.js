@@ -352,6 +352,7 @@ const processCaptionUpdates = ErrorHandler.wrap(function() {
                     transcriptArray[existingIndex].Text = text;
                     transcriptArray[existingIndex].Name = name;
                     transcriptArray[existingIndex].Time = time;
+                    transcriptArray[existingIndex].capturedAt = new Date().toISOString();
                     // Broadcast update to viewer
                     broadcastCaptionUpdate({
                         type: 'update',

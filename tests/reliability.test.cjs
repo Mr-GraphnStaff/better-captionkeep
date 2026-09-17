@@ -678,6 +678,17 @@ test('disabling captions stops capture and preserves prior transcript',async()=>
     assert.equal(h.run('capturing'),false);assert.equal(h.run('pausedByUser'),true);assert.equal(h.run('transcriptArray.length'),1);
     await h.run('processCaptionUpdates()');assert.equal(h.run('transcriptArray.length'),1);
 });
+test('Teams interim caption updates refresh capture health time',async()=>{
+    const h=await contentHarness();
+    const author={innerText:'Speaker'};const words={innerText:'Updated live words'};
+    const row={getAttribute:()=> 'caption-1',querySelector:selector=>selector.includes('author')?author:words};
+    h.document.querySelector=()=>({querySelectorAll:()=>[row]});
+    h.run("capturing=true;trackingAllowed=true;transcriptArray.push({Name:'Speaker',Text:'Earlier words',Time:'10:00',key:'caption-1',capturedAt:'2026-01-01T00:00:00.000Z'});");
+    await h.run('processCaptionUpdates()');
+    assert.equal(h.run('transcriptArray[0].Text'),'Updated live words');
+    assert.notEqual(h.run('transcriptArray[0].capturedAt'),'2026-01-01T00:00:00.000Z');
+    assert.ok(!Number.isNaN(Date.parse(h.run('transcriptArray[0].capturedAt'))));
+});
 test('visible transient DOM loss receives a grace interval',async()=>{
     const h=await contentHarness();h.run('wasInMeeting=true;capturing=true;sourceMissingSince=Date.now()-5000;');await h.run('handleMeetingStateChange()');
     assert.equal(h.run('capturing'),true);assert(!h.messages.some(m=>m.message==='meeting_ended'));

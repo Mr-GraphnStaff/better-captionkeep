@@ -31,6 +31,8 @@ test('Chrome Intune bundle uses the Chrome store and Chrome managed-policy path'
     const remediation = fs.readFileSync(path.join(outputDir, 'remediate-managed-policy.ps1'), 'utf8');
     assert.match(remediation, /Policies\\Google\\Chrome\\3rdparty\\extensions/);
     assert.doesNotMatch(remediation, /Policies\\Microsoft\\Edge/);
+    assert.match(remediation, /Remove-Item -LiteralPath \$policyPath -Recurse -Force/);
+    assert.ok(remediation.indexOf('Remove-Item -LiteralPath $policyPath') < remediation.indexOf('New-Item -Path $policyPath'));
   } finally {
     fs.rmSync(outputDir, { recursive: true, force: true });
   }
