@@ -13,6 +13,8 @@ Run `npm run build:intune`. Generated files are written to `dist/intune`:
 
 The committed deployment profile uses the public Microsoft Edge Add-ons extension ID and Microsoft's official store update URL. Override the ID at build time with `CAPTIONKEEP_EDGE_EXTENSION_ID` only for a separately signed organization build.
 
+The standard profile leaves AI handoff available for individual Pro users, Team accounts, small businesses, and enterprises that permit reviewed AI use. Run `npm run build:intune:local-only` only when an administrator deliberately wants the separate high-security bundle in `dist/intune-local-only`.
+
 ## Recommended Intune deployment
 
 1. In Intune, create a Windows configuration profile using the Settings catalog.
@@ -24,9 +26,11 @@ The committed deployment profile uses the public Microsoft Edge Add-ons extensio
 
 The simpler `ExtensionInstallForcelist` setting can use the single generated line in `edge-extension-force-install.txt`, but `ExtensionSettings` is preferred because the deployment intent stays in one per-extension object.
 
-## Default enterprise posture
+## Deployment profiles
 
-The versioned profile forces Scrubby on and disables AI handoff. This keeps meeting text local unless an administrator deliberately changes the managed policy profile, reviews the destination controls, rebuilds the bundle, and deploys the new policy. Profanity filtering is left off because it changes ordinary meeting language rather than protecting secrets.
+The standard profile forces Scrubby on but leaves AI handoff available. It does not restrict providers, so Pro and Team users can keep using their chosen supported assistant through the existing reviewed-copy workflow. An organization can add `allowedAiProviders` and managed workspace URLs when it wants narrower destinations.
+
+The separate `profile.local-only.json` forces Scrubby on and disables AI handoff. It is an explicit high-security choice for organizations that prohibit meeting text from leaving the browser. Profanity filtering is off in both profiles because it changes ordinary meeting language rather than protecting secrets.
 
 Supported managed keys are defined by `teams-captions-saver/managed-schema.json`:
 

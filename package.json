@@ -11,6 +11,7 @@
     "build:chrome-test": "node scripts/build-browser-targets.mjs chrome && web-ext build --source-dir dist/chrome-unpacked --artifacts-dir dist --overwrite-dest",
     "build:edge-test": "node scripts/build-browser-targets.mjs edge && web-ext build --source-dir dist/edge-unpacked --artifacts-dir dist --overwrite-dest",
     "build:intune": "node scripts/build-intune-bundle.mjs",
+    "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json dist/intune-local-only",
     "release:candidate": "npm test && npm run lint && npm run build && npm run build:targets && npm run build:intune && node scripts/verify-release.mjs",
     "publish:edge": "node scripts/edge-publish.mjs",
     "start": "web-ext run --source-dir teams-captions-saver --target=chromium"

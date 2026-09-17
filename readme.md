@@ -74,6 +74,7 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run lint`: validate the extension manifest and assets.
 - `npm run build`: build a ZIP in `dist/`.
 - `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `dist/intune/`.
+- `npm run build:intune:local-only`: generate the optional high-security bundle that disables AI handoff.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication.
 
 Release and enterprise references: [5.0 release notes](docs/RELEASE-NOTES-5.0.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the evidence-based [5.0 release gate](docs/RELEASE-5.0.md), and the gated [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md).

@@ -91,7 +91,11 @@ export async function buildIntuneBundle(options = {}) {
 }
 
 async function main() {
-  const result = await buildIntuneBundle({ extensionId: process.env.CAPTIONKEEP_EDGE_EXTENSION_ID });
+  const result = await buildIntuneBundle({
+    extensionId: process.env.CAPTIONKEEP_EDGE_EXTENSION_ID,
+    profilePath: process.argv[2],
+    outputDir: process.argv[3]
+  });
   console.log(`Built Intune deployment bundle for ${result.extensionId} at ${result.outputDir}`);
 }
 
