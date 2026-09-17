@@ -91,7 +91,7 @@ async function getScrubOptions() {
 }
 
 // --- UI Update Functions ---
-async function updateStatusUI({ capturing, captionCount, isInMeeting, attendeeCount, captureState, checkpointError }) {
+async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError }) {
     const { statusMessage } = UI_ELEMENTS;
     const { trackCaptions, trackAttendees } = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees']);
     
@@ -103,6 +103,8 @@ async function updateStatusUI({ capturing, captionCount, isInMeeting, attendeeCo
         // In meeting - show appropriate status based on what's being tracked
         if (trackCaptions !== false && capturing) {
             let status = captionCount > 0 ? `Capturing! (${captionCount} lines recorded` : 'Capturing... (Waiting for speech';
+            const secondsSinceCaption = lastCaptionAt ? Math.max(0, Math.floor((Date.now() - Date.parse(lastCaptionAt)) / 1000)) : null;
+            if (Number.isFinite(secondsSinceCaption)) status += `, last caption ${secondsSinceCaption}s ago`;
             if (attendeeCount > 0) {
                 status += `, ${attendeeCount} attendees`;
             }

@@ -1,8 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Better CaptionKeep - Edge Test",
+  "name": "Better CaptionKeep",
   "version": "5.0.0",
-  "version_name": "5.0.0 development - Edge test",
   "description": "Capture, protect, review, and export live captions from Microsoft Teams and Google Meet.",
   "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
   "icons": {
@@ -32,7 +31,7 @@
       "128": "icons/scribble-128.png"
     },
     "default_popup": "popup.html",
-    "default_title": "Better CaptionKeep - Edge Test"
+    "default_title": "Better CaptionKeep — by Señor Farris"
   },
   "background": {
     "service_worker": "service_worker.js"
@@ -64,5 +63,5 @@
       ]
     }
   ],
-  "author": "Se\u00f1or Farris"
+  "author": "Señor Farris"
 }

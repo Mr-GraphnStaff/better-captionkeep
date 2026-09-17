@@ -130,9 +130,12 @@ async function validateManifest(manifest) {
   if (declaredContentScripts[1] !== 'configuration.js') {
     errors.push('configuration.js must load before the Teams content script.');
   }
+  if (declaredContentScripts[2] !== 'transcriptInsights.js') {
+    errors.push('transcriptInsights.js must load before the Teams content script.');
+  }
   const googleMeetScripts = (manifest.content_scripts ?? [])
     .find(entry => (entry.matches ?? []).includes('https://meet.google.com/*'))?.js ?? [];
-  const expectedGoogleMeetScripts = ['providerRegistry.js', 'captureCoordinator.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
+  const expectedGoogleMeetScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
   if (JSON.stringify(googleMeetScripts) !== JSON.stringify(expectedGoogleMeetScripts)) {
     errors.push(`Google Meet content scripts must load in this order: ${expectedGoogleMeetScripts.join(', ')}.`);
   }

@@ -34,6 +34,7 @@
         let meetingTitle = String(options.meetingTitle || 'Meeting').trim() || 'Meeting';
         let captureState = 'initializing';
         let checkpointError = '';
+        let lastCaptionAt = '';
         let restoredFromCheckpoint = false;
         let finalizing = false;
         let finalized = false;
@@ -96,6 +97,7 @@
                     backupKey = `backup_${documentSessionId}`;
                 }
                 restoredFromCheckpoint = true;
+                lastCaptionAt = String(transcript.at(-1)?.capturedAt || '');
                 captureState = 'recovering';
                 checkpointError = 'Capture resumed from a recovery checkpoint. The reload interval may be incomplete.';
                 return true;
@@ -125,6 +127,7 @@
                 transcript[existingIndex] = caption;
                 broadcastCaption(caption, 'update');
             }
+            lastCaptionAt = caption.capturedAt;
             persistCheckpoint().catch(() => {});
             return caption;
         }
@@ -202,6 +205,7 @@
                 captureState,
                 checkpointError,
                 captionCount: transcript.length,
+                lastCaptionAt,
                 recordingStartTime: recordingStartTime.toISOString(),
                 restoredFromCheckpoint,
                 finalized

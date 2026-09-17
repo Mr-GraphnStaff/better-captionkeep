@@ -2,7 +2,7 @@
 
 Effective date: September 17, 2026
 
-Better CaptionKeep, by Señor Farris, is an independent Microsoft Edge extension for capturing, reviewing, and exporting live captions from Microsoft Teams and Google Meet. This policy describes the Better CaptionKeep fork, including its optional AI handoff features.
+Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams and Google Meet in supported Chromium browsers. This policy describes the Better CaptionKeep fork, including its optional AI handoff features.
 
 ## Information the extension handles
 
@@ -12,7 +12,7 @@ It also handles user preferences, such as capture settings, export format, filen
 
 ## Storage and use
 
-Meeting information is used to capture and display transcripts, maintain saved sessions, and create exports. Saved transcripts and meeting information are stored in the extension's local browser storage. Temporary speaker aliases use browser session storage. Preferences use the browser's extension sync storage and may be synchronized by Microsoft according to the user's Edge account and sync settings.
+Meeting information is used to capture and display transcripts, maintain saved sessions, and create exports. Saved transcripts and meeting information are stored in the extension's local browser storage. Temporary speaker aliases use browser session storage. Preferences use the browser's extension sync storage and may be synchronized by the browser provider according to the user's signed-in browser account and sync settings.
 
 Exported files are saved to a location controlled by the user and browser. A selected folder may itself be synchronized or backed up by other software. Copying a transcript places it on the system clipboard, which may be accessible to other applications or clipboard synchronization features.
 
@@ -36,7 +36,9 @@ Pattern matching can miss sensitive information and can mask harmless text. It i
 
 The developer does not sell user data, use it for advertising, or use it to determine creditworthiness or for lending. The extension uses meeting data only to provide its meeting-caption capture, review, export, and optional summary functions. Transfers occur through user-directed exports, clipboard actions, browser preference synchronization, and enabled AI handoffs as described above.
 
-The use of user data is limited to providing or improving the extension's single purpose in accordance with the Microsoft Edge Add-ons Developer Policies. This policy does not authorize unrelated use or sale of meeting information.
+The use of user data is limited to providing or improving the extension's single purpose in accordance with applicable browser-extension store policies. This policy does not authorize unrelated use or sale of meeting information.
+
+Better CaptionKeep's use and transfer of user data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements.
 
 ## Retention and controls
 
