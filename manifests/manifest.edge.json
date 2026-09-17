@@ -55,6 +55,7 @@
       ],
       "js": [
         "providerRegistry.js",
+        "captureCoordinator.js",
         "googleMeetProvider.js",
         "googleMeetContentScript.js"
       ]

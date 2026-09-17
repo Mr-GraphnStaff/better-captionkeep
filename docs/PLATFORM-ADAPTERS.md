@@ -19,9 +19,11 @@ An adapter must expose:
 - `start(emit)`: begin meeting-presence detection, caption-source discovery, and observation;
 - `stop()`: disconnect observers and timers without losing already captured transcript data.
 
-Provider adapters emit lifecycle events to a future provider-neutral coordinator. Caption events use normalized records containing `Name`, `Text`, `Time`, `capturedAt`, and a stable `key`. The registry validates these records before shared services consume them.
+Provider adapters emit lifecycle events to the provider-neutral `CaptionKeepCaptureCoordinator`. Caption events use normalized records containing `Name`, `Text`, `Time`, `capturedAt`, and a stable `key`. The registry validates these records before the coordinator checkpoints them and exposes them to shared services.
 
 Adapters must also make source-unavailable, source-restored, page-reload, and meeting-ended behavior explicit. Provider-specific selectors and DOM interpretation belong only in the provider adapter.
+
+The coordinator stores a provider-scoped recovery checkpoint after caption updates and source loss. It restores only a recent checkpoint from the same origin and meeting pathname, preserves the warning that a reload interval may be incomplete, and commits session history once when the adapter reports that the meeting ended. Query strings are deliberately excluded from the meeting identity so switching Google accounts on the same meeting URL does not discard the local transcript.
 
 ## Shared-service boundary
 

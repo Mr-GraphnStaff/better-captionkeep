@@ -7,6 +7,7 @@
     const CAPTION_SOURCE_SELECTOR = '[role="region"][aria-label="Captions"]';
     const CAPTION_ENABLE_LABEL = 'Turn on captions';
     const MEETING_PATH = /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}(?:\/|$)/i;
+    const REMOUNT_REUSE_WINDOW_MS = 30 * 1000;
 
     function isMeetingUrl(url) {
         return url.hostname === 'meet.google.com' && MEETING_PATH.test(url.pathname);
@@ -62,8 +63,15 @@
         let autoEnableCaptions = true;
         let captionEnableAttempted = false;
         let nextCaptionId = 0;
+        let lastEmittedCaption = null;
+        let resumeCandidate = null;
         const rowKeys = new WeakMap();
         const lastTextByKey = new Map();
+
+        function nowDate() {
+            const value = typeof context.now === 'function' ? context.now() : new Date();
+            return value instanceof Date ? value : new Date(value);
+        }
 
         function signal(type, details = {}) {
             emit(Object.freeze({providerId: 'google-meet', type, observedAt: new Date().toISOString(), ...details}));
@@ -101,23 +109,34 @@
         }
 
         function emitCaptionRows() {
-            const capturedAt = new Date();
+            const capturedAt = nowDate();
             for (const {row, speaker, text} of captionRows(captionSource)) {
                 let key = rowKeys.get(row);
                 if (!key) {
-                    key = `google-meet-${++nextCaptionId}`;
+                    const canResume = resumeCandidate
+                        && capturedAt.getTime() - resumeCandidate.observedAt <= REMOUNT_REUSE_WINDOW_MS
+                        && resumeCandidate.Name === speaker
+                        && resumeCandidate.Text === text;
+                    key = canResume ? resumeCandidate.key : `google-meet-${++nextCaptionId}`;
+                    resumeCandidate = null;
                     rowKeys.set(row, key);
                 }
                 if (lastTextByKey.get(key) === text) continue;
                 lastTextByKey.set(key, text);
-                signal('caption-upsert', {caption: {
+                lastEmittedCaption = {
                     Name: speaker,
                     Text: text,
                     Time: capturedAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
                     capturedAt: capturedAt.toISOString(),
                     key
-                }});
+                };
+                signal('caption-upsert', {caption: lastEmittedCaption});
             }
+        }
+
+        function preserveRemountCandidate() {
+            if (!lastEmittedCaption) return;
+            resumeCandidate = {...lastEmittedCaption, observedAt: nowDate().getTime()};
         }
 
         function requestCaptionEnable() {
@@ -153,12 +172,14 @@
             meetingEnded = false;
             const nextSource = pageDocument.querySelector(CAPTION_SOURCE_SELECTOR);
             if (nextSource && nextSource !== captionSource) {
+                if (captionSource) preserveRemountCandidate();
                 captionEnableAttempted = true;
                 observeCaptionSource(nextSource);
                 sourceAvailable = true;
                 signal('caption-source-available');
                 emitCaptionRows();
             } else if (!nextSource && sourceAvailable) {
+                preserveRemountCandidate();
                 disconnectCaptionSource();
                 sourceAvailable = false;
                 signal('caption-source-unavailable', {recoverable: true, reason: 'captions-hidden-or-remounting'});
@@ -191,10 +212,24 @@
             if (pageObserver && autoEnableCaptions) reconcile();
         }
 
+        function restoreState(records = []) {
+            const restored = Array.isArray(records) ? records : [];
+            for (const record of restored) {
+                const match = /^google-meet-(\d+)$/.exec(record?.key || '');
+                if (match) nextCaptionId = Math.max(nextCaptionId, Number(match[1]));
+            }
+            const last = restored.at(-1);
+            if (last?.key && last?.Text) {
+                lastEmittedCaption = {...last};
+                resumeCandidate = {...last, observedAt: nowDate().getTime()};
+            }
+        }
+
         return Object.freeze({
             getCaptionSource: () => captionSource,
             getSanitizedStructure: () => sanitizeStructure(captionSource),
             isMeetingPresent: () => isMeetingUrl(currentUrl()),
+            restoreState,
             setAutoEnableCaptions,
             start,
             stop

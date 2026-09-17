@@ -19,14 +19,14 @@ Version 5.0 is the next public release after 4.6. The 4.7 candidate is retired a
 - [x] Parse speaker and evolving caption text without depending on generated CSS classes.
 - [x] Deduplicate interim mutations into stable caption records.
 - [x] Request Google Meet captions automatically once per meeting without overriding a later manual shutoff.
-- [ ] Preserve captured records when captions are hidden, remounted, or the page changes state.
+- [x] Preserve captured records when captions are hidden, remounted, or the page changes state.
 
 ## Automated verification
 
 - [x] Provider lifecycle and exact-manifest tests.
 - [x] Shared popup capture-contract test.
 - [x] Fixture-driven parser tests for new, updated, and repeated captions.
-- [ ] End-of-meeting and caption-remount regression tests using live-derived structure.
+- [x] End-of-meeting and caption-remount regression tests using live-derived structure.
 - [ ] Full `npm test`, `npm run lint`, and release verification pass from the reviewed commit.
 
 ## Browser UAT

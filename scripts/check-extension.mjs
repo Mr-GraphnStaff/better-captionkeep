@@ -132,7 +132,7 @@ async function validateManifest(manifest) {
   }
   const googleMeetScripts = (manifest.content_scripts ?? [])
     .find(entry => (entry.matches ?? []).includes('https://meet.google.com/*'))?.js ?? [];
-  const expectedGoogleMeetScripts = ['providerRegistry.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
+  const expectedGoogleMeetScripts = ['providerRegistry.js', 'captureCoordinator.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
   if (JSON.stringify(googleMeetScripts) !== JSON.stringify(expectedGoogleMeetScripts)) {
     errors.push(`Google Meet content scripts must load in this order: ${expectedGoogleMeetScripts.join(', ')}.`);
   }
