@@ -10,9 +10,9 @@ Teams shipped with two exact hosts. Google Meet shipped with one exact host (`me
 
 - The base web client lives at `app.zoom.us/wc/...`, but join links are also seen as `zoom.us/j/...` (desktop-first, redirects) and `zoom.us/wc/join/...` (web-first).
 - Business+ accounts commonly use a **vanity subdomain** (e.g. `acmecorp.zoom.us`) for SSO/branding, and meeting links resolve there instead of `zoom.us`.
-- Some enterprise customers CNAME a fully custom domain (e.g. `meet.acmecorp.com`) to their vanity subdomain, which is outside the `*.zoom.us` namespace entirely.
+- Zoom officially supports approved vanity subdomains beneath `zoom.us` (for example, `acmecorp.zoom.us`). No arbitrary custom-domain meeting host should be assumed without direct tenant evidence.
 
-A fixed per-customer host allowlist doesn't scale, and a broad `*://*.zoom.us/*` host permission conflicts with the project's existing minimal-permission stance (`docs/SECURITY-PRIVACY.md` limits host access to two exact Teams hosts today) — and it still wouldn't cover custom-CNAME enterprise tenants. This needs a product decision, not just an engineering one: either accept a broader wildcard grant (with the Chrome Web Store review and user-trust cost that implies), support an admin-configurable host list via `managed-schema.json`, or accept that custom-domain tenants are out of scope initially.
+A fixed per-customer host allowlist doesn't scale, and a broad `*://*.zoom.us/*` host permission conflicts with the project's existing minimal-permission stance (`docs/SECURITY-PRIVACY.md` limits host access to two exact Teams hosts today). This needs a product decision, not just an engineering one: either accept a broader wildcard grant with the Store-review and user-trust cost that implies, support an admin-configurable list of verified `zoom.us` vanity hosts through `managed-schema.json`, or limit the initial release to explicitly tested Zoom hosts.
 
 ## 2. Browser join is opt-in per account/meeting, not guaranteed
 
