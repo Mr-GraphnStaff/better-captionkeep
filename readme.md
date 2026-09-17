@@ -33,6 +33,8 @@ Screenshots below show the current packaged HTML and styling rendered in Microso
 - Keep the popup calm with expandable settings sections; everyday capture controls remain visible first.
 - Launch Teams or Google Meet from a compact meeting-app row. Zoom remains a clearly labeled preview until its adapter is ready.
 - Recover an interrupted Google Meet capture from a recent local checkpoint for the same meeting page, then commit it to local history once the meeting ends.
+- See capture health in the popup, including the number of caption lines and how recently the last caption arrived.
+- Prepare evidence-backed meeting notes with caption IDs for decisions, actions, risks, and unanswered questions before any optional AI handoff.
 - Export/import user preferences or let administrators enforce selected controls through managed browser policy.
 
 AI handoffs prepare a local, editable prompt for review before you choose whether to copy or share it. Privacy Scrubber is visible and on by default: it masks supported sensitive patterns locally, leaves the saved original unchanged, and requires a second confirmation before an unmasked prompt can be copied. Pattern detection reduces accidental disclosure risk but does not guarantee HIPAA, PCI DSS, or other regulatory compliance. For managed ChatGPT or Claude accounts, first open the approved enterprise workspace and copy its URL into **Settings → Enterprise destinations**. Better CaptionKeep accepts only official HTTPS provider domains, never places transcript text in a provider URL, and asks you to confirm the active workspace before pasting. Preferences, including enterprise destinations and the selected theme, may use browser sync; see the [privacy policy](PRIVACY.md) for the full data-handling details.
@@ -71,6 +73,7 @@ Use Node.js 20 or newer, then run `npm install`.
 
 - `npm run lint`: validate the extension manifest and assets.
 - `npm run build`: build a ZIP in `dist/`.
+- `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `dist/intune/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication.
 
 Release and enterprise references: [5.0 release notes](docs/RELEASE-NOTES-5.0.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the evidence-based [5.0 release gate](docs/RELEASE-5.0.md), and the gated [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md).

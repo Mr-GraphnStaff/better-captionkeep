@@ -3,7 +3,9 @@
 
     const registry = root.CaptionKeepProviderRegistry;
     const coordinatorFactory = root.CaptionKeepCaptureCoordinator;
-    if (!registry || !coordinatorFactory) throw new Error('Google Meet capture dependencies did not load.');
+    const insights = root.CaptionKeepTranscriptInsights;
+    const configuration = root.CaptionKeepConfiguration;
+    if (!registry || !coordinatorFactory || !insights || !configuration) throw new Error('Google Meet capture dependencies did not load.');
 
     const adapter = registry.create(window.location.href, {document, window, MutationObserver});
     if (!adapter) return;
@@ -19,10 +21,28 @@
     let trackingAllowed = true;
     let autoEnableCaptions = true;
     let adapterStarted = false;
+    const summaryFeature = insights.createAiSummaryFeature({
+        storage: chrome.storage.sync,
+        readManaged: () => configuration.readManaged(),
+        applyPolicy: (settings, managed) => configuration.applyPolicy(settings, managed),
+        sendMessage: message => chrome.runtime.sendMessage(message)
+    });
+
+    function handleProviderEvent(event) {
+        coordinator.handleProviderEvent(event);
+        if (event?.type !== 'meeting-ended') return;
+        const state = coordinator.getState();
+        summaryFeature.onMeetingEnded({
+            transcript: coordinator.getTranscript(),
+            meetingTitle: document.title || 'Google Meet',
+            providerLabel: 'Google Meet',
+            sessionId: state.recordingStartTime
+        }).catch(error => console.error('[Better CaptionKeep] Could not prepare the evidence summary.', error));
+    }
 
     function startAdapter() {
         if (adapterStarted || !trackingAllowed) return;
-        adapter.start(event => coordinator.handleProviderEvent(event));
+        adapter.start(handleProviderEvent);
         adapterStarted = true;
     }
 
@@ -74,7 +94,7 @@
                 sendResponse({streaming: state.captureState === 'capturing', sessionId: state.recordingStartTime, captionCount: state.captionCount});
                 return false;
             case 'get_status':
-                sendResponse({capturing: state.captureState === 'capturing', captureState: state.captureState, checkpointError: state.checkpointError, captionCount: state.captionCount, isInMeeting: adapter.isMeetingPresent(), attendeeCount: 0});
+                sendResponse({capturing: state.captureState === 'capturing', captureState: state.captureState, checkpointError: state.checkpointError, captionCount: state.captionCount, lastCaptionAt: state.lastCaptionAt, isInMeeting: adapter.isMeetingPresent(), attendeeCount: 0});
                 return false;
             case 'get_transcript_for_copying':
                 sendResponse({transcriptArray: coordinator.getTranscript()});

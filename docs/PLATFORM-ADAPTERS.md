@@ -29,6 +29,10 @@ The coordinator stores a provider-scoped recovery checkpoint after caption updat
 
 History, export, themes, Scrubby, AI handoff, configuration, and enterprise policy must not depend on provider DOM selectors. A mandatory backend is not part of the capture contract; local-first capture remains the product baseline and any future enterprise gateway stays optional.
 
+`transcriptInsights.js` is the first provider-neutral feature module. Teams and Google Meet pass normalized transcript records to the same evidence-summary feature when a meeting ends. The feature assigns stable handoff-only caption IDs, requires claims to cite those IDs, honors managed AI policy, and stages text in the existing local review screen rather than sending transcript content to a provider. Future features such as bookmarks, topic chapters, decision ledgers, and follow-up tracking should consume normalized records through this boundary instead of reading meeting DOM.
+
+Capture health is also provider-neutral at the popup contract: content scripts return `captionCount`, `captureState`, `checkpointError`, and `lastCaptionAt`. Provider adapters remain responsible for deciding whether their caption source is available; shared UI owns the human-readable health message.
+
 ## Google Meet implementation gate
 
 Do not invent selectors from third-party examples or documentation. The Google Meet adapter requires sanitized fixtures derived from the live browser surface, followed by Chrome and Edge UAT.

@@ -1,0 +1,10 @@
+{
+  "product": "Better CaptionKeep",
+  "extensionId": "edefcbdhahfolgkoamkbknjppojpaffk",
+  "updateUrl": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+  "managedPolicy": {
+    "forcePrivacyScrubber": true,
+    "forceProfanityFilter": false,
+    "disableAiHandoff": true
+  }
+}

@@ -68,6 +68,27 @@ test('provider captions require stable identity and capture time',()=>{
     assert.throws(()=>normalize({Text:'Hello',capturedAt:'2026-09-13T15:30:00Z'}),/stable key/);
     assert.throws(()=>normalize({Text:'Hello',key:'meet-1',capturedAt:'later'}),/timestamp/);
 });
+test('evidence summary feature cites captions and respects managed AI policy',async()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('transcriptInsights.js'),context);
+    const transcript=[
+        {Time:'10:31',Name:'David',Text:'We will keep the archive local.'},
+        {Time:'10:32',Name:'Mary',Text:'David will test the pilot on Friday.'}
+    ];
+    const prompt=context.CaptionKeepTranscriptInsights.buildEvidenceSummaryPrompt(transcript,{meetingTitle:'Architecture review',providerLabel:'Microsoft Teams'});
+    assert.match(prompt,/\[C0001\].*David: We will keep the archive local\./);
+    assert.match(prompt,/Cite every factual bullet/);
+    const messages=[];
+    const feature=context.CaptionKeepTranscriptInsights.createAiSummaryFeature({
+        storage:{get:async()=>({autoAISummary:true,aiSummaryProviders:['copilot']})},
+        readManaged:async()=>({disableAiHandoff:true}),
+        applyPolicy:(settings,managed)=>({settings:{...settings,autoAISummary:managed.disableAiHandoff?false:settings.autoAISummary}}),
+        sendMessage:async message=>messages.push(message)
+    });
+    const result=await feature.onMeetingEnded({transcript,sessionId:'meeting-1'});
+    assert.equal(result.status,'disabled');
+    assert.equal(messages.length,0);
+});
 test('Google Meet adapter uses the live semantic caption region and reports lifecycle changes',()=>{
     const observers=[];
     class FakeObserver {
@@ -108,7 +129,7 @@ test('Google Meet manifest scope is exact and isolated from Teams capture',()=>{
     const manifest=JSON.parse(read('manifest.json'));
     assert(manifest.host_permissions.includes('https://meet.google.com/*'));
     const meetEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://meet.google.com/*'));
-    assert.deepEqual(meetEntry.js,['providerRegistry.js','captureCoordinator.js','googleMeetProvider.js','googleMeetContentScript.js']);
+    assert.deepEqual(meetEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','googleMeetProvider.js','googleMeetContentScript.js']);
     assert(!meetEntry.js.includes('content_script.js'));
 });
 test('Google Meet empty caption fixture contains structure but no meeting content',()=>{
@@ -337,7 +358,9 @@ test('Google Meet coordinator exposes captured captions through the shared popup
         document:{title:'Meet test'},window:{location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){}},globalThis:null
     });
     context.globalThis=context;
+    vm.runInContext(read('configuration.js'),context);
     vm.runInContext(read('captureCoordinator.js'),context);
+    vm.runInContext(read('transcriptInsights.js'),context);
     vm.runInContext(read('googleMeetContentScript.js'),context);
     await new Promise(resolve=>setImmediate(resolve));
     providerEventHandler({type:'caption-source-available'});
@@ -382,7 +405,9 @@ test('Google Meet does not start capture when caption tracking is disabled at lo
         console:{log(){},error(){}},document:{title:'Meet test'},window:{location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){}},globalThis:null
     });
     context.globalThis=context;
+    vm.runInContext(read('configuration.js'),context);
     vm.runInContext(read('captureCoordinator.js'),context);
+    vm.runInContext(read('transcriptInsights.js'),context);
     vm.runInContext(read('googleMeetContentScript.js'),context);
     await new Promise(resolve=>setImmediate(resolve));
     let status;
@@ -511,7 +536,7 @@ test('manifest supports both official Teams web hosts',()=>{
         assert(manifest.content_scripts.some(entry=>entry.matches.includes(host)));
     }
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
-    assert.deepEqual(manifest.content_scripts[0].js.slice(0,2),['providerRegistry.js','configuration.js']);
+    assert.deepEqual(manifest.content_scripts[0].js.slice(0,3),['providerRegistry.js','configuration.js','transcriptInsights.js']);
 });
 test('Chrome and Edge test manifests preserve the shared runtime contract',()=>{
     const source=JSON.parse(read('manifest.json'));
@@ -628,7 +653,7 @@ test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     assert(!html.includes('http://') && !html.includes('https://'));
 });
 async function contentHarness() {
-    const h=harness();h.run(read('content_script.js'));for(let i=0;i<10;i++)await Promise.resolve();return h;
+    const h=harness();h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('content_script.js'));for(let i=0;i<10;i++)await Promise.resolve();return h;
 }
 test('minimized source loss does not finalize an active session',async()=>{
     const h=await contentHarness();h.document.hidden=true;
@@ -652,7 +677,7 @@ test('a recent same-page checkpoint restores captions and warns about the gap',a
     h.data.active_capture_v1={transcript:[{Name:'A',Text:'before reload',Time:'10:00'}],meetingTitle:'Synthetic meeting',
         recordingStartTime:new Date(Date.now()-60000).toISOString(),lastBackup:new Date().toISOString(),
         documentSessionId:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',pageUrl:'https://teams.microsoft.com/'};
-    h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
+    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
     assert.equal(h.run('transcriptArray.length'),1);
     assert.equal(h.run('documentSessionId'),'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.match(h.run('checkpointError'),/resumed from a recovery checkpoint/i);

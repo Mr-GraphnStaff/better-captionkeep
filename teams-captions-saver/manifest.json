@@ -45,6 +45,7 @@
       "js": [
         "providerRegistry.js",
         "configuration.js",
+        "transcriptInsights.js",
         "content_script.js"
       ]
     },
@@ -54,7 +55,9 @@
       ],
       "js": [
         "providerRegistry.js",
+        "configuration.js",
         "captureCoordinator.js",
+        "transcriptInsights.js",
         "googleMeetProvider.js",
         "googleMeetContentScript.js"
       ]

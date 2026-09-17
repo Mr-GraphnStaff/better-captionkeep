@@ -48,6 +48,12 @@ const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;
 const storeZipPath = path.join(distDir, storeZipName);
 artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(storeZipPath)).size, sha256: await sha256(storeZipPath) });
 
+const intuneDir = path.join(distDir, 'intune');
+for (const name of ['edge-extension-settings.json', 'edge-extension-force-install.txt', 'managed-policy.json', 'detect-managed-policy.ps1', 'remediate-managed-policy.ps1']) {
+  const filePath = path.join(intuneDir, name);
+  artifacts.push({ target: 'intune', path: `intune/${name}`, bytes: (await stat(filePath)).size, sha256: await sha256(filePath) });
+}
+
 const commit = execFileSync('git', ['-c', 'safe.directory=P:/Projects/better-captionkeep', 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
 const provenance = { product: 'Better CaptionKeep', version: sourceManifest.version, commit, createdAt: new Date().toISOString(), artifacts };
 await writeFile(path.join(distDir, 'release-provenance.json'), `${JSON.stringify(provenance, null, 2)}\n`, 'utf8');
