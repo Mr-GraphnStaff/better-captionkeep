@@ -38,6 +38,8 @@ The developer does not sell user data, use it for advertising, or use it to dete
 
 The use of user data is limited to providing or improving the extension's single purpose in accordance with applicable browser-extension store policies. This policy does not authorize unrelated use or sale of meeting information.
 
+Better CaptionKeep's use and transfer of user data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements.
+
 ## Retention and controls
 
 Saved-session history is managed in local browser storage. The current implementation limits session history to ten sessions and may remove older sessions when limits are reached. This limit does not mean all temporary or recovery data is immediately removed.
