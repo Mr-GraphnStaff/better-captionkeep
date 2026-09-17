@@ -1,0 +1,75 @@
+name: Publish Edge update
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and submit
+        required: true
+        type: string
+      action:
+        description: Upload only, or upload and submit for certification
+        required: true
+        default: upload-only
+        type: choice
+        options:
+          - upload-only
+          - submit
+      certification_notes:
+        description: Certification notes used only when action is submit
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-store-production
+  cancel-in-progress: false
+
+jobs:
+  publish-edge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: edge-production
+    steps:
+      - name: Check out the requested release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Verify release identity
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
+
+      - name: Download the reviewed release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
+          is_prerelease="$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)"
+          if [[ "$is_draft" != "false" || "$is_prerelease" != "false" ]]; then
+            echo "Release $RELEASE_TAG must be published and non-prerelease before Store deployment."
+            exit 1
+          fi
+          mkdir -p dist/release
+          gh release download "$RELEASE_TAG" --pattern 'better_captionkeep-*.zip' --pattern 'release-provenance.json' --pattern 'SHA256SUMS.txt' --dir dist/release
+          (
+            cd dist/release
+            sha256sum --check SHA256SUMS.txt
+          )
+          store_package="dist/release/better_captionkeep-${RELEASE_TAG#v}.zip"
+          test -f "$store_package"
+          echo "EDGE_PACKAGE_PATH=$store_package" >> "$GITHUB_ENV"
+
+      - name: Upload package and optionally submit for certification
+        env:
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID }}
+          EDGE_ACTION: ${{ inputs.action }}
+          EDGE_CERTIFICATION_NOTES: ${{ inputs.certification_notes }}
+        run: npm run publish:edge

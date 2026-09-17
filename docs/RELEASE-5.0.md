@@ -43,8 +43,10 @@ The product owner approved publication based on hands-on Google Meet testing. Th
 ## Release and governance
 
 - [ ] Record UAT evidence and artifact hashes on the linked Azure Boards work items.
-- [ ] Complete peer review through a pull request into `release/5.0`.
-- [ ] Merge only after required checks and live UAT are green.
+- [x] Complete review through PR #22 into `release/5.0` and PR #23 into `master`.
+- [x] Merge after automated checks passed and the product owner accepted the live Google Meet feature.
 - [x] Update public documentation, privacy disclosure, and 5.0 release notes.
+- [x] Tag `v5.0.0`, publish the GitHub release, and submit the verified Store package from commit `7d2e8ee`.
+- [ ] Receive Microsoft Edge Add-ons certification approval; 5.0.0 was submitted on September 17, 2026 and remains in review.
 
-The next implementation gate is live extension UAT: reload the reviewed sideload, speak a controlled phrase, and prove that the popup can copy, view, and export the captured Google Meet record. A passing fixture test alone is not evidence that the loaded extension works against the current Meet runtime.
+The remaining unchecked browser-specific UAT and Azure Boards evidence items are follow-up regression records, not claims of completed observation. Future Store updates use the gated pipeline in `docs/EDGE-PUBLISH-PIPELINE.md`; do not alter the 5.0.0 submission while Microsoft is reviewing it.
