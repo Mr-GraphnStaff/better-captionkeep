@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "Better CaptionKeep",
+  "version": "5.0.0",
+  "description": "Capture, protect, review, and export live captions from Microsoft Teams and Google Meet.",
+  "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
+  "icons": {
+    "16": "icons/scribble-16.png",
+    "32": "icons/scribble-32.png",
+    "48": "icons/scribble-48.png",
+    "128": "icons/scribble-128.png"
+  },
+  "permissions": [
+    "downloads",
+    "activeTab",
+    "storage"
+  ],
+  "storage": {
+    "managed_schema": "managed-schema.json"
+  },
+  "host_permissions": [
+    "https://teams.microsoft.com/*",
+    "https://teams.cloud.microsoft/*",
+    "https://meet.google.com/*"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/scribble-16.png",
+      "32": "icons/scribble-32.png",
+      "48": "icons/scribble-48.png",
+      "128": "icons/scribble-128.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "Better CaptionKeep — by Señor Farris"
+  },
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://teams.microsoft.com/*",
+        "https://teams.cloud.microsoft/*"
+      ],
+      "js": [
+        "providerRegistry.js",
+        "configuration.js",
+        "transcriptInsights.js",
+        "content_script.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "providerRegistry.js",
+        "configuration.js",
+        "captureCoordinator.js",
+        "transcriptInsights.js",
+        "googleMeetProvider.js",
+        "googleMeetContentScript.js"
+      ]
+    }
+  ],
+  "author": "Señor Farris"
+}

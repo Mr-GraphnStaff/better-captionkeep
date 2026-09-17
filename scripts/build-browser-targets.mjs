@@ -8,11 +8,16 @@ const projectRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(projectRoot, 'teams-captions-saver');
 const manifestsDir = path.join(projectRoot, 'manifests');
 const distDir = path.join(projectRoot, 'dist');
-const supportedTargets = new Set(['chrome', 'edge']);
+const defaultTargets = ['chrome', 'edge'];
+const targetManifests = new Map([
+  ['chrome', 'manifest.chrome.json'],
+  ['edge', 'manifest.edge.json'],
+  ['chrome-store', 'manifest.chrome-store.json']
+]);
 
 function selectTargets(requestedTarget) {
-  if (!requestedTarget) return [...supportedTargets];
-  if (!supportedTargets.has(requestedTarget)) {
+  if (!requestedTarget) return defaultTargets;
+  if (!targetManifests.has(requestedTarget)) {
     throw new Error(`Unsupported browser target: ${requestedTarget}`);
   }
   return [requestedTarget];
@@ -20,7 +25,7 @@ function selectTargets(requestedTarget) {
 
 async function stageTarget(target) {
   const targetDir = path.join(distDir, `${target}-unpacked`);
-  const manifestPath = path.join(manifestsDir, `manifest.${target}.json`);
+  const manifestPath = path.join(manifestsDir, targetManifests.get(target));
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 
   await rm(targetDir, { recursive: true, force: true });
@@ -36,7 +41,7 @@ async function stageTarget(target) {
     `${JSON.stringify(manifest, null, 2)}\n`,
     'utf8'
   );
-  console.log(`Staged ${target} test extension at ${targetDir}`);
+  console.log(`Staged ${target} extension at ${targetDir}`);
 }
 
 const targets = selectTargets(process.argv[2]?.toLowerCase());

@@ -556,6 +556,16 @@ test('Chrome and Edge test manifests preserve the shared runtime contract',()=>{
         assert(buildLabel.includes('development')||buildLabel.includes('release candidate'));
     }
 });
+test('Chrome Store manifest preserves runtime behavior without test labeling',()=>{
+    const source=JSON.parse(read('manifest.json'));
+    const manifest=JSON.parse(readProject('manifests/manifest.chrome-store.json'));
+    for(const key of ['version','permissions','host_permissions','background','content_scripts','storage']) {
+        assert.deepEqual(manifest[key],source[key]);
+    }
+    assert.equal(manifest.name,'Better CaptionKeep');
+    assert.equal(manifest.action.default_title,'Better CaptionKeep — by Señor Farris');
+    assert(!/test|development/i.test(`${manifest.name} ${manifest.version_name||''} ${manifest.action.default_title}`));
+});
 test('Scrubby masks supported sensitive patterns with stable local placeholders',()=>{
     const context=vm.createContext({globalThis:null});context.globalThis=context;
     vm.runInContext(read('privacyScrubber.js'),context);

@@ -1,0 +1,10 @@
+{
+  "product": "Better CaptionKeep",
+  "extensionId": "",
+  "updateUrl": "https://clients2.google.com/service/update2/crx",
+  "managedPolicy": {
+    "forcePrivacyScrubber": true,
+    "forceProfanityFilter": false,
+    "disableAiHandoff": false
+  }
+}

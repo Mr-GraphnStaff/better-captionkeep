@@ -1,6 +1,6 @@
 # Intune and EUC deployment
 
-Better CaptionKeep is designed for store-managed Microsoft Edge deployment. The repository produces an Intune-ready bundle without repacking the Microsoft Edge Add-ons artifact or changing its identity.
+Better CaptionKeep is designed for store-managed Chrome and Microsoft Edge deployment. The repository produces Intune-ready bundles without repacking either store artifact or changing its identity.
 
 ## Build the deployment bundle
 
@@ -13,6 +13,15 @@ Run `npm run build:intune`. Generated files are written to `dist/intune`:
 
 The committed deployment profile uses the public Microsoft Edge Add-ons extension ID and Microsoft's official store update URL. Override the ID at build time with `CAPTIONKEEP_EDGE_EXTENSION_ID` only for a separately signed organization build.
 
+After the first Chrome Web Store upload creates a draft item, copy its 32-character extension ID and run:
+
+```powershell
+$env:CAPTIONKEEP_CHROME_EXTENSION_ID = '<Chrome Web Store extension ID>'
+npm run build:intune:chrome
+```
+
+The Chrome bundle is written to `dist/intune-chrome/` with `chrome-extension-settings.json`, `chrome-extension-force-install.txt`, and Chrome-specific detection/remediation scripts. It uses Google's official Chrome Web Store update URL and writes managed extension policy only beneath the Chrome policy path. The standard Chrome profile also forces Scrubby on while preserving the user's AI-provider choice.
+
 The standard profile leaves AI handoff available for individual Pro users, Team accounts, small businesses, and enterprises that permit reviewed AI use. Run `npm run build:intune:local-only` only when an administrator deliberately wants the separate high-security bundle in `dist/intune-local-only`.
 
 ## Recommended Intune deployment
@@ -23,6 +32,8 @@ The standard profile leaves AI handoff available for individual Pro users, Team 
 4. Assign first to a small device pilot group, then expand in rings.
 5. If managed CaptionKeep controls are required, create an Intune Remediations package with the generated detection and remediation scripts. Run in 64-bit PowerShell as SYSTEM.
 6. On a pilot device, verify the browser policy at `edge://policy`, the installed extension at `edge://extensions`, and the locked controls in the CaptionKeep popup.
+
+For Chrome, select the equivalent **Google Chrome > Extensions** settings, use the generated `chrome-extension-settings.json`, and verify the pilot at `chrome://policy` and `chrome://extensions`.
 
 The simpler `ExtensionInstallForcelist` setting can use the single generated line in `edge-extension-force-install.txt`, but `ExtensionSettings` is preferred because the deployment intent stays in one per-extension object.
 
