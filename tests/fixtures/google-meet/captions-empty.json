@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-09-14",
+  "source": "sanitized live Google Meet session",
+  "meetingContentIncluded": false,
+  "captionSource": {
+    "tag": "DIV",
+    "role": "region",
+    "ariaLabel": "Captions",
+    "classes": [
+      "vNKgIf",
+      "UDinHf"
+    ],
+    "empty": true,
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "ariaLabel": "Jump to most recent captions"
+      }
+    ]
+  }
+}

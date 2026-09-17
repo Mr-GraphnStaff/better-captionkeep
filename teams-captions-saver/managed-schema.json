@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "forcePrivacyScrubber": { "type": "boolean" },
+    "forceProfanityFilter": { "type": "boolean" },
+    "disableAiHandoff": { "type": "boolean" },
+    "allowedAiProviders": { "type": "array", "items": { "type": "string" } },
+    "chatgptWorkspaceUrl": { "type": "string" },
+    "claudeWorkspaceUrl": { "type": "string" },
+    "claudeConsoleUrl": { "type": "string" },
+    "customScrubTerms": { "type": "array", "items": { "type": "string" } }
+  }
+}

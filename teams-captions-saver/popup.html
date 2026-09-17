@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
     <title>Better CaptionKeep</title>
     <meta charset="UTF-8">
@@ -50,14 +50,62 @@
             min-height: 20px;
         }
 
-        #status-message a {
-            color: #087f8c;
-            text-decoration: underline;
-            transition: color 0.3s ease;
+        .platform-launchers {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+            width: 100%;
         }
 
-        #status-message a:hover {
-            color: #065e68;
+        .platform-launcher {
+            min-width: 0;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px;
+            box-sizing: border-box;
+            border: 1px solid var(--ck-border);
+            border-radius: 8px;
+            background: var(--ck-surface);
+            color: var(--ck-text) !important;
+            font-size: 11px;
+            font-weight: 650;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(20, 43, 59, 0.08);
+            transition: border-color 160ms ease, transform 160ms ease, background-color 160ms ease;
+        }
+
+        .platform-launcher:hover {
+            border-color: var(--ck-primary);
+            background: var(--ck-surface-soft);
+            transform: translateY(-1px);
+        }
+
+        .platform-mark {
+            width: 22px;
+            height: 22px;
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 22px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 750;
+            line-height: 1;
+        }
+
+        .platform-mark.teams { background: #6264a7; }
+        .platform-mark.zoom { background: #2d8cff; }
+        .platform-mark.meet {
+            background: linear-gradient(135deg, #00832d 0 50%, #1a73e8 50% 100%);
+        }
+
+        .platform-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         kbd {
@@ -182,6 +230,23 @@
             border-bottom: 1px solid #eee;
             padding-bottom: 5px;
         }
+        details.settings-group {
+            margin-top: 8px;
+            padding: 0 10px 10px;
+            border: 1px solid var(--ck-border);
+            border-radius: 8px;
+            background: var(--ck-surface-soft);
+        }
+        details.settings-group > summary {
+            padding: 10px 2px;
+            cursor: pointer;
+            color: var(--ck-text);
+            font-size: 14px;
+            font-weight: 650;
+            list-style-position: outside;
+        }
+        details.settings-group[open] > summary { border-bottom: 1px solid var(--ck-border); margin-bottom: 8px; }
+        .settings-intro { margin: 3px 0 8px; color: var(--ck-text-muted); font-size: 12px; }
         .setting-item {
             width: 100%;
             display: flex;
@@ -352,7 +417,16 @@
         .brand img { flex-shrink: 0; }
         .brand h2 { font-size: 19px; line-height: 1.2; }
         .signature { margin: 4px 0 0; font-size: 12px; color: #087f8c; }
+        .enterprise-destinations { display: grid; gap: 7px; width: 100%; }
+        .workspace-url-label { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--ck-text); }
+        .enterprise-destinations input { width: 100%; box-sizing: border-box; padding: 7px; border: 1px solid var(--ck-border); border-radius: 5px; font-size: 12px; }
+        .enterprise-destinations input:invalid { border-color: var(--ck-danger) !important; }
     </style>
+    <link rel="stylesheet" href="theme.css">
+    <script src="theme.js" defer></script>
+    <script src="configuration.js" defer></script>
+    <script src="aiDestinations.js" defer></script>
+    <script src="privacyScrubber.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
@@ -360,9 +434,21 @@
     <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature">by Señor Farris</p></div></header>
     <p class="subtitle">Keep the words. Stay in the conversation.</p>
 
-    <p id="manual-start-info" class="info-text">Turn on live captions in your meeting to start capturing.</p>
+    <nav class="platform-launchers" aria-label="Open a meeting app">
+        <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
+            <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
+        </a>
+        <a class="platform-launcher" href="platform-coming-soon.html?platform=zoom" target="_blank" aria-label="Preview upcoming Zoom support">
+            <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
+        </a>
+        <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
+            <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
+        </a>
+    </nav>
 
-    <p id="status-message">Checking status...</p>
+    <p id="manual-start-info" class="info-text">If captions do not start automatically, turn on CC in the meeting to begin capturing.</p>
+
+    <p id="status-message" role="status" aria-live="polite">Checking status...</p>
 
     <div class="button-container">
         <div class="split-button" id="copy-container">
@@ -370,6 +456,7 @@
             <button id="copyDropdownButton" class="split-button-dropdown" disabled>▾</button>
             <div id="copyOptions" class="split-button-options">
                 <a href="#" data-copy-type="standard">Copy Transcript</a>
+                <a href="#" data-copy-type="cleaned">Copy Cleaned Transcript</a>
             </div>
         </div>
         <div class="split-button" id="save-container">
@@ -378,6 +465,8 @@
             <div id="saveOptions" class="split-button-options">
                 <a href="#" data-format="txt">Save as TXT (.txt)</a>
                 <a href="#" data-format="md">Save as Markdown (.md)</a>
+                <a href="#" data-format="txt" data-cleaned="true">Save Cleaned TXT (.txt)</a>
+                <a href="#" data-format="md" data-cleaned="true">Save Cleaned Markdown (.md)</a>
             </div>
         </div>
     </div>
@@ -397,17 +486,32 @@
 
     <div class="settings-container">
         <h3 class="settings-header">Settings</h3>
+        <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
 
-        <div class="settings-group">
-            <p class="settings-subheader">Session Settings</p>
+        <details class="settings-group">
+            <summary>Appearance</summary>
+            <div class="setting-item">
+                <label for="themeSelect" class="setting-label">Theme</label>
+                <select id="themeSelect">
+                    <option value="captionkeep">CaptionKeep</option>
+                    <option value="light">Light</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="system">Follow system</option>
+                </select>
+            </div>
+            <p class="small-info-text">Applies to the popup, transcript viewer, exports, and AI handoff.</p>
+        </details>
+
+        <details class="settings-group">
+            <summary>Speaker aliases</summary>
             <div id="speaker-alias-container">
                  <label class="setting-label" style="margin-bottom: 10px;">Speaker Aliases</label>
                  <div id="speaker-alias-list"><p>Start capturing to see the speaker list.</p></div>
             </div>
-        </div>
+        </details>
 
-        <div class="settings-group">
-            <p class="settings-subheader">Export & Automation</p>
+        <details class="settings-group">
+            <summary>Export and auto-save</summary>
             <div class="setting-item">
                 <label for="defaultSaveFormat" class="setting-label">Default Save Format</label>
                 <select id="defaultSaveFormat">
@@ -416,27 +520,29 @@
                 </select>
             </div>
             <div class="setting-item">
-                <label for="saveAsType" class="setting-label">Save Behavior</label>
-                <select id="saveAsType" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
-                    <option value="prompt">Ask every time (Save As dialog)</option>
-                    <option value="default">Auto-save to browser folder</option>
-                    <option value="custom">Auto-save to custom folder</option>
+                <label for="saveAsType" class="setting-label">Save behavior</label>
+                <select id="saveAsType">
+                    <option value="prompt">Ask every time (Save As)</option>
+                    <option value="downloads">Browser Downloads folder</option>
+                    <option value="custom">Downloads subfolder</option>
                 </select>
             </div>
-            <div class="setting-item" id="saveLocationRow" style="display: none;">
-                <label for="saveLocation" class="setting-label">Save Location</label>
-                <input type="text" id="saveLocation" placeholder="Transcripts/Meetings" style="flex: 1; margin-left: 10px; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+            <div class="setting-item" id="saveLocationRow" style="display:none">
+                <label for="saveLocation" class="setting-label">Subfolder</label>
+                <input type="text" id="saveLocation" placeholder="Transcripts/Meetings">
             </div>
-            <p class="small-info-text" id="saveLocationHint" style="display: none;">Files save inside your Downloads folder. Use folders like <kbd>Transcripts/Teams</kbd>.</p>
+            <p class="small-info-text" id="saveLocationHint" style="display:none">Enter a path beneath your browser's Downloads folder, such as <kbd>Transcripts/Teams</kbd>.</p>
+            <p>Every export opens a save page with Save As, a remembered direct folder when supported, and a manual Downloads-subfolder fallback.</p>
+            <button id="exportSettings" type="button">Export folder and pending saves</button>
             <div class="setting-item">
                 <label for="autoSaveOnEndToggle" class="setting-label">Auto-Save on Meeting End</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoSaveOnEndToggle"><span class="slider"></span></label>
             </div>
-             <p class="small-info-text">Automatically saves in your default format when you leave a meeting.</p>
-        </div>
+             <p class="small-info-text">Prepares an export when the meeting ends. Writes to your selected folder only while permission is granted; otherwise keeps the export pending.</p>
+        </details>
 
-        <div class="settings-group">
-            <p class="settings-subheader">Capture Settings</p>
+        <details class="settings-group" open>
+            <summary>Capture controls</summary>
             <div class="setting-item">
                 <label for="trackCaptionsToggle" class="setting-label">Track Live Captions</label>
                 <label class="toggle-switch"><input type="checkbox" id="trackCaptionsToggle" checked><span class="slider"></span></label>
@@ -450,32 +556,61 @@
             
             <p class="settings-subheader">Automation Settings</p>
             <div class="setting-item">
-                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-open Live Captions</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle"><span class="slider"></span></label>
+                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Live Captions</label>
+                <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Automatically enable Teams captions when joining a meeting.</p>
+            <p class="small-info-text">Automatically enable captions when joining a supported Teams or Google Meet meeting. Google Meet makes one automatic attempt per meeting and respects a later manual shutoff.</p>
             <div class="setting-item">
                 <label for="autoOpenAttendeesToggle" class="setting-label">Auto-open Attendee Panel</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle"><span class="slider"></span></label>
             </div>
             <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
+        </details>
+
+        <details class="settings-group">
+            <summary>AI handoff and privacy</summary>
             <div class="setting-item">
-                <label for="autoAISummaryToggle" class="setting-label">Auto-open AI Summary Tabs</label>
+                <label for="autoAISummaryToggle" class="setting-label">Prepare AI handoff</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoAISummaryToggle"><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Launch ChatGPT, Claude, Gemini, and more with a prepared prompt after each meeting.</p>
+            <p class="small-info-text">Prepare a local prompt for review and copying after each meeting. No transcript is placed in provider URLs.</p>
+            <div class="setting-item">
+                <label for="privacyScrubberToggle" class="setting-label"><img src="icons/scrubby-256.png" alt="" style="width: 34px; height: 34px; vertical-align: middle; margin-right: 7px;">Privacy Scrubber</label>
+                <label class="toggle-switch"><input type="checkbox" id="privacyScrubberToggle" checked><span class="slider"></span></label>
+            </div>
+            <p class="small-info-text">Mask supported sensitive details locally before an AI handoff. You can temporarily change this on the review page; original transcripts stay unchanged.</p>
             <div class="setting-item ai-provider-options" id="aiProviderOptions" style="display: none;">
                 <label class="ai-provider-option"><input type="checkbox" data-provider="chatgpt">ChatGPT</label>
                 <label class="ai-provider-option"><input type="checkbox" data-provider="claude">Claude</label>
                 <label class="ai-provider-option"><input type="checkbox" data-provider="claude_console">Claude (Console)</label>
+                <label class="ai-provider-option"><input type="checkbox" data-provider="copilot">Microsoft Copilot</label>
                 <label class="ai-provider-option"><input type="checkbox" data-provider="gemini">Gemini</label>
             </div>
-            <div class="setting-item" id="aiOrgIdRow" style="display: none;">
-                <label for="aiOrgId" class="setting-label">Anthropic Org ID</label>
-                <input type="text" id="aiOrgId" placeholder="org_1234567890" style="flex: 1; margin-left: 10px; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+            <div class="enterprise-destinations" id="enterpriseDestinations" style="display: none;">
+                <p class="settings-subheader">Enterprise destinations</p>
+                <label class="workspace-url-label" for="chatgptWorkspaceUrl">ChatGPT workspace URL</label>
+                <input type="url" id="chatgptWorkspaceUrl" placeholder="https://chatgpt.com/..." autocomplete="off">
+                <label class="workspace-url-label" for="claudeWorkspaceUrl">Claude workspace URL</label>
+                <input type="url" id="claudeWorkspaceUrl" placeholder="https://claude.ai/..." autocomplete="off">
+                <label class="workspace-url-label" for="claudeConsoleUrl">Claude Console URL</label>
+                <input type="url" id="claudeConsoleUrl" placeholder="https://console.anthropic.com/..." autocomplete="off">
             </div>
-            <p class="small-info-text" id="aiProviderHint" style="display: none;">Tabs include a trimmed transcript prompt that asks for a meeting summary and action items.</p>
-            <p class="small-info-text" id="aiOrgIdHint" style="display: none;">Optional: use your Anthropic organization ID to open Claude Console in the correct org.</p>
+            <p class="small-info-text" id="aiProviderHint" style="display: none;">Review the prompt locally before copying or sharing it. Long transcripts are marked when truncated.</p>
+            <p class="small-info-text" id="enterpriseDestinationHint" style="display: none;">Optional: save approved ChatGPT, Claude, and Anthropic Console workspace URLs. Microsoft Copilot opens its official Microsoft 365 chat URL. Always confirm the active organization before pasting.</p>
+            <div class="setting-item">
+                <label for="profanityFilterToggle" class="setting-label">Profanity filter</label>
+                <label class="toggle-switch"><input type="checkbox" id="profanityFilterToggle"><span class="slider"></span></label>
+            </div>
+            <p class="small-info-text">Optional and off by default. Masks a transparent built-in profanity list in cleaned AI handoffs.</p>
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                <label for="customScrubTerms" class="setting-label">Custom terms to mask</label>
+                <textarea id="customScrubTerms" rows="3" placeholder="One term per line"></textarea>
+                <p class="small-info-text">Local only. Useful for project names, people, or organization-specific sensitive words.</p>
+            </div>
+        </details>
+
+        <details class="settings-group">
+            <summary>Naming and timestamps</summary>
             <div class="setting-item">
                 <label for="timestampFormat" class="setting-label">Timestamp Format</label>
                 <select id="timestampFormat" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
@@ -493,7 +628,17 @@
                 <p class="small-info-text">Variables: {date}, {time}, {datetime}, {title}, {format}, {attendees}</p>
                 <p class="small-info-text" id="filenamePreview">Example:</p>
             </div>
-        </div>
+        </details>
+        <details class="settings-group">
+            <summary>Configuration portability</summary>
+            <p class="small-info-text">Export user preferences for backup or EUC repackaging. Transcript history is never included.</p>
+            <div class="actions-row">
+                <button id="exportConfiguration" type="button">Export settings</button>
+                <button id="importConfiguration" type="button">Import settings</button>
+                <input id="configurationFile" type="file" accept="application/json,.json" hidden>
+            </div>
+            <p class="small-info-text" id="configurationStatus" role="status" aria-live="polite"></p>
+        </details>
     </div>
 </body>
 </html>
