@@ -1,12 +1,12 @@
 # Better CaptionKeep Privacy Policy
 
-Effective date: September 12, 2026
+Effective date: September 17, 2026
 
-Better CaptionKeep, by Señor Farris, is an independent Microsoft Edge extension for capturing, reviewing, and exporting live captions from Microsoft Teams. This policy describes the Better CaptionKeep fork, including its optional AI handoff features.
+Better CaptionKeep, by Señor Farris, is an independent Microsoft Edge extension for capturing, reviewing, and exporting live captions from Microsoft Teams and Google Meet. This policy describes the Better CaptionKeep fork, including its optional AI handoff features.
 
 ## Information the extension handles
 
-The extension reads displayed Teams captions, speaker names, meeting titles, and timestamps. When attendee tracking is enabled, it also reads participant names, roles, and observed join/leave information. Meeting text may contain personal or sensitive information depending on what participants say. The extension reads captions from the Teams page; it does not record microphone audio or video.
+The extension reads captions already displayed by Microsoft Teams or Google Meet, together with speaker names, meeting titles, and timestamps. In Teams, when attendee tracking is enabled, it also reads participant names, roles, and observed join/leave information. Meeting text may contain personal or sensitive information depending on what participants say. The extension reads rendered meeting-page content; it does not record microphone audio or video.
 
 It also handles user preferences, such as capture settings, export format, filename patterns, save locations, selected AI providers, approved provider workspace URLs, custom masking terms, and temporary speaker aliases. An administrator may supply read-only managed settings through the browser's enterprise-policy system.
 
