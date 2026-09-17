@@ -1,0 +1,74 @@
+name: Package release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to package
+        required: true
+        default: master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: package-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate, test, and package
+        run: npm run release:candidate
+
+      - name: Verify tag and package version
+        if: github.event_name == 'push'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
+
+      - name: Record package checksum
+        shell: bash
+        run: sha256sum dist/better_captionkeep-*.zip > dist/SHA256SUMS.txt
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: better-captionkeep-${{ github.run_id }}
+          if-no-files-found: error
+          path: |
+            dist/better_captionkeep-*.zip
+            dist/release-provenance.json
+            dist/SHA256SUMS.txt
+
+      - name: Create draft GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          title="Better CaptionKeep ${RELEASE_TAG#v}"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing to replace immutable release artifacts."
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" dist/better_captionkeep-*.zip dist/release-provenance.json dist/SHA256SUMS.txt --draft --verify-tag --title "$title" --generate-notes
