@@ -57,6 +57,9 @@ async function validateManifest(manifest) {
       errors.push(`Host permissions must include "${host}".`);
     }
   }
+  if (!hostPermissions.includes('https://meet.google.com/*')) {
+    errors.push('Google Meet development requires the exact "https://meet.google.com/*" host permission.');
+  }
 
   const backgroundWorker = manifest.background?.service_worker;
   if (!backgroundWorker) {
@@ -99,6 +102,8 @@ async function validateManifest(manifest) {
     'aiDestinations.js',
     'configuration.js',
     'content_script.js',
+    'googleMeetContentScript.js',
+    'googleMeetProvider.js',
     'privacyScrubber.js',
     'providerRegistry.js',
     'managed-schema.json',
@@ -124,6 +129,12 @@ async function validateManifest(manifest) {
   }
   if (declaredContentScripts[1] !== 'configuration.js') {
     errors.push('configuration.js must load before the Teams content script.');
+  }
+  const googleMeetScripts = (manifest.content_scripts ?? [])
+    .find(entry => (entry.matches ?? []).includes('https://meet.google.com/*'))?.js ?? [];
+  const expectedGoogleMeetScripts = ['providerRegistry.js', 'captureCoordinator.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
+  if (JSON.stringify(googleMeetScripts) !== JSON.stringify(expectedGoogleMeetScripts)) {
+    errors.push(`Google Meet content scripts must load in this order: ${expectedGoogleMeetScripts.join(', ')}.`);
   }
   for (const script of declaredContentScripts) {
     if (!scriptsToCheck.has(script) && !(await fileExists(path.join(sourceDir, script)))) {

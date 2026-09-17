@@ -27,4 +27,4 @@ Version 4.7 will not be submitted to a browser extension store. Its completed st
 
 - Production runtime supports Teams only.
 - Pattern masking is described as risk reduction, never compliance certification.
-- The published 4.6 package remains untouched until 4.7 passes this matrix and receives explicit submission approval.
+- The published 4.6 package remains the public baseline until 5.0 passes its independent release gate and receives explicit submission approval.

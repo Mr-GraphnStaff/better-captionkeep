@@ -441,12 +441,12 @@
         <a class="platform-launcher" href="platform-coming-soon.html?platform=zoom" target="_blank" aria-label="Preview upcoming Zoom support">
             <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
         </a>
-        <a class="platform-launcher" href="platform-coming-soon.html?platform=meet" target="_blank" aria-label="Preview upcoming Google Meet support">
+        <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
             <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
         </a>
     </nav>
 
-    <p id="manual-start-info" class="info-text">In Teams, turn on live captions to start capturing.</p>
+    <p id="manual-start-info" class="info-text">If captions do not start automatically, turn on CC in the meeting to begin capturing.</p>
 
     <p id="status-message" role="status" aria-live="polite">Checking status...</p>
 
@@ -556,10 +556,10 @@
             
             <p class="settings-subheader">Automation Settings</p>
             <div class="setting-item">
-                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-open Live Captions</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle"><span class="slider"></span></label>
+                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Live Captions</label>
+                <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Automatically enable Teams captions when joining a meeting.</p>
+            <p class="small-info-text">Automatically enable captions when joining a supported Teams or Google Meet meeting. Google Meet makes one automatic attempt per meeting and respects a later manual shutoff.</p>
             <div class="setting-item">
                 <label for="autoOpenAttendeesToggle" class="setting-label">Auto-open Attendee Panel</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle"><span class="slider"></span></label>

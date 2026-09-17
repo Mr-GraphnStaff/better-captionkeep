@@ -65,10 +65,10 @@ function escapeHtml(str) {
     return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-async function getActiveTeamsTab() {
+async function getActiveMeetingTab() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const teamsTab = tabs.find(tab => /^https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)(?:\/|$)/.test(tab.url || ''));
-    return teamsTab || null;
+    const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com)(?:\/|$)/.test(tab.url || ''));
+    return meetingTab || null;
 }
 
 async function formatTranscript(transcript, aliases = {}) {
@@ -268,7 +268,7 @@ async function renderSpeakerAliases(tab) {
         });
     } catch (error) {
         console.error("Could not fetch or render speaker aliases:", error);
-        speakerAliasList.innerHTML = '<p>Unable to load speakers. Please refresh the Teams tab and try again.</p>';
+        speakerAliasList.innerHTML = '<p>Unable to load speakers. Please refresh the meeting tab and try again.</p>';
     }
 }
 
@@ -299,7 +299,7 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
 
-    UI_ELEMENTS.autoEnableCaptionsToggle.checked = !!settings.autoEnableCaptions;
+    UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
     UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
@@ -341,7 +341,7 @@ async function loadSettings() {
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.value = CaptionKeepTheme.apply(settings.uiTheme);
     }
-    UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions ? 'none' : 'block';
+    UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions !== false ? 'none' : 'block';
 
     const allowedFormats = ['txt', 'md'];
     currentDefaultFormat = settings.defaultSaveFormat || 'txt';
@@ -522,14 +522,14 @@ function setupEventListeners() {
     });
 
     UI_ELEMENTS.saveButton.addEventListener('click', async () => {
-        const tab = await getActiveTeamsTab();
+        const tab = await getActiveMeetingTab();
         if (tab) {
             chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format: currentDefaultFormat });
         }
     });
 
     UI_ELEMENTS.viewButton.addEventListener('click', async () => {
-        const tab = await getActiveTeamsTab();
+        const tab = await getActiveMeetingTab();
         if (tab) {
             chrome.tabs.sendMessage(tab.id, { message: "get_captions_for_viewing" });
         }
@@ -563,7 +563,7 @@ function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandl
 async function handleCopy(target) {
     if (!target.dataset.copyType) return;
 
-    const tab = await getActiveTeamsTab();
+    const tab = await getActiveMeetingTab();
     if (!tab) return;
 
     UI_ELEMENTS.statusMessage.textContent = "Preparing text to copy...";
@@ -591,7 +591,7 @@ async function handleSave(target) {
     const format = target.dataset.format;
     if (!format) return;
     
-    const tab = await getActiveTeamsTab();
+    const tab = await getActiveMeetingTab();
     if (tab) {
         UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
         if (target.dataset.cleaned !== 'true') {
@@ -601,7 +601,7 @@ async function handleSave(target) {
         const response = await chrome.tabs.sendMessage(tab.id, { message: 'get_transcript_for_copying' });
         const cleaned = CaptionKeepPrivacyScrubber.scrubTranscript(response?.transcriptArray || [], await getScrubOptions());
         const result = await chrome.runtime.sendMessage({ message: 'download_captions', transcriptArray: cleaned.transcript,
-            format, meetingTitle: tab.title || 'Teams Meeting' });
+            format, meetingTitle: tab.title || 'Meeting transcript' });
         UI_ELEMENTS.statusMessage.textContent = result?.ok
             ? `Cleaned export ready (${cleaned.replacements.length} masked).`
             : 'Could not prepare cleaned export.';
@@ -820,9 +820,9 @@ async function initializePopup() {
     setupEventListeners();
     await initializeSessionHistory(); // Initialize session history
 
-    const tab = await getActiveTeamsTab();
+    const tab = await getActiveMeetingTab();
     if (!tab) {
-        UI_ELEMENTS.statusMessage.textContent = 'Teams is not open yet.';
+        UI_ELEMENTS.statusMessage.textContent = 'Open Teams or Google Meet to begin.';
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
         return;
     }
@@ -841,13 +841,13 @@ async function initializePopup() {
     } catch (error) {
         // This error is expected when content script isn't loaded yet
         if (error.message.includes("Could not establish connection")) {
-            console.log("Content script not ready. This is normal if the Teams page was just opened.");
-            UI_ELEMENTS.statusMessage.innerHTML = 'Please refresh your Teams tab (F5) to activate the extension.';
+            console.log("Content script not ready. This is normal if the meeting page was just opened.");
+            UI_ELEMENTS.statusMessage.innerHTML = 'Please refresh your meeting tab (F5) to activate the extension.';
             UI_ELEMENTS.statusMessage.style.color = 'var(--ck-warning)';
             
         } else {
             console.error("Unexpected error:", error.message);
-            UI_ELEMENTS.statusMessage.textContent = "Connection error. Please refresh your Teams tab and try again.";
+            UI_ELEMENTS.statusMessage.textContent = "Connection error. Please refresh your meeting tab and try again.";
             UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
         }
     }

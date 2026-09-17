@@ -68,6 +68,329 @@ test('provider captions require stable identity and capture time',()=>{
     assert.throws(()=>normalize({Text:'Hello',capturedAt:'2026-09-13T15:30:00Z'}),/stable key/);
     assert.throws(()=>normalize({Text:'Hello',key:'meet-1',capturedAt:'later'}),/timestamp/);
 });
+test('Google Meet adapter uses the live semantic caption region and reports lifecycle changes',()=>{
+    const observers=[];
+    class FakeObserver {
+        constructor(callback){this.callback=callback;observers.push(this);}
+        observe(){}
+        disconnect(){this.disconnected=true;}
+    }
+    const captionSource={};
+    let currentSource=captionSource;
+    const listeners={};
+    const pageWindow={
+        location:{href:'https://meet.google.com/abc-defg-hij'},
+        addEventListener(type,callback){listeners[type]=callback;},
+        removeEventListener(type){delete listeners[type];}
+    };
+    const pageDocument={body:{},querySelector(selector){
+        assert.equal(selector,'[role="region"][aria-label="Captions"]');
+        return currentSource;
+    }};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    assert.equal(adapter.isMeetingPresent(),true);
+    assert.equal(adapter.getCaptionSource(),captionSource);
+    assert.equal(events[0].type,'caption-source-available');
+    currentSource=null;observers[0].callback();
+    assert.equal(events.at(-1).type,'caption-source-unavailable');
+    assert.equal(events.at(-1).recoverable,true);
+    pageWindow.location.href='https://meet.google.com/';observers[0].callback();
+    assert.equal(events.at(-1).type,'meeting-ended');
+    adapter.stop();
+    assert.equal(adapter.getCaptionSource(),null);
+});
+test('Google Meet manifest scope is exact and isolated from Teams capture',()=>{
+    const manifest=JSON.parse(read('manifest.json'));
+    assert(manifest.host_permissions.includes('https://meet.google.com/*'));
+    const meetEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://meet.google.com/*'));
+    assert.deepEqual(meetEntry.js,['providerRegistry.js','captureCoordinator.js','googleMeetProvider.js','googleMeetContentScript.js']);
+    assert(!meetEntry.js.includes('content_script.js'));
+});
+test('Google Meet empty caption fixture contains structure but no meeting content',()=>{
+    const fixture=JSON.parse(readProject('tests/fixtures/google-meet/captions-empty.json'));
+    assert.equal(fixture.meetingContentIncluded,false);
+    assert.equal(fixture.captionSource.role,'region');
+    assert.equal(fixture.captionSource.ariaLabel,'Captions');
+    assert.equal(fixture.captionSource.empty,true);
+    assert(!JSON.stringify(fixture).includes('pxs-'));
+    assert(!JSON.stringify(fixture).includes('@'));
+});
+test('Google Meet live speaker fixture is sanitized and records the semantic row boundary',()=>{
+    const fixture=JSON.parse(readProject('tests/fixtures/google-meet/captions-speaker-row.json'));
+    assert.equal(fixture.meetingContentIncluded,false);
+    const row=fixture.captionSource.directChildren.find(child=>child.kind==='caption-row');
+    assert.equal(row.children[0].kind,'speaker');
+    assert.equal(row.children[0].containsImage,true);
+    assert.equal(row.children[1].kind,'caption-text');
+    const serialized=JSON.stringify(fixture);
+    assert(!serialized.includes('zog-xfyq-djm'));
+    assert(!serialized.includes('@'));
+});
+test('Google Meet parser emits semantic rows and updates one stable record across interim mutations',()=>{
+    const observers=[];
+    class FakeObserver {
+        constructor(callback){this.callback=callback;observers.push(this);}
+        observe(){}
+        disconnect(){}
+    }
+    const image={tagName:'IMG',children:[],textContent:''};
+    const speaker={tagName:'DIV',children:[image],textContent:'Test Speaker',querySelector:()=>image};
+    const words={tagName:'DIV',children:[],textContent:'First interim phrase'};
+    const row={tagName:'DIV',children:[speaker,words]};
+    const source={children:[row,{tagName:'DIV',children:[]}]};
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    let captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,1);
+    assert.equal(captions[0].caption.Name,'Test Speaker');
+    assert.equal(captions[0].caption.Text,'First interim phrase');
+    const stableKey=captions[0].caption.key;
+    words.textContent='Completed test phrase';
+    observers[1].callback();
+    observers[1].callback();
+    captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,2);
+    assert.equal(captions[1].caption.Text,'Completed test phrase');
+    assert.equal(captions[1].caption.key,stableKey);
+});
+test('Google Meet remount reuses the active caption key without collapsing a later repeated phrase',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    let clock=new Date('2026-09-19T15:00:00Z');
+    const makeRow=()=>{
+        const image={tagName:'IMG',children:[],textContent:''};
+        return {tagName:'DIV',children:[
+            {tagName:'DIV',children:[image],textContent:'Test Speaker',querySelector:()=>image},
+            {tagName:'DIV',children:[],textContent:'Repeatable phrase'}
+        ]};
+    };
+    let source={children:[makeRow()]};
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver,now:()=>clock});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    const originalKey=events.find(event=>event.type==='caption-upsert').caption.key;
+    source=null;observers[0].callback();
+    clock=new Date('2026-09-19T15:00:05Z');
+    source={children:[makeRow()]};observers[0].callback();
+    source.children[0].children[1].textContent='Repeatable phrase extended';
+    observers[2].callback();
+    let captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,2);
+    assert.equal(captions[1].caption.key,originalKey);
+    source=null;observers[0].callback();
+    clock=new Date('2026-09-19T15:01:00Z');
+    source={children:[makeRow()]};observers[0].callback();
+    captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,3);
+    assert.notEqual(captions[2].caption.key,originalKey);
+});
+test('capture coordinator restores only the same recent meeting and finalizes history exactly once',async()=>{
+    const data={};
+    const storage={
+        async get(key){return key in data?{[key]:clone(data[key])}:{};},
+        async set(values){Object.assign(data,clone(values));},
+        async remove(key){delete data[key];}
+    };
+    const messages=[];
+    const createCoordinator=pageUrl=>{
+        const context=vm.createContext({URL,crypto:webcrypto,Date,globalThis:null});context.globalThis=context;
+        vm.runInContext(read('captureCoordinator.js'),context);
+        return context.CaptionKeepCaptureCoordinator.create({
+            providerId:'google-meet',pageUrl,meetingTitle:'Saturday test',storage,
+            normalizeCaption:caption=>({...caption}),sendMessage:async message=>{messages.push(message);return {ok:true};},
+            now:()=>new Date('2026-09-19T15:00:00Z'),createId:()=> 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'
+        });
+    };
+    const original=createCoordinator('https://meet.google.com/abc-defg-hij?authuser=0');
+    original.handleProviderEvent({type:'caption-upsert',caption:{Name:'Tester',Text:'Checkpoint me',Time:'10:00',capturedAt:'2026-09-19T15:00:00Z',key:'google-meet-1'}});
+    await original.whenIdle();
+    const restored=createCoordinator('https://meet.google.com/abc-defg-hij?authuser=1');
+    assert.equal(await restored.restore(),true);
+    assert.equal(restored.getTranscript()[0].Text,'Checkpoint me');
+    const other=createCoordinator('https://meet.google.com/xyz-abcd-uvw');
+    assert.equal(await other.restore(),false);
+    restored.handleProviderEvent({type:'meeting-ended'});
+    restored.handleProviderEvent({type:'meeting-ended'});
+    await restored.whenIdle();
+    assert.equal(messages.filter(message=>message.message==='save_session_history').length,1);
+    assert.equal(messages.filter(message=>message.message==='save_on_leave').length,1);
+    assert.equal(data[restored.activeCaptureKey],undefined);
+});
+test('Google Meet auto-enables captions once and respects a later manual disable',()=>{
+    const observers=[];
+    class FakeObserver {
+        constructor(callback){this.callback=callback;observers.push(this);}
+        observe(){}
+        disconnect(){}
+    }
+    let clickCount=0;
+    let source=null;
+    const captionButton={
+        getAttribute:name=>name==='aria-label'?'Turn on captions':null,
+        click(){clickCount++;}
+    };
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[captionButton]};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.setAutoEnableCaptions(true);
+    adapter.start(event=>events.push(event));
+    assert.equal(clickCount,1);
+    assert(events.some(event=>event.type==='caption-enable-requested'));
+    observers[0].callback();
+    assert.equal(clickCount,1);
+    source={children:[]};
+    observers[0].callback();
+    source=null;
+    observers[0].callback();
+    assert.equal(clickCount,1);
+});
+test('Google Meet caption auto-enable can be disabled before adapter startup',()=>{
+    class FakeObserver { constructor(callback){this.callback=callback;} observe(){} disconnect(){} }
+    let clickCount=0;
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={
+        body:{},querySelector:()=>null,
+        querySelectorAll:()=>[{getAttribute:()=> 'Turn on captions',click(){clickCount++;}}]
+    };
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    adapter.setAutoEnableCaptions(false);
+    adapter.start(()=>{});
+    assert.equal(clickCount,0);
+});
+test('Google Meet structure probe preserves shape without caption text or identifying attribute values',()=>{
+    function element(tagName,attributes={},childNodes=[]){
+        return {
+            nodeType:1,tagName,childNodes,
+            attributes:Object.keys(attributes).map(name=>({name})),
+            getAttribute(name){return attributes[name]??null;}
+        };
+    }
+    const liveTree=element('DIV',{role:'region','aria-label':'Captions',class:'generated'},[
+        element('DIV',{'data-message-id':'opaque-123','aria-label':'Private Speaker Name'},[
+            {nodeType:3,textContent:'Private Speaker Name'},
+            element('SPAN',{},[{nodeType:3,textContent:'Sensitive spoken content'}])
+        ])
+    ]);
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const diagnostic=context.CaptionKeepGoogleMeet.sanitizeStructure(liveTree);
+    const serialized=JSON.stringify(diagnostic);
+    assert.equal(diagnostic.version,1);
+    assert(serialized.includes('data-message-id'));
+    assert(!serialized.includes('opaque-123'));
+    assert(!serialized.includes('Private Speaker Name'));
+    assert(!serialized.includes('Sensitive spoken content'));
+    assert(!serialized.includes('generated'));
+});
+test('Google Meet coordinator exposes captured captions through the shared popup contract',async()=>{
+    const messages=[];
+    const localData={};
+    const local={
+        async get(key){return key in localData?{[key]:clone(localData[key])}:{};},
+        async set(values){Object.assign(localData,clone(values));},
+        async remove(key){delete localData[key];}
+    };
+    const storageListeners=[];
+    let providerEventHandler;
+    let messageHandler;
+    const adapter={
+        getSanitizedStructure:()=>({version:1,nodeCount:2,truncated:false,tree:{type:'element',tag:'DIV'}}),
+        isMeetingPresent:()=>true,
+        setAutoEnableCaptions(value){this.autoEnableCaptions=value;},
+        start(handler){providerEventHandler=handler;this.startCount=(this.startCount||0)+1;},
+        stop(){this.stopped=true;}
+    };
+    const registry={
+        create:()=>adapter,
+        normalizeCaption:caption=>Object.freeze({...caption})
+    };
+    const chrome={runtime:{
+        sendMessage(message){messages.push(message);return Promise.resolve({ok:true});},
+        onMessage:{addListener(handler){messageHandler=handler;}}
+    },storage:{local,sync:{get:async()=>({trackCaptions:true})},onChanged:{addListener(handler){storageListeners.push(handler);}}}};
+    const context=vm.createContext({
+        CaptionKeepProviderRegistry:registry,chrome,console:{log(){},error(){}},Date,URL,crypto:webcrypto,MutationObserver:class{},
+        document:{title:'Meet test'},window:{location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){}},globalThis:null
+    });
+    context.globalThis=context;
+    vm.runInContext(read('captureCoordinator.js'),context);
+    vm.runInContext(read('googleMeetContentScript.js'),context);
+    await new Promise(resolve=>setImmediate(resolve));
+    providerEventHandler({type:'caption-source-available'});
+    providerEventHandler({type:'caption-upsert',caption:{Name:'Tester',Text:'Synthetic words',Time:'08:12',capturedAt:'2026-09-14T13:12:00Z',key:'meet-1'}});
+    let status;
+    messageHandler({message:'get_status'},null,response=>{status=response;});
+    assert.equal(status.capturing,true);
+    assert.equal(status.captionCount,1);
+    let viewer;
+    messageHandler({message:'viewer_ready'},null,response=>{viewer=response;});
+    assert.equal(viewer.streaming,true);
+    let transcript;
+    messageHandler({message:'get_transcript_for_copying'},null,response=>{transcript=response.transcriptArray;});
+    assert.equal(transcript[0].Text,'Synthetic words');
+    let diagnostic;
+    messageHandler({message:'get_google_meet_diagnostic'},null,response=>{diagnostic=response.diagnostic;});
+    assert.equal(diagnostic.version,1);
+    assert.equal(diagnostic.tree.tag,'DIV');
+    assert(messages.some(message=>message.message==='live_caption_update'&&message.type==='new'));
+    providerEventHandler({type:'meeting-ended'});
+    await new Promise(resolve=>setImmediate(resolve));
+    assert(messages.some(message=>message.message==='meeting_ended'));
+    assert.equal(messages.filter(message=>message.message==='save_session_history').length,1);
+    storageListeners[0]({trackCaptions:{newValue:false}},'sync');
+    messageHandler({message:'viewer_ready'},null,response=>{viewer=response;});
+    assert.equal(viewer.streaming,false);
+    assert.equal(adapter.stopped,true);
+    storageListeners[0]({trackCaptions:{newValue:true}},'sync');
+    assert.equal(adapter.startCount,2);
+});
+test('Google Meet does not start capture when caption tracking is disabled at load',async()=>{
+    let startCount=0;
+    let messageHandler;
+    const local={async get(){return {};},async set(){},async remove(){}};
+    const adapter={isMeetingPresent:()=>true,setAutoEnableCaptions(){},start(){startCount++;},stop(){}};
+    const chrome={
+        runtime:{sendMessage:()=>Promise.resolve(),onMessage:{addListener(handler){messageHandler=handler;}}},
+        storage:{local,sync:{get:async()=>({trackCaptions:false})},onChanged:{addListener(){}}}
+    };
+    const context=vm.createContext({
+        CaptionKeepProviderRegistry:{create:()=>adapter,normalizeCaption:caption=>caption},chrome,Date,URL,crypto:webcrypto,MutationObserver:class{},
+        console:{log(){},error(){}},document:{title:'Meet test'},window:{location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){}},globalThis:null
+    });
+    context.globalThis=context;
+    vm.runInContext(read('captureCoordinator.js'),context);
+    vm.runInContext(read('googleMeetContentScript.js'),context);
+    await new Promise(resolve=>setImmediate(resolve));
+    let status;
+    messageHandler({message:'get_status'},null,response=>{status=response;});
+    assert.equal(startCount,0);
+    assert.equal(status.capturing,false);
+    assert.equal(status.captureState,'paused');
+});
 test('theme choices are shared by every extension page',()=>{
     const themeSource=read('theme.js');
     for(const choice of ['captionkeep','light','midnight','system']) assert(themeSource.includes(`'${choice}'`));
@@ -289,8 +612,11 @@ test('popup uses a compact three-platform launcher without an inline Teams warni
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
     assert(popup.includes('aria-label="Open Microsoft Teams"'));
     assert(popup.includes('platform-coming-soon.html?platform=zoom'));
-    assert(popup.includes('platform-coming-soon.html?platform=meet'));
-    assert(script.includes("textContent = 'Teams is not open yet.'"));
+    assert(popup.includes('href="https://meet.google.com"'));
+    assert(popup.includes('aria-label="Open Google Meet"'));
+    assert(script.includes('getActiveMeetingTab'));
+    assert(script.includes('https:\\/\\/meet\\.google\\.com'));
+    assert(script.includes("textContent = 'Open Teams or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{

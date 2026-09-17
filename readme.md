@@ -6,13 +6,13 @@
 
 [Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Save live captions from Microsoft Teams in Microsoft Edge, including the Teams PWA. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+Save live captions from Microsoft Teams and Google Meet in Microsoft Edge, including the Teams PWA. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
-## The 5.0 direction
+## Better CaptionKeep 5.0
 
 Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves decisively beyond that starting point: a privacy-first, enterprise-ready caption workspace designed to support Microsoft Teams, Zoom, and Google Meet through a shared provider architecture.
 
-The product direction combines reliable multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs that do not place transcript text in provider URLs. Teams remains the working foundation while Zoom and Google Meet adapters are developed and validated. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
+Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs that do not place transcript text in provider URLs. Teams remains the foundation, Google Meet is now a supported live-capture provider, and Zoom remains a later target. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
 
 ## Interface previews
 
@@ -24,14 +24,15 @@ Screenshots below show the current packaged HTML and styling rendered in Microso
 
 ## What it does
 
-- Capture displayed Teams captions and speaker information.
+- Capture displayed Teams and Google Meet captions and speaker information.
 - Export TXT or Markdown with a choice of save location.
 - Reopen saved sessions and use speaker aliases.
 - Optionally include attendee information or hand a transcript to an AI provider.
 - Choose CaptionKeep, Light, Midnight, or Follow system appearance across every extension page.
 - Work in a branded transcript viewer with a sticky search, speaker-filter, copy, save, and history toolbar.
 - Keep the popup calm with expandable settings sections; everyday capture controls remain visible first.
-- Launch Teams from a compact meeting-app row; Zoom and Google Meet use clearly labeled 5.0 preview pages until their capture adapters are ready.
+- Launch Teams or Google Meet from a compact meeting-app row. Zoom remains a clearly labeled preview until its adapter is ready.
+- Recover an interrupted Google Meet capture from a recent local checkpoint for the same meeting page, then commit it to local history once the meeting ends.
 - Export/import user preferences or let administrators enforce selected controls through managed browser policy.
 
 AI handoffs prepare a local, editable prompt for review before you choose whether to copy or share it. Privacy Scrubber is visible and on by default: it masks supported sensitive patterns locally, leaves the saved original unchanged, and requires a second confirmation before an unmasked prompt can be copied. Pattern detection reduces accidental disclosure risk but does not guarantee HIPAA, PCI DSS, or other regulatory compliance. For managed ChatGPT or Claude accounts, first open the approved enterprise workspace and copy its URL into **Settings → Enterprise destinations**. Better CaptionKeep accepts only official HTTPS provider domains, never places transcript text in a provider URL, and asks you to confirm the active workspace before pasting. Preferences, including enterprise destinations and the selected theme, may use browser sync; see the [privacy policy](PRIVACY.md) for the full data-handling details.
@@ -44,9 +45,9 @@ Exports support Save As, a remembered direct folder where the browser permits it
 
 ## Install for local testing
 
-Version 4.6 is live on Microsoft Edge Add-ons. Version 4.7 is a completed, retired stabilization baseline and will not be submitted to the Store. Version 5.0 is the fully independent active development line and the next public release.
+Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.0 is the current public release line.
 
-### Chrome and Edge 5.0 development sideloads
+### Chrome and Edge 5.0 sideloads
 
 Run `npm run build:targets` to create four ignored test artifacts:
 
@@ -72,13 +73,13 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build`: build a ZIP in `dist/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication.
 
-Release and enterprise references: [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), and the [4.7 release checklist](docs/RELEASE-4.7.md).
+Release and enterprise references: [5.0 release notes](docs/RELEASE-NOTES-5.0.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), and the evidence-based [5.0 release gate](docs/RELEASE-5.0.md).
 
 Browser API identifiers such as `chrome.storage` remain unchanged because Edge implements those Chromium extension APIs. Internal source paths remain stable.
 
 ## Publication status
 
-Target store: **Microsoft Edge Add-ons only**. Version 4.6 is the live Store baseline. Version 4.7 is complete but retired from publication. Version 5.0 is the fully independent active release line and next Store target, with Google Meet caption capture as a mandatory first new provider. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
+Target store: **Microsoft Edge Add-ons only**. Version 4.7 was retired from publication. Version 5.0 is the fully independent current release line, with Google Meet as its first new live-capture provider. The [privacy policy](PRIVACY.md) is published. Repository release status does not imply Microsoft Store certification or approval.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
