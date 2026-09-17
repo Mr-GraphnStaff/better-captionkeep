@@ -44,7 +44,7 @@ Exports support Save As, a remembered direct folder where the browser permits it
 
 ## Install for local testing
 
-Version 4.6 is published on Microsoft Edge Add-ons. Version 4.7 is feature-complete, QA/UAT-approved, and staged as the next Store update once the current 4.6 listing review clears. Version 5.0 development proceeds in parallel from that accepted stabilization baseline.
+Version 4.6 is live on Microsoft Edge Add-ons. Version 4.7 is a completed, retired stabilization baseline and will not be submitted to the Store. Version 5.0 is the fully independent active development line and the next public release.
 
 ### Chrome and Edge 5.0 development sideloads
 
@@ -78,7 +78,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target store: **Microsoft Edge Add-ons only**. Version 4.6 is live, with its refreshed listing subject to Microsoft review. Version 4.7 is staged as the next Store update after that review clears. Version 5.0 is in parallel development with Google Meet as its first new capture target. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
+Target store: **Microsoft Edge Add-ons only**. Version 4.6 is the live Store baseline. Version 4.7 is complete but retired from publication. Version 5.0 is the fully independent active release line and next Store target, with Google Meet caption capture as a mandatory first new provider. The [privacy policy](PRIVACY.md) is published. This repository does not imply store approval.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
