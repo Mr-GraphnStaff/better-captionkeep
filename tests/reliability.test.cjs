@@ -537,6 +537,7 @@ test('manifest supports both official Teams web hosts',()=>{
     }
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
     assert.deepEqual(manifest.content_scripts[0].js.slice(0,3),['providerRegistry.js','configuration.js','transcriptInsights.js']);
+    assert.equal(manifest.content_scripts[0].js[3],'teamsCaptionBuffer.js');
 });
 test('Chrome and Edge test manifests preserve the shared runtime contract',()=>{
     const source=JSON.parse(read('manifest.json'));
@@ -662,8 +663,66 @@ test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     assert(script.includes("UPCOMING_PLATFORMS[key] || 'More meeting platforms'"));
     assert(!html.includes('http://') && !html.includes('https://'));
 });
+function teamsBufferHarness() {
+    const timers=[];const commits=[];let currentTime=new Date('2026-09-18T16:00:00Z');
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('teamsCaptionBuffer.js'),context);
+    const buffer=context.CaptionKeepTeamsCaptionBuffer.create({
+        now:()=>currentTime,
+        schedule:(callback,delay)=>{const timer={callback,delay,cancelled:false};timers.push(timer);return timer;},
+        cancel:timer=>{timer.cancelled=true;},
+        onCommit:(caption,isNew)=>commits.push({caption:{...caption},isNew})
+    });
+    const runTimers=delay=>{
+        for(const timer of [...timers]) if(!timer.cancelled&&timer.delay===delay){timer.cancelled=true;timer.callback();}
+    };
+    return {buffer,commits,runTimers,setTime:value=>{currentTime=new Date(value);}};
+}
+test('Teams buffer commits only the corrected caption after the quiet interval',()=>{
+    const h=teamsBufferHarness();const row={};
+    h.buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'Front deploy',Time:'11:28:17'}]);
+    h.buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'Frontify deployment',Time:'11:28:17'}]);
+    assert.equal(h.commits.length,0);
+    h.runTimers(1500);
+    assert.equal(h.commits.length,1);
+    assert.equal(h.commits[0].caption.Text,'Frontify deployment');
+    assert.equal(h.commits[0].caption.Time,'11:28:17');
+});
+test('Teams buffer hard-flushes a caption that keeps changing for ten seconds',()=>{
+    const h=teamsBufferHarness();const row={};
+    h.buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'Still changing',Time:'11:28:30'}]);
+    h.buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'Still changing again',Time:'11:28:30'}]);
+    h.runTimers(10000);
+    assert.equal(h.commits.length,1);
+    assert.equal(h.commits[0].caption.Text,'Still changing again');
+});
+test('Teams buffer flushes the latest wording when a caption snapshot disappears',()=>{
+    const h=teamsBufferHarness();const row={};
+    h.buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'Corrected before removal',Time:'11:29:00'}]);
+    h.buffer.observeSnapshot([]);
+    assert.equal(h.commits.length,1);
+    assert.equal(h.commits[0].caption.Text,'Corrected before removal');
+});
+test('Teams buffer reconciles a redrawn panel without duplicating committed captions',()=>{
+    const h=teamsBufferHarness();
+    h.buffer.observeSnapshot([{identity:{},Name:'Speaker',Text:'Stable final words',Time:'11:30:00'}]);
+    h.runTimers(1500);
+    h.buffer.observeSnapshot([{identity:{},Name:'Speaker',Text:'Stable final words',Time:'11:30:02'}]);
+    h.buffer.flushAll();
+    assert.equal(h.commits.length,1);
+});
+test('Teams buffer preserves a later legitimate repeat of a one-line phrase',()=>{
+    const h=teamsBufferHarness();
+    h.buffer.observeSnapshot([{identity:{},Name:'Speaker',Text:'Yeah',Time:'11:30:00'}]);
+    h.runTimers(1500);
+    h.setTime('2026-09-18T16:01:00Z');
+    h.buffer.observeSnapshot([{identity:{},Name:'Speaker',Text:'Yeah',Time:'11:31:00'}]);
+    h.buffer.flushAll();
+    assert.equal(h.commits.length,2);
+    assert.notEqual(h.commits[0].caption.key,h.commits[1].caption.key);
+});
 async function contentHarness() {
-    const h=harness();h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('content_script.js'));for(let i=0;i<10;i++)await Promise.resolve();return h;
+    const h=harness();h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('teamsCaptionBuffer.js'));h.run(read('content_script.js'));for(let i=0;i<10;i++)await Promise.resolve();return h;
 }
 test('minimized source loss does not finalize an active session',async()=>{
     const h=await contentHarness();h.document.hidden=true;
@@ -681,12 +740,12 @@ test('disabling captions stops capture and preserves prior transcript',async()=>
 test('Teams interim caption updates refresh capture health time',async()=>{
     const h=await contentHarness();
     const author={innerText:'Speaker'};const words={innerText:'Updated live words'};
-    const row={getAttribute:()=> 'caption-1',querySelector:selector=>selector.includes('author')?author:words};
+    const row={querySelector:selector=>selector.includes('author')?author:words};
     h.document.querySelector=()=>({querySelectorAll:()=>[row]});
-    h.run("capturing=true;trackingAllowed=true;transcriptArray.push({Name:'Speaker',Text:'Earlier words',Time:'10:00',key:'caption-1',capturedAt:'2026-01-01T00:00:00.000Z'});");
+    h.run("capturing=true;trackingAllowed=true;");
     await h.run('processCaptionUpdates()');
+    h.run('flushPendingCaptions()');
     assert.equal(h.run('transcriptArray[0].Text'),'Updated live words');
-    assert.notEqual(h.run('transcriptArray[0].capturedAt'),'2026-01-01T00:00:00.000Z');
     assert.ok(!Number.isNaN(Date.parse(h.run('transcriptArray[0].capturedAt'))));
 });
 test('visible transient DOM loss receives a grace interval',async()=>{
@@ -698,7 +757,7 @@ test('a recent same-page checkpoint restores captions and warns about the gap',a
     h.data.active_capture_v1={transcript:[{Name:'A',Text:'before reload',Time:'10:00'}],meetingTitle:'Synthetic meeting',
         recordingStartTime:new Date(Date.now()-60000).toISOString(),lastBackup:new Date().toISOString(),
         documentSessionId:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',pageUrl:'https://teams.microsoft.com/'};
-    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
+    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('teamsCaptionBuffer.js'));h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
     assert.equal(h.run('transcriptArray.length'),1);
     assert.equal(h.run('documentSessionId'),'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.match(h.run('checkpointError'),/resumed from a recovery checkpoint/i);
