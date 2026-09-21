@@ -11,4 +11,4 @@ Assets generated using the built-in image generation tool. The approved concept 
 
 Icon prompt: Create a single square browser extension icon based on the approved Scribble transcript creature. Warm white body, big expressive eyes, navy outlines, oversized ear and teal cupped listening hand, two teal caption lines, navy rounded tile. Simplify details for toolbar legibility, preserve character identity, no text or other icons.
 
-Retain upstream MIT attribution. Do not use Microsoft logos or imply endorsement. Privacy claims require a behavior audit.
+Retain the original Live-Captions-Saver MIT attribution. Do not use Microsoft logos or imply endorsement. Privacy claims require a behavior audit.

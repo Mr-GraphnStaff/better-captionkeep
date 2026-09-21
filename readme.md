@@ -79,7 +79,7 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store candidate in `dist/chrome-store/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication.
 
-Release and enterprise references: [5.0 release notes](docs/RELEASE-NOTES-5.0.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the evidence-based [5.0 release gate](docs/RELEASE-5.0.md), and the gated [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md).
+Release and enterprise references: [standalone product record](docs/PROJECT-EMERGENCE.md), [5.0 release notes](docs/RELEASE-NOTES-5.0.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the evidence-based [5.0 release gate](docs/RELEASE-5.0.md), and the gated [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md).
 
 Browser API identifiers such as `chrome.storage` remain unchanged because Edge implements those Chromium extension APIs. Internal source paths remain stable.
 
@@ -91,6 +91,6 @@ Production changes reach `master` only through review and validation. See the [c
 
 ## Attribution and license
 
-An independent fork of [Live-Captions-Saver](https://github.com/Zerg00s/Live-Captions-Saver) by Denis Molodtsov, under the MIT license. Original copyright and permission notices are preserved in LICENSE and included in the packaged extension.
+Better CaptionKeep originated from [Live-Captions-Saver](https://github.com/Zerg00s/Live-Captions-Saver) by Denis Molodtsov and is now independently developed as its own product and GitHub repository. The original MIT license, copyright, and permission notices remain preserved in LICENSE and in the packaged extension.
 
 Not affiliated with or endorsed by Microsoft.

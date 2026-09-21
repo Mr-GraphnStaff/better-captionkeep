@@ -1,10 +1,10 @@
 # AGENTS.md
 
-This document describes requirements and expectations for AI coding assistance on this project (Live-Captions-Saver fork).
+This document describes requirements and expectations for AI coding assistance on Better CaptionKeep.
 
 ## Project Overview
-A fork of [Zerg00s/Live-Captions-Saver](https://github.com/Zerg00s/Live-Captions-Saver), extending functionality for Teams PWA users.  
-The fork begins with a **Save As (choose download location)** feature and will expand into lightweight, customizable features.
+Better CaptionKeep originated as a fork of [Zerg00s/Live-Captions-Saver](https://github.com/Zerg00s/Live-Captions-Saver) and is now an independently developed, multi-platform product.
+Its first independent feature was **Save As (choose download location)**; the current product supports Microsoft Teams and Google Meet, with additional providers developed through the governed adapter architecture.
 
 ## Tech Stack
 - **JavaScript (ES6+)**: Core extension logic, exports, event handlers.
@@ -42,4 +42,4 @@ The fork begins with a **Save As (choose download location)** feature and will e
 ## Expectations
 - Suggestions must include **file and function name** for edits.
 - All changes should preserve extension stability.
-- Legal notice: MIT license from upstream must remain intact.
+- Legal notice: the original MIT license and attribution must remain intact.
