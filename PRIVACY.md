@@ -2,7 +2,7 @@
 
 Effective date: September 17, 2026
 
-Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams and Google Meet in supported Chromium browsers. This policy describes the Better CaptionKeep fork, including its optional AI handoff features.
+Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams and Google Meet in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional AI handoff features.
 
 ## Information the extension handles
 
@@ -56,4 +56,4 @@ For privacy questions, contact the maintainer through [the project's GitHub issu
 
 This policy will be updated when relevant practices change. The effective date above identifies the current version; changes are visible in the repository history.
 
-Better CaptionKeep is an independent fork of Live-Captions-Saver by Denis Molodtsov. It is not affiliated with or endorsed by Microsoft or the AI providers named above. This policy supersedes the inherited privacy statement for the Better CaptionKeep fork.
+Better CaptionKeep originated from the MIT-licensed Live-Captions-Saver project by Denis Molodtsov and is now independently developed. It is not affiliated with or endorsed by Microsoft or the AI providers named above. This policy supersedes the inherited privacy statement for Better CaptionKeep.

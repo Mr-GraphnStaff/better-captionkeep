@@ -39,7 +39,7 @@ Keep each pull request focused on one issue or one closely related change set. I
 - Explain the user-visible behavior before and after the change.
 - Identify every manifest permission, host match, storage, privacy, or export change.
 - Describe the tests performed and distinguish automated checks from live Edge/Teams testing.
-- Preserve the upstream MIT license and attribution.
+- Preserve the original Live-Captions-Saver MIT license and attribution.
 - Keep local-only files out of Git, including `.captionkeeper.local.env`, PEM files, build archives, and real transcripts.
 
 Automated checks must pass before merge. A maintainer may request live Teams reproduction or store-certification notes before accepting a change.
