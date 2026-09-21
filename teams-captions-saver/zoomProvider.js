@@ -6,6 +6,9 @@
 
     const CAPTION_SOURCE_SELECTOR = '#live-transcription-subtitle';
     const CAPTION_ENABLE_LABEL = 'Show Captions';
+    const MORE_CONTROLS_LABEL = 'More meeting control';
+    const CAPTION_LANGUAGE_LABEL = 'English';
+    const SAVE_LABEL = 'Save';
     const MEETING_PATH = /^\/wc\/\d+\/join(?:\/|$)/i;
     const SEGMENT_GAP_MS = 1500;
     const REMOUNT_REUSE_WINDOW_MS = 30 * 1000;
@@ -60,7 +63,7 @@
         let sourceAvailable = false;
         let meetingEnded = false;
         let autoEnableCaptions = true;
-        let captionEnableAttempted = false;
+        let captionEnableStep = 'idle';
         let nextCaptionId = 0;
         let currentKey = null;
         let currentText = '';
@@ -136,14 +139,60 @@
             resumeCandidate = {...lastEmittedCaption, observedAt: nowDate().getTime()};
         }
 
-        function requestCaptionEnable() {
-            if (!autoEnableCaptions || captionSource || captionEnableAttempted) return false;
-            const control = Array.from(pageDocument.querySelectorAll?.('button') || [])
-                .find(element => element.getAttribute?.('aria-label') === CAPTION_ENABLE_LABEL);
-            if (!control) return false;
-            captionEnableAttempted = true;
+        function controlLabel(control) {
+            return [control?.getAttribute?.('aria-label'), control?.getAttribute?.('title'), control?.textContent, control?.value]
+                .map(value => String(value || '').replace(/\s+/g, ' ').trim())
+                .find(Boolean) || '';
+        }
+
+        function findControl(label, scope = pageDocument) {
+            const controls = scope.querySelectorAll?.('button,[role="button"],[role="menuitem"],[role="radio"],input[type="radio"]') || [];
+            return Array.from(controls).find(control => controlLabel(control).toLowerCase() === label.toLowerCase());
+        }
+
+        function clickControl(control, eventType) {
+            if (!control || control.disabled || control.getAttribute?.('aria-disabled') === 'true') return false;
             control.click();
-            signal('caption-enable-requested');
+            signal(eventType);
+            return true;
+        }
+
+        function captionLanguageDialog() {
+            return Array.from(pageDocument.querySelectorAll?.('[role="dialog"]') || [])
+                .find(dialog => /caption|language|spoken/i.test(normalizedText(dialog)));
+        }
+
+        function requestCaptionEnable() {
+            if (!autoEnableCaptions || captionSource || captionEnableStep === 'complete') return false;
+
+            const languageDialog = captionLanguageDialog();
+            if (languageDialog) {
+                const english = findControl(CAPTION_LANGUAGE_LABEL, languageDialog);
+                const englishSelected = english?.checked || english?.getAttribute?.('aria-checked') === 'true';
+                if (english && !englishSelected && captionEnableStep === 'caption-requested') {
+                    if (!clickControl(english, 'caption-language-requested')) return false;
+                    captionEnableStep = 'language-requested';
+                    return true;
+                }
+                const save = findControl(SAVE_LABEL, languageDialog);
+                if (clickControl(save, 'caption-language-confirmed')) {
+                    captionEnableStep = 'confirmation-requested';
+                    return true;
+                }
+                return false;
+            }
+
+            const showCaptions = findControl(CAPTION_ENABLE_LABEL);
+            if (showCaptions) {
+                if (!clickControl(showCaptions, 'caption-enable-requested')) return false;
+                captionEnableStep = 'caption-requested';
+                return true;
+            }
+
+            if (captionEnableStep !== 'idle') return false;
+            const moreControls = findControl(MORE_CONTROLS_LABEL);
+            if (!clickControl(moreControls, 'caption-menu-requested')) return false;
+            captionEnableStep = 'menu-requested';
             return true;
         }
 
@@ -161,7 +210,7 @@
             if (!isMeetingUrl(currentUrl())) {
                 if (!meetingEnded) signal('meeting-ended');
                 meetingEnded = true;
-                captionEnableAttempted = false;
+                captionEnableStep = 'idle';
                 disconnectCaptionSource();
                 return;
             }
@@ -172,7 +221,7 @@
                 if (captionSource) preserveRemountCandidate();
                 observeCaptionSource(nextSource);
                 sourceAvailable = true;
-                captionEnableAttempted = true;
+                captionEnableStep = 'complete';
                 signal('caption-source-available');
                 emitCaption();
             } else if (!nextSource && sourceAvailable) {
@@ -208,6 +257,8 @@
 
         function setAutoEnableCaptions(enabled) {
             autoEnableCaptions = enabled !== false;
+            if (!autoEnableCaptions) captionEnableStep = 'complete';
+            else if (!captionSource && captionEnableStep === 'complete' && !sourceAvailable) captionEnableStep = 'idle';
             if (pageObserver && autoEnableCaptions) reconcile();
         }
 
@@ -236,5 +287,5 @@
     }
 
     registry.register({id: 'zoom', matches: url => url.hostname === 'app.zoom.us', create: createAdapter});
-    root.CaptionKeepZoom = Object.freeze({CAPTION_ENABLE_LABEL, CAPTION_SOURCE_SELECTOR, MEETING_PATH, UNKNOWN_SPEAKER, isMeetingUrl, sanitizeStructure});
+    root.CaptionKeepZoom = Object.freeze({CAPTION_ENABLE_LABEL, CAPTION_LANGUAGE_LABEL, CAPTION_SOURCE_SELECTOR, MEETING_PATH, MORE_CONTROLS_LABEL, SAVE_LABEL, UNKNOWN_SPEAKER, isMeetingUrl, sanitizeStructure});
 })(globalThis);
