@@ -65,7 +65,7 @@ function escapeHtml(str) {
 
 async function getActiveMeetingTab() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com)(?:\/|$)/.test(tab.url || ''));
+    const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com|https:\/\/app\.zoom\.us\/wc)(?:\/|$)/.test(tab.url || ''));
     return meetingTab || null;
 }
 
@@ -809,7 +809,7 @@ async function initializePopup() {
 
     const tab = await getActiveMeetingTab();
     if (!tab) {
-        UI_ELEMENTS.statusMessage.textContent = 'Open Teams or Google Meet to begin.';
+        UI_ELEMENTS.statusMessage.textContent = 'Open Teams, Zoom Web, or Google Meet to begin.';
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
         return;
     }

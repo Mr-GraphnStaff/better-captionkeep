@@ -221,6 +221,113 @@ test('Google Meet remount reuses the active caption key without collapsing a lat
     assert.equal(captions.length,3);
     assert.notEqual(captions[2].caption.key,originalKey);
 });
+test('Zoom Web adapter uses the live subtitle overlay and reports recoverable source loss',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){this.disconnected=true;} }
+    const marker={tagName:'DIV',textContent:'>>'};
+    const words={tagName:'SPAN',textContent:'Synthetic Zoom words'};
+    const captionSource={children:[marker,words]};
+    let currentSource=captionSource;
+    const listeners={};
+    const pageWindow={
+        location:{href:'https://app.zoom.us/wc/12345678901/join?fromPWA=1'},
+        addEventListener(type,callback){listeners[type]=callback;},
+        removeEventListener(type){delete listeners[type];}
+    };
+    const pageDocument={
+        body:{},
+        querySelector(selector){assert.equal(selector,'#live-transcription-subtitle');return currentSource;},
+        querySelectorAll(){return [];}
+    };
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    assert.equal(adapter.isMeetingPresent(),true);
+    assert.equal(adapter.getCaptionSource(),captionSource);
+    assert.equal(events[0].type,'caption-source-available');
+    const firstCaption=events.find(event=>event.type==='caption-upsert').caption;
+    assert.equal(firstCaption.Name,'Unknown speaker');
+    assert.equal(firstCaption.Text,'Synthetic Zoom words');
+    currentSource=null;observers[0].callback();
+    assert.equal(events.at(-1).type,'caption-source-unavailable');
+    assert.equal(events.at(-1).recoverable,true);
+    pageWindow.location.href='https://app.zoom.us/wc/';observers[0].callback();
+    assert.equal(events.at(-1).type,'meeting-ended');
+    adapter.stop();
+    assert.equal(adapter.getCaptionSource(),null);
+});
+test('Zoom Web manifest scope is exact and reaches the embedded meeting frame',()=>{
+    const manifest=JSON.parse(read('manifest.json'));
+    assert(manifest.host_permissions.includes('https://app.zoom.us/*'));
+    assert(!manifest.host_permissions.includes('https://*.zoom.us/*'));
+    const zoomEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://app.zoom.us/wc/*'));
+    assert.equal(zoomEntry.all_frames,true);
+    assert.deepEqual(zoomEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','zoomProvider.js','zoomContentScript.js']);
+    assert(!zoomEntry.js.includes('content_script.js'));
+    const contentScript=read('zoomContentScript.js');
+    assert(contentScript.includes('if (window.top === window) return;'));
+});
+test('Zoom Web live overlay fixture is sanitized and records the observed limitation',()=>{
+    const fixture=JSON.parse(readProject('tests/fixtures/zoom/captions-overlay.json'));
+    assert.equal(fixture.meetingContentIncluded,false);
+    assert.equal(fixture.scope.host,'app.zoom.us');
+    assert.equal(fixture.captionSource.id,'live-transcription-subtitle');
+    assert.equal(fixture.captionSource.speakerAttributionAvailable,false);
+    assert.equal(fixture.captionSource.directChildren[1].kind,'caption-text');
+    assert.equal(fixture.captionSource.removedWhenCaptionsHidden,true);
+    assert.equal(fixture.captionSource.restoredWhenCaptionsShown,true);
+    const serialized=JSON.stringify(fixture);
+    assert(!serialized.includes('00000000000'));
+    assert(!serialized.includes('CaptionKeep Zoom test'));
+    assert(!serialized.includes('@'));
+});
+test('Zoom Web parser updates interim text and starts a new record after a quiet gap',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    let clock=new Date('2026-09-21T15:00:00Z');
+    const words={tagName:'SPAN',textContent:'First interim'};
+    const source={children:[{tagName:'DIV',textContent:'>>'},words]};
+    const pageWindow={location:{href:'https://app.zoom.us/wc/12345678901/join'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[]};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver,now:()=>clock});
+    const events=[];adapter.start(event=>events.push(event));
+    const first=events.find(event=>event.type==='caption-upsert').caption;
+    clock=new Date('2026-09-21T15:00:00.500Z');words.textContent='First interim phrase';observers[1].callback();
+    let captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.at(-1).caption.key,first.key);
+    clock=new Date('2026-09-21T15:00:03.000Z');words.textContent='Second segment';observers[1].callback();
+    captions=events.filter(event=>event.type==='caption-upsert');
+    assert.notEqual(captions.at(-1).caption.key,first.key);
+    assert.equal(captions.at(-1).caption.Text,'Second segment');
+});
+test('Zoom Web remount reuses the current caption without duplicating it',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    let clock=new Date('2026-09-21T15:00:00Z');
+    const makeSource=text=>({children:[{tagName:'DIV',textContent:'>>'},{tagName:'SPAN',textContent:text}]});
+    let source=makeSource('Repeatable Zoom phrase');
+    const pageWindow={location:{href:'https://app.zoom.us/wc/12345678901/join'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[]};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver,now:()=>clock});
+    const events=[];adapter.start(event=>events.push(event));
+    const original=events.find(event=>event.type==='caption-upsert').caption;
+    source=null;observers[0].callback();
+    clock=new Date('2026-09-21T15:00:05Z');source=makeSource('Repeatable Zoom phrase');observers[0].callback();
+    assert.equal(events.filter(event=>event.type==='caption-upsert').length,1);
+    clock=new Date('2026-09-21T15:00:05.500Z');source.children[1].textContent='Repeatable Zoom phrase extended';observers[2].callback();
+    const captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,2);
+    assert.equal(captions[1].caption.key,original.key);
+});
 test('capture coordinator restores only the same recent meeting and finalizes history exactly once',async()=>{
     const data={};
     const storage={
@@ -658,12 +765,14 @@ test('popup uses a compact three-platform launcher without an inline Teams warni
     assert(popup.includes('class="platform-launchers"'));
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
     assert(popup.includes('aria-label="Open Microsoft Teams"'));
-    assert(popup.includes('platform-coming-soon.html?platform=zoom'));
+    assert(popup.includes('href="https://app.zoom.us/wc"'));
+    assert(popup.includes('aria-label="Open Zoom Web"'));
     assert(popup.includes('href="https://meet.google.com"'));
     assert(popup.includes('aria-label="Open Google Meet"'));
     assert(script.includes('getActiveMeetingTab'));
     assert(script.includes('https:\\/\\/meet\\.google\\.com'));
-    assert(script.includes("textContent = 'Open Teams or Google Meet to begin.'"));
+    assert(script.includes('https:\\/\\/app\\.zoom\\.us\\/wc'));
+    assert(script.includes("textContent = 'Open Teams, Zoom Web, or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{

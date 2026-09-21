@@ -40,3 +40,11 @@ Do not invent selectors from third-party examples or documentation. The Google M
 The first live probe confirmed an exact `https://meet.google.com/*` scope and a semantic caption source at `[role="region"][aria-label="Captions"]`. The empty-state structure is recorded in `tests/fixtures/google-meet/captions-empty.json` without account, meeting-link, or transcript content. A controlled live probe on September 15, 2026 confirmed that a caption is a direct source child with a speaker block (image plus label) followed by a caption-text block. That sanitized boundary is recorded in `tests/fixtures/google-meet/captions-speaker-row.json`; account, meeting-code, speaker, caption, class, style, and identifying attribute values were discarded.
 
 For the controlled speaker-row probe, the Google Meet content script accepts the internal `get_google_meet_diagnostic` message. Its response preserves element order, tag names, safe ARIA role/state values, and attribute names while discarding all text, class names, styles, meeting identifiers, and attribute values that could identify a participant. Capture this diagnostic only in a controlled test meeting and review it before committing it as a fixture.
+
+## Zoom Web implementation gate
+
+The September 21, 2026 controlled probe confirmed the exact `https://app.zoom.us/*` host and `/wc/{numeric-meeting-id}/join` meeting-path shape. The meeting application is embedded in a child frame, so the isolated Zoom content-script lane runs in matching frames and suppresses the top-frame duplicate.
+
+The initial source is the subtitle overlay at `#live-transcription-subtitle`. Its direct caption child is a `SPAN` containing evolving text. The observed overlay did not expose speaker attribution; normalized records therefore use `Unknown speaker` and documentation must not imply otherwise. Hiding captions removes the source; showing captions remounts it with the latest text. The adapter treats this as recoverable and preserves prior records.
+
+The sanitized boundary is recorded in `tests/fixtures/zoom/captions-overlay.json`. The internal `get_zoom_diagnostic` response follows the same privacy discipline as the Meet probe. Zoom vanity domains, native desktop meetings, a full transcript side panel, and audio/video capture are outside the initial boundary.
