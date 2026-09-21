@@ -9,6 +9,7 @@ Scope note: this work captures displayed caption text only, using the same local
 - Enabling captions mounts a real DOM source at `#live-transcription-subtitle`.
 - The observed overlay contains a non-speaker marker followed by a `SPAN` containing evolving caption text. It does not expose a participant name, so the initial adapter records `Unknown speaker` rather than inventing attribution.
 - Hiding captions removes the source node while leaving the meeting active. Showing captions remounts it and restores the most recent text. The adapter treats this as recoverable source loss and reuses a record only when the same text remounts within a bounded interval.
+- Caption enablement may be hidden under `More` and require `Show Captions`, `English`, and `Save`.
 - No visible full-transcript panel was available in the controlled test. Side-panel capture remains a separate discovery item.
 
 The sanitized fixture is `tests/fixtures/zoom/captions-overlay.json`. It contains structure and lifecycle facts only—no meeting ID, password/token, account identity, participant name, spoken text, generated classes, or style values.
@@ -27,7 +28,7 @@ Zoom account and meeting policy can disable or hide browser join. This limits th
 
 The controlled Zoom Web client exposed an ephemeral subtitle overlay as DOM text. That overlay is capturable but has no speaker attribution or visible history. A Live Transcript side panel could be richer, but it was not available in the controlled test and is not part of the initial adapter.
 
-Caption enablement may also require the participant to confirm the meeting caption language. Better CaptionKeep can request the Zoom control once, but it must not silently override an explicit user or host choice.
+When auto-enable is on, Better CaptionKeep follows the bounded `More` -> `Show Captions` flow and selects English only in Zoom's first-use language dialog. Once captions are active, manually hiding them is respected and the adapter does not turn them back on.
 
 ## 4. Privacy and compliance boundary
 

@@ -259,6 +259,48 @@ test('Zoom Web adapter uses the live subtitle overlay and reports recoverable so
     adapter.stop();
     assert.equal(adapter.getCaptionSource(),null);
 });
+test('Zoom Web auto-enable opens More, selects English, and confirms the caption dialog',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    const clicks=[];
+    let currentSource=null;
+    let dialog=null;
+    let pageControls=[];
+    const control=(label,onClick)=>({
+        textContent:'',
+        getAttribute(name){return name==='aria-label'?label:name==='aria-checked'&&this.checked?'true':null;},
+        click(){clicks.push(label);onClick?.();}
+    });
+    const save=control('Save',()=>{currentSource={children:[{tagName:'DIV',textContent:'>>'},{tagName:'SPAN',textContent:''}]};});
+    const english=control('English',()=>{english.checked=true;});
+    const show=control('Show Captions',()=>{
+        pageControls=[];
+        dialog={textContent:'Select spoken language for captions',querySelectorAll:()=>[english,save]};
+    });
+    const more=control('More meeting control',()=>{pageControls=[show];});
+    pageControls=[more];
+    const pageDocument={
+        body:{},
+        querySelector:()=>currentSource,
+        querySelectorAll(selector){return selector==='[role="dialog"]'?(dialog?[dialog]:[]):pageControls;}
+    };
+    const pageWindow={location:{href:'https://app.zoom.us/wc/12345678901/join'},addEventListener(){},removeEventListener(){}};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];adapter.start(event=>events.push(event));
+    assert.deepEqual(clicks,['More meeting control']);
+    observers[0].callback();
+    assert.deepEqual(clicks,['More meeting control','Show Captions']);
+    observers[0].callback();
+    assert.deepEqual(clicks,['More meeting control','Show Captions','English']);
+    observers[0].callback();
+    assert.deepEqual(clicks,['More meeting control','Show Captions','English','Save']);
+    observers[0].callback();
+    assert.equal(adapter.getCaptionSource(),currentSource);
+    assert(events.some(event=>event.type==='caption-source-available'));
+});
 test('Zoom Web manifest scope is exact and reaches the embedded meeting frame',()=>{
     const manifest=JSON.parse(read('manifest.json'));
     assert(manifest.host_permissions.includes('https://app.zoom.us/*'));

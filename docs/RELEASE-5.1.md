@@ -17,6 +17,7 @@ Zoom Web is the next provider track after the published 5.0.0 Teams and Google M
 - [x] Confirm real DOM caption text at `#live-transcription-subtitle`.
 - [x] Confirm the overlay lacks speaker attribution.
 - [x] Confirm hiding captions removes the source and showing captions remounts it.
+- [x] Confirm caption enablement may require `More` -> `Show Captions` -> `English` -> `Save`.
 - [x] Commit a sanitized structural fixture with no meeting or participant content.
 
 ## Implementation
@@ -24,6 +25,7 @@ Zoom Web is the next provider track after the published 5.0.0 Teams and Google M
 - [x] Add an isolated `zoom` provider and content-script lane.
 - [x] Limit host access to `https://app.zoom.us/*`; do not add a wildcard vanity-domain grant.
 - [x] Normalize overlay captions through the shared coordinator with `Unknown speaker`.
+- [x] Auto-enable captions through Zoom's hidden More menu and first-use English language dialog.
 - [x] Preserve interim updates, quiet-gap segment boundaries, checkpoints, and bounded remount reuse.
 - [x] Support popup status, copy, viewer, export, history, Scrubby, and optional review-first AI handoff through shared services.
 - [x] Keep audio, video, RTMS, bots, native Zoom, and transcript-side-panel assumptions outside the implementation.
