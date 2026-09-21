@@ -114,7 +114,9 @@ async function validateManifest(manifest) {
     'theme.css',
     'theme.js',
     'viewer.html',
-    'viewer.js'
+    'viewer.js',
+    'zoomContentScript.js',
+    'zoomProvider.js'
   ]);
 
   for (const script of scriptsToCheck) {
@@ -138,6 +140,16 @@ async function validateManifest(manifest) {
   const expectedGoogleMeetScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
   if (JSON.stringify(googleMeetScripts) !== JSON.stringify(expectedGoogleMeetScripts)) {
     errors.push(`Google Meet content scripts must load in this order: ${expectedGoogleMeetScripts.join(', ')}.`);
+  }
+  const zoomEntry = (manifest.content_scripts ?? [])
+    .find(entry => (entry.matches ?? []).includes('https://app.zoom.us/wc/*'));
+  const zoomScripts = zoomEntry?.js ?? [];
+  const expectedZoomScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'zoomProvider.js', 'zoomContentScript.js'];
+  if (JSON.stringify(zoomScripts) !== JSON.stringify(expectedZoomScripts)) {
+    errors.push(`Zoom content scripts must load in this order: ${expectedZoomScripts.join(', ')}.`);
+  }
+  if (zoomEntry?.all_frames !== true) {
+    errors.push('Zoom content scripts must run in all frames so the embedded Web client can expose its caption DOM.');
   }
   for (const script of declaredContentScripts) {
     if (!scriptsToCheck.has(script) && !(await fileExists(path.join(sourceDir, script)))) {

@@ -6,13 +6,17 @@
 
 [Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft Edge, including the Teams PWA. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft Edge, including the Teams PWA. The next development track adds evidence-gated Zoom Web capture. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
 ## Better CaptionKeep 5.0
 
 Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves decisively beyond that starting point: a privacy-first, enterprise-ready caption workspace designed to support Microsoft Teams, Zoom, and Google Meet through a shared provider architecture.
 
-Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs that do not place transcript text in provider URLs. Teams remains the foundation, Google Meet is now a supported live-capture provider, and Zoom remains a later target. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
+Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable AI handoffs that do not place transcript text in provider URLs. Teams remains the foundation and Google Meet is a supported live-capture provider. Zoom Web is the next development track; it is not part of the already-published 5.0.0 Store artifact. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
+
+## Zoom Web development
+
+The Zoom discovery branch captures displayed subtitle-overlay text from the exact `app.zoom.us` Web client. It does not capture audio or video, use a meeting bot, connect to Zoom RTMS, support the native desktop client, or grant wildcard access to Zoom vanity domains. The tested overlay does not expose speaker attribution, so its records are explicitly labeled `Unknown speaker`. See the [Zoom Web evidence record](docs/ZOOM-WEB-CHALLENGES.md) and [5.1 development gate](docs/RELEASE-5.1.md).
 
 ## Interface previews
 
@@ -24,14 +28,14 @@ Screenshots below show the current packaged HTML and styling rendered in Microso
 
 ## What it does
 
-- Capture displayed Teams and Google Meet captions and speaker information.
+- Capture displayed Teams and Google Meet captions and available speaker information; development builds also capture the tested Zoom Web subtitle overlay with explicit `Unknown speaker` attribution.
 - Export TXT or Markdown with a choice of save location.
 - Reopen saved sessions and use speaker aliases.
 - Optionally include attendee information or hand a transcript to an AI provider.
 - Choose CaptionKeep, Light, Midnight, or Follow system appearance across every extension page.
 - Work in a branded transcript viewer with a sticky search, speaker-filter, copy, save, and history toolbar.
 - Keep the popup calm with expandable settings sections; everyday capture controls remain visible first.
-- Launch Teams or Google Meet from a compact meeting-app row. Zoom remains a clearly labeled preview until its adapter is ready.
+- Launch Teams, Zoom Web, or Google Meet from a compact meeting-app row.
 - Recover an interrupted Google Meet capture from a recent local checkpoint for the same meeting page, then commit it to local history once the meeting ends.
 - See capture health in the popup, including the number of caption lines and how recently the last caption arrived.
 - Prepare evidence-backed meeting notes with caption IDs for decisions, actions, risks, and unanswered questions before any optional AI handoff.
@@ -77,7 +81,7 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `dist/intune-chrome/`.
 - `npm run build:intune:local-only`: generate the optional high-security bundle that disables AI handoff.
 - `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store candidate in `dist/chrome-store/`.
-- Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication.
+- Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication. Zoom development also requires unpacked Chrome and Edge UAT against the Web client.
 
 Release and enterprise references: [5.0 release notes](docs/RELEASE-NOTES-5.0.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the evidence-based [5.0 release gate](docs/RELEASE-5.0.md), and the gated [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md).
 

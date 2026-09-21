@@ -38,7 +38,9 @@ for (const target of ['chrome', 'edge']) {
   for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
-  const zips = (await readdir(distDir)).filter(name => name.endsWith('.zip') && name.includes(`${target}_test`));
+  const zips = (await readdir(distDir)).filter(name =>
+    name.endsWith(`-${sourceManifest.version}.zip`) && name.includes(`${target}_test`)
+  );
   if (zips.length !== 1) throw new Error(`Expected one ${target} test ZIP, found ${zips.length}`);
   const zipPath = path.join(distDir, zips[0]);
   artifacts.push({ target, path: zips[0], bytes: (await stat(zipPath)).size, sha256: await sha256(zipPath) });
