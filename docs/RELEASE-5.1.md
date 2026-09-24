@@ -55,13 +55,19 @@ gate.
 
 ## Browser UAT required before promotion
 
+- [ ] Record the exact candidate commit, package hashes, tester, and 48-hour window start time before UAT.
 - [ ] Chrome unpacked: capture two synthetic utterances in Zoom Web and verify quiet-gap segmentation.
 - [ ] Edge unpacked: repeat the controlled capture.
 - [ ] Verify captions hidden/shown, meeting reconnect, tab reload, and meeting exit.
 - [ ] Verify copy, viewer, TXT/Markdown export, history recovery, and Scrubby.
 - [ ] Verify the UI and exports clearly retain `Unknown speaker` when the overlay provides no attribution.
+- [ ] Verify **Automatically** saves without opening a foreground save page in both browsers.
+- [ ] Verify **Ask me each time** opens the browser location prompt in both browsers.
+- [ ] Verify a selected direct folder, a Downloads subfolder, and a denied-folder recovery remain local and preserve failed exports as pending.
+- [ ] Re-run controlled Teams and Google Meet capture, history, and export smoke tests in Chrome and Edge.
 - [ ] Probe a host-enabled full transcript panel separately; do not block overlay capture on that optional surface.
 - [ ] Decide whether vanity-domain support is rejected, deferred, or separately permissioned.
+- [ ] Record the window end time and confirm no packaged-extension change occurred during the full 48 hours.
 
 ## Promotion boundary
 
