@@ -12,6 +12,13 @@
         meetingProvider: document.getElementById('meeting-provider'),
         latestCaption: document.getElementById('latest-caption'),
         latestMeta: document.getElementById('latest-meta'),
+        transcriptTab: document.getElementById('transcript-tab'),
+        evidenceTab: document.getElementById('evidence-tab'),
+        transcriptView: document.getElementById('transcript-view'),
+        evidenceView: document.getElementById('evidence-view'),
+        transcriptCount: document.getElementById('transcript-count'),
+        transcriptSearch: document.getElementById('transcript-search'),
+        transcriptList: document.getElementById('transcript-list'),
         markerKind: document.getElementById('marker-kind'),
         markerNote: document.getElementById('marker-note'),
         markLatest: document.getElementById('mark-latest'),
@@ -21,15 +28,28 @@
         markerList: document.getElementById('marker-list'),
         copyBoard: document.getElementById('copy-board'),
         downloadBoard: document.getElementById('download-board'),
+        emailBoard: document.getElementById('email-board'),
+        downloadBundle: document.getElementById('download-bundle'),
         openTranscript: document.getElementById('open-transcript')
     };
     let currentContext = null;
     let allMarkers = [];
     let selectedSessionId = '';
     let polling = false;
+    let transcriptSignature = '';
 
     function setStatus(message) {
         elements.boardStatus.textContent = message;
+    }
+
+    function switchView(view) {
+        const showEvidence = view === 'evidence';
+        elements.transcriptView.hidden = showEvidence;
+        elements.evidenceView.hidden = !showEvidence;
+        elements.transcriptTab.classList.toggle('active', !showEvidence);
+        elements.evidenceTab.classList.toggle('active', showEvidence);
+        elements.transcriptTab.setAttribute('aria-selected', String(!showEvidence));
+        elements.evidenceTab.setAttribute('aria-selected', String(showEvidence));
     }
 
     function selectedMarkers() {
@@ -117,6 +137,46 @@
         elements.markLatest.disabled = !latest;
     }
 
+    function captionNode(caption, index) {
+        const item = document.createElement('li');
+        const heading = document.createElement('div');
+        heading.className = 'caption-heading';
+        const meta = document.createElement('span');
+        meta.className = 'caption-id';
+        meta.textContent = `${board.evidenceId(index)} · ${caption.Time || 'time unavailable'} · ${caption.Name || 'Unknown speaker'}`;
+        const mark = document.createElement('button');
+        mark.type = 'button';
+        mark.className = 'caption-mark';
+        mark.dataset.captionIndex = String(index);
+        mark.textContent = 'Mark';
+        heading.append(meta, mark);
+        const text = document.createElement('p');
+        text.className = 'caption-text';
+        text.textContent = caption.Text;
+        item.append(heading, text);
+        return item;
+    }
+
+    function renderTranscript() {
+        const transcript = currentContext?.transcriptArray || [];
+        const query = board.cleanInline(elements.transcriptSearch.value).toLocaleLowerCase();
+        const matches = transcript
+            .map((caption, index) => ({caption, index}))
+            .filter(({caption}) => !query || `${caption.Name || ''} ${caption.Text || ''}`.toLocaleLowerCase().includes(query));
+        elements.transcriptCount.textContent = String(transcript.length);
+        elements.transcriptList.replaceChildren();
+        if (!matches.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = transcript.length ? 'No captions match.' : 'Connect to a supported meeting to see captions.';
+            elements.transcriptList.append(empty);
+            return;
+        }
+        for (const {caption, index} of matches.slice(-150).reverse()) {
+            elements.transcriptList.append(captionNode(caption, index));
+        }
+    }
+
     function markerNode(marker) {
         const item = document.createElement('li');
         const header = document.createElement('div');
@@ -163,6 +223,8 @@
         elements.markerCount.textContent = String(markers.length);
         elements.copyBoard.disabled = !markers.length;
         elements.downloadBoard.disabled = !markers.length;
+        elements.emailBoard.disabled = !markers.length;
+        elements.downloadBundle.disabled = !markers.length;
     }
 
     async function saveMarkers() {
@@ -190,11 +252,19 @@
                 await saveMarkers();
             }
             renderContext();
+            const latest = next.transcriptArray?.at(-1);
+            const nextSignature = `${next.sessionId}:${next.transcriptArray?.length || 0}:${latest?.key || ''}:${latest?.Text || ''}`;
+            if (nextSignature !== transcriptSignature) {
+                transcriptSignature = nextSignature;
+                renderTranscript();
+            }
             if (sessionChanged || reconciliation.changed) renderMarkers();
             setStatus('');
         } catch (error) {
             currentContext = null;
             renderContext();
+            transcriptSignature = '';
+            renderTranscript();
             renderMarkers();
             setStatus(error.message);
         } finally {
@@ -202,9 +272,10 @@
         }
     }
 
-    async function markLatest() {
+    async function markCaption(captionIndex) {
         try {
             const marker = board.createMarker(currentContext, {
+                captionIndex,
                 kind: elements.markerKind.value,
                 note: elements.markerNote.value
             });
@@ -217,6 +288,11 @@
         } catch (error) {
             setStatus(error.message);
         }
+    }
+
+    async function markLatest() {
+        const transcript = currentContext?.transcriptArray || [];
+        await markCaption(transcript.length - 1);
     }
 
     async function deleteMarker(markerId) {
@@ -235,29 +311,75 @@
         return board.toMarkdown(markers, context || {});
     }
 
+    function selectedContext() {
+        const markers = selectedMarkers();
+        const first = markers[0];
+        return selectedSessionId === currentContext?.sessionId
+            ? currentContext
+            : {
+                sessionId: selectedSessionId,
+                meetingTitle: first?.meetingTitle,
+                providerLabel: first?.providerLabel,
+                transcriptArray: []
+            };
+    }
+
+    async function sha256Hex(value) {
+        const bytes = new TextEncoder().encode(value);
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function safeExportTitle() {
+        return board.cleanInline(selectedContext()?.meetingTitle, 'meeting')
+            .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+            .slice(0, 80);
+    }
+
+    async function saveTextFile(text, type, suffix) {
+        const url = URL.createObjectURL(new Blob([text], {type}));
+        try {
+            await chrome.downloads.download({url, filename: `${safeExportTitle()}-${suffix}`, saveAs: true});
+        } finally {
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
+        }
+    }
+
     async function copyBoard() {
         await navigator.clipboard.writeText(boardMarkdown());
         setStatus('Evidence brief copied.');
     }
 
     async function downloadBoard() {
-        const text = boardMarkdown();
-        const url = URL.createObjectURL(new Blob([text], {type: 'text/markdown;charset=utf-8'}));
-        const selectedMarker = selectedMarkers()[0];
-        const safeTitle = board.cleanInline(
-            selectedSessionId === currentContext?.sessionId
-                ? currentContext?.meetingTitle
-                : selectedMarker?.meetingTitle,
-            'meeting'
-        )
-            .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
-            .slice(0, 80);
-        try {
-            await chrome.downloads.download({url, filename: `${safeTitle}-evidence-board.md`, saveAs: true});
-            setStatus('Evidence brief ready to save.');
-        } finally {
-            setTimeout(() => URL.revokeObjectURL(url), 30000);
-        }
+        await saveTextFile(boardMarkdown(), 'text/markdown;charset=utf-8', 'evidence-board.md');
+        setStatus('Evidence brief ready to save.');
+    }
+
+    function emailBoard() {
+        const subject = `Evidence brief: ${selectedContext()?.meetingTitle || 'Meeting'}`;
+        const markdown = boardMarkdown();
+        const body = markdown.length > 12000
+            ? `${markdown.slice(0, 12000)}\n\n[Brief shortened for email. Attach the saved Markdown for the complete evidence board.]`
+            : markdown;
+        const link = document.createElement('a');
+        link.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        link.click();
+        setStatus('Email draft opened. Review the brief and choose recipients before sending.');
+    }
+
+    async function downloadBundle() {
+        const context = selectedContext();
+        const transcriptSha256 = context?.transcriptArray?.length
+            ? await sha256Hex(board.canonicalTranscript(context))
+            : '';
+        const bundle = board.createEvidenceBundle(selectedMarkers(), context, {
+            generatedAt: new Date().toISOString(),
+            transcriptSha256
+        });
+        await saveTextFile(`${JSON.stringify(bundle, null, 2)}\n`, 'application/json;charset=utf-8', 'provenance.json');
+        setStatus(bundle.source.transcriptIncluded
+            ? `Provenance saved with transcript fingerprint ${transcriptSha256.slice(0, 12)}…`
+            : 'Marker provenance saved. Reopen the source meeting to include its transcript fingerprint.');
     }
 
     async function openTranscript() {
@@ -277,6 +399,8 @@
     elements.closePanel.addEventListener('click', () => void closePanel().catch(error => setStatus(error.message)));
     elements.copyBoard.addEventListener('click', () => void copyBoard().catch(error => setStatus(error.message)));
     elements.downloadBoard.addEventListener('click', () => void downloadBoard().catch(error => setStatus(error.message)));
+    elements.emailBoard.addEventListener('click', emailBoard);
+    elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
     elements.markerList.addEventListener('click', event => {
         const button = event.target.closest('button[data-marker-id]');
@@ -286,6 +410,13 @@
         selectedSessionId = event.target.value;
         renderMarkers();
     });
+    elements.transcriptList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-caption-index]');
+        if (button) void markCaption(Number.parseInt(button.dataset.captionIndex, 10));
+    });
+    elements.transcriptSearch.addEventListener('input', renderTranscript);
+    elements.transcriptTab.addEventListener('click', () => switchView('transcript'));
+    elements.evidenceTab.addEventListener('click', () => switchView('evidence'));
     chrome.tabs.onActivated.addListener(() => void pollContext());
     chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
         if (changeInfo.status === 'complete') void pollContext();

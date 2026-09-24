@@ -13,6 +13,7 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 5. AI handoff opens an internal review page. Transcript text is never placed in the external provider URL and is never pasted or submitted automatically.
 6. Privacy Scrubber creates a distinct cleaned value in memory. It does not overwrite the original saved transcript.
 7. The Evidence Board stores user-created caption markers and notes locally. It preserves a source caption ID and never rewrites the raw transcript.
+8. Evidence sharing is user-directed: email opens a draft with no recipients, while Markdown and provenance JSON require explicit save actions.
 
 ## Permissions
 

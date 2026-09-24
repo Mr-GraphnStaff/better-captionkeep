@@ -100,3 +100,37 @@ test('exports an evidence-backed Markdown brief in marker order', () => {
   assert.ok(markdown.indexOf('C0001') < markdown.indexOf('C0002'));
   assert.match(markdown, /Owner confirmed\./);
 });
+
+test('canonical transcript is stable and preserves source evidence fields', () => {
+  const board = loadEvidenceBoard();
+  const context = {
+    sessionId: 'session-7', meetingTitle: 'Security review', providerLabel: 'Google Meet',
+    transcriptArray: [{key: 'source-1', Name: 'Alex', Time: '00:03', capturedAt: '2026-09-24T12:00:00Z', Text: 'Retain the original.'}]
+  };
+  const first = board.canonicalTranscript(context);
+  const second = board.canonicalTranscript({...context, transcriptArray: [...context.transcriptArray]});
+  assert.equal(first, second);
+  assert.match(first, /"evidenceId":"C0001"/);
+  assert.match(first, /"sourceKey":"source-1"/);
+});
+
+test('creates a portable provenance bundle without confusing markers with source captions', () => {
+  const board = loadEvidenceBoard();
+  const context = {
+    sessionId: 'session-8', meetingTitle: 'Planning', providerLabel: 'Microsoft Teams',
+    transcriptArray: [{key: 'source-2', Name: 'Sam', Time: '00:04', Text: 'Ship after testing.'}]
+  };
+  const marker = board.createMarker(context, {
+    kind: 'Decision', note: 'Approved in meeting', createId: () => 'marker-8',
+    now: () => new Date('2026-09-24T12:01:00Z')
+  });
+  const bundle = board.createEvidenceBundle([marker], context, {
+    generatedAt: '2026-09-24T12:02:00Z', transcriptSha256: 'abc123'
+  });
+  assert.equal(bundle.format, 'better-captionkeep-evidence-bundle');
+  assert.equal(bundle.source.transcriptSha256, 'abc123');
+  assert.equal(bundle.source.transcriptIncluded, true);
+  assert.equal(bundle.captions[0].text, 'Ship after testing.');
+  assert.equal(bundle.markers[0].finalText, 'Ship after testing.');
+  assert.match(bundle.authority, /transcript is authoritative/);
+});

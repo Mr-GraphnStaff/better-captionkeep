@@ -8,8 +8,11 @@ Better CaptionKeep 5.1 extends the local-first meeting record to Zoom Web and in
 - Keeps Microsoft Teams and Google Meet as first-class supported providers through the shared transcript, history, export, Scrubby, and recovery services.
 - Adds a Chrome and Microsoft Edge side-panel Evidence Board that can stay beside the meeting.
 - Creates user-directed markers with caption IDs, speaker and timestamp evidence when available, the captured text, and an optional note.
+- Searches the captured transcript in a slim two-view workspace and marks any caption without interrupting the meeting.
 - Reconciles a marker to finalized caption text through the stable source key while retaining the text visible when the user created the marker.
 - Copies or saves a local Markdown evidence brief without changing the authoritative raw transcript.
+- Opens a reviewed email draft for an evidence brief; Better CaptionKeep does not choose recipients or send the message.
+- Saves a JSON provenance bundle that separates source captions from markers and fingerprints an active transcript with SHA-256.
 - Positions optional assistant use as Bring Your Own AI (BYOAI): Better CaptionKeep prepares a reviewable local handoff, while the user or organization chooses the approved AI workspace.
 - Preserves Privacy Scrubber, managed provider restrictions, reviewed-copy handoffs, local history, Save As, and Intune-ready deployment bundles.
 

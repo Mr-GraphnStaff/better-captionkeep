@@ -21,38 +21,51 @@
     </header>
 
     <main>
-        <section class="card" aria-labelledby="meeting-heading">
+        <section class="meeting-bar" aria-labelledby="meeting-heading">
             <div class="section-heading">
                 <h2 id="meeting-heading">Current meeting</h2>
                 <span id="capture-state" class="status-pill">Connecting</span>
             </div>
             <p id="meeting-title" class="meeting-title">Open Teams, Meet, or Zoom Web.</p>
             <p id="meeting-provider" class="muted"></p>
-        </section>
-
-        <section class="card" aria-labelledby="latest-heading">
-            <h2 id="latest-heading">Latest captured caption</h2>
-            <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
-            <p id="latest-meta" class="muted"></p>
-            <label for="marker-kind">Marker type</label>
-            <select id="marker-kind"></select>
-            <label for="marker-note">Optional note</label>
-            <textarea id="marker-note" rows="3" maxlength="500" placeholder="Add context without changing the transcript"></textarea>
-            <button id="mark-latest" class="primary" disabled>Mark latest caption</button>
             <p id="board-status" class="muted" role="status" aria-live="polite"></p>
         </section>
 
-        <section class="card" aria-labelledby="markers-heading">
+        <nav class="workspace-tabs" aria-label="Evidence Board views">
+            <button id="transcript-tab" class="workspace-tab active" type="button" aria-selected="true">Transcript</button>
+            <button id="evidence-tab" class="workspace-tab" type="button" aria-selected="false">Evidence <span id="marker-count">0</span></button>
+        </nav>
+
+        <section id="transcript-view" class="workspace-view" aria-labelledby="latest-heading">
             <div class="section-heading">
-                <h2 id="markers-heading">Evidence markers</h2>
-                <span id="marker-count" class="status-pill">0</span>
+                <h2 id="latest-heading">Live transcript</h2>
+                <button id="open-transcript" class="text-button" type="button">Full view</button>
             </div>
+            <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
+            <p id="latest-meta" class="muted"></p>
+            <div class="mark-controls">
+                <select id="marker-kind" aria-label="Marker type"></select>
+                <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off">
+                <button id="mark-latest" class="primary" disabled>Mark latest</button>
+            </div>
+            <div class="search-row">
+                <input id="transcript-search" type="search" placeholder="Search transcript" autocomplete="off" aria-label="Search transcript">
+                <span id="transcript-count" class="status-pill">0</span>
+            </div>
+            <ol id="transcript-list" class="transcript-list">
+                <li class="empty">Connect to a supported meeting to see captions.</li>
+            </ol>
+        </section>
+
+        <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
+            <h2 id="markers-heading">Evidence markers</h2>
             <label for="marker-session">Evidence board</label>
             <select id="marker-session" aria-label="Choose an evidence board"></select>
             <div class="actions">
-                <button id="copy-board" disabled>Copy brief</button>
-                <button id="download-board" disabled>Save Markdown</button>
-                <button id="open-transcript">Open transcript</button>
+                <button id="copy-board" disabled>Copy</button>
+                <button id="download-board" disabled>Markdown</button>
+                <button id="email-board" disabled>Email brief</button>
+                <button id="download-bundle" disabled>Provenance JSON</button>
             </div>
             <ol id="marker-list" class="marker-list">
                 <li class="empty">No markers for this meeting yet.</li>

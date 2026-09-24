@@ -48,11 +48,13 @@ gate.
 - [x] Add a provider-neutral local Evidence Board in the Chrome/Edge side panel.
 - [x] Preserve source caption IDs, speaker/timestamp evidence, user notes, deletion, copy, and Markdown export without modifying the raw transcript.
 - [x] Provide an in-panel Close control, including a compatible fallback for browsers predating `sidePanel.close()`.
+- [x] Keep the side panel slim with two flat workspace views: searchable Transcript and Evidence.
+- [x] Mark any captured caption, open a reviewed email draft, and export a provenance JSON bundle with a SHA-256 transcript fingerprint when the source session is active.
 - [x] Position the optional reviewed-copy workflow as Bring Your Own AI (BYOAI); no assistant receives transcript text automatically.
 
 ## Automated verification
 
-- [x] Full combined unit suite passes: 70 tests on September 24, 2026.
+- [x] Full combined unit suite passes: 72 tests on September 24, 2026.
 - [x] Extension lint passes with the Zoom frame and manifest rules.
 - [x] Chrome and Edge development packages build and contain the Zoom provider files.
 - [x] Chrome and Edge Store packages build separately and are recorded in release provenance.
@@ -73,6 +75,8 @@ gate.
 - [ ] Re-run controlled Teams and Google Meet capture, history, and export smoke tests in Chrome and Edge.
 - [ ] Open the Evidence Board beside Teams, Google Meet, and Zoom Web in Chrome and Edge; create and delete each marker type and verify meeting switching does not mix sessions.
 - [ ] Copy and save an evidence brief, verify caption IDs and user notes, and confirm the raw transcript remains byte-for-byte unchanged.
+- [ ] Search and mark an earlier caption, open an email draft, and verify no message is sent until the tester chooses recipients and sends it.
+- [ ] Save the provenance JSON, independently reproduce its active-transcript SHA-256 fingerprint, and verify markers remain separate from source captions.
 - [ ] Probe a host-enabled full transcript panel separately; do not block overlay capture on that optional surface.
 - [ ] Decide whether vanity-domain support is rejected, deferred, or separately permissioned.
 - [ ] Record the window end time and confirm no packaged-extension change occurred during the full 48 hours.

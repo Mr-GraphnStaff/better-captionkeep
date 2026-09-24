@@ -84,6 +84,60 @@
         return String(left?.createdAt || '').localeCompare(String(right?.createdAt || ''));
     }
 
+    function normalizedCaptions(context = {}) {
+        const transcript = Array.isArray(context.transcriptArray) ? context.transcriptArray : [];
+        return transcript.map((caption, index) => ({
+            evidenceId: evidenceId(index),
+            sourceKey: cleanInline(caption.key),
+            speaker: cleanInline(caption.Name, 'Unknown speaker'),
+            time: cleanInline(caption.Time, 'time unavailable'),
+            capturedAt: cleanInline(caption.capturedAt),
+            text: cleanInline(caption.Text)
+        }));
+    }
+
+    function canonicalTranscript(context = {}) {
+        return JSON.stringify({
+            sessionId: cleanInline(context.sessionId, 'session unavailable'),
+            meetingTitle: cleanInline(context.meetingTitle, 'Meeting'),
+            providerLabel: cleanInline(context.providerLabel, 'Meeting platform'),
+            captions: normalizedCaptions(context)
+        });
+    }
+
+    function createEvidenceBundle(markers, context = {}, options = {}) {
+        const items = Array.isArray(markers) ? [...markers].sort(compareMarkers) : [];
+        const captions = normalizedCaptions(context);
+        return Object.freeze({
+            format: 'better-captionkeep-evidence-bundle',
+            version: 1,
+            generatedAt: cleanInline(options.generatedAt, new Date().toISOString()),
+            authority: 'The captured transcript is authoritative. Evidence markers and notes are user-created derivatives.',
+            source: {
+                sessionId: cleanInline(context.sessionId || items[0]?.sessionId, 'session unavailable'),
+                meetingTitle: cleanInline(context.meetingTitle || items[0]?.meetingTitle, 'Meeting'),
+                providerLabel: cleanInline(context.providerLabel || items[0]?.providerLabel, 'Meeting platform'),
+                transcriptSha256: cleanInline(options.transcriptSha256) || null,
+                transcriptIncluded: captions.length > 0,
+                captionCount: captions.length
+            },
+            captions,
+            markers: items.map(marker => ({
+                id: cleanInline(marker.id),
+                kind: normalizeKind(marker.kind),
+                evidenceId: cleanInline(marker.evidenceId, 'caption'),
+                sourceKey: cleanInline(marker.sourceKey),
+                speaker: cleanInline(marker.speaker, 'Unknown speaker'),
+                time: cleanInline(marker.time, 'time unavailable'),
+                capturedAt: cleanInline(marker.capturedAt),
+                markedText: cleanInline(marker.markedText),
+                finalText: cleanInline(marker.text),
+                note: cleanInline(marker.note),
+                createdAt: cleanInline(marker.createdAt)
+            }))
+        });
+    }
+
     function toMarkdown(markers, context = {}) {
         const items = Array.isArray(markers) ? [...markers].sort(compareMarkers) : [];
         const title = cleanInline(context.meetingTitle || items[0]?.meetingTitle, 'Meeting');
@@ -117,7 +171,9 @@
 
     root.CaptionKeepEvidenceBoard = Object.freeze({
         MARKER_KINDS,
+        canonicalTranscript,
         cleanInline,
+        createEvidenceBundle,
         createMarker,
         evidenceId,
         normalizeKind,

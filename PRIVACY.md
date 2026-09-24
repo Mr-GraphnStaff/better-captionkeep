@@ -28,7 +28,7 @@ AI handoffs are optional. Better CaptionKeep warns users to verify that the open
 
 ## Local Evidence Board
 
-The optional Evidence Board stores user-created markers in browser local storage. A marker contains a snapshot of one captured caption, its speaker and timestamp when available, a stable evidence label, a user-selected category, and an optional user note. Markers do not alter the raw transcript and are not transmitted by Better CaptionKeep. The user can delete markers, copy an evidence brief, or save it as a local Markdown file.
+The optional Evidence Board stores user-created markers in browser local storage. A marker contains a snapshot of one captured caption, its speaker and timestamp when available, a stable evidence label, a user-selected category, and an optional user note. Markers do not alter the raw transcript and are not transmitted by Better CaptionKeep. The user can delete markers, copy an evidence brief, save it locally as Markdown or provenance JSON, or open a draft in the operating system's email handler. Better CaptionKeep does not select email recipients or send the message. An active-session provenance export can include the locally captured transcript and its SHA-256 fingerprint, so the user must review the destination before saving or sharing it.
 
 ## Privacy Scrubber
 
