@@ -17,6 +17,12 @@ Thank you for helping improve Better CaptionKeep. The extension handles meeting 
 - `fix/<short-description>` is for bug fixes.
 - `docs/<short-description>` and `chore/<short-description>` are for documentation and maintenance.
 
+Planned releases follow the rolling two-week cadence in
+[`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md). The clock begins when the
+previous update is publicly available, not when it is tagged or submitted. A
+calendar target does not waive a release gate: incomplete work rolls forward,
+and a train with no qualified change is skipped.
+
 External contributors should fork the repository and create a topic branch in their fork. Do not work directly on `master`. Target the active `release/<version>` branch when an issue is assigned to an upcoming release; otherwise target `master`.
 
 ## Development setup
