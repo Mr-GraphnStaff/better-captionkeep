@@ -13,8 +13,12 @@
   "permissions": [
     "downloads",
     "activeTab",
-    "storage"
+    "storage",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "storage": {
     "managed_schema": "managed-schema.json"
   },

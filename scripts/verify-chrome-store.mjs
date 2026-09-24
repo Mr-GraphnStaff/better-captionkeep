@@ -30,7 +30,7 @@ if (storeManifest.name !== 'Better CaptionKeep') throw new Error('Chrome Store n
 if (/test|development/i.test(`${storeManifest.name} ${storeManifest.version_name ?? ''} ${storeManifest.action?.default_title ?? ''}`)) {
   throw new Error('Chrome Store manifest contains test or development labeling.');
 }
-for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage']) {
+for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
   if (JSON.stringify(storeManifest[key]) !== JSON.stringify(sourceManifest[key])) {
     throw new Error(`Chrome Store manifest differs from the reviewed source manifest at ${key}.`);
   }

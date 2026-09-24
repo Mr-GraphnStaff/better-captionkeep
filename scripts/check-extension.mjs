@@ -39,7 +39,7 @@ async function validateManifest(manifest) {
     warnings.push('Extension version is missing in manifest.');
   }
 
-  const requiredPermissions = ['downloads', 'storage'];
+  const requiredPermissions = ['downloads', 'storage', 'sidePanel'];
   const permissions = manifest.permissions ?? [];
   for (const permission of requiredPermissions) {
     if (!permissions.includes(permission)) {
@@ -71,6 +71,13 @@ async function validateManifest(manifest) {
   const defaultPopup = manifest.action?.default_popup;
   if (defaultPopup && !(await fileExists(path.join(sourceDir, defaultPopup)))) {
     errors.push(`Action popup file "${defaultPopup}" is missing.`);
+  }
+
+  const sidePanelPath = manifest.side_panel?.default_path;
+  if (!sidePanelPath) {
+    errors.push('side_panel.default_path is required for the Evidence Board.');
+  } else if (!(await fileExists(path.join(sourceDir, sidePanelPath)))) {
+    errors.push(`Evidence Board side panel file "${sidePanelPath}" is missing.`);
   }
 
   const managedSchema = manifest.storage?.managed_schema;
@@ -111,6 +118,10 @@ async function validateManifest(manifest) {
     'popup.js',
     'service_worker.js',
     'sessionManager.js',
+    'evidenceBoard.js',
+    'sidepanel.css',
+    'sidepanel.html',
+    'sidepanel.js',
     'theme.css',
     'theme.js',
     'viewer.html',

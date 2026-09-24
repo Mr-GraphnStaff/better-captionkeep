@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="captionkeep">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Better CaptionKeep Evidence Board</title>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="sidepanel.css">
+    <script src="theme.js" defer></script>
+    <script src="evidenceBoard.js" defer></script>
+    <script src="sidepanel.js" defer></script>
+</head>
+<body>
+    <header class="brand">
+        <img src="icons/scribble-128.png" width="48" height="48" alt="">
+        <div>
+            <h1>Evidence Board</h1>
+            <p>Mark what matters. Keep the source.</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="card" aria-labelledby="meeting-heading">
+            <div class="section-heading">
+                <h2 id="meeting-heading">Current meeting</h2>
+                <span id="capture-state" class="status-pill">Connecting</span>
+            </div>
+            <p id="meeting-title" class="meeting-title">Open Teams, Meet, or Zoom Web.</p>
+            <p id="meeting-provider" class="muted"></p>
+        </section>
+
+        <section class="card" aria-labelledby="latest-heading">
+            <h2 id="latest-heading">Latest captured caption</h2>
+            <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
+            <p id="latest-meta" class="muted"></p>
+            <label for="marker-kind">Marker type</label>
+            <select id="marker-kind"></select>
+            <label for="marker-note">Optional note</label>
+            <textarea id="marker-note" rows="3" maxlength="500" placeholder="Add context without changing the transcript"></textarea>
+            <button id="mark-latest" class="primary" disabled>Mark latest caption</button>
+            <p id="board-status" class="muted" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card" aria-labelledby="markers-heading">
+            <div class="section-heading">
+                <h2 id="markers-heading">Evidence markers</h2>
+                <span id="marker-count" class="status-pill">0</span>
+            </div>
+            <label for="marker-session">Evidence board</label>
+            <select id="marker-session" aria-label="Choose an evidence board"></select>
+            <div class="actions">
+                <button id="copy-board" disabled>Copy brief</button>
+                <button id="download-board" disabled>Save Markdown</button>
+                <button id="open-transcript">Open transcript</button>
+            </div>
+            <ol id="marker-list" class="marker-list">
+                <li class="empty">No markers for this meeting yet.</li>
+            </ol>
+        </section>
+    </main>
+</body>
+</html>

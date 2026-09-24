@@ -20,9 +20,9 @@ $env:CAPTIONKEEP_CHROME_EXTENSION_ID = '<Chrome Web Store extension ID>'
 npm run build:intune:chrome
 ```
 
-The Chrome bundle is written to `dist/intune-chrome/` with `chrome-extension-settings.json`, `chrome-extension-force-install.txt`, and Chrome-specific detection/remediation scripts. It uses Google's official Chrome Web Store update URL and writes managed extension policy only beneath the Chrome policy path. The standard Chrome profile also forces Scrubby on while preserving the user's AI-provider choice.
+The Chrome bundle is written to `dist/intune-chrome/` with `chrome-extension-settings.json`, `chrome-extension-force-install.txt`, and Chrome-specific detection/remediation scripts. It uses Google's official Chrome Web Store update URL and writes managed extension policy only beneath the Chrome policy path. The standard Chrome profile also forces Scrubby on while preserving the user's BYOAI provider choice.
 
-The standard profile leaves AI handoff available for individual Pro users, Team accounts, small businesses, and enterprises that permit reviewed AI use. Run `npm run build:intune:local-only` only when an administrator deliberately wants the separate high-security bundle in `dist/intune-local-only`.
+The standard profile leaves BYOAI handoff available for individuals, small businesses, and enterprises that permit reviewed AI use. Better CaptionKeep prepares the local, reviewable handoff; the user or organization chooses the approved assistant. A future Pro offering may add governed services, but that is not part of the current extension. Run `npm run build:intune:local-only` only when an administrator deliberately wants the separate high-security bundle in `dist/intune-local-only`.
 
 ## Recommended Intune deployment
 
@@ -39,7 +39,7 @@ The simpler `ExtensionInstallForcelist` setting can use the single generated lin
 
 ## Deployment profiles
 
-The standard profile forces Scrubby on but leaves AI handoff available. It does not restrict providers, so Pro and Team users can keep using their chosen supported assistant through the existing reviewed-copy workflow. An organization can add `allowedAiProviders` and managed workspace URLs when it wants narrower destinations.
+The standard profile forces Scrubby on but leaves BYOAI handoff available. It does not restrict providers, so users can keep using their chosen supported assistant through the existing reviewed-copy workflow. An organization can add `allowedAiProviders` and managed workspace URLs when it wants narrower destinations.
 
 The separate `profile.local-only.json` forces Scrubby on and disables AI handoff. It is an explicit high-security choice for organizations that prohibit meeting text from leaving the browser. Profanity filtering is off in both profiles because it changes ordinary meeting language rather than protecting secrets.
 

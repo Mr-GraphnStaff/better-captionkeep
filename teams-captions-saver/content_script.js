@@ -1136,6 +1136,16 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             sendResponse({ transcriptArray: getCleanTranscript() });
             break;
 
+        case 'get_evidence_context':
+            sendResponse({
+                providerLabel: 'Microsoft Teams',
+                sessionId: recordingStartTime?.toISOString(),
+                meetingTitle: meetingTitleOnStart || document.title || 'Microsoft Teams',
+                captureState,
+                transcriptArray: getCleanTranscript()
+            });
+            break;
+
         case 'get_captions_for_viewing':
             if (transcriptArray.length > 0) {
                 chrome.runtime.sendMessage({

@@ -35,7 +35,7 @@ for (const target of ['chrome', 'edge']) {
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
   if (files.filter(file => file === 'manifest.json').length !== 1) throw new Error(`${target} package must have one root manifest`);
   const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
-  for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage']) {
+  for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
   const zips = (await readdir(distDir)).filter(name =>

@@ -472,6 +472,7 @@
     </div>
     <div class="button-container">
          <button id="viewButton" disabled>View Transcript</button>
+         <button id="evidenceBoardButton">Open Evidence Board</button>
     </div>
     
     <!-- Session History -->
@@ -563,9 +564,9 @@
         </details>
 
         <details class="settings-group">
-            <summary>AI handoff and privacy</summary>
+            <summary>Bring your own AI (BYOAI) and privacy</summary>
             <div class="setting-item">
-                <label for="autoAISummaryToggle" class="setting-label">Prepare AI handoff</label>
+                <label for="autoAISummaryToggle" class="setting-label">Prepare BYOAI handoff</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoAISummaryToggle"><span class="slider"></span></label>
             </div>
             <p class="small-info-text">Prepare a local prompt for review and copying after each meeting. No transcript is placed in provider URLs.</p>
@@ -573,7 +574,7 @@
                 <label for="privacyScrubberToggle" class="setting-label"><img src="icons/scrubby-256.png" alt="" style="width: 34px; height: 34px; vertical-align: middle; margin-right: 7px;">Privacy Scrubber</label>
                 <label class="toggle-switch"><input type="checkbox" id="privacyScrubberToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Mask supported sensitive details locally before an AI handoff. You can temporarily change this on the review page; original transcripts stay unchanged.</p>
+            <p class="small-info-text">Choose your AI. Better CaptionKeep prepares the evidence locally and waits for you to review and copy it. Scrubby can mask supported sensitive details first; original transcripts stay unchanged.</p>
             <div class="setting-item ai-provider-options" id="aiProviderOptions" style="display: none;">
                 <label class="ai-provider-option"><input type="checkbox" data-provider="chatgpt">ChatGPT</label>
                 <label class="ai-provider-option"><input type="checkbox" data-provider="claude">Claude</label>

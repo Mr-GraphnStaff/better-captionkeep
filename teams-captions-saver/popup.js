@@ -359,6 +359,17 @@ async function loadSettings() {
 // --- Event Handling ---
 function setupEventListeners() {
     document.getElementById('exportSettings').addEventListener('click', () => chrome.tabs.create({url:chrome.runtime.getURL('export.html')}));
+    document.getElementById('evidenceBoardButton')?.addEventListener('click', async () => {
+        try {
+            const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+            if (!tab?.windowId) throw new Error('No active browser window is available.');
+            await chrome.sidePanel.open({windowId: tab.windowId});
+            window.close();
+        } catch (error) {
+            console.error('[Better CaptionKeep] Could not open the Evidence Board:', error);
+            chrome.tabs.create({url: chrome.runtime.getURL('sidepanel.html')});
+        }
+    });
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.addEventListener('change', async (event) => {
             await CaptionKeepTheme.set(event.target.value);

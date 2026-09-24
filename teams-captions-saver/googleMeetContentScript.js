@@ -99,6 +99,15 @@
             case 'get_transcript_for_copying':
                 sendResponse({transcriptArray: coordinator.getTranscript()});
                 return false;
+            case 'get_evidence_context':
+                sendResponse({
+                    providerLabel: 'Google Meet',
+                    sessionId: state.recordingStartTime,
+                    meetingTitle: document.title || 'Google Meet',
+                    captureState: state.captureState,
+                    transcriptArray: coordinator.getTranscript()
+                });
+                return false;
             case 'get_unique_speakers':
                 sendResponse({speakers: coordinator.getSpeakers()});
                 return false;

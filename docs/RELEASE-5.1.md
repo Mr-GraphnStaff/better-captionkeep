@@ -45,10 +45,13 @@ gate.
 - [x] Preserve interim updates, quiet-gap segment boundaries, checkpoints, and bounded remount reuse.
 - [x] Support popup status, copy, viewer, export, history, Scrubby, and optional review-first AI handoff through shared services.
 - [x] Keep audio, video, RTMS, bots, native Zoom, and transcript-side-panel assumptions outside the implementation.
+- [x] Add a provider-neutral local Evidence Board in the Chrome/Edge side panel.
+- [x] Preserve source caption IDs, speaker/timestamp evidence, user notes, deletion, copy, and Markdown export without modifying the raw transcript.
+- [x] Position the optional reviewed-copy workflow as Bring Your Own AI (BYOAI); no assistant receives transcript text automatically.
 
 ## Automated verification
 
-- [x] Full combined unit suite passes: 64 tests on September 24, 2026.
+- [x] Full combined unit suite passes: 70 tests on September 24, 2026.
 - [x] Extension lint passes with the Zoom frame and manifest rules.
 - [x] Chrome and Edge development packages build and contain the Zoom provider files.
 - [x] Chrome and Edge Store packages build separately and are recorded in release provenance.
@@ -67,6 +70,8 @@ gate.
 - [ ] Verify **Ask me each time** opens the browser location prompt in both browsers.
 - [ ] Verify a selected direct folder, a Downloads subfolder, and a denied-folder recovery remain local and preserve failed exports as pending.
 - [ ] Re-run controlled Teams and Google Meet capture, history, and export smoke tests in Chrome and Edge.
+- [ ] Open the Evidence Board beside Teams, Google Meet, and Zoom Web in Chrome and Edge; create and delete each marker type and verify meeting switching does not mix sessions.
+- [ ] Copy and save an evidence brief, verify caption IDs and user notes, and confirm the raw transcript remains byte-for-byte unchanged.
 - [ ] Probe a host-enabled full transcript panel separately; do not block overlay capture on that optional surface.
 - [ ] Decide whether vanity-domain support is rejected, deferred, or separately permissioned.
 - [ ] Record the window end time and confirm no packaged-extension change occurred during the full 48 hours.

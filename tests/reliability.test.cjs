@@ -789,7 +789,7 @@ test('Privacy Scrubber is visible, defaults on, and guards unmasked copying',()=
     assert(handoffScript.includes('!scrubberToggle.checked && !unmaskedCopyArmed'));
 });
 test('extension pages use only packaged scripts and settings use progressive disclosure',()=>{
-    for(const page of ['popup.html','viewer.html','export.html','handoff.html','platform-coming-soon.html']) {
+    for(const page of ['popup.html','viewer.html','export.html','handoff.html','platform-coming-soon.html','sidepanel.html']) {
         const html=read(page);
         for(const match of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {
             assert(!/^(?:https?:)?\/\//i.test(match[1]),`${page} must not load remote code`);
@@ -798,9 +798,19 @@ test('extension pages use only packaged scripts and settings use progressive dis
     }
     const popup=read('popup.html');
     assert(popup.includes('<details class="settings-group" open>'));
-    for(const section of ['Appearance','Speaker aliases','Saving transcripts','AI handoff and privacy','Naming and timestamps','Configuration portability']) {
+    for(const section of ['Appearance','Speaker aliases','Saving transcripts','Bring your own AI (BYOAI) and privacy','Naming and timestamps','Configuration portability']) {
         assert(popup.includes(`<summary>${section}</summary>`));
     }
+});
+test('all target manifests expose the local Evidence Board through the side panel',()=>{
+    for(const relative of ['teams-captions-saver/manifest.json','manifests/manifest.chrome.json','manifests/manifest.edge.json','manifests/manifest.chrome-store.json']) {
+        const manifest=JSON.parse(readProject(relative));
+        assert(manifest.permissions.includes('sidePanel'));
+        assert.equal(manifest.side_panel?.default_path,'sidepanel.html');
+    }
+    const popup=read('popup.html');const popupScript=read('popup.js');
+    assert(popup.includes('id="evidenceBoardButton"'));
+    assert(popupScript.includes('chrome.sidePanel.open'));
 });
 test('popup uses a compact three-platform launcher without an inline Teams warning link',()=>{
     const popup=read('popup.html');const script=read('popup.js');

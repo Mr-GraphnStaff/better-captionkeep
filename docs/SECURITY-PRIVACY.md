@@ -1,4 +1,4 @@
-# Better CaptionKeep 5.0 Security and Privacy Design
+# Better CaptionKeep Security and Privacy Design
 
 ## Product boundary
 
@@ -12,12 +12,14 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 4. Exports are staged locally and opened in the extension's save page. The browser or user selects the final location.
 5. AI handoff opens an internal review page. Transcript text is never placed in the external provider URL and is never pasted or submitted automatically.
 6. Privacy Scrubber creates a distinct cleaned value in memory. It does not overwrite the original saved transcript.
+7. The Evidence Board stores user-created caption markers and notes locally. It preserves a source caption ID and never rewrites the raw transcript.
 
 ## Permissions
 
 - `storage`: session history, recovery checkpoints, preferences, managed configuration, and temporary handoff/export jobs.
 - `downloads`: user-directed TXT and Markdown exports.
 - `activeTab`: popup interaction with the active supported meeting tab.
+- `sidePanel`: the local Evidence Board beside a supported meeting tab.
 - Host access is limited to `https://teams.microsoft.com/*`, `https://teams.cloud.microsoft/*`, `https://meet.google.com/*`, and `https://app.zoom.us/*`. Zoom vanity subdomains are not granted.
 
 ## Scrubby guarantees and limits
@@ -33,6 +35,8 @@ The engine can produce false positives and false negatives. It does not understa
 ## Threat controls
 
 - No transcript data in provider navigation URLs.
+- BYOAI remains user-directed: Better CaptionKeep prepares reviewed local material but does not choose, call, or submit to an AI service.
+- Evidence markers retain source caption identifiers and remain a separate derivative from the authoritative transcript.
 - Provider workspace URLs require HTTPS and an exact official hostname.
 - Stored export filenames and folders are normalized before use.
 - History writes stage data before changing the index and retain prior sessions after quota failures.
