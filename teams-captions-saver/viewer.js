@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
             font-size: 16px;
         `;
         
-        let subtext = autoSaveOnEnd ? 'Check the export page for save status.' : 'The transcript is ready to save.';
+        let subtext = autoSaveOnEnd ? 'Your transcript save has started.' : 'The transcript is ready to save.';
             
         endedMessage.innerHTML = `<strong>Meeting Ended</strong><br><span style="font-size: 14px;">${subtext}</span>`;
         

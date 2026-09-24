@@ -43,7 +43,7 @@ AI handoffs prepare a local, editable prompt for review before you choose whethe
 
 Open the extension popup and select **Settings → Appearance → Theme**. The selection applies immediately to the popup, transcript viewer, export page, and AI handoff page. CaptionKeep preserves the original cream-and-teal appearance; Follow system responds to the operating-system light or dark preference.
 
-Exports support Save As, a remembered direct folder where the browser permits it, or a manually configured subfolder beneath the browser Downloads directory. The export page can also open the browser's Downloads folder directly.
+Choose **Automatically** to save transcripts without opening a Better CaptionKeep save page, or **Ask me each time** to choose a different location for every transcript. Advanced download settings can remember a dedicated local folder where the browser permits it, configure a subfolder beneath Downloads, open Downloads, and recover pending exports.
 
 ## Install for local testing
 

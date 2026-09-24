@@ -35,11 +35,13 @@ function refreshButtons() {
     document.getElementById('save-folder').disabled = busy || !directory || !currentJob?.content;
     document.getElementById('choose-folder').disabled = busy;
     document.getElementById('forget-folder').disabled = busy || !directory;
-    document.getElementById('folder').textContent = directory ? `Selected folder: ${directory.name}` : 'No folder selected.';
+    document.getElementById('folder').textContent = directory
+        ? `Automatic-save folder: ${directory.name}`
+        : 'Automatic saves use browser Downloads.';
 }
 
 async function saveToFolder(interactive = true) {
-    if (busy || !currentJob?.content || !directory) return;
+    if (busy || !currentJob?.content || !directory) return false;
     busy = true; refreshButtons();
     try {
         let permission = await directory.queryPermission({mode:'readwrite'});
@@ -55,20 +57,37 @@ async function saveToFolder(interactive = true) {
         currentJob = null;
         statusElement.textContent = `Saved to ${directory.name}: ${name}`;
         await loadPending();
+        return true;
     } catch (error) {
         statusElement.textContent = `Export pending. ${error.message}`;
+        return false;
     } finally { busy = false; refreshButtons(); }
 }
 
-async function saveAs() {
-    if (busy || !currentJob?.content) return;
+async function closeCurrentTab() {
+    const tab = await chrome.tabs.getCurrent();
+    if (tab?.id) await chrome.tabs.remove(tab.id);
+    else window.close();
+}
+
+async function showCurrentTab() {
+    const tab = await chrome.tabs.getCurrent();
+    if (tab?.id) await chrome.tabs.update(tab.id, {active:true});
+}
+
+function closeCurrentTabSoon() {
+    setTimeout(() => closeCurrentTab().catch(() => window.close()), 0);
+}
+
+async function downloadWithBrowser(promptForLocation = true, closeWhenDone = false) {
+    if (busy || !currentJob?.content) return false;
     busy = true; refreshButtons();
     const url = URL.createObjectURL(new Blob([currentJob.content], {type:currentJob.mimeType + ';charset=utf-8'}));
     try {
         const downloadId = await chrome.downloads.download({
             url,
             filename:currentJob.browserFilename || currentJob.filename,
-            saveAs:true
+            saveAs:promptForLocation
         });
         currentJob.downloadId = downloadId;
         await chrome.storage.local.set({[jobId]:currentJob});
@@ -88,8 +107,11 @@ async function saveAs() {
         currentJob = null;
         statusElement.textContent = 'File saved successfully.';
         await loadPending();
+        if (closeWhenDone) closeCurrentTabSoon();
+        return true;
     } catch (error) {
         statusElement.textContent = `Export pending. ${error.message}`;
+        return false;
     } finally { URL.revokeObjectURL(url); busy = false; refreshButtons(); }
 }
 
@@ -114,7 +136,7 @@ async function loadPending() {
     if (!list.children.length) list.textContent = 'No pending exports.';
 }
 
-document.getElementById('save-as').onclick = saveAs;
+document.getElementById('save-as').onclick = () => downloadWithBrowser(true);
 document.getElementById('save-folder').onclick = () => saveToFolder();
 document.getElementById('choose-folder').onclick = async () => {
     if (!supportsDirectoryPicker) {
@@ -125,12 +147,15 @@ document.getElementById('choose-folder').onclick = async () => {
     try {
         directory = await window.showDirectoryPicker({id:'captionkeep-exports',mode:'readwrite'});
         await folderStore('readwrite', store => store.put(directory,'exportFolder'));
-        statusElement.textContent = 'Export folder selected. Use Save to selected folder to write this transcript.';
+        await chrome.storage.sync.set({saveAsType:'downloads'});
+        statusElement.textContent = 'Automatic saves will use this folder. Use Save to selected folder for this transcript.';
     } catch (error) { statusElement.textContent = error.name === 'AbortError' ? 'Folder selection canceled.' : error.message; }
     refreshButtons();
 };
 document.getElementById('remember-manual-folder').onclick = async () => {
     const saveLocation = sanitizeSubfolderPath(document.getElementById('manual-folder').value);
+    await folderStore('readwrite', store => store.delete('exportFolder'));
+    directory = null;
     await chrome.storage.sync.set({saveAsType:saveLocation ? 'custom' : 'downloads', saveLocation});
     if (currentJob) {
         currentJob.browserFilename = saveLocation ? `${saveLocation}/${currentJob.filename}` : currentJob.filename;
@@ -172,8 +197,19 @@ document.getElementById('forget-folder').onclick = async () => {
         }
         await loadPending(); refreshButtons();
         if (!supportsDirectoryPicker) {
-            document.getElementById('choose-folder').textContent = 'Use manual folder fallback';
+            document.getElementById('choose-folder').textContent = 'Use a Downloads subfolder instead';
         }
-        if (currentJob?.automatic && directory) await saveToFolder(false);
+        if (currentJob?.autoStart) {
+            currentJob.autoStart = false;
+            await chrome.storage.local.set({[jobId]:currentJob});
+            if (currentJob.saveAs === false && directory) {
+                const saved = await saveToFolder(false);
+                if (saved) closeCurrentTabSoon();
+                else await showCurrentTab();
+                return;
+            }
+            const saved = await downloadWithBrowser(currentJob.saveAs !== false, true);
+            if (!saved) await showCurrentTab();
+        }
     } catch (error) { statusElement.textContent = 'Could not load export: ' + error.message; }
 })();

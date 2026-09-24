@@ -28,8 +28,7 @@ async function resolveSavePreferences({ forAutoSave = false } = {}) {
     const settings = await chrome.storage.sync.get(['saveAsType', 'saveLocation']);
     const saveAsType = settings.saveAsType === 'default' ? 'downloads' : (settings.saveAsType || 'prompt');
 
-    // Auto-save should never show a dialog
-    const saveAs = !forAutoSave && saveAsType === 'prompt';
+    const saveAs = saveAsType === 'prompt';
     const subfolder = saveAsType === 'custom'
         ? sanitizeSubfolderPath(settings.saveLocation || '')
         : '';
@@ -140,7 +139,9 @@ function formatAsMarkdown(transcript, attendeeReport) {
 }
 
 // --- Core Actions ---
-async function downloadFile(filename, content, mimeType, automatic = false) {
+async function downloadFile(filename, content, mimeType, options = {}) {
+    const normalizedOptions = typeof options === 'boolean' ? { automatic: options } : options;
+    const { automatic = false, saveAs = true } = normalizedOptions || {};
     const id = `export_${crypto.randomUUID()}`;
     const pathParts = String(filename || '').split(/[\\/]+/);
     const leafName = (pathParts.pop() || '').replace(/[<>:"|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '');
@@ -154,9 +155,11 @@ async function downloadFile(filename, content, mimeType, automatic = false) {
         content,
         mimeType,
         automatic,
+        saveAs,
+        autoStart:true,
         createdAt:new Date().toISOString()
     }});
-    await chrome.tabs.create({url:chrome.runtime.getURL(`export.html?job=${id}`), active:!automatic});
+    await chrome.tabs.create({url:chrome.runtime.getURL(`export.html?job=${id}`), active:saveAs});
 }
 
 async function generateFilename(pattern, meetingTitle, format, attendeeReport, recordingStartTime) {
@@ -201,7 +204,7 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
         normalizedOptions = { saveAs: saveOptions !== false };
     }
 
-    const { forAutoSave = false, subfolder = '' } = normalizedOptions || {};
+    const { forAutoSave = false, subfolder = '', saveAs = true } = normalizedOptions || {};
     const sanitizedFolder = sanitizeSubfolderPath(subfolder);
 
     let content;
@@ -224,7 +227,7 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
 
     // Add extension to filename
     const fullFilename = sanitizedFolder ? `${sanitizedFolder}/${filename}.${extension}` : `${filename}.${extension}`;
-    await downloadFile(fullFilename, content, mimeType, forAutoSave);
+    await downloadFile(fullFilename, content, mimeType, { automatic:forAutoSave, saveAs });
 }
 
 // --- State Management ---

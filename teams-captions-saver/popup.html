@@ -460,11 +460,11 @@
             </div>
         </div>
         <div class="split-button" id="save-container">
-            <button id="saveButton" class="split-button-main" disabled>Save as TXT</button>
+            <button id="saveButton" class="split-button-main" disabled>Save TXT</button>
             <button id="saveDropdownButton" class="split-button-dropdown" disabled>▾</button>
             <div id="saveOptions" class="split-button-options">
-                <a href="#" data-format="txt">Save as TXT (.txt)</a>
-                <a href="#" data-format="md">Save as Markdown (.md)</a>
+                <a href="#" data-format="txt">Save TXT (.txt)</a>
+                <a href="#" data-format="md">Save Markdown (.md)</a>
                 <a href="#" data-format="txt" data-cleaned="true">Save Cleaned TXT (.txt)</a>
                 <a href="#" data-format="md" data-cleaned="true">Save Cleaned Markdown (.md)</a>
             </div>
@@ -511,34 +511,29 @@
         </details>
 
         <details class="settings-group">
-            <summary>Export and auto-save</summary>
+            <summary>Saving transcripts</summary>
             <div class="setting-item">
-                <label for="defaultSaveFormat" class="setting-label">Default Save Format</label>
+                <label for="saveAsType" class="setting-label">How should transcripts save?</label>
+                <select id="saveAsType">
+                    <option value="downloads">Automatically</option>
+                    <option value="prompt">Ask me each time</option>
+                </select>
+            </div>
+            <p class="small-info-text" id="saveBehaviorHint">Automatic saving uses your chosen destination without opening a Better CaptionKeep save page.</p>
+            <div class="setting-item">
+                <label for="defaultSaveFormat" class="setting-label">File type</label>
                 <select id="defaultSaveFormat">
                     <option value="txt">TXT</option>
                     <option value="md">Markdown</option>
                 </select>
             </div>
             <div class="setting-item">
-                <label for="saveAsType" class="setting-label">Save behavior</label>
-                <select id="saveAsType">
-                    <option value="prompt">Ask every time (Save As)</option>
-                    <option value="downloads">Browser Downloads folder</option>
-                    <option value="custom">Downloads subfolder</option>
-                </select>
-            </div>
-            <div class="setting-item" id="saveLocationRow" style="display:none">
-                <label for="saveLocation" class="setting-label">Subfolder</label>
-                <input type="text" id="saveLocation" placeholder="Transcripts/Meetings">
-            </div>
-            <p class="small-info-text" id="saveLocationHint" style="display:none">Enter a path beneath your browser's Downloads folder, such as <kbd>Transcripts/Teams</kbd>.</p>
-            <p>Every export opens a save page with Save As, a remembered direct folder when supported, and a manual Downloads-subfolder fallback.</p>
-            <button id="exportSettings" type="button">Export folder and pending saves</button>
-            <div class="setting-item">
-                <label for="autoSaveOnEndToggle" class="setting-label">Auto-Save on Meeting End</label>
+                <label for="autoSaveOnEndToggle" class="setting-label">Save when the meeting ends</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoSaveOnEndToggle"><span class="slider"></span></label>
             </div>
-             <p class="small-info-text">Prepares an export when the meeting ends. Writes to your selected folder only while permission is granted; otherwise keeps the export pending.</p>
+            <p class="small-info-text">When turned on, you do not need to press Save before leaving the meeting.</p>
+            <button id="exportSettings" type="button">Advanced download settings</button>
+            <p class="small-info-text">Choose a dedicated folder or Downloads subfolder, open Downloads, and recover any save that needs attention.</p>
         </details>
 
         <details class="settings-group" open>

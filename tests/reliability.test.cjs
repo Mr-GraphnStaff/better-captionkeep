@@ -485,15 +485,16 @@ test('worker acknowledges success and ignores unrelated messages',async()=>{
     assert.equal(h.chrome.listener({message:'live_caption_update'},{id:'test'},()=>{}),false);
     const result=await new Promise(resolve=>h.chrome.listener({message:'reset_aliases'},{id:'test'},resolve));assert.equal(result.ok,true);
 });
-test('exports stage locally and navigate only to an internal save page',async()=>{
+test('exports stage locally and start automatic downloads in a background tab',async()=>{
     const h=harness();h.run(read('service_worker.js'));
-    await h.run("downloadFile('CON.txt','Synthetic private words','text/plain',true)");
-    const job=Object.values(h.data)[0];assert.equal(job.filename,'_CON.txt');assert.equal(job.browserFilename,'_CON.txt');assert.equal(job.content,'Synthetic private words');assert.equal(job.automatic,true);
+    await h.run("downloadFile('CON.txt','Synthetic private words','text/plain',{automatic:true,saveAs:false})");
+    const job=Object.values(h.data)[0];assert.equal(job.filename,'_CON.txt');assert.equal(job.browserFilename,'_CON.txt');assert.equal(job.content,'Synthetic private words');assert.equal(job.automatic,true);assert.equal(job.saveAs,false);assert.equal(job.autoStart,true);
     assert(h.tabs[0].url.startsWith('chrome-extension://test/export.html?job='));
+    assert.equal(h.tabs[0].active,false);
 });
 test('manual Downloads subfolders survive export staging',async()=>{
     const h=harness();h.run(read('service_worker.js'));
-    await h.run("downloadFile('Transcripts/Teams/Test.txt','Synthetic','text/plain',false)");
+    await h.run("downloadFile('Transcripts/Teams/Test.txt','Synthetic','text/plain',{automatic:false,saveAs:false})");
     const job=Object.values(h.data)[0];
     assert.equal(job.filename,'Test.txt');
     assert.equal(job.browserFilename,'Transcripts/Teams/Test.txt');
@@ -505,11 +506,22 @@ test('export page keeps a usable manual fallback without the direct folder API',
     for(const id of ['manual-folder','remember-manual-folder','open-downloads-folder']) assert(html.includes(`id="${id}"`));
     assert(script.includes('chrome.downloads.showDefaultFolder()'));
     assert(script.includes("saveAsType:saveLocation ? 'custom' : 'downloads'"));
+    assert(script.includes('saveAs:promptForLocation'));
+    assert(script.includes('closeCurrentTab'));
     assert(!script.includes("disabled = busy || !('showDirectoryPicker' in window)"));
 });
 test('legacy default save behavior migrates to the Downloads option',()=>{
     assert(read('popup.js').includes("settings.saveAsType === 'default' ? 'downloads'"));
     assert(read('service_worker.js').includes("settings.saveAsType === 'default' ? 'downloads'"));
+});
+test('automatic saving skips prompts while ask-each-time always prompts',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    h.data.saveAsType='downloads';
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:false})')).saveAs,false);
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:true})')).saveAs,false);
+    h.data.saveAsType='prompt';
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:false})')).saveAs,true);
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:true})')).saveAs,true);
 });
 test('AI handoff never navigates transcript text to a provider',async()=>{
     const h=harness();h.run(read('service_worker.js'));await h.run("openAiAssistantTabs(['chatgpt'],'Synthetic private words','Test')");
@@ -637,7 +649,7 @@ test('extension pages use only packaged scripts and settings use progressive dis
     }
     const popup=read('popup.html');
     assert(popup.includes('<details class="settings-group" open>'));
-    for(const section of ['Appearance','Speaker aliases','Export and auto-save','AI handoff and privacy','Naming and timestamps','Configuration portability']) {
+    for(const section of ['Appearance','Speaker aliases','Saving transcripts','AI handoff and privacy','Naming and timestamps','Configuration portability']) {
         assert(popup.includes(`<summary>${section}</summary>`));
     }
 });

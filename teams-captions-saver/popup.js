@@ -12,9 +12,7 @@ const UI_ELEMENTS = {
     themeSelect: document.getElementById('themeSelect'),
     defaultSaveFormatSelect: document.getElementById('defaultSaveFormat'),
     saveAsTypeSelect: document.getElementById('saveAsType'),
-    saveLocationInput: document.getElementById('saveLocation'),
-    saveLocationRow: document.getElementById('saveLocationRow'),
-    saveLocationHint: document.getElementById('saveLocationHint'),
+    saveBehaviorHint: document.getElementById('saveBehaviorHint'),
     autoEnableCaptionsToggle: document.getElementById('autoEnableCaptionsToggle'),
     autoSaveOnEndToggle: document.getElementById('autoSaveOnEndToggle'),
     trackCaptionsToggle: document.getElementById('trackCaptionsToggle'),
@@ -150,20 +148,14 @@ function updateButtonStates(hasData) {
 }
 
 function updateSaveButtonText(format) {
-    UI_ELEMENTS.saveButton.textContent = `Save as ${format.toUpperCase()}`;
+    UI_ELEMENTS.saveButton.textContent = `Save ${format.toUpperCase()}`;
 }
 
-function updateSaveLocationVisibility(type) {
-    const showCustom = type === 'custom';
-    if (UI_ELEMENTS.saveLocationRow) {
-        UI_ELEMENTS.saveLocationRow.style.display = showCustom ? 'flex' : 'none';
-    }
-    if (UI_ELEMENTS.saveLocationHint) {
-        UI_ELEMENTS.saveLocationHint.style.display = showCustom ? 'block' : 'none';
-    }
-    if (UI_ELEMENTS.saveLocationInput) {
-        UI_ELEMENTS.saveLocationInput.disabled = !showCustom;
-    }
+function updateSaveBehaviorHint(type) {
+    if (!UI_ELEMENTS.saveBehaviorHint) return;
+    UI_ELEMENTS.saveBehaviorHint.textContent = type === 'prompt'
+        ? 'Your browser asks where to put each transcript.'
+        : 'Transcripts save to your chosen destination without opening a Better CaptionKeep save page.';
 }
 
 function updateFilenamePreview() {
@@ -356,14 +348,11 @@ async function loadSettings() {
 
     if (UI_ELEMENTS.saveAsTypeSelect) {
         // 4.6 stored "default" for the browser Downloads folder.
-        const saveAsType = settings.saveAsType === 'default' ? 'downloads' : (settings.saveAsType || 'prompt');
+        const normalizedSaveAsType = settings.saveAsType === 'default' ? 'downloads' : settings.saveAsType;
+        const saveAsType = normalizedSaveAsType === 'prompt' ? 'prompt' : 'downloads';
         UI_ELEMENTS.saveAsTypeSelect.value = saveAsType;
-        updateSaveLocationVisibility(saveAsType);
+        updateSaveBehaviorHint(saveAsType);
         if (settings.saveAsType === 'default') chrome.storage.sync.set({saveAsType});
-    }
-
-    if (UI_ELEMENTS.saveLocationInput) {
-        UI_ELEMENTS.saveLocationInput.value = settings.saveLocation || '';
     }
 }
 
@@ -383,16 +372,12 @@ function setupEventListeners() {
     });
 
     if (UI_ELEMENTS.saveAsTypeSelect) {
-        UI_ELEMENTS.saveAsTypeSelect.addEventListener('change', (e) => {
+        UI_ELEMENTS.saveAsTypeSelect.addEventListener('change', async (e) => {
             const selectedType = e.target.value;
-            chrome.storage.sync.set({ saveAsType: selectedType });
-            updateSaveLocationVisibility(selectedType);
-        });
-    }
-
-    if (UI_ELEMENTS.saveLocationInput) {
-        UI_ELEMENTS.saveLocationInput.addEventListener('input', (e) => {
-            chrome.storage.sync.set({ saveLocation: e.target.value.trim() });
+            const { saveLocation = '' } = await chrome.storage.sync.get('saveLocation');
+            const saveAsType = selectedType === 'prompt' ? 'prompt' : (saveLocation ? 'custom' : 'downloads');
+            await chrome.storage.sync.set({ saveAsType });
+            updateSaveBehaviorHint(selectedType);
         });
     }
 
