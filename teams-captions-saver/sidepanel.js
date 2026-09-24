@@ -7,6 +7,7 @@
     const board = globalThis.CaptionKeepEvidenceBoard;
     const elements = {
         captureState: document.getElementById('capture-state'),
+        closePanel: document.getElementById('close-panel'),
         meetingTitle: document.getElementById('meeting-title'),
         meetingProvider: document.getElementById('meeting-provider'),
         latestCaption: document.getElementById('latest-caption'),
@@ -79,6 +80,20 @@
     async function activeMeetingTab() {
         const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
         return tab;
+    }
+
+    async function closePanel() {
+        const tab = await activeMeetingTab();
+        if (!tab?.windowId) throw new Error('No active browser window is available.');
+        if (typeof chrome.sidePanel.close === 'function') {
+            await chrome.sidePanel.close({windowId: tab.windowId});
+            return;
+        }
+
+        // Chrome/Edge versions before sidePanel.close() can close a global panel
+        // by disabling it. The popup re-enables it before the next explicit open.
+        await chrome.sidePanel.setOptions({enabled: false});
+        window.close();
     }
 
     async function requestContext() {
@@ -259,6 +274,7 @@
     }
 
     elements.markLatest.addEventListener('click', () => void markLatest());
+    elements.closePanel.addEventListener('click', () => void closePanel().catch(error => setStatus(error.message)));
     elements.copyBoard.addEventListener('click', () => void copyBoard().catch(error => setStatus(error.message)));
     elements.downloadBoard.addEventListener('click', () => void downloadBoard().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));

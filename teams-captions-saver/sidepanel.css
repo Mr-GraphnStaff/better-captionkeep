@@ -16,8 +16,17 @@ body {
     background: var(--ck-surface);
 }
 
+.brand-copy { min-width: 0; flex: 1; }
 .brand h1 { margin: 0; font-size: 20px; }
 .brand p { margin: 2px 0 0; color: var(--ck-text-muted); }
+.close-panel {
+    width: auto;
+    flex: none;
+    padding: 7px 10px;
+    background: transparent;
+    color: var(--ck-text-muted);
+}
+.close-panel:hover { color: var(--ck-text); }
 main { padding: 12px; display: grid; gap: 12px; }
 
 .card {

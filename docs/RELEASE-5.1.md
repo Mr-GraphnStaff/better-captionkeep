@@ -47,6 +47,7 @@ gate.
 - [x] Keep audio, video, RTMS, bots, native Zoom, and transcript-side-panel assumptions outside the implementation.
 - [x] Add a provider-neutral local Evidence Board in the Chrome/Edge side panel.
 - [x] Preserve source caption IDs, speaker/timestamp evidence, user notes, deletion, copy, and Markdown export without modifying the raw transcript.
+- [x] Provide an in-panel Close control, including a compatible fallback for browsers predating `sidePanel.close()`.
 - [x] Position the optional reviewed-copy workflow as Bring Your Own AI (BYOAI); no assistant receives transcript text automatically.
 
 ## Automated verification

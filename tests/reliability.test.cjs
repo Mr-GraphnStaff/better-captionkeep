@@ -811,6 +811,11 @@ test('all target manifests expose the local Evidence Board through the side pane
     const popup=read('popup.html');const popupScript=read('popup.js');
     assert(popup.includes('id="evidenceBoardButton"'));
     assert(popupScript.includes('chrome.sidePanel.open'));
+    assert(popupScript.includes("chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'})"));
+    const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
+    assert(sidepanel.includes('id="close-panel"'));
+    assert(sidepanelScript.includes("typeof chrome.sidePanel.close === 'function'"));
+    assert(sidepanelScript.includes('chrome.sidePanel.setOptions({enabled: false})'));
 });
 test('popup uses a compact three-platform launcher without an inline Teams warning link',()=>{
     const popup=read('popup.html');const script=read('popup.js');

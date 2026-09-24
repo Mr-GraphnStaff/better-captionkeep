@@ -363,6 +363,7 @@ function setupEventListeners() {
         try {
             const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
             if (!tab?.windowId) throw new Error('No active browser window is available.');
+            await chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'});
             await chrome.sidePanel.open({windowId: tab.windowId});
             window.close();
         } catch (error) {
