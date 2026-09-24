@@ -35,6 +35,19 @@ train. An urgent security or production fix may use a narrow hotfix branch
 outside the train, but it must still pass the applicable gate and preserve
 artifact evidence.
 
+### Minimum release-candidate test window
+
+The exact release candidate must complete at least 48 uninterrupted hours of
+testing before publication. Record the candidate commit, packaged-artifact
+hashes, test-window start and end times, browsers tested, results, and tester.
+Any source, manifest, dependency, packaging, or release-artifact change resets
+the 48-hour clock. Documentation-only evidence updates do not reset the clock
+when they do not alter the packaged extension.
+
+Automated checks may run before or during the window, but they do not replace
+live browser testing. The final go/no-go review must confirm that the same
+candidate completed the full window with no unresolved release-blocking defect.
+
 ## Branch roles
 
 - `master`: protected production baseline; no direct development.

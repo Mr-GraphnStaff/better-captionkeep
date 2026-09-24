@@ -1,12 +1,28 @@
 # Better CaptionKeep 5.1 Zoom Web development gate
 
-Zoom Web is the next provider track after the published 5.0.0 Teams and Google Meet release. This gate records what is implemented, what has live evidence, and what must remain unclaimed until UAT is complete. It does not authorize changing the pending Edge 5.0.0 submission.
+Zoom Web is the next provider track after the published 5.0.0 Teams and Google Meet release. This gate records what is implemented, what has live evidence, and what must remain unclaimed until UAT is complete.
+
+## Release schedule
+
+- [x] Day 0: 5.0.0 confirmed public and updating on September 21, 2026.
+- [x] Integrated 5.1 candidate branch created as `codex/5.1-release-candidate`.
+- [x] Zoom Web capture and automatic-save improvements integrated on September 24, 2026.
+- [ ] Final release-candidate freeze no later than October 2, 2026.
+- [ ] Record the frozen commit and Chrome/Edge package SHA-256 hashes.
+- [ ] Complete at least 48 uninterrupted hours of testing on October 3-4, 2026.
+- [ ] Hold the final go/no-go review after the test window closes.
+- [ ] Publish no earlier than October 5, 2026.
+
+Any packaged-extension change after the test window begins resets the 48-hour
+clock and moves publication as needed. The deadline never overrides the release
+gate.
 
 ## Protected baseline
 
-- [x] Branch from current `origin/master` as `codex/zoom-web-discovery`.
+- [x] Integrate the Zoom work onto current `origin/master` in `codex/5.1-release-candidate`.
+- [x] Use this as the single active 5.1 integration and test branch; do not create a second `release/5.1` branch.
 - [x] Keep Teams caption stabilization isolated from the Zoom provider branch.
-- [x] Preserve the reviewed 5.0.0 Store artifacts and pending Edge submission unchanged.
+- [x] Preserve the reviewed, published 5.0.0 Store artifacts unchanged.
 
 ## Controlled discovery
 
@@ -32,7 +48,7 @@ Zoom Web is the next provider track after the published 5.0.0 Teams and Google M
 
 ## Automated verification
 
-- [x] Full unit suite passes.
+- [x] Full combined unit suite passes: 61 tests on September 24, 2026.
 - [x] Extension lint passes with the Zoom frame and manifest rules.
 - [x] Chrome and Edge development packages build and contain the Zoom provider files.
 - [x] Release verification passes without altering a submitted Store artifact.
@@ -49,4 +65,4 @@ Zoom Web is the next provider track after the published 5.0.0 Teams and Google M
 
 ## Promotion boundary
 
-Do not update Store listings, rebuild the pending Edge submission, tag a release, or claim native Zoom support until this gate has browser evidence and the product owner explicitly promotes the work.
+Do not update Store listings, tag a release, publish an artifact, or claim native Zoom support until this gate has browser evidence, the exact candidate completes the 48-hour test window, and the product owner explicitly promotes the work.
