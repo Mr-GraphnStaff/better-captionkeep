@@ -48,9 +48,11 @@ gate.
 
 ## Automated verification
 
-- [x] Full combined unit suite passes: 61 tests on September 24, 2026.
+- [x] Full combined unit suite passes: 64 tests on September 24, 2026.
 - [x] Extension lint passes with the Zoom frame and manifest rules.
 - [x] Chrome and Edge development packages build and contain the Zoom provider files.
+- [x] Chrome and Edge Store packages build separately and are recorded in release provenance.
+- [x] Chrome Web Store API v2 and Edge Add-ons submission workflows preserve the reviewed package and require production-environment approval.
 - [x] Release verification passes without altering a submitted Store artifact.
 
 ## Browser UAT required before promotion
