@@ -14,7 +14,7 @@ The API can update a package and submit a draft, but it cannot update Store desc
 
 ## One-time repository setup
 
-After the current 5.0 submission leaves review:
+For Store update automation:
 
 1. In Partner Center, open **Microsoft Edge → Publish API**, enable the v1.1 experience, and create API credentials.
 2. In GitHub, create an environment named `edge-production` and require the product owner as a deployment reviewer.

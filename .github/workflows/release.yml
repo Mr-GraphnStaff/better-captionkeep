@@ -47,7 +47,12 @@ jobs:
 
       - name: Record package checksum
         shell: bash
-        run: sha256sum dist/better_captionkeep-*.zip > dist/SHA256SUMS.txt
+        run: |
+          (
+            cd dist
+            sha256sum better_captionkeep-*.zip > SHA256SUMS.txt
+            sha256sum chrome-store/better_captionkeep-chrome-*.zip | sed 's#chrome-store/##' >> SHA256SUMS.txt
+          )
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
@@ -56,6 +61,7 @@ jobs:
           if-no-files-found: error
           path: |
             dist/better_captionkeep-*.zip
+            dist/chrome-store/better_captionkeep-chrome-*.zip
             dist/release-provenance.json
             dist/SHA256SUMS.txt
 
@@ -71,4 +77,4 @@ jobs:
             echo "Release $RELEASE_TAG already exists; refusing to replace immutable release artifacts."
             exit 1
           fi
-          gh release create "$RELEASE_TAG" dist/better_captionkeep-*.zip dist/release-provenance.json dist/SHA256SUMS.txt --draft --verify-tag --title "$title" --generate-notes
+          gh release create "$RELEASE_TAG" dist/better_captionkeep-*.zip dist/chrome-store/better_captionkeep-chrome-*.zip dist/release-provenance.json dist/SHA256SUMS.txt --draft --verify-tag --title "$title" --generate-notes

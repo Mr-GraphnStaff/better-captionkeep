@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -38,7 +38,10 @@ for (const key of ['version', 'permissions', 'host_permissions', 'background', '
 
 const zipNames = (await readdir(artifactRoot)).filter(name => name.endsWith('.zip'));
 if (zipNames.length !== 1) throw new Error(`Expected one Chrome Store ZIP, found ${zipNames.length}.`);
-const zipPath = path.join(artifactRoot, zipNames[0]);
+const originalZipPath = path.join(artifactRoot, zipNames[0]);
+const artifactName = `better_captionkeep-chrome-${storeManifest.version}.zip`;
+const zipPath = path.join(artifactRoot, artifactName);
+if (originalZipPath !== zipPath) await rename(originalZipPath, zipPath);
 const hash = createHash('sha256').update(await readFile(zipPath)).digest('hex').toUpperCase();
 console.log(JSON.stringify({
   product: storeManifest.name,

@@ -2,6 +2,11 @@
 
 This checklist creates a separate Chrome Web Store item without changing the Microsoft Edge Add-ons submission. The first Chrome upload must come from a reviewed commit and must not use either browser's `- Test` sideload package.
 
+The first 5.0.0 item is already public. Updates use the gated Chrome Web Store
+API v2 workflow in [`CHROME-PUBLISH-PIPELINE.md`](CHROME-PUBLISH-PIPELINE.md).
+The dashboard steps below remain the source for listing, privacy, distribution,
+artwork, reviewer instructions, and the final staged-publication decision.
+
 ## Build and identify the candidate
 
 1. Run `npm ci`, `npm test`, and `npm run lint`.

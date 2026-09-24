@@ -1,0 +1,72 @@
+name: Publish Chrome update
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing published release tag to upload
+        required: true
+        type: string
+      action:
+        description: Upload only, or submit for review with staged publishing
+        required: true
+        default: upload-only
+        type: choice
+        options:
+          - upload-only
+          - submit-staged
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chrome-store-production
+  cancel-in-progress: false
+
+jobs:
+  publish-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: chrome-production
+    steps:
+      - name: Check out the requested release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Verify release identity
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
+
+      - name: Download the reviewed release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
+          is_prerelease="$(gh release view "$RELEASE_TAG" --json isPrerelease --jq .isPrerelease)"
+          if [[ "$is_draft" != "false" || "$is_prerelease" != "false" ]]; then
+            echo "Release $RELEASE_TAG must be published and non-prerelease before Store deployment."
+            exit 1
+          fi
+          mkdir -p dist/release
+          gh release download "$RELEASE_TAG" --pattern 'better_captionkeep-*.zip' --pattern 'release-provenance.json' --pattern 'SHA256SUMS.txt' --dir dist/release
+          (
+            cd dist/release
+            sha256sum --check SHA256SUMS.txt
+          )
+          store_package="dist/release/better_captionkeep-chrome-${RELEASE_TAG#v}.zip"
+          test -f "$store_package"
+          echo "CHROME_PACKAGE_PATH=$store_package" >> "$GITHUB_ENV"
+
+      - name: Upload package and optionally submit for review
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          CHROME_EXTENSION_ID: ${{ vars.CHROME_EXTENSION_ID }}
+          CHROME_ACTION: ${{ inputs.action }}
+        run: npm run publish:chrome

@@ -29,6 +29,10 @@ async function stageTarget(target) {
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 
   await rm(targetDir, { recursive: true, force: true });
+  if (target === 'chrome-store') {
+    await rm(path.join(distDir, 'chrome-store'), { recursive: true, force: true });
+    await mkdir(path.join(distDir, 'chrome-store'), { recursive: true });
+  }
   await mkdir(targetDir, { recursive: true });
   await cp(sourceDir, targetDir, {
     recursive: true,

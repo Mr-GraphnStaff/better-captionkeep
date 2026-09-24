@@ -50,6 +50,10 @@ const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;
 const storeZipPath = path.join(distDir, storeZipName);
 artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(storeZipPath)).size, sha256: await sha256(storeZipPath) });
 
+const chromeStoreZipName = `better_captionkeep-chrome-${sourceManifest.version}.zip`;
+const chromeStoreZipPath = path.join(distDir, 'chrome-store', chromeStoreZipName);
+artifacts.push({ target: 'chrome-store', path: `chrome-store/${chromeStoreZipName}`, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
+
 const intuneDir = path.join(distDir, 'intune');
 for (const name of ['edge-extension-settings.json', 'edge-extension-force-install.txt', 'managed-policy.json', 'detect-managed-policy.ps1', 'remediate-managed-policy.ps1']) {
   const filePath = path.join(intuneDir, name);
