@@ -14,6 +14,10 @@ Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves dec
 
 Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable Bring Your Own AI (**BYOAI**) handoffs that do not place transcript text in provider URLs. Teams remains the foundation and Google Meet is a supported live-capture provider. Zoom Web is the next development track; it is not part of the already-published 5.0.0 Store artifact. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
 
+## Better CaptionKeep 5.1 candidate
+
+The 5.1 candidate adds governed Zoom Web support and hardens the shared capture path: Teams interim captions are stabilized before commit, recovery checkpoints are bound to the originating browser tab, Google Meet recognizes same-URL post-call state, live-view payloads expire and refresh from the active session, Scrubby preserves transcript structure, session-history writes are quota-safe, and Store publishing validates immutable release assets before upload. This candidate is not the public Store release until the complete October 3–4 live gate passes; promotion is permitted no earlier than October 5.
+
 ## Zoom Web development
 
 The Zoom discovery branch captures displayed subtitle-overlay text from the exact `app.zoom.us` Web client. It does not capture audio or video, use a meeting bot, connect to Zoom RTMS, support the native desktop client, or grant wildcard access to Zoom vanity domains. The tested overlay does not expose speaker attribution, so its records are explicitly labeled `Unknown speaker`. See the [Zoom Web evidence record](docs/ZOOM-WEB-CHALLENGES.md) and [5.1 development gate](docs/RELEASE-5.1.md).
@@ -54,12 +58,12 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.0 is the current public release line.
 
-### Chrome and Edge 5.0 sideloads
+### Chrome and Edge 5.1 candidate sideloads
 
 Run `npm run build:targets` to create four ignored test artifacts:
 
-- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-5.0.0.zip`
-- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-5.0.0.zip`
+- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-5.1.0.zip`
+- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-5.1.0.zip`
 
 The unpacked folders each contain the effective browser-labeled `manifest.json`. They use separate extension identities and local storage from the published Edge 4.6 extension, so testing does not update or overwrite the Store installation.
 

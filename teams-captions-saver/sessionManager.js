@@ -39,6 +39,15 @@ class SessionManager {
         return chunks;
     }
 
+    sessionKeys(metadata) {
+        const keys = [];
+        for (let index = 0; index < Number(metadata?.chunkCount || 0); index += 1) {
+            keys.push(`${metadata.id}_chunk_${index}`);
+        }
+        if (metadata?.id) keys.push(`${metadata.id}_attendees`);
+        return keys;
+    }
+
     // Save a meeting session with automatic chunking
     async saveSession(transcriptArray, meetingTitle, attendeeReport = null) {
         try {
@@ -62,21 +71,50 @@ class SessionManager {
                 size: this.calculateSize(transcriptArray)
             };
 
-            // Stage data first. On failure, remove only this new session; retain existing history.
+            // Evict before staging so a quota-sized save can succeed. Keep the
+            // evicted values in memory until commit so a failed write can roll
+            // back the exact prior history.
             const staged = Object.fromEntries(chunks.map((chunk, index) => [`${sessionId}_chunk_${index}`, chunk]));
             if (attendeeReport) staged[`${sessionId}_attendees`] = attendeeReport;
+            const originalIndex = await this.getStoredIndex();
+            let nextIndex = [...originalIndex, metadata].sort((a,b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+            const oldest = [...originalIndex].sort((a,b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+            const currentUsage = await this.getStorageUsage();
+            let storedIndexBytes = this.calculateSize(originalIndex);
+            try { storedIndexBytes = await chrome.storage.local.getBytesInUse('session_index'); } catch { /* use JSON estimate */ }
+            let evictedBytes = 0;
+            const estimateUsage = () => Math.max(0, currentUsage - storedIndexBytes - evictedBytes
+                + this.calculateSize(nextIndex) + this.calculateSize(staged));
+            const evicted = [];
+            while ((nextIndex.length > this.MAX_SESSIONS || estimateUsage() > this.STORAGE_QUOTA) && oldest.length) {
+                const session = oldest.shift();
+                const keys = this.sessionKeys(session);
+                const values = await chrome.storage.local.get(keys);
+                let bytes = Number(session.size || 0);
+                try { bytes = await chrome.storage.local.getBytesInUse(keys); } catch { /* use metadata estimate */ }
+                evicted.push({session, keys, values});
+                evictedBytes += bytes;
+                nextIndex = nextIndex.filter(item => item.id !== session.id);
+            }
+            if (nextIndex.length > this.MAX_SESSIONS || estimateUsage() > this.STORAGE_QUOTA) {
+                throw new Error('Transcript does not fit within the local session quota');
+            }
             try {
+                for (const item of evicted) await chrome.storage.local.remove(item.keys);
                 await chrome.storage.local.set(staged);
-                const index = await this.getStoredIndex();
-                index.push(metadata);
-                index.sort((a,b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
-                await chrome.storage.local.set({session_index:index});
+                await chrome.storage.local.set({session_index:nextIndex});
             } catch (error) {
                 await chrome.storage.local.remove(Object.keys(staged));
+                if (evicted.length) {
+                    try {
+                        for (const item of evicted) await chrome.storage.local.set(item.values);
+                        await chrome.storage.local.set({session_index:originalIndex});
+                    } catch (rollbackError) {
+                        console.error('[SessionManager] Failed to restore evicted sessions after save failure:', rollbackError);
+                    }
+                }
                 throw error;
             }
-            const index = await this.getStoredIndex();
-            for (const old of index.slice(this.MAX_SESSIONS)) await this.deleteSession(old.id);
 
             console.log(`[SessionManager] Saved session ${sessionId} with ${chunks.length} chunks`);
             return sessionId;
@@ -147,7 +185,7 @@ class SessionManager {
             return;
         }
         try {
-            const index = await this.getSessionIndex();
+            const index = await this.getStoredIndex();
             const metadata = index.find(s => s.id === sessionId);
             
             if (!metadata) return;
@@ -190,7 +228,7 @@ class SessionManager {
 
     // Update session index with new metadata
     async updateSessionIndex(metadata) {
-        let index = await this.getSessionIndex();
+        let index = await this.getStoredIndex();
         
         // Remove any existing entry with same ID
         index = index.filter(s => s.id !== metadata.id);
@@ -241,7 +279,7 @@ class SessionManager {
 
     // Clean up old sessions to make room
     async cleanupOldSessions(requiredSpace) {
-        const index = await this.getSessionIndex();
+        const index = await this.getStoredIndex();
         let freedSpace = 0;
         
         // Delete oldest sessions first
@@ -256,7 +294,7 @@ class SessionManager {
     // Get storage statistics
     async getStorageStats() {
         const usage = await this.getStorageUsage();
-        const index = await this.getSessionIndex();
+        const index = await this.getStoredIndex();
         
         return {
             usedBytes: usage,
@@ -276,7 +314,7 @@ class SessionManager {
             if (!result?.ok) throw new Error(result?.error || 'Clear failed');
             return;
         }
-        const index = await this.getSessionIndex();
+        const index = await this.getStoredIndex();
         
         for (const session of index) {
             await this.deleteSession(session.id);

@@ -8,6 +8,8 @@
     const CAPTION_ENABLE_LABEL = 'Turn on captions';
     const MEETING_PATH = /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}(?:\/|$)/i;
     const REMOUNT_REUSE_WINDOW_MS = 30 * 1000;
+    const IN_CALL_LABELS = Object.freeze(['leave call', 'end call']);
+    const POST_CALL_LABELS = Object.freeze(['rejoin', 'return to home screen']);
 
     function isMeetingUrl(url) {
         return url.hostname === 'meet.google.com' && MEETING_PATH.test(url.pathname);
@@ -59,6 +61,7 @@
         let captionObserver = null;
         let captionSource = null;
         let sourceAvailable = false;
+        let meetingActive = false;
         let meetingEnded = false;
         let autoEnableCaptions = true;
         let captionEnableAttempted = false;
@@ -89,6 +92,22 @@
 
         function normalizedText(node) {
             return String(node?.textContent || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function hasControl(labels) {
+            return Array.from(pageDocument.querySelectorAll?.('button, [role="button"]') || []).some(element => {
+                const label = String(element.getAttribute?.('aria-label') || element.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                return labels.some(value => label === value || label.startsWith(`${value} `));
+            });
+        }
+
+        function endMeeting() {
+            if (!meetingEnded) signal('meeting-ended');
+            meetingEnded = true;
+            meetingActive = false;
+            sourceAvailable = false;
+            captionEnableAttempted = false;
+            disconnectCaptionSource();
         }
 
         function containsImage(node) {
@@ -161,16 +180,21 @@
         }
 
         function reconcile() {
-            if (!isMeetingUrl(currentUrl())) {
-                if (!meetingEnded) signal('meeting-ended');
-                meetingEnded = true;
-                captionEnableAttempted = false;
-                disconnectCaptionSource();
+            const meetingUrl = isMeetingUrl(currentUrl());
+            const nextSource = meetingUrl ? pageDocument.querySelector(CAPTION_SOURCE_SELECTOR) : null;
+            const hasInCallControl = meetingUrl && hasControl(IN_CALL_LABELS);
+            const hasPostCallControl = meetingUrl && hasControl(POST_CALL_LABELS);
+            const positiveInCallEvidence = Boolean(nextSource || hasInCallControl);
+
+            if ((!meetingUrl && meetingActive) || (meetingActive && hasPostCallControl && !positiveInCallEvidence)) {
+                endMeeting();
                 return;
             }
-
-            meetingEnded = false;
-            const nextSource = pageDocument.querySelector(CAPTION_SOURCE_SELECTOR);
+            if (!positiveInCallEvidence && !meetingActive) return;
+            if (positiveInCallEvidence) {
+                meetingActive = true;
+                meetingEnded = false;
+            }
             if (nextSource && nextSource !== captionSource) {
                 if (captionSource) preserveRemountCandidate();
                 captionEnableAttempted = true;
@@ -184,7 +208,7 @@
                 sourceAvailable = false;
                 signal('caption-source-unavailable', {recoverable: true, reason: 'captions-hidden-or-remounting'});
             }
-            if (!nextSource) requestCaptionEnable();
+            if (meetingActive && !nextSource) requestCaptionEnable();
         }
 
         function start(eventHandler) {
@@ -228,7 +252,7 @@
         return Object.freeze({
             getCaptionSource: () => captionSource,
             getSanitizedStructure: () => sanitizeStructure(captionSource),
-            isMeetingPresent: () => isMeetingUrl(currentUrl()),
+            isMeetingPresent: () => meetingActive && isMeetingUrl(currentUrl()) && !hasControl(POST_CALL_LABELS),
             restoreState,
             setAutoEnableCaptions,
             start,
@@ -237,5 +261,5 @@
     }
 
     registry.register({id: 'google-meet', matches: url => url.hostname === 'meet.google.com', create: createAdapter});
-    root.CaptionKeepGoogleMeet = Object.freeze({CAPTION_ENABLE_LABEL, CAPTION_SOURCE_SELECTOR, MEETING_PATH, isMeetingUrl, sanitizeStructure});
+    root.CaptionKeepGoogleMeet = Object.freeze({CAPTION_ENABLE_LABEL, CAPTION_SOURCE_SELECTOR, IN_CALL_LABELS, MEETING_PATH, POST_CALL_LABELS, isMeetingUrl, sanitizeStructure});
 })(globalThis);

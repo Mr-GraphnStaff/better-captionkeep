@@ -52,6 +52,7 @@
         "providerRegistry.js",
         "configuration.js",
         "transcriptInsights.js",
+        "teamsCaptionBuffer.js",
         "content_script.js"
       ]
     },
