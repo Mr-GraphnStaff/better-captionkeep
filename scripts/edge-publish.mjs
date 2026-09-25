@@ -1,4 +1,4 @@
-import { access, readFile } from 'node:fs/promises';
+import { access, appendFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -29,6 +29,11 @@ function requiredEnv(name, env = process.env) {
 
 function sleep(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function writeStepSummary(env, lines) {
+  if (!env.GITHUB_STEP_SUMMARY) return;
+  await appendFile(env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`, 'utf8');
 }
 
 async function responseDetails(response) {
@@ -76,15 +81,30 @@ export async function main(options = {}) {
   const env = options.env || process.env;
   const fetchImpl = options.fetchImpl || fetch;
   const sleepImpl = options.sleepImpl || sleep;
-  const action = env.EDGE_ACTION || 'upload-only';
-  if (!['upload-only', 'submit'].includes(action)) {
-    throw new Error('EDGE_ACTION must be upload-only or submit');
+  const action = env.EDGE_ACTION || 'preflight';
+  if (!['preflight', 'upload-only', 'submit'].includes(action)) {
+    throw new Error('EDGE_ACTION must be preflight, upload-only, or submit');
   }
   const notes = env.EDGE_CERTIFICATION_NOTES?.trim();
   if (action === 'submit' && !notes) throw new Error('EDGE_CERTIFICATION_NOTES is required when EDGE_ACTION is submit');
   const clientId = requiredEnv('EDGE_CLIENT_ID', env);
   const apiKey = requiredEnv('EDGE_API_KEY', env);
   const productId = requiredEnv('EDGE_PRODUCT_ID', env);
+
+  if (action === 'preflight') {
+    console.log(
+      `Edge configuration preflight passed for product ${productId}. ` +
+      'Microsoft does not expose a non-mutating product-status endpoint, so credentials are proven only by an upload operation.',
+    );
+    await writeStepSummary(env, [
+      '## Microsoft Edge Add-ons preflight',
+      '',
+      `- Product ID configured: \`${productId}\``,
+      '- Client ID and API key: configured',
+      '- Limitation: Microsoft exposes no non-mutating product-status endpoint; the first upload proves the credentials.',
+    ]);
+    return { clientIdConfigured: Boolean(clientId), apiKeyConfigured: Boolean(apiKey), productId };
+  }
 
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   const packagePath = env.EDGE_PACKAGE_PATH
@@ -115,6 +135,11 @@ export async function main(options = {}) {
 
   if (action === 'upload-only') {
     console.log('Package upload succeeded. The draft was not submitted for certification.');
+    await writeStepSummary(env, [
+      '## Microsoft Edge Add-ons result',
+      '',
+      '- Verified package uploaded as a draft; certification was not requested.',
+    ]);
     return;
   }
 
@@ -132,6 +157,11 @@ export async function main(options = {}) {
     'Certification submission', fetchImpl, sleepImpl,
   );
   console.log('Microsoft accepted the extension update for certification.');
+  await writeStepSummary(env, [
+    '## Microsoft Edge Add-ons result',
+    '',
+    '- Microsoft accepted the verified package for certification.',
+  ]);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

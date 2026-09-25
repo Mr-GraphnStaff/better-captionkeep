@@ -13,11 +13,25 @@ tag, verifies that the tag matches the extension version, downloads every
 immutable release artifact, verifies `SHA256SUMS.txt`, and selects the exact
 `better_captionkeep-chrome-<version>.zip` package.
 
-The safe default is `upload-only`, which creates or updates the Chrome Web Store
-draft without submitting it. `submit-staged` sends the verified draft for review
-with `STAGED_PUBLISH`; approval does not make it public until the product owner
-publishes it from the Chrome Developer Dashboard. Store listing, privacy,
-distribution, artwork, and visibility remain explicit Dashboard controls.
+The safe default is `preflight`, which refreshes the OAuth token and reads the
+item status without uploading or publishing anything. `upload-only` creates or
+updates the Chrome Web Store draft without submitting it. `submit-auto` sends
+the verified draft for review and makes it public automatically after Google
+approval. `submit-staged` holds an approved revision until `publish-staged` is
+run. Store listing, privacy, distribution, artwork, and visibility remain
+explicit Dashboard controls.
+
+`store-metadata/chrome.json` is the repository contract for Chrome permissions,
+hosts, supported providers, single-purpose wording, privacy URL, and disclosure
+text. `npm run store:metadata:check` compares that contract to the Chrome Store
+manifest. A new permission or host therefore fails validation before a Store
+upload instead of surfacing as an opaque submission error.
+
+For a normal two-Store release, use **Publish release to browser stores**
+(`publish-stores.yml`). It verifies and preserves the immutable release bundle
+once, then runs the selected Chrome and Edge actions in parallel behind their
+protected GitHub environments. The Store-specific workflows remain available
+for recovery and narrow operations.
 
 ## One-time repository and Google setup
 
@@ -43,13 +57,15 @@ the publisher ID from **Chrome Developer Dashboard → Publisher → Settings**.
 2. Merge the reviewed candidate, create its version tag, and let `release.yml`
    create the checksummed draft GitHub release.
 3. Review and publish the GitHub release without replacing its artifacts.
-4. Dispatch **Publish Chrome update** with `upload-only`.
+4. Dispatch **Publish release to browser stores** with Chrome `upload-only` and
+   the appropriate Edge action.
 5. Review the resulting Store draft and any required disclosure or listing
    changes in the Dashboard.
-6. Dispatch the workflow again with `submit-staged`; approve the
-   `chrome-production` environment only after the draft is correct.
-7. After Google approval, run final smoke testing and publish the staged update
-   from the Dashboard.
+6. Dispatch the workflow again with either `submit-auto` for immediate
+   publication after approval or `submit-staged` for a deliberate hold. Approve
+   the `chrome-production` environment only after the draft is correct.
+7. If staged, run `publish-staged` after Google approval. If automatic, verify
+   public availability as soon as Google completes review.
 8. Record the tag, commit, package hash, workflow run, review status, public
    date, and installed-upgrade evidence in the release record.
 

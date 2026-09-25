@@ -8,11 +8,12 @@ on:
         required: true
         type: string
       action:
-        description: Upload only, or upload and submit for certification
+        description: Configuration preflight, upload only, or upload and submit for certification
         required: true
-        default: upload-only
+        default: preflight
         type: choice
         options:
+          - preflight
           - upload-only
           - submit
       certification_notes:
@@ -44,6 +45,7 @@ jobs:
         run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
 
       - name: Download the reviewed release artifacts
+        if: inputs.action == 'upload-only' || inputs.action == 'submit'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
