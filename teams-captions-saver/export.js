@@ -6,14 +6,6 @@ let directory;
 let busy = false;
 const supportsDirectoryPicker = typeof window.showDirectoryPicker === 'function';
 
-function sanitizeSubfolderPath(value) {
-    return String(value || '')
-        .split(/[\\/]+/)
-        .map(segment => segment.trim().replace(/[<>:"/\\|?*\x00-\x1f]/g, '_'))
-        .filter(segment => segment && segment !== '.' && segment !== '..')
-        .join('/');
-}
-
 function folderStore(mode, operation) {
     return new Promise((resolve, reject) => {
         const open = indexedDB.open('captionkeep-files', 1);
@@ -104,6 +96,11 @@ async function downloadWithBrowser(promptForLocation = true, closeWhenDone = fal
             chrome.downloads.search({id:downloadId}).then(items => finish(items[0]?.state), reject);
         });
         await chrome.storage.local.remove(jobId);
+        await chrome.storage.local.set({lastCompletedDownload:{
+            id:downloadId,
+            browserFilename:currentJob.browserFilename || currentJob.filename,
+            completedAt:new Date().toISOString()
+        }});
         currentJob = null;
         statusElement.textContent = 'File saved successfully.';
         await loadPending();
@@ -152,29 +149,6 @@ document.getElementById('choose-folder').onclick = async () => {
     } catch (error) { statusElement.textContent = error.name === 'AbortError' ? 'Folder selection canceled.' : error.message; }
     refreshButtons();
 };
-document.getElementById('remember-manual-folder').onclick = async () => {
-    const saveLocation = sanitizeSubfolderPath(document.getElementById('manual-folder').value);
-    await folderStore('readwrite', store => store.delete('exportFolder'));
-    directory = null;
-    await chrome.storage.sync.set({saveAsType:saveLocation ? 'custom' : 'downloads', saveLocation});
-    if (currentJob) {
-        currentJob.browserFilename = saveLocation ? `${saveLocation}/${currentJob.filename}` : currentJob.filename;
-        await chrome.storage.local.set({[jobId]:currentJob});
-    }
-    document.getElementById('manual-folder').value = saveLocation;
-    statusElement.textContent = saveLocation
-        ? `Downloads subfolder remembered: ${saveLocation}`
-        : 'The main browser Downloads folder will be used.';
-    refreshButtons();
-};
-document.getElementById('open-downloads-folder').onclick = () => {
-    try {
-        chrome.downloads.showDefaultFolder();
-        statusElement.textContent = 'Opened the browser Downloads folder.';
-    } catch (error) {
-        statusElement.textContent = `Could not open the Downloads folder: ${error.message}`;
-    }
-};
 document.getElementById('forget-folder').onclick = async () => {
     try { await folderStore('readwrite',store => store.delete('exportFolder')); directory=null; refreshButtons(); }
     catch(error) { statusElement.textContent=error.message; }
@@ -183,10 +157,7 @@ document.getElementById('forget-folder').onclick = async () => {
 (async () => {
     try {
         directory = await folderStore('readonly',store => store.get('exportFolder'));
-        const settings = await chrome.storage.sync.get(['saveAsType','saveLocation']);
-        document.getElementById('manual-folder').value = settings.saveAsType === 'custom'
-            ? sanitizeSubfolderPath(settings.saveLocation)
-            : '';
+        const settings = await chrome.storage.sync.get(['saveAsType']);
         currentJob = jobId ? (await chrome.storage.local.get(jobId))[jobId] : null;
         statusElement.textContent = currentJob ? 'Export ready. Choose where to save.' : 'Choose a folder or open a pending export.';
         if (currentJob) {
@@ -202,7 +173,7 @@ document.getElementById('forget-folder').onclick = async () => {
         if (currentJob?.autoStart) {
             currentJob.autoStart = false;
             await chrome.storage.local.set({[jobId]:currentJob});
-            if (currentJob.saveAs === false && directory) {
+            if (currentJob.saveAs === false && directory && settings.saveAsType !== 'custom') {
                 const saved = await saveToFolder(false);
                 if (saved) closeCurrentTabSoon();
                 else await showCurrentTab();

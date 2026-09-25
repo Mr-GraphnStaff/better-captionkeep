@@ -764,12 +764,18 @@ test('manual Downloads subfolders survive export staging',async()=>{
     assert.equal(job.browserFilename,'Transcripts/Teams/Test.txt');
     assert.equal(h.run("sanitizeSubfolderPath('../Transcripts/../Teams')"),'Transcripts/Teams');
 });
-test('export page keeps a usable manual fallback without the direct folder API',()=>{
+test('normal Downloads subfolder settings stay in the popup',()=>{
     const html=read('export.html');
     const script=read('export.js');
-    for(const id of ['manual-folder','remember-manual-folder','open-downloads-folder']) assert(html.includes(`id="${id}"`));
-    assert(script.includes('chrome.downloads.showDefaultFolder()'));
-    assert(script.includes("saveAsType:saveLocation ? 'custom' : 'downloads'"));
+    const popupHtml=read('popup.html');
+    const popupScript=read('popup.js');
+    for(const id of ['saveAsType','saveLocation','openLastTranscriptFolder']) assert(popupHtml.includes(`id="${id}"`));
+    for(const id of ['manual-folder','remember-manual-folder','open-downloads-folder']) assert(!html.includes(`id="${id}"`));
+    const directFolderSection=script.slice(script.indexOf('async function saveToFolder'),script.indexOf('async function closeCurrentTab'));
+    const browserDownloadSection=script.slice(script.indexOf('async function downloadWithBrowser'),script.indexOf('async function loadPending'));
+    assert(!directFolderSection.includes('lastCompletedDownload'));
+    assert(browserDownloadSection.includes('lastCompletedDownload'));
+    assert(popupScript.includes('chrome.downloads.show(lastCompletedDownload.id)'));
     assert(script.includes('saveAs:promptForLocation'));
     assert(script.includes('closeCurrentTab'));
     assert(!script.includes("disabled = busy || !('showDirectoryPicker' in window)"));

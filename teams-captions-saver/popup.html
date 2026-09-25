@@ -516,11 +516,18 @@
             <div class="setting-item">
                 <label for="saveAsType" class="setting-label">How should transcripts save?</label>
                 <select id="saveAsType">
-                    <option value="downloads">Automatically</option>
                     <option value="prompt">Ask me each time</option>
+                    <option value="downloads">Browser Downloads</option>
+                    <option value="custom">Downloads subfolder</option>
                 </select>
             </div>
-            <p class="small-info-text" id="saveBehaviorHint">Automatic saving uses your chosen destination without opening a Better CaptionKeep save page.</p>
+            <div class="setting-item" id="saveLocationRow" style="display:none">
+                <label for="saveLocation" class="setting-label">Folder inside Downloads</label>
+                <input type="text" id="saveLocation" placeholder="Transcripts/Meetings">
+            </div>
+            <p class="small-info-text" id="saveBehaviorHint">Enter a relative folder such as <kbd>Transcripts</kbd>. It means Downloads/Transcripts.</p>
+            <button id="openLastTranscriptFolder" type="button" disabled>Open last transcript folder</button>
+            <p class="small-info-text" id="downloadFolderStatus" role="status" aria-live="polite">Save a transcript first to enable this button.</p>
             <div class="setting-item">
                 <label for="defaultSaveFormat" class="setting-label">File type</label>
                 <select id="defaultSaveFormat">
@@ -533,8 +540,8 @@
                 <label class="toggle-switch"><input type="checkbox" id="autoSaveOnEndToggle"><span class="slider"></span></label>
             </div>
             <p class="small-info-text">When turned on, you do not need to press Save before leaving the meeting.</p>
-            <button id="exportSettings" type="button">Advanced download settings</button>
-            <p class="small-info-text">Choose a dedicated folder or Downloads subfolder, open Downloads, and recover any save that needs attention.</p>
+            <button id="exportSettings" type="button">Pending saves and dedicated folder</button>
+            <p class="small-info-text">Only use this if a save needs recovery or you want to grant access to a folder outside browser Downloads.</p>
         </details>
 
         <details class="settings-group" open>
