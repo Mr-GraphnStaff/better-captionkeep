@@ -66,20 +66,10 @@ does not require a GitHub token. Do not store the Azure Pipelines registration
 token, SSH private key, seller metadata, or Azure login credentials in the
 vault.
 
-GitHub environment secrets are write-only, so their existing values cannot be
-exported through the GitHub API. Retrieve them from the original secure source
-or rotate them, then run this local PowerShell command. It prompts without echo
-and sends each value as an Azure Managed Run Command protected parameter; the
-VM writes it to the private vault through managed identity and the temporary
-Run Command resource is deleted afterward.
-
-```powershell
-./deployment/azure/Set-BckStoreSecrets.ps1
-```
-
-The Edge API key receives a Key Vault expiration one year from the seeding
-date by default. Set `-EdgeApiKeyExpiresOn` if the provider key has a different
-expiration date.
+The five Store credentials were migrated directly from the former GitHub
+environments into this vault. The duplicate GitHub secrets and publishing
+workflows were then removed after Azure preflight passed. Rotate credentials
+directly into Key Vault; do not recreate a second long-lived secret store.
 
 ## Azure Pipeline
 

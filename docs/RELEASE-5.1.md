@@ -7,15 +7,23 @@ Zoom Web is the next provider track after the published 5.0.0 Teams and Google M
 - [x] Day 0: 5.0.0 confirmed public and updating on September 21, 2026.
 - [x] Integrated 5.1 candidate branch created as `codex/5.1-release-candidate`.
 - [x] Zoom Web capture and automatic-save improvements integrated on September 24, 2026.
-- [ ] Final release-candidate freeze no later than October 2, 2026.
-- [ ] Record the frozen commit and Chrome/Edge package SHA-256 hashes.
-- [ ] Complete at least 48 uninterrupted hours of testing on October 3-4, 2026.
-- [ ] Hold the final go/no-go review after the test window closes.
-- [ ] Publish no earlier than October 5, 2026.
+- [x] Candidate frozen as tag `v5.1.0` at commit `2da5fd3bfb9676a430103e88d936847a06764f29`.
+- [x] Record the frozen Chrome and Edge package SHA-256 hashes.
+- [ ] The originally planned October 3-4 uninterrupted test window was not completed.
+- [x] Product owner signed off the testing matrix and explicitly authorized early promotion on September 25, 2026.
+- [x] Edge 5.1.0 became public and an existing managed work installation upgraded successfully on September 25, 2026.
+- [ ] Chrome 5.1.0 remains in Google review as of September 25, 2026.
 
 Any packaged-extension change after the test window begins resets the 48-hour
 clock and moves publication as needed. The deadline never overrides the release
 gate.
+
+The September 25 early-promotion decision superseded the planned October 5
+date; it did not retroactively create evidence for the unchecked 48-hour and
+browser-specific UAT items below. Frozen Store artifacts:
+
+- Edge: `better_captionkeep-5.1.0.zip` — SHA-256 `d6dea9e9bfe049a213db8d84c3439af07e4b2af251c9cf97710ea8aa05339518`
+- Chrome: `better_captionkeep-chrome-5.1.0.zip` — SHA-256 `02a675556e8d377705cff964ecb47fa1ee1bcac35ebc6d68a62cbdfef5c4fd3a`
 
 ## Protected baseline
 
@@ -81,6 +89,10 @@ gate.
 - [ ] Decide whether vanity-domain support is rejected, deferred, or separately permissioned.
 - [ ] Record the window end time and confirm no packaged-extension change occurred during the full 48 hours.
 
-## Promotion boundary
+## Promotion record
 
-Do not update Store listings, tag a release, publish an artifact, or claim native Zoom support until this gate has browser evidence, the exact candidate completes the 48-hour test window, and the product owner explicitly promotes the work.
+The product owner explicitly promoted the frozen candidate early on September
+25, 2026. Edge publication and installed-upgrade evidence are complete. Chrome
+remains under review. Unchecked UAT items remain documented limitations and
+must not be represented as completed evidence; Zoom support remains limited to
+the governed Zoom Web overlay capture described above, not native Zoom.

@@ -98,19 +98,21 @@ Use these terms exactly in release records and status reports:
 An upload or successful workflow is not a public release. The release owner must
 record Store status and installed-upgrade evidence before declaring Day 0.
 
-## Coordinated Store workflow
+## Coordinated Store pipeline
 
-Use `.github/workflows/publish-stores.yml` for normal releases. It verifies the
-published GitHub release, checks checksums and provenance once, validates the
-Chrome disclosure contract, and then runs Chrome and Edge actions in parallel
-behind their existing production environments.
+Use **Better CaptionKeep Store Release** in Azure DevOps for normal releases.
+It verifies the published GitHub release, checks checksums and provenance once,
+validates the Chrome disclosure contract when Chrome upload is requested, and
+then prepares Chrome and Edge drafts on the private release agent.
 
 The workflow checks out the protected pipeline code separately from the frozen
 release tag. Store automation can therefore receive safety fixes while an older
 revision is under review. The release source, provenance commit, tag, ZIP names,
 and checksums must still agree; the workflow never rebuilds the frozen package.
 
-Chrome modes are `preflight`, `upload-only`, `submit-auto`, `submit-staged`, and
+The `bck-store-production` Azure environment protects only irreversible Store
+submission or publication; verification, preflight, and draft upload do not
+pause for approval. Chrome modes are `preflight`, `upload-only`, `submit-auto`, `submit-staged`, and
 `publish-staged`. Choose `submit-auto` when the approved version should become
 public immediately after Google review. Choose `submit-staged` only when a
 deliberate post-approval hold is required. Edge modes are `preflight`,
