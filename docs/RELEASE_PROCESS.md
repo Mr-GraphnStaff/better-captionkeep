@@ -75,4 +75,38 @@ Before opening the release pull request:
 7. Update the README, privacy disclosure, store copy, and certification notes when behavior or data handling changed.
 8. Review the exact diff and package contents before approval.
 
+The automated gate also runs `npm run store:metadata:check`. Chrome Store
+permission justifications, host disclosures, provider wording, remote-code
+answer, privacy URL, and manifest version live in
+`store-metadata/chrome.json`. Any manifest permission, host, provider, or
+version change must update that contract in the same pull request.
+
 After approval, merge the release pull request into `master`, tag the release, and build the store package from that tag. Save the package hash and submitted commit in the release record.
+
+## Store release states
+
+Use these terms exactly in release records and status reports:
+
+1. **Frozen**: candidate commit and artifact hashes are fixed.
+2. **Uploaded**: the exact package exists as an unpublished Store draft.
+3. **In review**: the Store accepted the submission for certification.
+4. **Approved**: certification passed, but a staged revision may still be held.
+5. **Public**: the Store listing serves the new version.
+6. **Upgrade verified**: an existing installation received and ran the public
+   version.
+
+An upload or successful workflow is not a public release. The release owner must
+record Store status and installed-upgrade evidence before declaring Day 0.
+
+## Coordinated Store workflow
+
+Use `.github/workflows/publish-stores.yml` for normal releases. It verifies the
+published GitHub release, checks checksums and provenance once, validates the
+Chrome disclosure contract, and then runs Chrome and Edge actions in parallel
+behind their existing production environments.
+
+Chrome modes are `preflight`, `upload-only`, `submit-auto`, `submit-staged`, and
+`publish-staged`. Choose `submit-auto` when the approved version should become
+public immediately after Google review. Choose `submit-staged` only when a
+deliberate post-approval hold is required. Edge modes are `preflight`,
+`upload-only`, and `submit`; certification notes are mandatory for `submit`.

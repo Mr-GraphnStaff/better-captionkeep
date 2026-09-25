@@ -28,3 +28,23 @@ test('submit preflight rejects missing certification notes before any network mu
   }), /EDGE_CERTIFICATION_NOTES/);
   assert.equal(networkCalls, 0);
 });
+
+test('Edge configuration preflight is non-mutating and explicit about configured identity', async () => {
+  const { main } = await import('../scripts/edge-publish.mjs');
+  let networkCalls = 0;
+  const result = await main({
+    env: {
+      EDGE_ACTION: 'preflight',
+      EDGE_CLIENT_ID: 'client-id',
+      EDGE_API_KEY: 'api-key',
+      EDGE_PRODUCT_ID: 'product-id',
+    },
+    fetchImpl: async () => { networkCalls += 1; throw new Error('network must not run'); },
+  });
+  assert.deepEqual(result, {
+    clientIdConfigured: true,
+    apiKeyConfigured: true,
+    productId: 'product-id',
+  });
+  assert.equal(networkCalls, 0);
+});

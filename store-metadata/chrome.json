@@ -1,0 +1,24 @@
+{
+  "manifestVersion": "5.1.0",
+  "singlePurpose": "Capture, protect, review, and export live captions displayed in supported Microsoft Teams, Google Meet, and Zoom Web pages. The extension stores transcripts locally, supports user-directed exports, and can optionally prepare a reviewable AI prompt without transmitting it automatically.",
+  "providers": [
+    "Microsoft Teams",
+    "Google Meet",
+    "Zoom Web"
+  ],
+  "permissionJustifications": {
+    "downloads": "Used to save user-requested or user-configured transcript exports as TXT or Markdown files and to open the browser's default downloads folder when requested. The permission is not used to download remote content.",
+    "activeTab": "Used when the user opens the extension popup to identify the active supported meeting tab and communicate with the extension's caption-capture content script. Access is limited to the user-invoked active-tab workflow.",
+    "storage": "Used for extension preferences, capture-recovery checkpoints, pending exports, temporary speaker aliases, and up to ten locally saved transcript sessions. Managed enterprise settings are also read through the browser's managed-storage system. The developer does not operate a transcript-storage service.",
+    "sidePanel": "Used to display the live transcript, recovery status, speaker tools, search, Scrubby privacy controls, and export actions alongside the supported meeting page. The side panel is opened only as part of the user's local caption-capture workflow and does not transmit transcript data to a developer-operated service."
+  },
+  "hostPermissions": [
+    "https://teams.microsoft.com/*",
+    "https://teams.cloud.microsoft/*",
+    "https://meet.google.com/*",
+    "https://app.zoom.us/*"
+  ],
+  "hostPermissionJustification": "Required only on the exact Microsoft Teams, Google Meet, and Zoom Web origins declared in the manifest. Better CaptionKeep reads live captions and optional attendee information already rendered on those meeting pages, maintains capture during page changes, and communicates with its extension pages. It does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
+  "usesRemoteCode": false,
+  "privacyPolicyUrl": "https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md"
+}

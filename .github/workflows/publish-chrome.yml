@@ -8,13 +8,16 @@ on:
         required: true
         type: string
       action:
-        description: Upload only, or submit for review with staged publishing
+        description: Read-only preflight, upload, submit for review, or publish an approved staged revision
         required: true
-        default: upload-only
+        default: preflight
         type: choice
         options:
+          - preflight
           - upload-only
           - submit-staged
+          - submit-auto
+          - publish-staged
 
 permissions:
   contents: read
@@ -39,7 +42,11 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag }}
         run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
 
+      - name: Verify Chrome Store disclosure contract
+        run: node scripts/check-store-metadata.mjs
+
       - name: Download the reviewed release artifacts
+        if: inputs.action == 'upload-only' || inputs.action == 'submit-staged' || inputs.action == 'submit-auto'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
