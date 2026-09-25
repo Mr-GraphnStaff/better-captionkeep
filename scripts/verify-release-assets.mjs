@@ -24,9 +24,10 @@ export async function verifyReleaseAssets(directory, releaseTag) {
     checksums.set(parsed[2], parsed[1].toUpperCase());
   }
 
-  const zipArtifacts = (provenance.artifacts || []).filter(artifact => String(artifact.path || '').endsWith('.zip'));
+  const zipArtifacts = (provenance.artifacts || []).filter(artifact =>
+    ['edge-store', 'chrome-store'].includes(artifact.target) && String(artifact.path || '').endsWith('.zip'));
   const provenanceByName = new Map(zipArtifacts.map(artifact => [path.basename(artifact.path), artifact]));
-  if (!provenanceByName.size) throw new Error('Release provenance contains no ZIP artifacts');
+  if (provenanceByName.size !== 2) throw new Error('Release provenance must contain exactly the Edge and Chrome Store ZIP artifacts');
   for (const [name, artifact] of provenanceByName) {
     if (!name.includes(`-${version}.zip`)) throw new Error(`Artifact ${name} does not match release version ${version}`);
     const expected = checksums.get(name);
