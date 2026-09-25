@@ -46,10 +46,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out the requested release tag
+      - name: Check out the protected pipeline control plane
+        uses: actions/checkout@v7
+
+      - name: Check out the frozen release source separately
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
+          path: release-source
 
       - name: Use Node.js 20
         uses: actions/setup-node@v7
@@ -59,9 +63,20 @@ jobs:
       - name: Verify release identity and Store disclosure contract
         env:
           RELEASE_TAG: ${{ inputs.tag }}
+          CHROME_ACTION: ${{ inputs.chrome_action }}
+        shell: bash
         run: |
-          node scripts/check-release-ref.mjs "$RELEASE_TAG"
-          node scripts/check-store-metadata.mjs
+          node release-source/scripts/check-release-ref.mjs "$RELEASE_TAG"
+          if [[ "$CHROME_ACTION" == "upload-only" || "$CHROME_ACTION" == "submit-auto" || "$CHROME_ACTION" == "submit-staged" ]]; then
+            if [[ ! -f release-source/scripts/check-store-metadata.mjs ]]; then
+              echo "Release $RELEASE_TAG predates the required Store disclosure contract and cannot be uploaded by this workflow."
+              exit 1
+            fi
+            (
+              cd release-source
+              node scripts/check-store-metadata.mjs
+            )
+          fi
 
       - name: Download and verify the immutable release artifacts
         env:
@@ -86,6 +101,12 @@ jobs:
             sha256sum --check SHA256SUMS.txt
           )
           node scripts/verify-release-assets.mjs dist/store-release "$RELEASE_TAG"
+          provenance_commit="$(node -p 'JSON.parse(require("fs").readFileSync("dist/store-release/release-provenance.json", "utf8")).commit')"
+          tag_commit="$(git -C release-source rev-parse HEAD)"
+          if [[ "$provenance_commit" != "$tag_commit" ]]; then
+            echo "Release provenance commit $provenance_commit does not match tag commit $tag_commit."
+            exit 1
+          fi
 
       - name: Preserve the verified release bundle for Store jobs
         uses: actions/upload-artifact@v7
@@ -102,7 +123,8 @@ jobs:
             echo "## Browser Store release plan"
             echo
             echo "- Tag: \`${{ inputs.tag }}\`"
-            echo "- Source commit: \`$(git rev-parse HEAD)\`"
+            echo "- Pipeline commit: \`$(git rev-parse HEAD)\`"
+            echo "- Frozen source commit: \`$(git -C release-source rev-parse HEAD)\`"
             echo "- Chrome action: \`${{ inputs.chrome_action }}\`"
             echo "- Edge action: \`${{ inputs.edge_action }}\`"
             echo "- Immutable artifacts and Store disclosure contract: verified"
@@ -115,10 +137,8 @@ jobs:
     timeout-minutes: 30
     environment: chrome-production
     steps:
-      - name: Check out the requested release tag
+      - name: Check out the protected pipeline control plane
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.tag }}
 
       - name: Use Node.js 20
         uses: actions/setup-node@v7
@@ -167,10 +187,8 @@ jobs:
     timeout-minutes: 30
     environment: edge-production
     steps:
-      - name: Check out the requested release tag
+      - name: Check out the protected pipeline control plane
         uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.tag }}
 
       - name: Use Node.js 20
         uses: actions/setup-node@v7

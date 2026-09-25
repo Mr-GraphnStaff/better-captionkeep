@@ -105,6 +105,11 @@ published GitHub release, checks checksums and provenance once, validates the
 Chrome disclosure contract, and then runs Chrome and Edge actions in parallel
 behind their existing production environments.
 
+The workflow checks out the protected pipeline code separately from the frozen
+release tag. Store automation can therefore receive safety fixes while an older
+revision is under review. The release source, provenance commit, tag, ZIP names,
+and checksums must still agree; the workflow never rebuilds the frozen package.
+
 Chrome modes are `preflight`, `upload-only`, `submit-auto`, `submit-staged`, and
 `publish-staged`. Choose `submit-auto` when the approved version should become
 public immediately after Google review. Choose `submit-staged` only when a
