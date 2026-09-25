@@ -2,6 +2,52 @@
 
 This process keeps the Microsoft Edge Add-ons production package separate from unfinished development.
 
+## Two-week release cadence
+
+Better CaptionKeep uses a rolling two-week release cadence. Day 0 is the date
+the latest approved extension update is publicly available and an existing
+installation can receive it. Creating a tag, publishing a GitHub release, or
+submitting a package for store certification does not start the clock.
+
+When the same version reaches supported stores on different dates, use the
+later public-availability date as Day 0. This prevents work on the next train
+from consuming the validation and rollout window of the release still becoming
+available. Record the public dates and upgrade evidence in the release record.
+
+Each cycle follows this rhythm:
+
+1. **Days 0-1:** confirm the public upgrade, review feedback and dependency
+   alerts, and select the next train's issues.
+2. **Days 2-8:** implement scoped work through topic-branch pull requests.
+3. **Day 9:** lock scope and cut or refresh `release/<version>`.
+4. **Days 10-12:** run automated validation, browser UAT, package inspection,
+   privacy review, and affected enterprise-deployment checks.
+5. **Day 13:** hold the go/no-go review and record the approved source commit,
+   artifact hashes, known limitations, and release owner.
+6. **Day 14:** publish the immutable GitHub release and submit the exact
+   verified artifact to the applicable browser stores.
+
+Store certification is asynchronous. The next cycle does not begin until the
+submitted update becomes public under the Day 0 rule above. If no change
+satisfies the release gate, skip the train rather than lowering the gate or
+publishing an empty release. Work that misses scope lock moves to the following
+train. An urgent security or production fix may use a narrow hotfix branch
+outside the train, but it must still pass the applicable gate and preserve
+artifact evidence.
+
+### Minimum release-candidate test window
+
+The exact release candidate must complete at least 48 uninterrupted hours of
+testing before publication. Record the candidate commit, packaged-artifact
+hashes, test-window start and end times, browsers tested, results, and tester.
+Any source, manifest, dependency, packaging, or release-artifact change resets
+the 48-hour clock. Documentation-only evidence updates do not reset the clock
+when they do not alter the packaged extension.
+
+Automated checks may run before or during the window, but they do not replace
+live browser testing. The final go/no-go review must confirm that the same
+candidate completed the full window with no unresolved release-blocking defect.
+
 ## Branch roles
 
 - `master`: protected production baseline; no direct development.

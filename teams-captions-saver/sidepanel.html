@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-theme="captionkeep">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Better CaptionKeep Evidence Board</title>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="sidepanel.css">
+    <script src="theme.js" defer></script>
+    <script src="evidenceBoard.js" defer></script>
+    <script src="sidepanel.js" defer></script>
+</head>
+<body>
+    <header class="brand">
+        <img src="icons/scribble-128.png" width="48" height="48" alt="">
+        <div class="brand-copy">
+            <h1>Evidence Board</h1>
+            <p>Mark what matters. Keep the source.</p>
+        </div>
+        <button id="close-panel" class="close-panel" type="button" aria-label="Close Evidence Board" title="Close Evidence Board">Close</button>
+    </header>
+
+    <main>
+        <section class="meeting-bar" aria-labelledby="meeting-heading">
+            <div class="section-heading">
+                <h2 id="meeting-heading">Current meeting</h2>
+                <span id="capture-state" class="status-pill">Connecting</span>
+            </div>
+            <p id="meeting-title" class="meeting-title">Open Teams, Meet, or Zoom Web.</p>
+            <p id="meeting-provider" class="muted"></p>
+            <p id="board-status" class="muted" role="status" aria-live="polite"></p>
+        </section>
+
+        <nav class="workspace-tabs" aria-label="Evidence Board views">
+            <button id="transcript-tab" class="workspace-tab active" type="button" aria-selected="true">Transcript</button>
+            <button id="evidence-tab" class="workspace-tab" type="button" aria-selected="false">Evidence <span id="marker-count">0</span></button>
+        </nav>
+
+        <section id="transcript-view" class="workspace-view" aria-labelledby="latest-heading">
+            <div class="section-heading">
+                <h2 id="latest-heading">Live transcript</h2>
+                <button id="open-transcript" class="text-button" type="button">Full view</button>
+            </div>
+            <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
+            <p id="latest-meta" class="muted"></p>
+            <div class="mark-controls">
+                <select id="marker-kind" aria-label="Marker type"></select>
+                <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off">
+                <button id="mark-latest" class="primary" disabled>Mark latest</button>
+            </div>
+            <div class="search-row">
+                <input id="transcript-search" type="search" placeholder="Search transcript" autocomplete="off" aria-label="Search transcript">
+                <span id="transcript-count" class="status-pill">0</span>
+            </div>
+            <ol id="transcript-list" class="transcript-list">
+                <li class="empty">Connect to a supported meeting to see captions.</li>
+            </ol>
+        </section>
+
+        <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
+            <h2 id="markers-heading">Evidence markers</h2>
+            <label for="marker-session">Evidence board</label>
+            <select id="marker-session" aria-label="Choose an evidence board"></select>
+            <div class="actions">
+                <button id="copy-board" disabled>Copy</button>
+                <button id="download-board" disabled>Markdown</button>
+                <button id="email-board" disabled>Email brief</button>
+                <button id="download-bundle" disabled>Provenance JSON</button>
+            </div>
+            <ol id="marker-list" class="marker-list">
+                <li class="empty">No markers for this meeting yet.</li>
+            </ol>
+        </section>
+    </main>
+</body>
+</html>

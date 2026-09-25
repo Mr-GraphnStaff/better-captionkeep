@@ -39,7 +39,7 @@ async function validateManifest(manifest) {
     warnings.push('Extension version is missing in manifest.');
   }
 
-  const requiredPermissions = ['downloads', 'storage'];
+  const requiredPermissions = ['downloads', 'storage', 'sidePanel'];
   const permissions = manifest.permissions ?? [];
   for (const permission of requiredPermissions) {
     if (!permissions.includes(permission)) {
@@ -71,6 +71,13 @@ async function validateManifest(manifest) {
   const defaultPopup = manifest.action?.default_popup;
   if (defaultPopup && !(await fileExists(path.join(sourceDir, defaultPopup)))) {
     errors.push(`Action popup file "${defaultPopup}" is missing.`);
+  }
+
+  const sidePanelPath = manifest.side_panel?.default_path;
+  if (!sidePanelPath) {
+    errors.push('side_panel.default_path is required for the Evidence Board.');
+  } else if (!(await fileExists(path.join(sourceDir, sidePanelPath)))) {
+    errors.push(`Evidence Board side panel file "${sidePanelPath}" is missing.`);
   }
 
   const managedSchema = manifest.storage?.managed_schema;
@@ -110,11 +117,18 @@ async function validateManifest(manifest) {
     'popup.html',
     'popup.js',
     'service_worker.js',
+    'teamsCaptionBuffer.js',
     'sessionManager.js',
+    'evidenceBoard.js',
+    'sidepanel.css',
+    'sidepanel.html',
+    'sidepanel.js',
     'theme.css',
     'theme.js',
     'viewer.html',
-    'viewer.js'
+    'viewer.js',
+    'zoomContentScript.js',
+    'zoomProvider.js'
   ]);
 
   for (const script of scriptsToCheck) {
@@ -133,11 +147,24 @@ async function validateManifest(manifest) {
   if (declaredContentScripts[2] !== 'transcriptInsights.js') {
     errors.push('transcriptInsights.js must load before the Teams content script.');
   }
+  if (declaredContentScripts[3] !== 'teamsCaptionBuffer.js') {
+    errors.push('teamsCaptionBuffer.js must load before the Teams content script.');
+  }
   const googleMeetScripts = (manifest.content_scripts ?? [])
     .find(entry => (entry.matches ?? []).includes('https://meet.google.com/*'))?.js ?? [];
   const expectedGoogleMeetScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
   if (JSON.stringify(googleMeetScripts) !== JSON.stringify(expectedGoogleMeetScripts)) {
     errors.push(`Google Meet content scripts must load in this order: ${expectedGoogleMeetScripts.join(', ')}.`);
+  }
+  const zoomEntry = (manifest.content_scripts ?? [])
+    .find(entry => (entry.matches ?? []).includes('https://app.zoom.us/wc/*'));
+  const zoomScripts = zoomEntry?.js ?? [];
+  const expectedZoomScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'zoomProvider.js', 'zoomContentScript.js'];
+  if (JSON.stringify(zoomScripts) !== JSON.stringify(expectedZoomScripts)) {
+    errors.push(`Zoom content scripts must load in this order: ${expectedZoomScripts.join(', ')}.`);
+  }
+  if (zoomEntry?.all_frames !== true) {
+    errors.push('Zoom content scripts must run in all frames so the embedded Web client can expose its caption DOM.');
   }
   for (const script of declaredContentScripts) {
     if (!scriptsToCheck.has(script) && !(await fileExists(path.join(sourceDir, script)))) {

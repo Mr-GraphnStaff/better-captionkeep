@@ -1,0 +1,39 @@
+{
+  "capturedAt": "2026-09-21",
+  "source": "sanitized controlled live Zoom Web test meeting",
+  "meetingContentIncluded": false,
+  "scope": {
+    "host": "app.zoom.us",
+    "pathShape": "/wc/{numeric-meeting-id}/join",
+    "embeddedMeetingFrame": true
+  },
+  "captionSource": {
+    "tag": "DIV",
+    "id": "live-transcription-subtitle",
+    "directChildren": [
+      {
+        "kind": "non-speaker-marker",
+        "tag": "DIV",
+        "containsText": true
+      },
+      {
+        "kind": "caption-text",
+        "tag": "SPAN",
+        "containsText": true
+      }
+    ],
+    "speakerAttributionAvailable": false,
+    "removedWhenCaptionsHidden": true,
+    "restoredWhenCaptionsShown": true
+  },
+  "discarded": [
+    "meeting ID",
+    "meeting password and URL tokens",
+    "account identity",
+    "participant name",
+    "spoken caption text",
+    "generated class names",
+    "style values",
+    "attribute values that may identify a participant"
+  ]
+}

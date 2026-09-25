@@ -14,7 +14,9 @@ const UI_ELEMENTS = {
     saveAsTypeSelect: document.getElementById('saveAsType'),
     saveLocationInput: document.getElementById('saveLocation'),
     saveLocationRow: document.getElementById('saveLocationRow'),
-    saveLocationHint: document.getElementById('saveLocationHint'),
+    saveBehaviorHint: document.getElementById('saveBehaviorHint'),
+    openLastTranscriptFolder: document.getElementById('openLastTranscriptFolder'),
+    downloadFolderStatus: document.getElementById('downloadFolderStatus'),
     autoEnableCaptionsToggle: document.getElementById('autoEnableCaptionsToggle'),
     autoSaveOnEndToggle: document.getElementById('autoSaveOnEndToggle'),
     trackCaptionsToggle: document.getElementById('trackCaptionsToggle'),
@@ -67,7 +69,7 @@ function escapeHtml(str) {
 
 async function getActiveMeetingTab() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com)(?:\/|$)/.test(tab.url || ''));
+    const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com|https:\/\/app\.zoom\.us\/wc)(?:\/|$)/.test(tab.url || ''));
     return meetingTab || null;
 }
 
@@ -150,20 +152,33 @@ function updateButtonStates(hasData) {
 }
 
 function updateSaveButtonText(format) {
-    UI_ELEMENTS.saveButton.textContent = `Save as ${format.toUpperCase()}`;
+    UI_ELEMENTS.saveButton.textContent = `Save ${format.toUpperCase()}`;
 }
 
-function updateSaveLocationVisibility(type) {
-    const showCustom = type === 'custom';
-    if (UI_ELEMENTS.saveLocationRow) {
-        UI_ELEMENTS.saveLocationRow.style.display = showCustom ? 'flex' : 'none';
+function updateSaveBehaviorHint(type) {
+    if (!UI_ELEMENTS.saveBehaviorHint) return;
+    const custom = type === 'custom';
+    if (UI_ELEMENTS.saveLocationRow) UI_ELEMENTS.saveLocationRow.style.display = custom ? 'flex' : 'none';
+    if (UI_ELEMENTS.saveLocationInput) UI_ELEMENTS.saveLocationInput.disabled = !custom;
+    UI_ELEMENTS.saveBehaviorHint.textContent = type === 'prompt'
+        ? 'Your browser asks where to put each transcript.'
+        : custom
+            ? 'Enter a relative folder such as Transcripts. It means Downloads/Transcripts.'
+            : 'Transcripts save directly in the browser Downloads folder.';
+}
+
+async function refreshLastTranscriptFolderButton() {
+    if (!UI_ELEMENTS.openLastTranscriptFolder) return;
+    const { lastCompletedDownload } = await chrome.storage.local.get('lastCompletedDownload');
+    let available = false;
+    if (Number.isInteger(lastCompletedDownload?.id)) {
+        const matches = await chrome.downloads.search({id:lastCompletedDownload.id});
+        available = matches[0]?.state === 'complete' && matches[0]?.exists !== false;
     }
-    if (UI_ELEMENTS.saveLocationHint) {
-        UI_ELEMENTS.saveLocationHint.style.display = showCustom ? 'block' : 'none';
-    }
-    if (UI_ELEMENTS.saveLocationInput) {
-        UI_ELEMENTS.saveLocationInput.disabled = !showCustom;
-    }
+    UI_ELEMENTS.openLastTranscriptFolder.disabled = !available;
+    UI_ELEMENTS.downloadFolderStatus.textContent = available
+        ? 'Opens the folder containing the last transcript saved by Better CaptionKeep.'
+        : 'Save a transcript first to enable this button.';
 }
 
 function updateFilenamePreview() {
@@ -356,20 +371,44 @@ async function loadSettings() {
 
     if (UI_ELEMENTS.saveAsTypeSelect) {
         // 4.6 stored "default" for the browser Downloads folder.
-        const saveAsType = settings.saveAsType === 'default' ? 'downloads' : (settings.saveAsType || 'prompt');
+        const normalizedSaveAsType = settings.saveAsType === 'default' ? 'downloads' : settings.saveAsType;
+        const saveAsType = ['prompt','downloads','custom'].includes(normalizedSaveAsType)
+            ? normalizedSaveAsType
+            : 'prompt';
         UI_ELEMENTS.saveAsTypeSelect.value = saveAsType;
-        updateSaveLocationVisibility(saveAsType);
+        updateSaveBehaviorHint(saveAsType);
         if (settings.saveAsType === 'default') chrome.storage.sync.set({saveAsType});
     }
-
-    if (UI_ELEMENTS.saveLocationInput) {
-        UI_ELEMENTS.saveLocationInput.value = settings.saveLocation || '';
-    }
+    if (UI_ELEMENTS.saveLocationInput) UI_ELEMENTS.saveLocationInput.value = settings.saveLocation || '';
+    await refreshLastTranscriptFolderButton();
 }
 
 // --- Event Handling ---
 function setupEventListeners() {
     document.getElementById('exportSettings').addEventListener('click', () => chrome.tabs.create({url:chrome.runtime.getURL('export.html')}));
+    UI_ELEMENTS.openLastTranscriptFolder?.addEventListener('click', async () => {
+        try {
+            const { lastCompletedDownload } = await chrome.storage.local.get('lastCompletedDownload');
+            if (!Number.isInteger(lastCompletedDownload?.id)) throw new Error('Save a transcript first.');
+            await chrome.downloads.show(lastCompletedDownload.id);
+            UI_ELEMENTS.downloadFolderStatus.textContent = 'Opened the last transcript folder.';
+        } catch (error) {
+            UI_ELEMENTS.downloadFolderStatus.textContent = `Could not open the transcript folder: ${error.message}`;
+            await refreshLastTranscriptFolderButton();
+        }
+    });
+    document.getElementById('evidenceBoardButton')?.addEventListener('click', async () => {
+        try {
+            const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+            if (!tab?.windowId) throw new Error('No active browser window is available.');
+            await chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'});
+            await chrome.sidePanel.open({windowId: tab.windowId});
+            window.close();
+        } catch (error) {
+            console.error('[Better CaptionKeep] Could not open the Evidence Board:', error);
+            chrome.tabs.create({url: chrome.runtime.getURL('sidepanel.html')});
+        }
+    });
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.addEventListener('change', async (event) => {
             await CaptionKeepTheme.set(event.target.value);
@@ -383,18 +422,16 @@ function setupEventListeners() {
     });
 
     if (UI_ELEMENTS.saveAsTypeSelect) {
-        UI_ELEMENTS.saveAsTypeSelect.addEventListener('change', (e) => {
+        UI_ELEMENTS.saveAsTypeSelect.addEventListener('change', async (e) => {
             const selectedType = e.target.value;
-            chrome.storage.sync.set({ saveAsType: selectedType });
-            updateSaveLocationVisibility(selectedType);
+            await chrome.storage.sync.set({ saveAsType:selectedType });
+            updateSaveBehaviorHint(selectedType);
         });
     }
-
-    if (UI_ELEMENTS.saveLocationInput) {
-        UI_ELEMENTS.saveLocationInput.addEventListener('input', (e) => {
-            chrome.storage.sync.set({ saveLocation: e.target.value.trim() });
-        });
-    }
+    UI_ELEMENTS.saveLocationInput?.addEventListener('input', async event => {
+        const saveLocation = event.target.value.trim();
+        await chrome.storage.sync.set({saveLocation, saveAsType:'custom'});
+    });
 
     UI_ELEMENTS.trackCaptionsToggle.addEventListener('change', (e) => {
         chrome.storage.sync.set({ trackCaptions: e.target.checked });
@@ -824,7 +861,7 @@ async function initializePopup() {
 
     const tab = await getActiveMeetingTab();
     if (!tab) {
-        UI_ELEMENTS.statusMessage.textContent = 'Open Teams or Google Meet to begin.';
+        UI_ELEMENTS.statusMessage.textContent = 'Open Teams, Zoom Web, or Google Meet to begin.';
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
         return;
     }

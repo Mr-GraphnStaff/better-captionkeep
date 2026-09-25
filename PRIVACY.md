@@ -2,11 +2,11 @@
 
 Effective date: September 17, 2026
 
-Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams and Google Meet in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional AI handoff features.
+Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams, Google Meet, and the Zoom Web client in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional Bring Your Own AI (BYOAI) handoff features.
 
 ## Information the extension handles
 
-The extension reads captions already displayed by Microsoft Teams or Google Meet, together with speaker names, meeting titles, and timestamps. In Teams, when attendee tracking is enabled, it also reads participant names, roles, and observed join/leave information. Meeting text may contain personal or sensitive information depending on what participants say. The extension reads rendered meeting-page content; it does not record microphone audio or video.
+The extension reads captions already displayed by Microsoft Teams, Google Meet, or Zoom Web, together with available speaker names, meeting titles, and timestamps. The tested Zoom subtitle overlay does not provide a speaker name, so those records are labeled `Unknown speaker`. In Teams, when attendee tracking is enabled, the extension also reads participant names, roles, and observed join/leave information. Meeting text may contain personal or sensitive information depending on what participants say. The extension reads rendered meeting-page content; it does not request or record microphone audio or video.
 
 It also handles user preferences, such as capture settings, export format, filename patterns, save locations, selected AI providers, approved provider workspace URLs, custom masking terms, and temporary speaker aliases. An administrator may supply read-only managed settings through the browser's enterprise-policy system.
 
@@ -18,13 +18,17 @@ Exported files are saved to a location controlled by the user and browser. A sel
 
 The extension does not operate a developer-hosted transcript collection service. Its code does not include advertising or analytics reporting to the developer. Diagnostic browser-console messages may contain meeting titles or participant details; review and redact logs before sharing them.
 
-## Optional AI handoffs
+## Optional BYOAI handoffs
 
-If the user enables AI handoff and selects providers, the extension opens an internal review page after a meeting ends. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
+Better CaptionKeep uses a Bring Your Own AI (BYOAI) model. If the user enables AI handoff and selects providers, the extension opens an internal review page after a meeting ends. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
 
 The transcript prompt is not placed in a provider URL and is not automatically pasted or submitted. A temporary local copy is loaded into extension-page memory for review and then removed from extension storage. The user must explicitly copy it and paste or attach it in a provider workspace. Provider terms and privacy policies govern information the user submits there.
 
 AI handoffs are optional. Better CaptionKeep warns users to verify that the opened destination is the organization-approved workspace rather than a personal session. Browser-synchronized preferences may carry an enabled setting to another installation.
+
+## Local Evidence Board
+
+The optional Evidence Board stores user-created markers in browser local storage. A marker contains a snapshot of one captured caption, its speaker and timestamp when available, a stable evidence label, a user-selected category, and an optional user note. Markers do not alter the raw transcript and are not transmitted by Better CaptionKeep. The user can delete markers, copy an evidence brief, save it locally as Markdown or provenance JSON, or open a draft in the operating system's email handler. Better CaptionKeep does not select email recipients or send the message. An active-session provenance export can include the locally captured transcript and its SHA-256 fingerprint, so the user must review the destination before saving or sharing it.
 
 ## Privacy Scrubber
 

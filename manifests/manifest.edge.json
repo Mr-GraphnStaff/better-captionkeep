@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Better CaptionKeep - Edge Test",
-  "version": "5.0.0",
-  "version_name": "5.0.0 development - Edge test",
-  "description": "Capture, protect, review, and export live captions from Microsoft Teams and Google Meet.",
+  "version": "5.1.0",
+  "version_name": "5.1.0 development - Edge test",
+  "description": "Capture, protect, review, and export live captions from Microsoft Teams, Google Meet, and Zoom Web.",
   "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
   "icons": {
     "16": "icons/scribble-16.png",
@@ -14,15 +14,20 @@
   "permissions": [
     "downloads",
     "activeTab",
-    "storage"
+    "storage",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "storage": {
     "managed_schema": "managed-schema.json"
   },
   "host_permissions": [
     "https://teams.microsoft.com/*",
     "https://teams.cloud.microsoft/*",
-    "https://meet.google.com/*"
+    "https://meet.google.com/*",
+    "https://app.zoom.us/*"
   ],
   "action": {
     "default_icon": {
@@ -47,6 +52,7 @@
         "providerRegistry.js",
         "configuration.js",
         "transcriptInsights.js",
+        "teamsCaptionBuffer.js",
         "content_script.js"
       ]
     },
@@ -61,6 +67,20 @@
         "transcriptInsights.js",
         "googleMeetProvider.js",
         "googleMeetContentScript.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://app.zoom.us/wc/*"
+      ],
+      "all_frames": true,
+      "js": [
+        "providerRegistry.js",
+        "configuration.js",
+        "captureCoordinator.js",
+        "transcriptInsights.js",
+        "zoomProvider.js",
+        "zoomContentScript.js"
       ]
     }
   ],

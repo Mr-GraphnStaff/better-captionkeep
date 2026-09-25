@@ -15,6 +15,8 @@
     function create(options = {}) {
         const providerId = String(options.providerId || '').trim().toLowerCase();
         if (!/^[a-z][a-z0-9-]*$/.test(providerId)) throw new TypeError('Capture coordinator requires a provider id.');
+        const surfaceId = String(options.surfaceId || '').trim();
+        if (!/^[a-z0-9-]+$/i.test(surfaceId)) throw new TypeError('Capture coordinator requires a stable capture surface id.');
         if (typeof options.normalizeCaption !== 'function') throw new TypeError('Capture coordinator requires caption normalization.');
         if (!options.storage?.get || !options.storage?.set || !options.storage?.remove) {
             throw new TypeError('Capture coordinator requires local storage.');
@@ -26,7 +28,7 @@
         const checkpointTtlMs = Number(options.checkpointTtlMs) || DEFAULT_CHECKPOINT_TTL_MS;
         const storage = options.storage;
         const sendMessage = options.sendMessage;
-        const activeCaptureKey = `active_capture_v2_${providerId}`;
+        const activeCaptureKey = `active_capture_v3_${providerId}_${surfaceId}`;
         let documentSessionId = createId();
         let backupKey = `backup_${documentSessionId}`;
         let recordingStartTime = now();
@@ -46,6 +48,7 @@
             return {
                 version: 2,
                 providerId,
+                surfaceId,
                 pageKey: meetingPageKey(pageUrl),
                 pageUrl,
                 meetingTitle,
@@ -82,7 +85,7 @@
                 const stored = await storage.get(activeCaptureKey);
                 const value = stored?.[activeCaptureKey];
                 const age = now().getTime() - Date.parse(value?.lastBackup || '');
-                if (!value || value.providerId !== providerId || value.pageKey !== meetingPageKey(pageUrl)
+                if (!value || value.providerId !== providerId || value.surfaceId !== surfaceId || value.pageKey !== meetingPageKey(pageUrl)
                     || !Array.isArray(value.transcript) || !value.transcript.length
                     || !Number.isFinite(age) || age < 0 || age > checkpointTtlMs) return false;
 

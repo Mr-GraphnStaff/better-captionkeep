@@ -1,6 +1,6 @@
 {
   "name": "better-captionkeep",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "private": true,
   "description": "Developer tooling for Better CaptionKeep on Chromium browsers.",
   "scripts": {
@@ -14,8 +14,9 @@
     "build:intune": "node scripts/build-intune-bundle.mjs",
     "build:intune:chrome": "node scripts/build-intune-bundle.mjs deployment/intune/profile.chrome.json dist/intune-chrome chrome",
     "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json dist/intune-local-only",
-    "release:candidate": "npm test && npm run lint && npm run build && npm run build:targets && npm run build:intune && node scripts/verify-release.mjs",
+    "release:candidate": "npm test && npm run lint && npm run build && npm run build:targets && npm run build:chrome-store && npm run build:intune && node scripts/verify-release.mjs",
     "publish:edge": "node scripts/edge-publish.mjs",
+    "publish:chrome": "node scripts/chrome-publish.mjs",
     "start": "web-ext run --source-dir teams-captions-saver --target=chromium"
   },
   "devDependencies": {

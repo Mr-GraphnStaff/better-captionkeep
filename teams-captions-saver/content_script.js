@@ -49,7 +49,8 @@ let stateCheckRunning = false;
 let attendeeStartTimer = null;
 let captureState = 'idle';
 let checkpointError = '';
-const ACTIVE_CAPTURE_KEY = 'active_capture_v1';
+let ACTIVE_CAPTURE_KEY = '';
+let captureSurfaceId = '';
 let documentSessionId = crypto.randomUUID();
 let restoredFromCheckpoint = false;
 let meetingTitleOnStart = '';
@@ -67,6 +68,7 @@ let autoEnableDebounceTimer = null;
 let autoSaveTriggered = false;
 let lastMeetingId = null;
 let timestampPreference = '12hr';
+let captionBuffer = null;
 const aiSummaryFeature = CaptionKeepTranscriptInsights.createAiSummaryFeature({
     storage: chrome.storage.sync,
     readManaged: () => CaptionKeepConfiguration.readManaged(),
@@ -101,6 +103,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync' && changes.trackCaptions) {
         trackingAllowed = changes.trackCaptions.newValue !== false;
         if (!trackingAllowed) {
+            flushPendingCaptions();
             pausedByUser = true;
             capturing = false;
             captureState = 'paused';
@@ -173,6 +176,29 @@ function broadcastAttendeeUpdate(data) {
     } catch (error) {
         // Silent fail if no listeners
     }
+}
+
+function ensureCaptionBuffer() {
+    if (captionBuffer) return captionBuffer;
+    captionBuffer = CaptionKeepTeamsCaptionBuffer.create({
+        quietMs: 1500,
+        maxPendingMs: 10000,
+        onCommit(caption, isNew) {
+            const existingIndex = transcriptArray.findIndex(entry => entry.key === caption.key);
+            if (isNew || existingIndex === -1) {
+                transcriptArray.push(caption);
+                broadcastCaptionUpdate({type: 'new', caption});
+                return;
+            }
+            transcriptArray[existingIndex] = {...transcriptArray[existingIndex], ...caption};
+            broadcastCaptionUpdate({type: 'update', caption: transcriptArray[existingIndex]});
+        }
+    });
+    return captionBuffer;
+}
+
+function flushPendingCaptions() {
+    captionBuffer?.flushAll();
 }
 
 // --- Error Handling & Logging ---
@@ -326,6 +352,7 @@ const processCaptionUpdates = ErrorHandler.wrap(function() {
 
     const transcriptElements = closedCaptionsContainer.querySelectorAll(SELECTORS.CHAT_MESSAGE);
 
+    const snapshot = [];
     transcriptElements.forEach(element => {
         try {
             const authorElement = element.querySelector(SELECTORS.AUTHOR);
@@ -337,42 +364,12 @@ const processCaptionUpdates = ErrorHandler.wrap(function() {
             const text = textElement.innerText.trim();
             if (text.length === 0) return;
 
-            let captionId = element.getAttribute('data-caption-id');
-            if (!captionId) {
-                captionId = `caption_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-                element.setAttribute('data-caption-id', captionId);
-            }
-
-            const existingIndex = transcriptArray.findIndex(entry => entry.key === captionId);
-            const time = formatTimestamp();
-
-            if (existingIndex !== -1) {
-                // Update existing entry if text has changed
-                if (transcriptArray[existingIndex].Text !== text) {
-                    transcriptArray[existingIndex].Text = text;
-                    transcriptArray[existingIndex].Name = name;
-                    transcriptArray[existingIndex].Time = time;
-                    transcriptArray[existingIndex].capturedAt = new Date().toISOString();
-                    // Broadcast update to viewer
-                    broadcastCaptionUpdate({
-                        type: 'update',
-                        caption: transcriptArray[existingIndex]
-                    });
-                }
-            } else {
-                // Add new entry
-                const newCaption = { Name: name, Text: text, Time: time, key: captionId, capturedAt: new Date().toISOString() };
-                transcriptArray.push(newCaption);
-                // Broadcast new caption to viewer
-                broadcastCaptionUpdate({
-                    type: 'new',
-                    caption: newCaption
-                });
-            }
+            snapshot.push({identity: element, Name: name, Text: text, Time: formatTimestamp()});
         } catch (error) {
             ErrorHandler.log(error, 'Processing individual caption element', true);
         }
     });
+    ensureCaptionBuffer().observeSnapshot(snapshot);
 }, 'Caption updates processing');
 
 // --- Attendee Tracking Functions ---
@@ -629,6 +626,7 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
     }
     
     if (wasInMeeting && !nowInMeeting) {
+        flushPendingCaptions();
         console.log("Meeting transition detected: In -> Out. Checking for auto-save.");
         
         // Send meeting ended signal to viewer
@@ -782,6 +780,7 @@ async function startCaptureSession() {
 
     console.log("New caption session detected. Starting capture.");
     if (!pausedByUser && !restoredFromCheckpoint) {
+        captionBuffer?.reset();
         transcriptArray.length = 0;
         meetingTitleOnStart = document.title;
         recordingStartTime = new Date();
@@ -807,12 +806,12 @@ async function startCaptureSession() {
 }
 
 async function persistBackup() {
-    if (!transcriptArray.length) return;
+    if (!ACTIVE_CAPTURE_KEY || !transcriptArray.length) return;
     try {
         const snapshot = {
             transcript: getCleanTranscript(), meetingTitle: meetingTitleOnStart,
             recordingStartTime: recordingStartTime?.toISOString(), lastBackup: new Date().toISOString(),
-            documentSessionId, pageUrl: window.location.href,
+            documentSessionId, pageUrl: window.location.href, surfaceId: captureSurfaceId,
             attendeeData: { ...attendeeData, allAttendees:[...attendeeData.allAttendees], currentAttendees:[...attendeeData.currentAttendees] }
         };
         await chrome.storage.local.set({ [`backup_${documentSessionId}`]: snapshot, [ACTIVE_CAPTURE_KEY]: snapshot });
@@ -821,10 +820,12 @@ async function persistBackup() {
 }
 
 async function restoreActiveCapture() {
+    if (!ACTIVE_CAPTURE_KEY) return false;
     try {
         const snapshot = (await chrome.storage.local.get(ACTIVE_CAPTURE_KEY))[ACTIVE_CAPTURE_KEY];
         const age = Date.now() - Date.parse(snapshot?.lastBackup || '');
-        if (!snapshot || !Array.isArray(snapshot.transcript) || !snapshot.transcript.length ||
+        if (!captureSurfaceId || !snapshot || snapshot.surfaceId !== captureSurfaceId
+            || !Array.isArray(snapshot.transcript) || !snapshot.transcript.length ||
             !Number.isFinite(age) || age > 4 * 60 * 60 * 1000 || snapshot.pageUrl !== window.location.href) return false;
 
         transcriptArray.splice(0, transcriptArray.length, ...snapshot.transcript);
@@ -842,6 +843,7 @@ async function restoreActiveCapture() {
             };
         }
         restoredFromCheckpoint = true;
+        ensureCaptionBuffer().seed(transcriptArray);
         checkpointError = 'Capture resumed from a recovery checkpoint. The reload interval may be incomplete.';
         captureState = 'recovering';
         return true;
@@ -863,6 +865,7 @@ function startPeriodicBackup() {
 
 function stopCaptureSession() {
     if (!capturing && !pausedByUser) return;
+    flushPendingCaptions();
     pausedByUser = false;
     captureState = 'ended';
 
@@ -1036,6 +1039,7 @@ function initializeEventDrivenSystem() {
 
 // --- Memory Leak Prevention ---
 function cleanupObservers() {
+    flushPendingCaptions();
     if (observer) {
         observer.disconnect();
         observer = null;
@@ -1077,6 +1081,9 @@ window.addEventListener('beforeunload', cleanupObservers);
 
 // Initialize the system
 chrome.storage.sync.get(['trackCaptions', 'trackAttendees']).then(async settings => {
+    const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'teams'}).catch(() => null);
+    captureSurfaceId = String(surface?.surfaceId || '');
+    ACTIVE_CAPTURE_KEY = captureSurfaceId ? `active_capture_v2_${captureSurfaceId.replace(/[^a-z0-9_-]/gi, '_')}` : '';
     trackingAllowed = settings.trackCaptions !== false;
     attendeesAllowed = settings.trackAttendees !== false;
     await restoreActiveCapture();
@@ -1110,6 +1117,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             return true; // Will respond asynchronously
 
         case 'return_transcript':
+            flushPendingCaptions();
             if (transcriptArray.length > 0) {
                 (async () => {
                     const attendeeReport = await getAttendeeReport();
@@ -1133,10 +1141,23 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             break;
 
         case 'get_transcript_for_copying':
+            flushPendingCaptions();
             sendResponse({ transcriptArray: getCleanTranscript() });
             break;
 
+        case 'get_evidence_context':
+            flushPendingCaptions();
+            sendResponse({
+                providerLabel: 'Microsoft Teams',
+                sessionId: recordingStartTime?.toISOString(),
+                meetingTitle: meetingTitleOnStart || document.title || 'Microsoft Teams',
+                captureState,
+                transcriptArray: getCleanTranscript()
+            });
+            break;
+
         case 'get_captions_for_viewing':
+            flushPendingCaptions();
             if (transcriptArray.length > 0) {
                 chrome.runtime.sendMessage({
                     message: "display_captions",

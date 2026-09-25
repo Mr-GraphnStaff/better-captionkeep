@@ -35,10 +35,12 @@ for (const target of ['chrome', 'edge']) {
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
   if (files.filter(file => file === 'manifest.json').length !== 1) throw new Error(`${target} package must have one root manifest`);
   const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
-  for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage']) {
+  for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
-  const zips = (await readdir(distDir)).filter(name => name.endsWith('.zip') && name.includes(`${target}_test`));
+  const zips = (await readdir(distDir)).filter(name =>
+    name.endsWith(`-${sourceManifest.version}.zip`) && name.includes(`${target}_test`)
+  );
   if (zips.length !== 1) throw new Error(`Expected one ${target} test ZIP, found ${zips.length}`);
   const zipPath = path.join(distDir, zips[0]);
   artifacts.push({ target, path: zips[0], bytes: (await stat(zipPath)).size, sha256: await sha256(zipPath) });
@@ -47,6 +49,10 @@ for (const target of ['chrome', 'edge']) {
 const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;
 const storeZipPath = path.join(distDir, storeZipName);
 artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(storeZipPath)).size, sha256: await sha256(storeZipPath) });
+
+const chromeStoreZipName = `better_captionkeep-chrome-${sourceManifest.version}.zip`;
+const chromeStoreZipPath = path.join(distDir, 'chrome-store', chromeStoreZipName);
+artifacts.push({ target: 'chrome-store', path: `chrome-store/${chromeStoreZipName}`, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
 
 const intuneDir = path.join(distDir, 'intune');
 for (const name of ['edge-extension-settings.json', 'edge-extension-force-install.txt', 'managed-policy.json', 'detect-managed-policy.ps1', 'remediate-managed-policy.ps1']) {

@@ -47,6 +47,6 @@ The product owner approved publication based on hands-on Google Meet testing. Th
 - [x] Merge after automated checks passed and the product owner accepted the live Google Meet feature.
 - [x] Update public documentation, privacy disclosure, and 5.0 release notes.
 - [x] Tag `v5.0.0`, publish the GitHub release, and submit the verified Store package from commit `7d2e8ee`.
-- [ ] Receive Microsoft Edge Add-ons certification approval; 5.0.0 was submitted on September 17, 2026 and remains in review.
+- [x] Receive Microsoft Edge Add-ons certification approval and confirm an existing installation upgraded to 5.0.0 on September 21, 2026.
 
-The remaining unchecked browser-specific UAT and Azure Boards evidence items are follow-up regression records, not claims of completed observation. Future Store updates use the gated pipeline in `docs/EDGE-PUBLISH-PIPELINE.md`; do not alter the 5.0.0 submission while Microsoft is reviewing it.
+The remaining unchecked browser-specific UAT and Azure Boards evidence items are follow-up regression records, not claims of completed observation. Chrome 5.0.0 became public on September 20, 2026, and Edge 5.0.0 was confirmed public with a successful upgrade on September 21, 2026. September 21 is therefore Day 0 for the next rolling two-week release cycle. Future Store updates use the gated pipeline in `docs/EDGE-PUBLISH-PIPELINE.md`.

@@ -1,11 +1,15 @@
-(function initializeGoogleMeetCapture(root) {
+(function initializeZoomCapture(root) {
     'use strict';
 
     const registry = root.CaptionKeepProviderRegistry;
     const coordinatorFactory = root.CaptionKeepCaptureCoordinator;
     const insights = root.CaptionKeepTranscriptInsights;
     const configuration = root.CaptionKeepConfiguration;
-    if (!registry || !coordinatorFactory || !insights || !configuration) throw new Error('Google Meet capture dependencies did not load.');
+    if (!registry || !coordinatorFactory || !insights || !configuration) throw new Error('Zoom capture dependencies did not load.');
+
+    // Zoom Web renders the meeting client in a child frame. Keeping the
+    // coordinator out of the shell frame prevents duplicate message handlers.
+    if (window.top === window) return;
 
     const adapter = registry.create(window.location.href, {document, window, MutationObserver});
     if (!adapter) return;
@@ -27,8 +31,8 @@
         const state = coordinator.getState();
         summaryFeature.onMeetingEnded({
             transcript: coordinator.getTranscript(),
-            meetingTitle: document.title || 'Google Meet',
-            providerLabel: 'Google Meet',
+            meetingTitle: document.title || 'Zoom meeting',
+            providerLabel: 'Zoom',
             sessionId: state.recordingStartTime
         }).catch(error => console.error('[Better CaptionKeep] Could not prepare the evidence summary.', error));
     }
@@ -62,16 +66,16 @@
     });
 
     async function initialize() {
-        const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'google-meet'});
+        const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'zoom'});
         if (!surface?.ok || !surface.surfaceId) throw new Error(surface?.error || 'Capture surface is unavailable');
         coordinator = coordinatorFactory.create({
-            providerId: 'google-meet',
+            providerId: 'zoom',
             surfaceId: surface.surfaceId,
             normalizeCaption: registry.normalizeCaption,
             storage: chrome.storage.local,
             sendMessage: message => chrome.runtime.sendMessage(message),
             pageUrl: window.location.href,
-            meetingTitle: document.title || 'Google Meet'
+            meetingTitle: document.title || 'Zoom meeting'
         });
         await coordinator.restore();
         adapter.restoreState?.(coordinator.getTranscript());
@@ -110,9 +114,9 @@
                 return false;
             case 'get_evidence_context':
                 sendResponse({
-                    providerLabel: 'Google Meet',
+                    providerLabel: 'Zoom Web',
                     sessionId: state.recordingStartTime,
-                    meetingTitle: document.title || 'Google Meet',
+                    meetingTitle: document.title || 'Zoom meeting',
                     captureState: state.captureState,
                     transcriptArray: coordinator.getTranscript()
                 });
@@ -122,15 +126,15 @@
                 return false;
             case 'return_transcript': {
                 const transcriptArray = coordinator.getTranscript();
-                if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'download_captions', transcriptArray, meetingTitle: document.title || 'Google Meet', format: request.format, recordingStartTime: state.recordingStartTime, attendeeReport: null});
+                if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'download_captions', transcriptArray, meetingTitle: document.title || 'Zoom meeting', format: request.format, recordingStartTime: state.recordingStartTime, attendeeReport: null});
                 return false;
             }
             case 'get_captions_for_viewing': {
                 const transcriptArray = coordinator.getTranscript();
-                if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'display_captions', sessionId: state.recordingStartTime, meetingTitle: document.title || 'Google Meet', transcriptArray});
+                if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'display_captions', sessionId: state.recordingStartTime, meetingTitle: document.title || 'Zoom meeting', transcriptArray});
                 return false;
             }
-            case 'get_google_meet_diagnostic':
+            case 'get_zoom_diagnostic':
                 sendResponse({diagnostic: adapter.getSanitizedStructure()});
                 return false;
             default:
@@ -138,6 +142,6 @@
         }
     });
 
-    initialize().catch(error => console.error('[Better CaptionKeep] Google Meet initialization failed.', error));
-    console.log('[Better CaptionKeep] Google Meet provider initialized.');
+    initialize().catch(error => console.error('[Better CaptionKeep] Zoom initialization failed.', error));
+    console.log('[Better CaptionKeep] Zoom provider initialized.');
 })(globalThis);

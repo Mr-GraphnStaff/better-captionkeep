@@ -75,35 +75,61 @@
         return rules;
     }
 
-    function scrub(input, options = {}) {
-        let text = typeof input === 'string' ? input : '';
+    function createScrubContext(options = {}) {
         const replacements = [];
         const placeholders = new Map();
         const counters = new Map();
-
-        for (const rule of [...RULES, ...dynamicRules(options)]) {
-            text = text.replace(rule.pattern, value => {
-                if (rule.validate && !rule.validate(value)) return value;
-                const key = `${rule.type}:${value.toLowerCase()}`;
-                let placeholder = placeholders.get(key);
-                if (!placeholder) {
-                    const next = (counters.get(rule.type) || 0) + 1;
-                    counters.set(rule.type, next);
-                    placeholder = `[${rule.type}_${next}]`;
-                    placeholders.set(key, placeholder);
-                }
-                replacements.push(Object.freeze({ type: rule.type, placeholder, original: value }));
-                return placeholder;
-            });
+        const rules = [...RULES, ...dynamicRules(options)];
+        function apply(input) {
+            let text = typeof input === 'string' ? input : '';
+            for (const rule of rules) {
+                text = text.replace(rule.pattern, value => {
+                    if (rule.validate && !rule.validate(value)) return value;
+                    const key = `${rule.type}:${value.toLowerCase()}`;
+                    let placeholder = placeholders.get(key);
+                    if (!placeholder) {
+                        const next = (counters.get(rule.type) || 0) + 1;
+                        counters.set(rule.type, next);
+                        placeholder = `[${rule.type}_${next}]`;
+                        placeholders.set(key, placeholder);
+                    }
+                    replacements.push(Object.freeze({type: rule.type, placeholder, original: value}));
+                    return placeholder;
+                });
+            }
+            return text;
         }
+        return {apply, replacements};
+    }
 
-        return Object.freeze({ text, replacements: Object.freeze(replacements) });
+    function scrub(input, options = {}) {
+        const context = createScrubContext(options);
+        return Object.freeze({text: context.apply(input), replacements: Object.freeze(context.replacements)});
     }
 
     function scrubTranscript(transcript, options = {}) {
         if (!Array.isArray(transcript)) return Object.freeze({ transcript: [], replacements: Object.freeze([]) });
-        const result = scrub(JSON.stringify(transcript), options);
-        return Object.freeze({ transcript: JSON.parse(result.text), replacements: result.replacements });
+        const context = createScrubContext(options);
+        function scrubAttendeeValue(value) {
+            if (typeof value === 'string') return context.apply(value);
+            if (Array.isArray(value)) return value.map(scrubAttendeeValue);
+            if (value && typeof value === 'object') {
+                return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scrubAttendeeValue(item)]));
+            }
+            return value;
+        }
+        const cleaned = transcript.map(record => {
+            if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+            const next = {...record};
+            for (const field of ['Name', 'Text']) {
+                if (typeof next[field] === 'string') next[field] = context.apply(next[field]);
+            }
+            for (const field of ['attendees', 'attendeeList', 'currentAttendees', 'attendeeHistory']) {
+                if (Object.hasOwn(next, field)) next[field] = scrubAttendeeValue(next[field]);
+            }
+            return next;
+        });
+        return Object.freeze({transcript: cleaned, replacements: Object.freeze(context.replacements)});
     }
 
     globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubTranscript });

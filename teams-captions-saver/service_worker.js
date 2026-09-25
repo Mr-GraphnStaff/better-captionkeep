@@ -28,8 +28,7 @@ async function resolveSavePreferences({ forAutoSave = false } = {}) {
     const settings = await chrome.storage.sync.get(['saveAsType', 'saveLocation']);
     const saveAsType = settings.saveAsType === 'default' ? 'downloads' : (settings.saveAsType || 'prompt');
 
-    // Auto-save should never show a dialog
-    const saveAs = !forAutoSave && saveAsType === 'prompt';
+    const saveAs = saveAsType === 'prompt';
     const subfolder = saveAsType === 'custom'
         ? sanitizeSubfolderPath(settings.saveLocation || '')
         : '';
@@ -140,7 +139,9 @@ function formatAsMarkdown(transcript, attendeeReport) {
 }
 
 // --- Core Actions ---
-async function downloadFile(filename, content, mimeType, automatic = false) {
+async function downloadFile(filename, content, mimeType, options = {}) {
+    const normalizedOptions = typeof options === 'boolean' ? { automatic: options } : options;
+    const { automatic = false, saveAs = true } = normalizedOptions || {};
     const id = `export_${crypto.randomUUID()}`;
     const pathParts = String(filename || '').split(/[\\/]+/);
     const leafName = (pathParts.pop() || '').replace(/[<>:"|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '');
@@ -154,9 +155,11 @@ async function downloadFile(filename, content, mimeType, automatic = false) {
         content,
         mimeType,
         automatic,
+        saveAs,
+        autoStart:true,
         createdAt:new Date().toISOString()
     }});
-    await chrome.tabs.create({url:chrome.runtime.getURL(`export.html?job=${id}`), active:!automatic});
+    await chrome.tabs.create({url:chrome.runtime.getURL(`export.html?job=${id}`), active:saveAs});
 }
 
 async function generateFilename(pattern, meetingTitle, format, attendeeReport, recordingStartTime) {
@@ -201,7 +204,7 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
         normalizedOptions = { saveAs: saveOptions !== false };
     }
 
-    const { forAutoSave = false, subfolder = '' } = normalizedOptions || {};
+    const { forAutoSave = false, subfolder = '', saveAs = true } = normalizedOptions || {};
     const sanitizedFolder = sanitizeSubfolderPath(subfolder);
 
     let content;
@@ -224,17 +227,27 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
 
     // Add extension to filename
     const fullFilename = sanitizedFolder ? `${sanitizedFolder}/${filename}.${extension}` : `${filename}.${extension}`;
-    await downloadFile(fullFilename, content, mimeType, forAutoSave);
+    await downloadFile(fullFilename, content, mimeType, { automatic:forAutoSave, saveAs });
 }
 
 // --- State Management ---
 let lastAutoSaveId = null;
 let autoSaveInProgress = false;
+const VIEWER_PAYLOAD_TTL_MS = 5 * 60 * 1000;
+
+async function cleanupViewerPayloads() {
+    const data = await chrome.storage.local.get(null);
+    const now = Date.now();
+    const expired = Object.entries(data).filter(([key, value]) => key.startsWith('viewer_payload_')
+        && (!Number.isFinite(value?.expiresAt) || value.expiresAt <= now)).map(([key]) => key);
+    if (expired.length) await chrome.storage.local.remove(expired);
+}
 
 async function createViewerTab(transcriptArray, sender, message) {
     const key = `viewer_payload_${crypto.randomUUID()}`;
+    const createdAt = Date.now();
     await chrome.storage.local.set({[key]: {transcriptArray, sourceTabId:sender.tab?.id,
-        sessionId:message.sessionId, meetingTitle:message.meetingTitle}});
+        sessionId:message.sessionId, meetingTitle:message.meetingTitle, createdAt, expiresAt:createdAt + VIEWER_PAYLOAD_TTL_MS}});
     await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?payload=${key}`)});
 }
 
@@ -291,13 +304,24 @@ function calculateDuration(transcriptArray) {
 
 chrome.runtime.onInstalled.addListener(() => {
     updateBadge(false);
+    cleanupViewerPayloads().catch(() => {});
 });
 
 chrome.runtime.onStartup.addListener(() => {
     updateBadge(false);
+    cleanupViewerPayloads().catch(() => {});
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return false;
+    if (message?.message === 'get_capture_surface') {
+        const providerId = String(message.providerId || 'meeting').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        const tabId = sender.tab?.id;
+        sendResponse(Number.isInteger(tabId)
+            ? {ok: true, surfaceId: `${providerId || 'meeting'}-tab-${tabId}`}
+            : {ok: false, error: 'Capture surface is unavailable'});
+        return false;
+    }
     const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
     if (!handled.has(message?.message)) return false;

@@ -12,12 +12,24 @@ function harness() {
     const data = {}; const callbacks=[]; const messages=[]; const tabs=[];
     const area = {
         async get(keys) { if (keys===null) return clone(data); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in data)out[k]=clone(data[k]); return out; },
-        async set(values) { if (area.fail) throw new Error('QUOTA_BYTES exceeded'); Object.assign(data,clone(values)); },
+        async set(values) {
+            if (area.fail || area.failNext?.(values)) { area.failNext=null; throw new Error('QUOTA_BYTES exceeded'); }
+            Object.assign(data,clone(values));
+        },
         async remove(keys) { for(const key of (Array.isArray(keys)?keys:[keys])) delete data[key]; },
-        async getBytesInUse() { return JSON.stringify(data).length; }
+        async getBytesInUse(keys) {
+            if(keys===null||keys===undefined) return JSON.stringify(data).length;
+            const selected={};
+            for(const key of (Array.isArray(keys)?keys:[keys])) if(key in data) selected[key]=data[key];
+            return JSON.stringify(selected).length;
+        }
     };
     const chrome={storage:{local:area,session:area,sync:area,onChanged:{addListener(fn){callbacks.push(fn);}}},
-        runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{messages.push(m);return {ok:true};},
+        runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{
+            messages.push(m);
+            if(m?.message==='get_capture_surface') return {ok:true,surfaceId:`${m.providerId}-tab-1`};
+            return {ok:true};
+        },
             onInstalled:{addListener(){}},onStartup:{addListener(){}},onMessage:{addListener(fn){chrome.listener=fn;}}},
         tabs:{create:async tab=>tabs.push(tab),query:async()=>[]},action:{setBadgeText(){},setBadgeBackgroundColor(){}}};
     const document={hidden:false,title:'Synthetic meeting',body:{},querySelector:()=>null,contains:()=>true,addEventListener(){}};
@@ -89,6 +101,36 @@ test('evidence summary feature cites captions and respects managed AI policy',as
     assert.equal(result.status,'disabled');
     assert.equal(messages.length,0);
 });
+test('AI handoff claims a session before asynchronous work and releases failed claims',async()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('transcriptInsights.js'),context);
+    let releaseDispatch;
+    let dispatches=0;
+    const feature=context.CaptionKeepTranscriptInsights.createAiSummaryFeature({
+        storage:{get:async()=>({autoAISummary:true,aiSummaryProviders:['copilot']})},
+        readManaged:async()=>({}),applyPolicy:settings=>({settings}),
+        sendMessage:async()=>{dispatches++;await new Promise(resolve=>{releaseDispatch=resolve;});}
+    });
+    const payload={transcript:[{Name:'A',Text:'Evidence',Time:'10:00'}],sessionId:'same-session'};
+    const first=feature.onMeetingEnded(payload);
+    const second=await feature.onMeetingEnded(payload);
+    assert.equal(second.status,'already-preparing');
+    assert.equal(dispatches,0);
+    for(let i=0;i<4&&!releaseDispatch;i++) await Promise.resolve();
+    assert.equal(dispatches,1);
+    releaseDispatch();
+    assert.equal((await first).status,'prepared');
+
+    let attempts=0;
+    const retryable=context.CaptionKeepTranscriptInsights.createAiSummaryFeature({
+        storage:{get:async()=>({autoAISummary:true,aiSummaryProviders:['copilot']})},
+        readManaged:async()=>({}),applyPolicy:settings=>({settings}),
+        sendMessage:async()=>{attempts++;if(attempts===1) throw new Error('synthetic dispatch failure');}
+    });
+    await assert.rejects(retryable.onMeetingEnded(payload),/synthetic dispatch failure/);
+    assert.equal((await retryable.onMeetingEnded(payload)).status,'prepared');
+    assert.equal(attempts,2);
+});
 test('Google Meet adapter uses the live semantic caption region and reports lifecycle changes',()=>{
     const observers=[];
     class FakeObserver {
@@ -124,6 +166,27 @@ test('Google Meet adapter uses the live semantic caption region and reports life
     assert.equal(events.at(-1).type,'meeting-ended');
     adapter.stop();
     assert.equal(adapter.getCaptionSource(),null);
+});
+test('Google Meet same-URL post-call state finalizes once after positive in-call evidence',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    let controls=[];
+    const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>null,querySelectorAll:()=>controls};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('googleMeetProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    assert.equal(events.filter(event=>event.type==='meeting-ended').length,0);
+    controls=[{getAttribute:name=>name==='aria-label'?'Leave call':null}];
+    observers[0].callback();
+    assert.equal(adapter.isMeetingPresent(),true);
+    controls=[{getAttribute:name=>name==='aria-label'?'Rejoin':null}];
+    observers[0].callback();
+    observers[0].callback();
+    assert.equal(events.filter(event=>event.type==='meeting-ended').length,1);
 });
 test('Google Meet manifest scope is exact and isolated from Teams capture',()=>{
     const manifest=JSON.parse(read('manifest.json'));
@@ -221,6 +284,155 @@ test('Google Meet remount reuses the active caption key without collapsing a lat
     assert.equal(captions.length,3);
     assert.notEqual(captions[2].caption.key,originalKey);
 });
+test('Zoom Web adapter uses the live subtitle overlay and reports recoverable source loss',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){this.disconnected=true;} }
+    const marker={tagName:'DIV',textContent:'>>'};
+    const words={tagName:'SPAN',textContent:'Synthetic Zoom words'};
+    const captionSource={children:[marker,words]};
+    let currentSource=captionSource;
+    const listeners={};
+    const pageWindow={
+        location:{href:'https://app.zoom.us/wc/12345678901/join?fromPWA=1'},
+        addEventListener(type,callback){listeners[type]=callback;},
+        removeEventListener(type){delete listeners[type];}
+    };
+    const pageDocument={
+        body:{},
+        querySelector(selector){assert.equal(selector,'#live-transcription-subtitle');return currentSource;},
+        querySelectorAll(){return [];}
+    };
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];
+    adapter.start(event=>events.push(event));
+    assert.equal(adapter.isMeetingPresent(),true);
+    assert.equal(adapter.getCaptionSource(),captionSource);
+    assert.equal(events[0].type,'caption-source-available');
+    const firstCaption=events.find(event=>event.type==='caption-upsert').caption;
+    assert.equal(firstCaption.Name,'Unknown speaker');
+    assert.equal(firstCaption.Text,'Synthetic Zoom words');
+    currentSource=null;observers[0].callback();
+    assert.equal(events.at(-1).type,'caption-source-unavailable');
+    assert.equal(events.at(-1).recoverable,true);
+    pageWindow.location.href='https://app.zoom.us/wc/';observers[0].callback();
+    assert.equal(events.at(-1).type,'meeting-ended');
+    adapter.stop();
+    assert.equal(adapter.getCaptionSource(),null);
+});
+test('Zoom Web auto-enable opens More, selects English, and confirms the caption dialog',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    const clicks=[];
+    let currentSource=null;
+    let dialog=null;
+    let pageControls=[];
+    const control=(label,onClick)=>({
+        textContent:'',
+        getAttribute(name){return name==='aria-label'?label:name==='aria-checked'&&this.checked?'true':null;},
+        click(){clicks.push(label);onClick?.();}
+    });
+    const save=control('Save',()=>{currentSource={children:[{tagName:'DIV',textContent:'>>'},{tagName:'SPAN',textContent:''}]};});
+    const english=control('English',()=>{english.checked=true;});
+    const show=control('Show Captions',()=>{
+        pageControls=[];
+        dialog={textContent:'Select spoken language for captions',querySelectorAll:()=>[english,save]};
+    });
+    const more=control('More meeting control',()=>{pageControls=[show];});
+    pageControls=[more];
+    const pageDocument={
+        body:{},
+        querySelector:()=>currentSource,
+        querySelectorAll(selector){return selector==='[role="dialog"]'?(dialog?[dialog]:[]):pageControls;}
+    };
+    const pageWindow={location:{href:'https://app.zoom.us/wc/12345678901/join'},addEventListener(){},removeEventListener(){}};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
+    const events=[];adapter.start(event=>events.push(event));
+    assert.deepEqual(clicks,['More meeting control']);
+    observers[0].callback();
+    assert.deepEqual(clicks,['More meeting control','Show Captions']);
+    observers[0].callback();
+    assert.deepEqual(clicks,['More meeting control','Show Captions','English']);
+    observers[0].callback();
+    assert.deepEqual(clicks,['More meeting control','Show Captions','English','Save']);
+    observers[0].callback();
+    assert.equal(adapter.getCaptionSource(),currentSource);
+    assert(events.some(event=>event.type==='caption-source-available'));
+});
+test('Zoom Web manifest scope is exact and reaches the embedded meeting frame',()=>{
+    const manifest=JSON.parse(read('manifest.json'));
+    assert(manifest.host_permissions.includes('https://app.zoom.us/*'));
+    assert(!manifest.host_permissions.includes('https://*.zoom.us/*'));
+    const zoomEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://app.zoom.us/wc/*'));
+    assert.equal(zoomEntry.all_frames,true);
+    assert.deepEqual(zoomEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','zoomProvider.js','zoomContentScript.js']);
+    assert(!zoomEntry.js.includes('content_script.js'));
+    const contentScript=read('zoomContentScript.js');
+    assert(contentScript.includes('if (window.top === window) return;'));
+});
+test('Zoom Web live overlay fixture is sanitized and records the observed limitation',()=>{
+    const fixture=JSON.parse(readProject('tests/fixtures/zoom/captions-overlay.json'));
+    assert.equal(fixture.meetingContentIncluded,false);
+    assert.equal(fixture.scope.host,'app.zoom.us');
+    assert.equal(fixture.captionSource.id,'live-transcription-subtitle');
+    assert.equal(fixture.captionSource.speakerAttributionAvailable,false);
+    assert.equal(fixture.captionSource.directChildren[1].kind,'caption-text');
+    assert.equal(fixture.captionSource.removedWhenCaptionsHidden,true);
+    assert.equal(fixture.captionSource.restoredWhenCaptionsShown,true);
+    const serialized=JSON.stringify(fixture);
+    assert(!serialized.includes('00000000000'));
+    assert(!serialized.includes('CaptionKeep Zoom test'));
+    assert(!serialized.includes('@'));
+});
+test('Zoom Web parser updates interim text and starts a new record after a quiet gap',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    let clock=new Date('2026-09-21T15:00:00Z');
+    const words={tagName:'SPAN',textContent:'First interim'};
+    const source={children:[{tagName:'DIV',textContent:'>>'},words]};
+    const pageWindow={location:{href:'https://app.zoom.us/wc/12345678901/join'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[]};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver,now:()=>clock});
+    const events=[];adapter.start(event=>events.push(event));
+    const first=events.find(event=>event.type==='caption-upsert').caption;
+    clock=new Date('2026-09-21T15:00:00.500Z');words.textContent='First interim phrase';observers[1].callback();
+    let captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.at(-1).caption.key,first.key);
+    clock=new Date('2026-09-21T15:00:03.000Z');words.textContent='Second segment';observers[1].callback();
+    captions=events.filter(event=>event.type==='caption-upsert');
+    assert.notEqual(captions.at(-1).caption.key,first.key);
+    assert.equal(captions.at(-1).caption.Text,'Second segment');
+});
+test('Zoom Web remount reuses the current caption without duplicating it',()=>{
+    const observers=[];
+    class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
+    let clock=new Date('2026-09-21T15:00:00Z');
+    const makeSource=text=>({children:[{tagName:'DIV',textContent:'>>'},{tagName:'SPAN',textContent:text}]});
+    let source=makeSource('Repeatable Zoom phrase');
+    const pageWindow={location:{href:'https://app.zoom.us/wc/12345678901/join'},addEventListener(){},removeEventListener(){}};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[]};
+    const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('providerRegistry.js'),context);
+    vm.runInContext(read('zoomProvider.js'),context);
+    const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver,now:()=>clock});
+    const events=[];adapter.start(event=>events.push(event));
+    const original=events.find(event=>event.type==='caption-upsert').caption;
+    source=null;observers[0].callback();
+    clock=new Date('2026-09-21T15:00:05Z');source=makeSource('Repeatable Zoom phrase');observers[0].callback();
+    assert.equal(events.filter(event=>event.type==='caption-upsert').length,1);
+    clock=new Date('2026-09-21T15:00:05.500Z');source.children[1].textContent='Repeatable Zoom phrase extended';observers[2].callback();
+    const captions=events.filter(event=>event.type==='caption-upsert');
+    assert.equal(captions.length,2);
+    assert.equal(captions[1].caption.key,original.key);
+});
 test('capture coordinator restores only the same recent meeting and finalizes history exactly once',async()=>{
     const data={};
     const storage={
@@ -229,11 +441,11 @@ test('capture coordinator restores only the same recent meeting and finalizes hi
         async remove(key){delete data[key];}
     };
     const messages=[];
-    const createCoordinator=pageUrl=>{
+    const createCoordinator=(pageUrl,surfaceId='google-meet-tab-1')=>{
         const context=vm.createContext({URL,crypto:webcrypto,Date,globalThis:null});context.globalThis=context;
         vm.runInContext(read('captureCoordinator.js'),context);
         return context.CaptionKeepCaptureCoordinator.create({
-            providerId:'google-meet',pageUrl,meetingTitle:'Saturday test',storage,
+            providerId:'google-meet',surfaceId,pageUrl,meetingTitle:'Saturday test',storage,
             normalizeCaption:caption=>({...caption}),sendMessage:async message=>{messages.push(message);return {ok:true};},
             now:()=>new Date('2026-09-19T15:00:00Z'),createId:()=> 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'
         });
@@ -246,6 +458,8 @@ test('capture coordinator restores only the same recent meeting and finalizes hi
     assert.equal(restored.getTranscript()[0].Text,'Checkpoint me');
     const other=createCoordinator('https://meet.google.com/xyz-abcd-uvw');
     assert.equal(await other.restore(),false);
+    const otherSurface=createCoordinator('https://meet.google.com/abc-defg-hij?authuser=1','google-meet-tab-2');
+    assert.equal(await otherSurface.restore(),false);
     restored.handleProviderEvent({type:'meeting-ended'});
     restored.handleProviderEvent({type:'meeting-ended'});
     await restored.whenIdle();
@@ -267,7 +481,8 @@ test('Google Meet auto-enables captions once and respects a later manual disable
         click(){clickCount++;}
     };
     const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
-    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[captionButton]};
+    const leaveButton={getAttribute:name=>name==='aria-label'?'Leave call':null};
+    const pageDocument={body:{},querySelector:()=>source,querySelectorAll:()=>[captionButton,leaveButton]};
     const context=vm.createContext({URL,Date,globalThis:null});context.globalThis=context;
     vm.runInContext(read('providerRegistry.js'),context);
     vm.runInContext(read('googleMeetProvider.js'),context);
@@ -350,7 +565,11 @@ test('Google Meet coordinator exposes captured captions through the shared popup
         normalizeCaption:caption=>Object.freeze({...caption})
     };
     const chrome={runtime:{
-        sendMessage(message){messages.push(message);return Promise.resolve({ok:true});},
+        sendMessage(message){
+            messages.push(message);
+            if(message?.message==='get_capture_surface') return Promise.resolve({ok:true,surfaceId:'google-meet-tab-7'});
+            return Promise.resolve({ok:true});
+        },
         onMessage:{addListener(handler){messageHandler=handler;}}
     },storage:{local,sync:{get:async()=>({trackCaptions:true})},onChanged:{addListener(handler){storageListeners.push(handler);}}}};
     const context=vm.createContext({
@@ -397,7 +616,8 @@ test('Google Meet does not start capture when caption tracking is disabled at lo
     const local={async get(){return {};},async set(){},async remove(){}};
     const adapter={isMeetingPresent:()=>true,setAutoEnableCaptions(){},start(){startCount++;},stop(){}};
     const chrome={
-        runtime:{sendMessage:()=>Promise.resolve(),onMessage:{addListener(handler){messageHandler=handler;}}},
+        runtime:{sendMessage:message=>Promise.resolve(message?.message==='get_capture_surface'
+            ? {ok:true,surfaceId:'google-meet-tab-7'} : {ok:true}),onMessage:{addListener(handler){messageHandler=handler;}}},
         storage:{local,sync:{get:async()=>({trackCaptions:false})},onChanged:{addListener(){}}}
     };
     const context=vm.createContext({
@@ -471,6 +691,36 @@ test('quota rejection preserves existing history',async()=>{
     await assert.rejects(h.run('new SessionManager(true)').saveSession([{Name:'A',Text:'new',Time:'10'}],'New'),/QUOTA/);
     assert.equal(h.data.session_index[0].id,'keep');assert.equal(h.data.keep_chunk_0[0].Text,'keep');
 });
+test('quota-boundary save evicts before staging and rollback restores the prior index',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[{id:'old',timestamp:'2020-01-01T00:00:00Z',chunkCount:1,size:2000}];
+    h.data.old_chunk_0=[{Text:'x'.repeat(2000)}];
+    const manager=h.run('new SessionManager(true)');
+    manager.STORAGE_QUOTA=JSON.stringify(h.data).length;
+    const saved=await manager.saveSession([{Name:'A',Text:'new',Time:'10:00'}],'New');
+    assert(!('old_chunk_0' in h.data));
+    assert.equal(h.data.session_index.length,1);
+    assert.equal(h.data.session_index[0].id,saved);
+
+    const rollback=harness();rollback.run(read('sessionManager.js'));
+    rollback.data.session_index=[{id:'keep',timestamp:'2020-01-01T00:00:00Z',chunkCount:1,size:2000}];
+    rollback.data.keep_chunk_0=[{Text:'y'.repeat(2000)}];
+    const rollbackManager=rollback.run('new SessionManager(true)');
+    rollbackManager.STORAGE_QUOTA=JSON.stringify(rollback.data).length;
+    rollback.area.failNext=values=>Object.hasOwn(values,'session_index');
+    await assert.rejects(rollbackManager.saveSession([{Name:'A',Text:'new',Time:'10:00'}],'New'),/QUOTA/);
+    assert.equal(rollback.data.session_index[0].id,'keep');
+    assert.equal(rollback.data.keep_chunk_0[0].Text.length,2000);
+    assert.equal(Object.keys(rollback.data).filter(key=>key.startsWith('session_')&&key!=='session_index').length,0);
+});
+test('session mutations never persist transient recovery entries',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[{id:'stored',timestamp:'2026-01-01T00:00:00Z',chunkCount:1}];
+    h.data.backup_transient={transcript:[{Name:'A',Text:'recover'}],lastBackup:'2026-09-25T12:00:00Z'};
+    const manager=h.run('new SessionManager(true)');
+    await manager.updateSessionIndex({id:'new',timestamp:'2026-09-25T12:00:00Z',chunkCount:1});
+    assert.equal(h.data.session_index.some(item=>item.id==='backup_transient'),false);
+});
 test('missing chunks are reported rather than silently omitted',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'broken',chunkCount:2,captionCount:2}];h.data.broken_chunk_0=[];
     await assert.rejects(h.run('new SessionManager()').loadSession('broken'),/missing chunk/);
@@ -485,31 +735,63 @@ test('worker acknowledges success and ignores unrelated messages',async()=>{
     assert.equal(h.chrome.listener({message:'live_caption_update'},{id:'test'},()=>{}),false);
     const result=await new Promise(resolve=>h.chrome.listener({message:'reset_aliases'},{id:'test'},resolve));assert.equal(result.ok,true);
 });
-test('exports stage locally and navigate only to an internal save page',async()=>{
+test('viewer launch payloads have a bounded lifetime and expired snapshots are removed',async()=>{
     const h=harness();h.run(read('service_worker.js'));
-    await h.run("downloadFile('CON.txt','Synthetic private words','text/plain',true)");
-    const job=Object.values(h.data)[0];assert.equal(job.filename,'_CON.txt');assert.equal(job.browserFilename,'_CON.txt');assert.equal(job.content,'Synthetic private words');assert.equal(job.automatic,true);
+    await h.run("createViewerTab([{Name:'A',Text:'live'}],{tab:{id:7}},{sessionId:'session-7',meetingTitle:'Test'})");
+    const key=Object.keys(h.data).find(value=>value.startsWith('viewer_payload_'));
+    assert(key);
+    assert.equal(h.data[key].sourceTabId,7);
+    assert(h.data[key].expiresAt>h.data[key].createdAt);
+    h.data[key].expiresAt=Date.now()-1;
+    await h.run('cleanupViewerPayloads()');
+    assert.equal(key in h.data,false);
+    const viewer=read('viewer.js');
+    assert(viewer.includes("{message: 'get_evidence_context'}"));
+    assert(viewer.includes('current?.sessionId === viewerData.sessionId'));
+});
+test('exports stage locally and start automatic downloads in a background tab',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    await h.run("downloadFile('CON.txt','Synthetic private words','text/plain',{automatic:true,saveAs:false})");
+    const job=Object.values(h.data)[0];assert.equal(job.filename,'_CON.txt');assert.equal(job.browserFilename,'_CON.txt');assert.equal(job.content,'Synthetic private words');assert.equal(job.automatic,true);assert.equal(job.saveAs,false);assert.equal(job.autoStart,true);
     assert(h.tabs[0].url.startsWith('chrome-extension://test/export.html?job='));
+    assert.equal(h.tabs[0].active,false);
 });
 test('manual Downloads subfolders survive export staging',async()=>{
     const h=harness();h.run(read('service_worker.js'));
-    await h.run("downloadFile('Transcripts/Teams/Test.txt','Synthetic','text/plain',false)");
+    await h.run("downloadFile('Transcripts/Teams/Test.txt','Synthetic','text/plain',{automatic:false,saveAs:false})");
     const job=Object.values(h.data)[0];
     assert.equal(job.filename,'Test.txt');
     assert.equal(job.browserFilename,'Transcripts/Teams/Test.txt');
     assert.equal(h.run("sanitizeSubfolderPath('../Transcripts/../Teams')"),'Transcripts/Teams');
 });
-test('export page keeps a usable manual fallback without the direct folder API',()=>{
+test('normal Downloads subfolder settings stay in the popup',()=>{
     const html=read('export.html');
     const script=read('export.js');
-    for(const id of ['manual-folder','remember-manual-folder','open-downloads-folder']) assert(html.includes(`id="${id}"`));
-    assert(script.includes('chrome.downloads.showDefaultFolder()'));
-    assert(script.includes("saveAsType:saveLocation ? 'custom' : 'downloads'"));
+    const popupHtml=read('popup.html');
+    const popupScript=read('popup.js');
+    for(const id of ['saveAsType','saveLocation','openLastTranscriptFolder']) assert(popupHtml.includes(`id="${id}"`));
+    for(const id of ['manual-folder','remember-manual-folder','open-downloads-folder']) assert(!html.includes(`id="${id}"`));
+    const directFolderSection=script.slice(script.indexOf('async function saveToFolder'),script.indexOf('async function closeCurrentTab'));
+    const browserDownloadSection=script.slice(script.indexOf('async function downloadWithBrowser'),script.indexOf('async function loadPending'));
+    assert(!directFolderSection.includes('lastCompletedDownload'));
+    assert(browserDownloadSection.includes('lastCompletedDownload'));
+    assert(popupScript.includes('chrome.downloads.show(lastCompletedDownload.id)'));
+    assert(script.includes('saveAs:promptForLocation'));
+    assert(script.includes('closeCurrentTab'));
     assert(!script.includes("disabled = busy || !('showDirectoryPicker' in window)"));
 });
 test('legacy default save behavior migrates to the Downloads option',()=>{
     assert(read('popup.js').includes("settings.saveAsType === 'default' ? 'downloads'"));
     assert(read('service_worker.js').includes("settings.saveAsType === 'default' ? 'downloads'"));
+});
+test('automatic saving skips prompts while ask-each-time always prompts',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    h.data.saveAsType='downloads';
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:false})')).saveAs,false);
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:true})')).saveAs,false);
+    h.data.saveAsType='prompt';
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:false})')).saveAs,true);
+    assert.equal((await h.run('resolveSavePreferences({forAutoSave:true})')).saveAs,true);
 });
 test('AI handoff never navigates transcript text to a provider',async()=>{
     const h=harness();h.run(read('service_worker.js'));await h.run("openAiAssistantTabs(['chatgpt'],'Synthetic private words','Test')");
@@ -594,6 +876,22 @@ test('Scrubby supports labeled health identifiers, profanity, and custom terms',
     assert.equal(cleaned.transcript[0].Name,'[EMAIL_1]');
     assert.equal(cleaned.transcript[0].Text,'[PAYMENT_CARD_1]');
 });
+test('Scrubby preserves transcript schema and reuses placeholders across explicit data fields',()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('privacyScrubber.js'),context);
+    const original={Name:'Name / Alpha',Text:'Alpha said "Name".',Time:'10:00',key:'Name-key',capturedAt:'2026-09-25T12:00:00Z',
+        attendeeList:[{name:'Alpha',role:'Name'}]};
+    const result=context.CaptionKeepPrivacyScrubber.scrubTranscript([original],{customTerms:['Name','Alpha']});
+    const cleaned=result.transcript[0];
+    assert.equal(cleaned.key,'Name-key');
+    assert.equal(cleaned.Time,'10:00');
+    assert.equal(cleaned.capturedAt,original.capturedAt);
+    assert.equal(cleaned.Name,'[CUSTOM_TERM_1] / [CUSTOM_TERM_2]');
+    assert.equal(cleaned.Text,'[CUSTOM_TERM_2] said "[CUSTOM_TERM_1]".');
+    assert.equal(cleaned.attendeeList[0].name,'[CUSTOM_TERM_2]');
+    assert.equal(cleaned.attendeeList[0].role,'[CUSTOM_TERM_1]');
+    assert.deepEqual(Object.keys(cleaned),Object.keys(original));
+});
 test('configuration import is bounded and managed policy takes precedence',()=>{
     const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
     vm.runInContext(read('configuration.js'),context);
@@ -628,7 +926,7 @@ test('Privacy Scrubber is visible, defaults on, and guards unmasked copying',()=
     assert(handoffScript.includes('!scrubberToggle.checked && !unmaskedCopyArmed'));
 });
 test('extension pages use only packaged scripts and settings use progressive disclosure',()=>{
-    for(const page of ['popup.html','viewer.html','export.html','handoff.html','platform-coming-soon.html']) {
+    for(const page of ['popup.html','viewer.html','export.html','handoff.html','platform-coming-soon.html','sidepanel.html']) {
         const html=read(page);
         for(const match of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {
             assert(!/^(?:https?:)?\/\//i.test(match[1]),`${page} must not load remote code`);
@@ -637,21 +935,43 @@ test('extension pages use only packaged scripts and settings use progressive dis
     }
     const popup=read('popup.html');
     assert(popup.includes('<details class="settings-group" open>'));
-    for(const section of ['Appearance','Speaker aliases','Export and auto-save','AI handoff and privacy','Naming and timestamps','Configuration portability']) {
+    for(const section of ['Appearance','Speaker aliases','Saving transcripts','Bring your own AI (BYOAI) and privacy','Naming and timestamps','Configuration portability']) {
         assert(popup.includes(`<summary>${section}</summary>`));
     }
+});
+test('all target manifests expose the local Evidence Board through the side panel',()=>{
+    for(const relative of ['teams-captions-saver/manifest.json','manifests/manifest.chrome.json','manifests/manifest.edge.json','manifests/manifest.chrome-store.json']) {
+        const manifest=JSON.parse(readProject(relative));
+        assert(manifest.permissions.includes('sidePanel'));
+        assert.equal(manifest.side_panel?.default_path,'sidepanel.html');
+    }
+    const popup=read('popup.html');const popupScript=read('popup.js');
+    assert(popup.includes('id="evidenceBoardButton"'));
+    assert(popupScript.includes('chrome.sidePanel.open'));
+    assert(popupScript.includes("chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'})"));
+    const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
+    assert(sidepanel.includes('id="close-panel"'));
+    assert(sidepanel.includes('id="transcript-search"'));
+    assert(sidepanel.includes('id="email-board"'));
+    assert(sidepanel.includes('id="download-bundle"'));
+    assert(sidepanelScript.includes("typeof chrome.sidePanel.close === 'function'"));
+    assert(sidepanelScript.includes('chrome.sidePanel.setOptions({enabled: false})'));
+    assert(sidepanelScript.includes("crypto.subtle.digest('SHA-256'"));
+    assert(sidepanelScript.includes('mailto:?subject='));
 });
 test('popup uses a compact three-platform launcher without an inline Teams warning link',()=>{
     const popup=read('popup.html');const script=read('popup.js');
     assert(popup.includes('class="platform-launchers"'));
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
     assert(popup.includes('aria-label="Open Microsoft Teams"'));
-    assert(popup.includes('platform-coming-soon.html?platform=zoom'));
+    assert(popup.includes('href="https://app.zoom.us/wc"'));
+    assert(popup.includes('aria-label="Open Zoom Web"'));
     assert(popup.includes('href="https://meet.google.com"'));
     assert(popup.includes('aria-label="Open Google Meet"'));
     assert(script.includes('getActiveMeetingTab'));
     assert(script.includes('https:\\/\\/meet\\.google\\.com'));
-    assert(script.includes("textContent = 'Open Teams or Google Meet to begin.'"));
+    assert(script.includes('https:\\/\\/app\\.zoom\\.us\\/wc'));
+    assert(script.includes("textContent = 'Open Teams, Zoom Web, or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
@@ -663,7 +983,7 @@ test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     assert(!html.includes('http://') && !html.includes('https://'));
 });
 async function contentHarness() {
-    const h=harness();h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('content_script.js'));for(let i=0;i<10;i++)await Promise.resolve();return h;
+    const h=harness();h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('teamsCaptionBuffer.js'));h.run(read('content_script.js'));for(let i=0;i<10;i++)await Promise.resolve();return h;
 }
 test('minimized source loss does not finalize an active session',async()=>{
     const h=await contentHarness();h.document.hidden=true;
@@ -683,11 +1003,28 @@ test('Teams interim caption updates refresh capture health time',async()=>{
     const author={innerText:'Speaker'};const words={innerText:'Updated live words'};
     const row={getAttribute:()=> 'caption-1',querySelector:selector=>selector.includes('author')?author:words};
     h.document.querySelector=()=>({querySelectorAll:()=>[row]});
-    h.run("capturing=true;trackingAllowed=true;transcriptArray.push({Name:'Speaker',Text:'Earlier words',Time:'10:00',key:'caption-1',capturedAt:'2026-01-01T00:00:00.000Z'});");
+    h.run('capturing=true;trackingAllowed=true;');
     await h.run('processCaptionUpdates()');
+    h.run('flushPendingCaptions()');
     assert.equal(h.run('transcriptArray[0].Text'),'Updated live words');
-    assert.notEqual(h.run('transcriptArray[0].capturedAt'),'2026-01-01T00:00:00.000Z');
     assert.ok(!Number.isNaN(Date.parse(h.run('transcriptArray[0].capturedAt'))));
+});
+test('Teams recovery seed reconciles the first DOM scan without duplicating a caption',()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('teamsCaptionBuffer.js'),context);
+    const commits=[];
+    const buffer=context.CaptionKeepTeamsCaptionBuffer.create({schedule:()=>1,cancel(){},
+        now:()=>new Date('2026-09-25T12:00:01Z'),onCommit:(caption,isNew)=>commits.push({caption,isNew})});
+    buffer.seed([{Name:'Speaker',Text:'before reload',Time:'10:00',key:'teams-caption-4',capturedAt:'2026-09-25T12:00:00Z'}]);
+    const row={};
+    buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'before reload',Time:'10:00'}]);
+    buffer.flushAll();
+    assert.equal(commits.length,0);
+    buffer.observeSnapshot([{identity:row,Name:'Speaker',Text:'before reload continued',Time:'10:00'}]);
+    buffer.flushAll();
+    assert.equal(commits.length,1);
+    assert.equal(commits[0].isNew,false);
+    assert.equal(commits[0].caption.key,'teams-caption-4');
 });
 test('visible transient DOM loss receives a grace interval',async()=>{
     const h=await contentHarness();h.run('wasInMeeting=true;capturing=true;sourceMissingSince=Date.now()-5000;');await h.run('handleMeetingStateChange()');
@@ -695,10 +1032,10 @@ test('visible transient DOM loss receives a grace interval',async()=>{
 });
 test('a recent same-page checkpoint restores captions and warns about the gap',async()=>{
     const h=harness();
-    h.data.active_capture_v1={transcript:[{Name:'A',Text:'before reload',Time:'10:00'}],meetingTitle:'Synthetic meeting',
+    h.data['active_capture_v2_teams-tab-1']={transcript:[{Name:'A',Text:'before reload',Time:'10:00',key:'teams-caption-1',capturedAt:new Date().toISOString()}],meetingTitle:'Synthetic meeting',
         recordingStartTime:new Date(Date.now()-60000).toISOString(),lastBackup:new Date().toISOString(),
-        documentSessionId:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',pageUrl:'https://teams.microsoft.com/'};
-    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
+        documentSessionId:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',pageUrl:'https://teams.microsoft.com/',surfaceId:'teams-tab-1'};
+    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('teamsCaptionBuffer.js'));h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
     assert.equal(h.run('transcriptArray.length'),1);
     assert.equal(h.run('documentSessionId'),'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.match(h.run('checkpointError'),/resumed from a recovery checkpoint/i);

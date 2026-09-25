@@ -57,38 +57,48 @@
         if (typeof options.applyPolicy !== 'function') throw new TypeError('AI summary feature requires policy application.');
         if (typeof options.sendMessage !== 'function') throw new TypeError('AI summary feature requires message dispatch.');
 
-        const completedSessions = new Set();
+        const sessionStates = new Map();
 
         async function onMeetingEnded(context = {}) {
             const transcript = Array.isArray(context.transcript) ? context.transcript : [];
             const sessionId = cleanInline(context.sessionId);
             if (!transcript.length) return Object.freeze({status: 'empty'});
-            if (sessionId && completedSessions.has(sessionId)) return Object.freeze({status: 'already-prepared'});
-
-            const userSettings = await options.storage.get(['autoAISummary', 'aiSummaryProviders']);
-            const policy = options.applyPolicy(userSettings, await options.readManaged());
-            if (!policy.settings.autoAISummary) return Object.freeze({status: 'disabled'});
-
-            const providers = Array.isArray(policy.settings.aiSummaryProviders)
-                ? [...new Set(policy.settings.aiSummaryProviders.filter(value => typeof value === 'string' && value.trim()))]
-                : [];
-            if (!providers.length) return Object.freeze({status: 'no-destinations'});
-
-            const prompt = buildEvidenceSummaryPrompt(transcript, context);
-            if (!prompt) return Object.freeze({status: 'empty'});
-            await options.sendMessage({
-                message: 'open_ai_assistants',
-                prompt,
-                providers,
-                meetingTitle: cleanInline(context.meetingTitle, 'Meeting')
-            });
-            if (sessionId) completedSessions.add(sessionId);
-            return Object.freeze({status: 'prepared', evidenceCount: transcript.length, providers: [...providers]});
+            const existingState = sessionId ? sessionStates.get(sessionId) : '';
+            if (existingState === 'preparing') return Object.freeze({status: 'already-preparing'});
+            if (existingState === 'prepared') return Object.freeze({status: 'already-prepared'});
+            if (sessionId) sessionStates.set(sessionId, 'preparing');
+            try {
+                const userSettings = await options.storage.get(['autoAISummary', 'aiSummaryProviders']);
+                const policy = options.applyPolicy(userSettings, await options.readManaged());
+                if (!policy.settings.autoAISummary) {
+                    if (sessionId) sessionStates.delete(sessionId);
+                    return Object.freeze({status: 'disabled'});
+                }
+                const providers = Array.isArray(policy.settings.aiSummaryProviders)
+                    ? [...new Set(policy.settings.aiSummaryProviders.filter(value => typeof value === 'string' && value.trim()))]
+                    : [];
+                if (!providers.length) {
+                    if (sessionId) sessionStates.delete(sessionId);
+                    return Object.freeze({status: 'no-destinations'});
+                }
+                const prompt = buildEvidenceSummaryPrompt(transcript, context);
+                if (!prompt) {
+                    if (sessionId) sessionStates.delete(sessionId);
+                    return Object.freeze({status: 'empty'});
+                }
+                await options.sendMessage({message: 'open_ai_assistants', prompt, providers,
+                    meetingTitle: cleanInline(context.meetingTitle, 'Meeting')});
+                if (sessionId) sessionStates.set(sessionId, 'prepared');
+                return Object.freeze({status: 'prepared', evidenceCount: transcript.length, providers: [...providers]});
+            } catch (error) {
+                if (sessionId) sessionStates.delete(sessionId);
+                throw error;
+            }
         }
 
         function reset(sessionId) {
-            if (sessionId) completedSessions.delete(String(sessionId));
-            else completedSessions.clear();
+            if (sessionId) sessionStates.delete(String(sessionId));
+            else sessionStates.clear();
         }
 
         return Object.freeze({onMeetingEnded, reset});

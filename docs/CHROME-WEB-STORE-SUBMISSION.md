@@ -2,6 +2,11 @@
 
 This checklist creates a separate Chrome Web Store item without changing the Microsoft Edge Add-ons submission. The first Chrome upload must come from a reviewed commit and must not use either browser's `- Test` sideload package.
 
+The first 5.0.0 item is already public. Updates use the gated Chrome Web Store
+API v2 workflow in [`CHROME-PUBLISH-PIPELINE.md`](CHROME-PUBLISH-PIPELINE.md).
+The dashboard steps below remain the source for listing, privacy, distribution,
+artwork, reviewer instructions, and the final staged-publication decision.
+
 ## Build and identify the candidate
 
 1. Run `npm ci`, `npm test`, and `npm run lint`.
@@ -28,7 +33,9 @@ Capture captions locally, review a readable transcript, search by speaker, and e
 
 Privacy Scrubber is on by default and can mask common sensitive patterns before copy, export, or an optional AI handoff. The original saved transcript remains available for review. Scrubby reduces accidental disclosure risk but is not a compliance guarantee or a replacement for enterprise DLP.
 
-AI handoff is optional and review-first. Better CaptionKeep prepares an editable prompt inside the extension; it does not put transcript text in a provider URL, paste it automatically, or submit it on the user's behalf. Individuals and organizations can choose supported assistants, while administrators can enforce privacy settings and approved destinations through managed browser policy.
+Better CaptionKeep is Bring Your Own AI (BYOAI): AI handoff is optional and review-first. Better CaptionKeep prepares an editable prompt inside the extension; it does not put transcript text in a provider URL, paste it automatically, or submit it on the user's behalf. Individuals and organizations can choose supported assistants, while administrators can enforce privacy settings and approved destinations through managed browser policy.
+
+The local Evidence Board can remain open beside a supported meeting. Users mark captured captions as decisions, actions, questions, risks, follow-ups, or important moments and can copy or save a source-linked Markdown brief. Markers remain local and do not modify the raw transcript.
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service.
 
