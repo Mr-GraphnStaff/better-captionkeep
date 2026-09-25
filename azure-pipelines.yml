@@ -80,7 +80,7 @@ stages:
 
           - bash: |
               set -euo pipefail
-              deployment/azure/download-verified-release.sh \
+              bash deployment/azure/download-verified-release.sh \
                 '${{ parameters.releaseTag }}' \
                 '$(Pipeline.Workspace)/verified-release' \
                 '${{ eq(parameters.chromePrepare, 'upload-only') }}'
@@ -109,7 +109,7 @@ stages:
             inputs:
               artifact: verified-store-release
               path: $(Pipeline.Workspace)/verified-release
-          - bash: deployment/azure/load-store-secrets.sh chrome
+          - bash: bash deployment/azure/load-store-secrets.sh chrome
             displayName: Load Chrome credentials from private Key Vault
             env:
               BCK_VAULT_NAME: $(vaultName)
@@ -138,7 +138,7 @@ stages:
             inputs:
               artifact: verified-store-release
               path: $(Pipeline.Workspace)/verified-release
-          - bash: deployment/azure/load-store-secrets.sh edge
+          - bash: bash deployment/azure/load-store-secrets.sh edge
             displayName: Load Edge credentials from private Key Vault
             env:
               BCK_VAULT_NAME: $(vaultName)
@@ -173,7 +173,7 @@ stages:
                   inputs:
                     artifact: verified-store-release
                     path: $(Pipeline.Workspace)/verified-release
-                - bash: deployment/azure/load-store-secrets.sh all
+                - bash: bash deployment/azure/load-store-secrets.sh all
                   displayName: Load Store credentials from private Key Vault
                   env:
                     BCK_VAULT_NAME: $(vaultName)
