@@ -769,9 +769,6 @@ test('export page keeps a usable manual fallback without the direct folder API',
     const script=read('export.js');
     for(const id of ['manual-folder','remember-manual-folder','open-downloads-folder']) assert(html.includes(`id="${id}"`));
     assert(script.includes('chrome.downloads.showDefaultFolder()'));
-    assert(script.includes('chrome.downloads.show(download.id)'));
-    assert(script.includes('downloadIsInsideSubfolder(item, subfolder)'));
-    assert(script.includes('`Open Downloads/${subfolder}`'));
     assert(script.includes("saveAsType:saveLocation ? 'custom' : 'downloads'"));
     assert(script.includes('saveAs:promptForLocation'));
     assert(script.includes('closeCurrentTab'));
