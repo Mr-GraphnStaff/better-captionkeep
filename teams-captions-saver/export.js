@@ -14,6 +14,47 @@ function sanitizeSubfolderPath(value) {
         .join('/');
 }
 
+function getDownloadsSubfolder() {
+    return sanitizeSubfolderPath(document.getElementById('manual-folder').value);
+}
+
+function updateOpenDownloadsLabel() {
+    const subfolder = getDownloadsSubfolder();
+    document.getElementById('open-downloads-folder').textContent = subfolder
+        ? `Open Downloads/${subfolder}`
+        : 'Open Downloads folder';
+}
+
+function downloadIsInsideSubfolder(download, subfolder) {
+    if (!download?.filename || !subfolder) return false;
+    const filename = download.filename.replace(/\\/g, '/').toLocaleLowerCase();
+    const folder = `/${subfolder}/`.toLocaleLowerCase();
+    return filename.includes(folder);
+}
+
+async function openDownloadsFolder() {
+    const subfolder = getDownloadsSubfolder();
+    if (subfolder) {
+        const downloads = await chrome.downloads.search({
+            state: 'complete',
+            exists: true,
+            orderBy: ['-startTime'],
+            limit: 1000
+        });
+        const download = downloads.find(item => downloadIsInsideSubfolder(item, subfolder));
+        if (download) {
+            await chrome.downloads.show(download.id);
+            statusElement.textContent = `Opened Downloads/${subfolder}.`;
+            return;
+        }
+    }
+
+    await chrome.downloads.showDefaultFolder();
+    statusElement.textContent = subfolder
+        ? `Downloads/${subfolder} has no completed transcript yet. Save one there first; opened Downloads instead.`
+        : 'Opened the browser Downloads folder.';
+}
+
 function folderStore(mode, operation) {
     return new Promise((resolve, reject) => {
         const open = indexedDB.open('captionkeep-files', 1);
@@ -165,12 +206,13 @@ document.getElementById('remember-manual-folder').onclick = async () => {
     statusElement.textContent = saveLocation
         ? `Downloads subfolder remembered: ${saveLocation}`
         : 'The main browser Downloads folder will be used.';
+    updateOpenDownloadsLabel();
     refreshButtons();
 };
-document.getElementById('open-downloads-folder').onclick = () => {
+document.getElementById('manual-folder').oninput = updateOpenDownloadsLabel;
+document.getElementById('open-downloads-folder').onclick = async () => {
     try {
-        chrome.downloads.showDefaultFolder();
-        statusElement.textContent = 'Opened the browser Downloads folder.';
+        await openDownloadsFolder();
     } catch (error) {
         statusElement.textContent = `Could not open the Downloads folder: ${error.message}`;
     }
@@ -187,6 +229,7 @@ document.getElementById('forget-folder').onclick = async () => {
         document.getElementById('manual-folder').value = settings.saveAsType === 'custom'
             ? sanitizeSubfolderPath(settings.saveLocation)
             : '';
+        updateOpenDownloadsLabel();
         currentJob = jobId ? (await chrome.storage.local.get(jobId))[jobId] : null;
         statusElement.textContent = currentJob ? 'Export ready. Choose where to save.' : 'Choose a folder or open a pending export.';
         if (currentJob) {
