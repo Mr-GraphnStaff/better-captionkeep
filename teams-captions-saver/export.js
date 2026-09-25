@@ -32,6 +32,52 @@ function downloadIsInsideSubfolder(download, subfolder) {
     return filename.includes(folder);
 }
 
+function waitForDownloadCompletion(downloadId) {
+    return new Promise((resolve,reject) => {
+        const finish = state => {
+            if (state === 'complete' || state === 'interrupted') {
+                chrome.downloads.onChanged.removeListener(listener);
+                if (state === 'complete') resolve();
+                else reject(new Error('Download interrupted or canceled.'));
+            }
+        };
+        const listener = delta => { if (delta.id === downloadId) finish(delta.state?.current); };
+        chrome.downloads.onChanged.addListener(listener);
+        chrome.downloads.search({id:downloadId}).then(items => finish(items[0]?.state), reject);
+    });
+}
+
+async function removeTemporaryDownload(downloadId) {
+    try { await chrome.downloads.removeFile(downloadId); }
+    catch (error) { console.warn('Could not remove temporary folder marker', error); }
+    try { await chrome.downloads.erase({id:downloadId}); }
+    catch (error) { console.warn('Could not clear temporary folder marker history', error); }
+}
+
+async function revealDownloadsSubfolder(subfolder) {
+    const markerName = `CaptionKeep-open-folder-${crypto.randomUUID()}.txt`;
+    const url = URL.createObjectURL(new Blob([
+        'Better CaptionKeep created this temporary file to open the selected Downloads subfolder.'
+    ], {type:'text/plain;charset=utf-8'}));
+    let downloadId;
+    try {
+        downloadId = await chrome.downloads.download({
+            url,
+            filename: `${subfolder}/${markerName}`,
+            conflictAction: 'uniquify',
+            saveAs: false
+        });
+        await waitForDownloadCompletion(downloadId);
+        await chrome.downloads.show(downloadId);
+        setTimeout(() => removeTemporaryDownload(downloadId), 2000);
+    } catch (error) {
+        if (downloadId) await removeTemporaryDownload(downloadId);
+        throw error;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
 async function openDownloadsFolder() {
     const subfolder = getDownloadsSubfolder();
     if (subfolder) {
@@ -47,12 +93,13 @@ async function openDownloadsFolder() {
             statusElement.textContent = `Opened Downloads/${subfolder}.`;
             return;
         }
+        await revealDownloadsSubfolder(subfolder);
+        statusElement.textContent = `Opened Downloads/${subfolder}.`;
+        return;
     }
 
     await chrome.downloads.showDefaultFolder();
-    statusElement.textContent = subfolder
-        ? `Downloads/${subfolder} has no completed transcript yet. Save one there first; opened Downloads instead.`
-        : 'Opened the browser Downloads folder.';
+    statusElement.textContent = 'Opened the browser Downloads folder.';
 }
 
 function folderStore(mode, operation) {
@@ -133,17 +180,7 @@ async function downloadWithBrowser(promptForLocation = true, closeWhenDone = fal
         currentJob.downloadId = downloadId;
         await chrome.storage.local.set({[jobId]:currentJob});
         statusElement.textContent = 'Download started. Waiting for file completion…';
-        await new Promise((resolve,reject) => {
-            const finish = state => {
-                if (state === 'complete' || state === 'interrupted') {
-                    chrome.downloads.onChanged.removeListener(listener);
-                    if (state === 'complete') resolve(); else reject(new Error('Download interrupted or canceled.'));
-                }
-            };
-            const listener = delta => { if (delta.id === downloadId) finish(delta.state?.current); };
-            chrome.downloads.onChanged.addListener(listener);
-            chrome.downloads.search({id:downloadId}).then(items => finish(items[0]?.state), reject);
-        });
+        await waitForDownloadCompletion(downloadId);
         await chrome.storage.local.remove(jobId);
         currentJob = null;
         statusElement.textContent = 'File saved successfully.';
