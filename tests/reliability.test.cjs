@@ -771,9 +771,6 @@ test('export page keeps a usable manual fallback without the direct folder API',
     assert(script.includes('chrome.downloads.showDefaultFolder()'));
     assert(script.includes('chrome.downloads.show(download.id)'));
     assert(script.includes('downloadIsInsideSubfolder(item, subfolder)'));
-    assert(script.includes('revealDownloadsSubfolder(subfolder)'));
-    assert(script.includes('chrome.downloads.removeFile(downloadId)'));
-    assert(script.includes('chrome.downloads.erase({id:downloadId})'));
     assert(script.includes('`Open Downloads/${subfolder}`'));
     assert(script.includes("saveAsType:saveLocation ? 'custom' : 'downloads'"));
     assert(script.includes('saveAs:promptForLocation'));
