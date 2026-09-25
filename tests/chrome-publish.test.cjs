@@ -27,7 +27,9 @@ test('Chrome resource name validates the extension identity', async () => {
 test('Chrome actions map staged and immediate publishing explicitly', async () => {
   const { publishTypeForAction } = await import('../scripts/chrome-publish.mjs');
   assert.equal(publishTypeForAction('submit-auto'), 'DEFAULT_PUBLISH');
+  assert.equal(publishTypeForAction('submit-existing-auto'), 'DEFAULT_PUBLISH');
   assert.equal(publishTypeForAction('submit-staged'), 'STAGED_PUBLISH');
+  assert.equal(publishTypeForAction('submit-existing-staged'), 'STAGED_PUBLISH');
   assert.equal(publishTypeForAction('publish-staged'), 'STAGED_PUBLISH');
   assert.equal(publishTypeForAction('upload-only'), null);
 });

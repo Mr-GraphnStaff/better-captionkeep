@@ -121,8 +121,8 @@ export function summarizeChromeStatus(status) {
 }
 
 export function publishTypeForAction(action) {
-  if (action === 'submit-auto') return 'DEFAULT_PUBLISH';
-  if (action === 'submit-staged' || action === 'publish-staged') return 'STAGED_PUBLISH';
+  if (action === 'submit-auto' || action === 'submit-existing-auto') return 'DEFAULT_PUBLISH';
+  if (['submit-staged', 'submit-existing-staged', 'publish-staged'].includes(action)) return 'STAGED_PUBLISH';
   return null;
 }
 
@@ -167,7 +167,15 @@ export async function main(options = {}) {
     requiredEnv('CHROME_EXTENSION_ID', env),
   );
   const action = env.CHROME_ACTION || 'preflight';
-  const allowedActions = ['preflight', 'upload-only', 'submit-staged', 'submit-auto', 'publish-staged'];
+  const allowedActions = [
+    'preflight',
+    'upload-only',
+    'submit-staged',
+    'submit-auto',
+    'submit-existing-staged',
+    'submit-existing-auto',
+    'publish-staged',
+  ];
   if (!allowedActions.includes(action)) {
     throw new Error(`CHROME_ACTION must be one of: ${allowedActions.join(', ')}`);
   }
@@ -216,10 +224,44 @@ export async function main(options = {}) {
   }
 
   assertNoActiveSubmission(initialStatus);
+  if (action.startsWith('submit-existing-')) {
+    if (normalizeUploadState(initialStatus.lastAsyncUploadState) !== 'SUCCEEDED') {
+      throw new Error('Chrome has no successfully uploaded draft to submit');
+    }
+    const publishType = publishTypeForAction(action);
+    console.log(
+      publishType === 'DEFAULT_PUBLISH'
+        ? 'Submitting the verified Chrome draft for review with immediate publication after approval'
+        : 'Submitting the verified Chrome draft for review with staged publishing',
+    );
+    const publishResponse = await fetchImpl(`${API_ROOT}/v2/${resourceName}:publish`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        publishType,
+        skipReview: false,
+        blockOnWarnings: true,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    const publishResult = await expectJson(publishResponse, 'Chrome review submission');
+    console.log(`Chrome accepted the extension update for review. State: ${publishResult.state || 'submitted'}`);
+    await writeStepSummary(env, [
+      '',
+      `- Review submission: \`${publishResult.state || 'submitted'}\``,
+      `- Publication mode: \`${publishType}\``,
+    ]);
+    return publishResult;
+  }
+
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  const expectedVersion = env.STORE_RELEASE_VERSION?.trim() || packageJson.version;
   const packagePath = env.CHROME_PACKAGE_PATH
     ? path.resolve(env.CHROME_PACKAGE_PATH)
-    : path.resolve('dist', 'chrome-store', packageNameForVersion(packageJson.version));
+    : path.resolve('dist', 'chrome-store', packageNameForVersion(expectedVersion));
   await access(packagePath);
   const packageBytes = await readFile(packagePath);
   console.log(`Uploading ${path.basename(packagePath)} to the Chrome Web Store`);
@@ -234,8 +276,8 @@ export async function main(options = {}) {
   });
   const uploadResult = await expectJson(uploadResponse, 'Chrome package upload');
   await waitForUpload(resourceName, token, uploadResult, fetchImpl, sleepImpl);
-  if (uploadResult.crxVersion && uploadResult.crxVersion !== packageJson.version) {
-    throw new Error(`Chrome accepted version ${uploadResult.crxVersion}, expected ${packageJson.version}`);
+  if (uploadResult.crxVersion && uploadResult.crxVersion !== expectedVersion) {
+    throw new Error(`Chrome accepted version ${uploadResult.crxVersion}, expected ${expectedVersion}`);
   }
 
   if (action === 'upload-only') {
