@@ -18,3 +18,13 @@ test('packageNameForVersion validates the extension version', async () => {
   assert.equal(packageNameForVersion('5.0.1.2'), 'better_captionkeep-5.0.1.2.zip');
   assert.throws(() => packageNameForVersion('v5.0.1'), /Invalid extension version/);
 });
+
+test('submit preflight rejects missing certification notes before any network mutation', async () => {
+  const { main } = await import('../scripts/edge-publish.mjs');
+  let networkCalls = 0;
+  await assert.rejects(main({
+    env: {EDGE_ACTION: 'submit'},
+    fetchImpl: async () => { networkCalls += 1; throw new Error('network must not run'); },
+  }), /EDGE_CERTIFICATION_NOTES/);
+  assert.equal(networkCalls, 0);
+});

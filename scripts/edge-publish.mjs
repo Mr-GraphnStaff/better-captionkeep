@@ -21,8 +21,8 @@ export function packageNameForVersion(version) {
   return `better_captionkeep-${version}.zip`;
 }
 
-function requiredEnv(name) {
-  const value = process.env[name]?.trim();
+function requiredEnv(name, env = process.env) {
+  const value = env[name]?.trim();
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
@@ -48,9 +48,9 @@ async function expectAccepted(response, operation) {
   return operationIdFromLocation(response.headers.get('location'));
 }
 
-async function pollOperation(url, headers, label) {
+async function pollOperation(url, headers, label, fetchImpl = fetch, sleepImpl = sleep) {
   for (let attempt = 1; attempt <= MAX_POLLS; attempt += 1) {
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       headers,
       signal: AbortSignal.timeout(120_000),
     });
@@ -67,23 +67,28 @@ async function pollOperation(url, headers, label) {
     if (result.status !== 'InProgress') {
       throw new Error(`${label} returned unexpected status: ${JSON.stringify(result)}`);
     }
-    if (attempt < MAX_POLLS) await sleep(POLL_INTERVAL_MS);
+    if (attempt < MAX_POLLS) await sleepImpl(POLL_INTERVAL_MS);
   }
   throw new Error(`${label} did not finish after ${MAX_POLLS} checks`);
 }
 
-export async function main() {
-  const clientId = requiredEnv('EDGE_CLIENT_ID');
-  const apiKey = requiredEnv('EDGE_API_KEY');
-  const productId = requiredEnv('EDGE_PRODUCT_ID');
-  const action = process.env.EDGE_ACTION || 'upload-only';
+export async function main(options = {}) {
+  const env = options.env || process.env;
+  const fetchImpl = options.fetchImpl || fetch;
+  const sleepImpl = options.sleepImpl || sleep;
+  const action = env.EDGE_ACTION || 'upload-only';
   if (!['upload-only', 'submit'].includes(action)) {
     throw new Error('EDGE_ACTION must be upload-only or submit');
   }
+  const notes = env.EDGE_CERTIFICATION_NOTES?.trim();
+  if (action === 'submit' && !notes) throw new Error('EDGE_CERTIFICATION_NOTES is required when EDGE_ACTION is submit');
+  const clientId = requiredEnv('EDGE_CLIENT_ID', env);
+  const apiKey = requiredEnv('EDGE_API_KEY', env);
+  const productId = requiredEnv('EDGE_PRODUCT_ID', env);
 
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-  const packagePath = process.env.EDGE_PACKAGE_PATH
-    ? path.resolve(process.env.EDGE_PACKAGE_PATH)
+  const packagePath = env.EDGE_PACKAGE_PATH
+    ? path.resolve(env.EDGE_PACKAGE_PATH)
     : path.resolve('dist', packageNameForVersion(packageJson.version));
   await access(packagePath);
 
@@ -95,7 +100,7 @@ export async function main() {
   const packageBytes = await readFile(packagePath);
 
   console.log(`Uploading ${path.basename(packagePath)} to Microsoft Edge Add-ons`);
-  const uploadResponse = await fetch(`${API_ROOT}${productPath}/submissions/draft/package`, {
+  const uploadResponse = await fetchImpl(`${API_ROOT}${productPath}/submissions/draft/package`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/zip' },
     body: packageBytes,
@@ -105,7 +110,7 @@ export async function main() {
   await pollOperation(
     `${API_ROOT}${productPath}/submissions/draft/package/operations/${encodeURIComponent(uploadOperationId)}`,
     headers,
-    'Package upload',
+    'Package upload', fetchImpl, sleepImpl,
   );
 
   if (action === 'upload-only') {
@@ -113,11 +118,8 @@ export async function main() {
     return;
   }
 
-  const notes = process.env.EDGE_CERTIFICATION_NOTES?.trim();
-  if (!notes) throw new Error('EDGE_CERTIFICATION_NOTES is required when EDGE_ACTION is submit');
-
   console.log('Submitting the verified draft for Microsoft certification');
-  const publishResponse = await fetch(`${API_ROOT}${productPath}/submissions`, {
+  const publishResponse = await fetchImpl(`${API_ROOT}${productPath}/submissions`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ notes }),
@@ -127,7 +129,7 @@ export async function main() {
   await pollOperation(
     `${API_ROOT}${productPath}/submissions/operations/${encodeURIComponent(publishOperationId)}`,
     headers,
-    'Certification submission',
+    'Certification submission', fetchImpl, sleepImpl,
   );
   console.log('Microsoft accepted the extension update for certification.');
 }

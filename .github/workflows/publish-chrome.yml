@@ -57,6 +57,7 @@ jobs:
             cd dist/release
             sha256sum --check SHA256SUMS.txt
           )
+          node scripts/verify-release-assets.mjs dist/release "$RELEASE_TAG"
           store_package="dist/release/better_captionkeep-chrome-${RELEASE_TAG#v}.zip"
           test -f "$store_package"
           echo "CHROME_PACKAGE_PATH=$store_package" >> "$GITHUB_ENV"

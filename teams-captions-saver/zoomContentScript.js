@@ -14,14 +14,7 @@
     const adapter = registry.create(window.location.href, {document, window, MutationObserver});
     if (!adapter) return;
 
-    const coordinator = coordinatorFactory.create({
-        providerId: 'zoom',
-        normalizeCaption: registry.normalizeCaption,
-        storage: chrome.storage.local,
-        sendMessage: message => chrome.runtime.sendMessage(message),
-        pageUrl: window.location.href,
-        meetingTitle: document.title || 'Zoom meeting'
-    });
+    let coordinator = null;
     let trackingAllowed = true;
     let autoEnableCaptions = true;
     let adapterStarted = false;
@@ -53,7 +46,7 @@
     function stopAdapter(nextState = 'paused') {
         if (adapterStarted) adapter.stop();
         adapterStarted = false;
-        if (nextState === 'paused') coordinator.pause();
+        if (nextState === 'paused') coordinator?.pause();
     }
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -64,6 +57,7 @@
         }
         if (changes.trackCaptions) {
             trackingAllowed = changes.trackCaptions.newValue !== false;
+            if (!coordinator) return;
             if (trackingAllowed) {
                 coordinator.resume();
                 startAdapter();
@@ -72,6 +66,17 @@
     });
 
     async function initialize() {
+        const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'zoom'});
+        if (!surface?.ok || !surface.surfaceId) throw new Error(surface?.error || 'Capture surface is unavailable');
+        coordinator = coordinatorFactory.create({
+            providerId: 'zoom',
+            surfaceId: surface.surfaceId,
+            normalizeCaption: registry.normalizeCaption,
+            storage: chrome.storage.local,
+            sendMessage: message => chrome.runtime.sendMessage(message),
+            pageUrl: window.location.href,
+            meetingTitle: document.title || 'Zoom meeting'
+        });
         await coordinator.restore();
         adapter.restoreState?.(coordinator.getTranscript());
         try {
@@ -87,11 +92,15 @@
     }
 
     window.addEventListener('pagehide', () => {
-        coordinator.persistCheckpoint().catch(() => {});
+        coordinator?.persistCheckpoint().catch(() => {});
         stopAdapter('page unloading');
     });
 
     chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+        if (!coordinator) {
+            sendResponse({capturing: false, captureState: 'initializing', captionCount: 0});
+            return false;
+        }
         const state = coordinator.getState();
         switch (request.message) {
             case 'viewer_ready':

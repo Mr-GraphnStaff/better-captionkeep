@@ -233,11 +233,21 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
 // --- State Management ---
 let lastAutoSaveId = null;
 let autoSaveInProgress = false;
+const VIEWER_PAYLOAD_TTL_MS = 5 * 60 * 1000;
+
+async function cleanupViewerPayloads() {
+    const data = await chrome.storage.local.get(null);
+    const now = Date.now();
+    const expired = Object.entries(data).filter(([key, value]) => key.startsWith('viewer_payload_')
+        && (!Number.isFinite(value?.expiresAt) || value.expiresAt <= now)).map(([key]) => key);
+    if (expired.length) await chrome.storage.local.remove(expired);
+}
 
 async function createViewerTab(transcriptArray, sender, message) {
     const key = `viewer_payload_${crypto.randomUUID()}`;
+    const createdAt = Date.now();
     await chrome.storage.local.set({[key]: {transcriptArray, sourceTabId:sender.tab?.id,
-        sessionId:message.sessionId, meetingTitle:message.meetingTitle}});
+        sessionId:message.sessionId, meetingTitle:message.meetingTitle, createdAt, expiresAt:createdAt + VIEWER_PAYLOAD_TTL_MS}});
     await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?payload=${key}`)});
 }
 
@@ -294,13 +304,24 @@ function calculateDuration(transcriptArray) {
 
 chrome.runtime.onInstalled.addListener(() => {
     updateBadge(false);
+    cleanupViewerPayloads().catch(() => {});
 });
 
 chrome.runtime.onStartup.addListener(() => {
     updateBadge(false);
+    cleanupViewerPayloads().catch(() => {});
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return false;
+    if (message?.message === 'get_capture_surface') {
+        const providerId = String(message.providerId || 'meeting').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        const tabId = sender.tab?.id;
+        sendResponse(Number.isInteger(tabId)
+            ? {ok: true, surfaceId: `${providerId || 'meeting'}-tab-${tabId}`}
+            : {ok: false, error: 'Capture surface is unavailable'});
+        return false;
+    }
     const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
     if (!handled.has(message?.message)) return false;

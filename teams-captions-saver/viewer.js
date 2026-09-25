@@ -655,6 +655,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const params = new URL(location.href).searchParams;
             const payload = params.get('payload');
             const session = params.get('session');
+            const liveTab = params.get('liveTab');
+            const liveSession = params.get('liveSession');
             const result = {};
             let viewerData;
             if (session) {
@@ -662,6 +664,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 viewerData = {transcriptArray:saved.transcript, meetingTitle:saved.metadata.title, isHistorical:true};
             } else if (payload?.startsWith('viewer_payload_')) {
                 viewerData = (await chrome.storage.local.get(payload))[payload];
+                await chrome.storage.local.remove(payload);
+                if (viewerData?.expiresAt && viewerData.expiresAt <= Date.now()) viewerData = null;
+                if (viewerData?.sourceTabId !== undefined && viewerData?.sessionId) {
+                    const next = new URL(location.href);
+                    next.search = '';
+                    next.searchParams.set('liveTab', String(viewerData.sourceTabId));
+                    next.searchParams.set('liveSession', String(viewerData.sessionId));
+                    history.replaceState(null, '', next);
+                }
+            } else if (/^\d+$/.test(liveTab || '') && liveSession) {
+                viewerData = {sourceTabId: Number(liveTab), sessionId: liveSession};
+            }
+            if (viewerData?.sourceTabId !== undefined && viewerData?.sessionId && !viewerData.isHistorical) {
+                try {
+                    const current = await chrome.tabs.sendMessage(viewerData.sourceTabId, {message: 'get_evidence_context'});
+                    if (current?.sessionId === viewerData.sessionId && Array.isArray(current.transcriptArray)) {
+                        viewerData = {...viewerData, transcriptArray: current.transcriptArray,
+                            meetingTitle: current.meetingTitle || viewerData.meetingTitle};
+                    }
+                } catch (error) {
+                    console.log('Current transcript is unavailable; using the launch snapshot when present.', error);
+                }
             }
             let transcript = viewerData?.transcriptArray;
             historical = !!viewerData?.isHistorical;
@@ -717,10 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Error loading captions:", error);
             renderViewerState('We could not load this transcript', 'Open the Better CaptionKeep popup and choose View Transcript again.', { mark: '!' });
-        } finally {
-            // Clean up storage to prevent re-displaying on next open
-            // Session-specific payload remains available for refresh; history is stored separately.
-        }
+        } finally { /* launch payloads are consumed; refresh uses the live tab/session locator */ }
     }
     
     async function addMeetingEndedMessage() {
