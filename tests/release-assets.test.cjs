@@ -18,7 +18,7 @@ test('release asset verifier binds tag, checksums, provenance, and ZIPs', async 
   await writeFile(path.join(root, 'release-provenance.json'), JSON.stringify({
     version: '5.1.0', commit: 'abc123', artifacts: [...files].map(([name, bytes], index) => ({
       target: index ? 'chrome-store' : 'edge-store', path: index ? `chrome-store/${name}` : name, sha256: hash(bytes),
-    })),
+    })).concat({target:'chrome',path:'better_captionkeep_-_chrome_test-5.1.0.zip',sha256:'not-published'}),
   }));
   const {verifyReleaseAssets} = await import('../scripts/verify-release-assets.mjs');
   const result = await verifyReleaseAssets(root, 'v5.1.0');
