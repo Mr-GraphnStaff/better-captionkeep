@@ -1,0 +1,208 @@
+name: store-release-$(Date:yyyyMMdd).$(Rev:r)
+
+trigger: none
+pr: none
+
+parameters:
+  - name: releaseTag
+    displayName: Published GitHub release tag
+    type: string
+    default: v5.1.0
+  - name: chromePrepare
+    displayName: Chrome preparation
+    type: string
+    default: preflight
+    values: [skip, preflight, upload-only]
+  - name: edgePrepare
+    displayName: Edge preparation
+    type: string
+    default: preflight
+    values: [skip, preflight, upload-only]
+  - name: chromeRelease
+    displayName: Chrome approved action
+    type: string
+    default: skip
+    values: [skip, submit-auto, submit-staged, publish-staged]
+  - name: edgeRelease
+    displayName: Edge approved action
+    type: string
+    default: skip
+    values: [skip, submit]
+  - name: edgeCertificationNotes
+    displayName: Edge certification notes (required for submit)
+    type: string
+    default: ''
+
+variables:
+  vaultName: bck-release-kv-daftech
+  chromeExtensionId: nabjdlnkkaonnbnimnmnhjcbigceebml
+  chromePublisherId: b52d0eb8-a269-4224-8d38-604e7472ceb1
+  edgeProductId: 0e48419c-ed3f-4a9c-808b-5578a195c81b
+
+pool:
+  name: Better CaptionKeep Private
+  demands:
+    - Agent.Name -equals vm-bck-release-cus
+
+stages:
+  - stage: Verify
+    displayName: Verify frozen release
+    jobs:
+      - job: VerifyRelease
+        timeoutInMinutes: 15
+        workspace:
+          clean: all
+        steps:
+          - checkout: self
+            clean: true
+
+          - bash: |
+              set -euo pipefail
+              chrome_prepare='${{ parameters.chromePrepare }}'
+              chrome_release='${{ parameters.chromeRelease }}'
+              edge_prepare='${{ parameters.edgePrepare }}'
+              edge_release='${{ parameters.edgeRelease }}'
+              edge_notes='${{ parameters.edgeCertificationNotes }}'
+
+              if [[ "$chrome_release" =~ ^submit- ]] && [[ "$chrome_prepare" != 'upload-only' ]]; then
+                echo 'Chrome submission requires chromePrepare=upload-only in the same run.' >&2
+                exit 1
+              fi
+              if [[ "$edge_release" == 'submit' ]] && [[ "$edge_prepare" != 'upload-only' ]]; then
+                echo 'Edge submission requires edgePrepare=upload-only in the same run.' >&2
+                exit 1
+              fi
+              if [[ "$edge_release" == 'submit' ]] && [[ -z "$edge_notes" ]]; then
+                echo 'Edge certification notes are required for submission.' >&2
+                exit 1
+              fi
+            displayName: Validate release plan
+
+          - bash: |
+              set -euo pipefail
+              deployment/azure/download-verified-release.sh \
+                '${{ parameters.releaseTag }}' \
+                '$(Pipeline.Workspace)/verified-release' \
+                '${{ eq(parameters.chromePrepare, 'upload-only') }}'
+            displayName: Download and verify immutable GitHub assets
+
+          - task: PublishPipelineArtifact@1
+            displayName: Preserve verified release for this run
+            inputs:
+              targetPath: $(Pipeline.Workspace)/verified-release
+              artifact: verified-store-release
+              publishLocation: pipeline
+
+  - stage: Prepare
+    displayName: Prepare Store drafts
+    dependsOn: Verify
+    condition: and(succeeded(), or(ne('${{ parameters.chromePrepare }}', 'skip'), ne('${{ parameters.edgePrepare }}', 'skip')))
+    jobs:
+      - job: ChromePrepare
+        displayName: Chrome preflight or draft upload
+        condition: ne('${{ parameters.chromePrepare }}', 'skip')
+        timeoutInMinutes: 30
+        steps:
+          - checkout: self
+            clean: true
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: verified-store-release
+              path: $(Pipeline.Workspace)/verified-release
+          - bash: deployment/azure/load-store-secrets.sh chrome
+            displayName: Load Chrome credentials from private Key Vault
+            env:
+              BCK_VAULT_NAME: $(vaultName)
+          - bash: |
+              set -euo pipefail
+              node scripts/chrome-publish.mjs
+            displayName: Run Chrome preparation
+            env:
+              CHROME_CLIENT_ID: $(CHROME_CLIENT_ID)
+              CHROME_CLIENT_SECRET: $(CHROME_CLIENT_SECRET)
+              CHROME_REFRESH_TOKEN: $(CHROME_REFRESH_TOKEN)
+              CHROME_PUBLISHER_ID: $(chromePublisherId)
+              CHROME_EXTENSION_ID: $(chromeExtensionId)
+              CHROME_ACTION: ${{ parameters.chromePrepare }}
+              STORE_RELEASE_VERSION: ${{ replace(parameters.releaseTag, 'v', '') }}
+              CHROME_PACKAGE_PATH: $(Pipeline.Workspace)/verified-release/store/better_captionkeep-chrome-${{ replace(parameters.releaseTag, 'v', '') }}.zip
+
+      - job: EdgePrepare
+        displayName: Edge preflight or draft upload
+        condition: ne('${{ parameters.edgePrepare }}', 'skip')
+        timeoutInMinutes: 30
+        steps:
+          - checkout: self
+            clean: true
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: verified-store-release
+              path: $(Pipeline.Workspace)/verified-release
+          - bash: deployment/azure/load-store-secrets.sh edge
+            displayName: Load Edge credentials from private Key Vault
+            env:
+              BCK_VAULT_NAME: $(vaultName)
+          - bash: |
+              set -euo pipefail
+              node scripts/edge-publish.mjs
+            displayName: Run Edge preparation
+            env:
+              EDGE_CLIENT_ID: $(EDGE_CLIENT_ID)
+              EDGE_API_KEY: $(EDGE_API_KEY)
+              EDGE_PRODUCT_ID: $(edgeProductId)
+              EDGE_ACTION: ${{ parameters.edgePrepare }}
+              STORE_RELEASE_VERSION: ${{ replace(parameters.releaseTag, 'v', '') }}
+              EDGE_PACKAGE_PATH: $(Pipeline.Workspace)/verified-release/store/better_captionkeep-${{ replace(parameters.releaseTag, 'v', '') }}.zip
+
+  - stage: Release
+    displayName: Approved Store submission
+    dependsOn: Prepare
+    condition: and(not(failed()), not(canceled()), or(ne('${{ parameters.chromeRelease }}', 'skip'), ne('${{ parameters.edgeRelease }}', 'skip')))
+    jobs:
+      - deployment: SubmitToStores
+        displayName: Submit verified drafts
+        environment: bck-store-production
+        timeoutInMinutes: 45
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifact: verified-store-release
+                    path: $(Pipeline.Workspace)/verified-release
+                - bash: deployment/azure/load-store-secrets.sh all
+                  displayName: Load Store credentials from private Key Vault
+                  env:
+                    BCK_VAULT_NAME: $(vaultName)
+                - bash: |
+                    set -euo pipefail
+                    case '${{ parameters.chromeRelease }}' in
+                      skip) exit 0 ;;
+                      submit-auto) action='submit-existing-auto' ;;
+                      submit-staged) action='submit-existing-staged' ;;
+                      publish-staged) action='publish-staged' ;;
+                    esac
+                    CHROME_ACTION="$action" \
+                      node scripts/chrome-publish.mjs
+                  displayName: Run approved Chrome action
+                  condition: ne('${{ parameters.chromeRelease }}', 'skip')
+                  env:
+                    CHROME_CLIENT_ID: $(CHROME_CLIENT_ID)
+                    CHROME_CLIENT_SECRET: $(CHROME_CLIENT_SECRET)
+                    CHROME_REFRESH_TOKEN: $(CHROME_REFRESH_TOKEN)
+                    CHROME_PUBLISHER_ID: $(chromePublisherId)
+                    CHROME_EXTENSION_ID: $(chromeExtensionId)
+                - bash: |
+                    set -euo pipefail
+                    EDGE_ACTION='submit-existing' \
+                      node scripts/edge-publish.mjs
+                  displayName: Run approved Edge action
+                  condition: ne('${{ parameters.edgeRelease }}', 'skip')
+                  env:
+                    EDGE_CLIENT_ID: $(EDGE_CLIENT_ID)
+                    EDGE_API_KEY: $(EDGE_API_KEY)
+                    EDGE_PRODUCT_ID: $(edgeProductId)
+                    EDGE_CERTIFICATION_NOTES: ${{ parameters.edgeCertificationNotes }}

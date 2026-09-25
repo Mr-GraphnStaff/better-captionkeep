@@ -82,11 +82,13 @@ export async function main(options = {}) {
   const fetchImpl = options.fetchImpl || fetch;
   const sleepImpl = options.sleepImpl || sleep;
   const action = env.EDGE_ACTION || 'preflight';
-  if (!['preflight', 'upload-only', 'submit'].includes(action)) {
-    throw new Error('EDGE_ACTION must be preflight, upload-only, or submit');
+  if (!['preflight', 'upload-only', 'submit', 'submit-existing'].includes(action)) {
+    throw new Error('EDGE_ACTION must be preflight, upload-only, submit, or submit-existing');
   }
   const notes = env.EDGE_CERTIFICATION_NOTES?.trim();
-  if (action === 'submit' && !notes) throw new Error('EDGE_CERTIFICATION_NOTES is required when EDGE_ACTION is submit');
+  if (['submit', 'submit-existing'].includes(action) && !notes) {
+    throw new Error('EDGE_CERTIFICATION_NOTES is required when EDGE_ACTION submits for certification');
+  }
   const clientId = requiredEnv('EDGE_CLIENT_ID', env);
   const apiKey = requiredEnv('EDGE_API_KEY', env);
   const productId = requiredEnv('EDGE_PRODUCT_ID', env);
@@ -106,17 +108,41 @@ export async function main(options = {}) {
     return { clientIdConfigured: Boolean(clientId), apiKeyConfigured: Boolean(apiKey), productId };
   }
 
-  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-  const packagePath = env.EDGE_PACKAGE_PATH
-    ? path.resolve(env.EDGE_PACKAGE_PATH)
-    : path.resolve('dist', packageNameForVersion(packageJson.version));
-  await access(packagePath);
-
   const headers = {
     Authorization: `ApiKey ${apiKey}`,
     'X-ClientID': clientId,
   };
   const productPath = `/v1/products/${encodeURIComponent(productId)}`;
+
+  if (action === 'submit-existing') {
+    console.log('Submitting the verified Edge draft for Microsoft certification');
+    const publishResponse = await fetchImpl(`${API_ROOT}${productPath}/submissions`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    const publishOperationId = await expectAccepted(publishResponse, 'Certification submission');
+    await pollOperation(
+      `${API_ROOT}${productPath}/submissions/operations/${encodeURIComponent(publishOperationId)}`,
+      headers,
+      'Certification submission', fetchImpl, sleepImpl,
+    );
+    console.log('Microsoft accepted the extension update for certification.');
+    await writeStepSummary(env, [
+      '## Microsoft Edge Add-ons result',
+      '',
+      '- Microsoft accepted the verified draft for certification.',
+    ]);
+    return;
+  }
+
+  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  const expectedVersion = env.STORE_RELEASE_VERSION?.trim() || packageJson.version;
+  const packagePath = env.EDGE_PACKAGE_PATH
+    ? path.resolve(env.EDGE_PACKAGE_PATH)
+    : path.resolve('dist', packageNameForVersion(expectedVersion));
+  await access(packagePath);
   const packageBytes = await readFile(packagePath);
 
   console.log(`Uploading ${path.basename(packagePath)} to Microsoft Edge Add-ons`);
