@@ -14,13 +14,17 @@ Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves dec
 
 Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable Bring Your Own AI (**BYOAI**) handoffs that do not place transcript text in provider URLs. Teams remains the foundation and Google Meet is a supported live-capture provider. Zoom Web is the next development track; it is not part of the already-published 5.0.0 Store artifact. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
 
-## Better CaptionKeep 5.1 candidate
+## Better CaptionKeep 5.1
 
-The 5.1 candidate adds governed Zoom Web support and hardens the shared capture path: Teams interim captions are stabilized before commit, recovery checkpoints are bound to the originating browser tab, Google Meet recognizes same-URL post-call state, live-view payloads expire and refresh from the active session, Scrubby preserves transcript structure, session-history writes are quota-safe, and Store publishing validates immutable release assets before upload. This candidate is not the public Store release until the complete October 3–4 live gate passes; promotion is permitted no earlier than October 5.
+The 5.1 release line adds governed Zoom Web support and hardens the shared capture path: Teams interim captions are stabilized before commit, recovery checkpoints are bound to the originating browser tab, Google Meet recognizes same-URL post-call state, live-view payloads expire and refresh from the active session, Scrubby preserves transcript structure, session-history writes are quota-safe, and Store publishing validates immutable release assets before upload. The release record preserves the distinction between completed Store promotion and live-UAT items that were not completed before the product owner's early-promotion decision.
+
+## Better CaptionKeep 5.2 development
+
+The unreleased 5.2 development line adds a security-architect review package, enforceable managed controls for export, clipboard, attendee capture, evidence email, and local retention, plus a hardened Windows enterprise deployment profile. It also adds CodeQL analysis, pinned GitHub Actions, a runtime SBOM, and build provenance attestation. These changes are source candidates only until the 5.2 gate, managed-policy UAT, review, and Store promotion are complete; they are not present in the immutable 5.1.0 Store packages.
 
 ## Zoom Web development
 
-The Zoom discovery branch captures displayed subtitle-overlay text from the exact `app.zoom.us` Web client. It does not capture audio or video, use a meeting bot, connect to Zoom RTMS, support the native desktop client, or grant wildcard access to Zoom vanity domains. The tested overlay does not expose speaker attribution, so its records are explicitly labeled `Unknown speaker`. See the [Zoom Web evidence record](docs/ZOOM-WEB-CHALLENGES.md) and [5.1 development gate](docs/RELEASE-5.1.md).
+The Zoom discovery branch captures displayed subtitle-overlay text from the exact `app.zoom.us` Web client. It does not capture audio or video, use a meeting bot, connect to Zoom RTMS, support the native desktop client, or grant wildcard access to Zoom vanity domains. The tested overlay does not expose speaker attribution, so its records are explicitly labeled `Unknown speaker`. See the [Zoom Web evidence record](docs/ZOOM-WEB-CHALLENGES.md) and [5.1 release record](docs/RELEASE-5.1.md).
 
 ## Interface previews
 
@@ -56,14 +60,14 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.0 is the current public release line.
+Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.1 is the latest promoted release line; its evidence record distinguishes per-Store availability. Version 5.2 remains unreleased development.
 
-### Chrome and Edge 5.1 candidate sideloads
+### Chrome and Edge 5.2 development sideloads
 
 Run `npm run build:targets` to create four ignored test artifacts:
 
-- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-5.1.0.zip`
-- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-5.1.0.zip`
+- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-5.2.0.zip`
+- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-5.2.0.zip`
 
 The unpacked folders each contain the effective browser-labeled `manifest.json`. They use separate extension identities and local storage from the published Edge 4.6 extension, so testing does not update or overwrite the Store installation.
 
@@ -88,13 +92,13 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store candidate in `dist/chrome-store/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication. Zoom development also requires unpacked Chrome and Edge UAT against the Web client.
 
-Release and enterprise references: [standalone product record](docs/PROJECT-EMERGENCE.md), [5.1 release notes](docs/RELEASE-NOTES-5.1.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the evidence-based [5.1 release gate](docs/RELEASE-5.1.md), and the gated [dual-store publishing pipeline](docs/RELEASE-ORCHESTRATION.md).
+Release and enterprise references: [standalone product record](docs/PROJECT-EMERGENCE.md), [5.1 release notes](docs/RELEASE-NOTES-5.1.md), [security architecture and threat model](docs/SECURITY-ARCHITECTURE.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [enterprise security review record](docs/ENTERPRISE-SECURITY-REVIEW.md), [5.2 development gate](docs/RELEASE-5.2.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the completed [5.1 release record](docs/RELEASE-5.1.md), [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md), and [Chrome publishing pipeline](docs/CHROME-PUBLISH-PIPELINE.md).
 
 Browser API identifiers such as `chrome.storage` remain unchanged because Edge implements those Chromium extension APIs. Internal source paths remain stable.
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Version 5.0 is the fully independent current release line, with Google Meet as its first new live-capture provider. The [privacy policy](PRIVACY.md) is published. Repository release status does not imply certification or approval by either store. Chrome submission preparation is tracked in the [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md).
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Version 5.0 established the fully independent product line, and 5.1 is the latest promoted line. The [privacy policy](PRIVACY.md) is published. Repository release status does not imply certification or approval by either store; use the release record for per-Store evidence. Chrome submission preparation is tracked in the [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md).
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 

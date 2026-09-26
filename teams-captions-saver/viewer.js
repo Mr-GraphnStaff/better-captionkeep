@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let meetingEndTime = null;
     const SEARCH_DEBOUNCE_DELAY = 300;
     let scrubOptions = {};
+    let enterprisePolicy = {};
+    let enterprisePolicyReady = Promise.resolve();
     
     // Live streaming state
     let isLiveStreaming = false;
@@ -299,8 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const visibleCount = getVisibleCaptions().length;
         const hasVisibleCaptions = visibleCount > 0;
         
-        copyAllBtn.disabled = !hasVisibleCaptions;
-        saveAllBtn.disabled = !hasVisibleCaptions;
+        copyAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableClipboard;
+        saveAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
         
         // Update titles with count
         copyAllBtn.title = hasVisibleCaptions 
@@ -327,8 +329,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleCopyClick(e) {
+        await refreshViewerPolicy();
         const copyButton = e.target.closest('.copy-btn');
         if (!copyButton) return;
+        if (enterprisePolicy.disableClipboard) {
+            showNotification('Clipboard copy is disabled by your organization.', 'warning');
+            return;
+        }
 
         const captionDiv = copyButton.closest('.caption');
         const index = parseInt(captionDiv.dataset.index, 10);
@@ -336,7 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!captionData) return;
 
-        const textToCopy = `[${captionData.Time}] ${captionData.Name}: ${captionData.Text}`;
+        const originalText = `[${captionData.Time}] ${captionData.Name}: ${captionData.Text}`;
+        const textToCopy = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(originalText, scrubOptions).text
+            : originalText;
         try {
             await navigator.clipboard.writeText(textToCopy);
             copyButton.classList.add('copied');
@@ -388,12 +398,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function prepareOutput(captions) {
-        return scrubOutputToggle?.checked
+        return scrubOutputToggle?.checked || enterprisePolicy.forceScrubbedExport
             ? CaptionKeepPrivacyScrubber.scrubTranscript(captions, scrubOptions)
             : { transcript: captions, replacements: [] };
     }
     
     async function handleCopyAllClick() {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableClipboard) {
+            showNotification('Clipboard copy is disabled by your organization.', 'warning');
+            return;
+        }
         const visibleCaptions = getVisibleCaptions();
         
         if (visibleCaptions.length === 0) {
@@ -415,6 +430,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleSaveAllClick() {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableFileExport) {
+            showNotification('File export is disabled by your organization.', 'warning');
+            return;
+        }
         const visibleCaptions = getVisibleCaptions();
         
         if (visibleCaptions.length === 0) {
@@ -432,13 +452,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { showNotification(error.message,'error'); }
     }
 
-    (async () => {
+    async function refreshViewerPolicy() {
         const user = await chrome.storage.sync.get(['privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms']);
         const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+        enterprisePolicy = policy.settings;
         scrubOutputToggle.checked = policy.settings.privacyScrubberEnabled !== false;
         scrubOutputToggle.disabled = policy.locked.includes('privacyScrubberEnabled');
         scrubOptions = { profanityFilterEnabled: !!policy.settings.profanityFilterEnabled, customTerms: policy.settings.customScrubTerms || [] };
-    })();
+        historyBtn.hidden = !!enterprisePolicy.disableSessionHistory;
+        updateExportButtonStates();
+        return enterprisePolicy;
+    }
+    enterprisePolicyReady = refreshViewerPolicy();
 
 
     function showButtonSuccess(button, successText, originalText) {
@@ -537,6 +562,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Session History Functions ---
     async function showSessionHistory() {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableSessionHistory) {
+            showNotification('Session history is disabled by your organization.', 'warning');
+            return;
+        }
         sessionModal.style.display = 'block';
         await loadSessionHistory();
     }
@@ -592,6 +622,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.loadSessionFromHistory = async function(sessionId) {
         try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
             const sessionManager = new SessionManager();
             const sessionData = await sessionManager.loadSession(sessionId);
             
@@ -651,6 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function initialize() {
         try {
+            await enterprisePolicyReady;
             // Check if we have captions passed via storage (from popup)
             const params = new URL(location.href).searchParams;
             const payload = params.get('payload');
@@ -660,6 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = {};
             let viewerData;
             if (session) {
+                if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
                 const saved = await new SessionManager().loadSession(session);
                 viewerData = {transcriptArray:saved.transcript, meetingTitle:saved.metadata.title, isHistorical:true};
             } else if (payload?.startsWith('viewer_payload_')) {
@@ -749,6 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('meeting-ended-message')) return;
         
         // Check if auto-save is enabled
+        await refreshViewerPolicy();
         const { autoSaveOnEnd } = await chrome.storage.sync.get('autoSaveOnEnd');
         
         const endedMessage = document.createElement('div');
@@ -764,7 +799,9 @@ document.addEventListener('DOMContentLoaded', () => {
             font-size: 16px;
         `;
         
-        let subtext = autoSaveOnEnd ? 'Your transcript save has started.' : 'The transcript is ready to save.';
+        let subtext = enterprisePolicy.disableFileExport
+            ? 'File export is disabled by your organization.'
+            : autoSaveOnEnd ? 'Your transcript save has started.' : 'The transcript is ready to save.';
             
         endedMessage.innerHTML = `<strong>Meeting Ended</strong><br><span style="font-size: 14px;">${subtext}</span>`;
         

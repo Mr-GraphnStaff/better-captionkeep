@@ -7,7 +7,7 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 ## Data flow
 
 1. Provider-specific content scripts read captions already rendered by Teams, Google Meet, or Zoom Web.
-2. Active transcript recovery checkpoints and the ten-session history remain in `chrome.storage.local`.
+2. Active transcript recovery checkpoints and completed-session history remain in `chrome.storage.local`. The default completed-history limit is ten sessions; managed policy can lower the limit, apply an age limit, or disable indexed completed-session history.
 3. User preferences remain in `chrome.storage.sync`; temporary aliases remain in `chrome.storage.session`.
 4. Exports are staged locally and opened in the extension's save page. The browser or user selects the final location.
 5. AI handoff opens an internal review page. Transcript text is never placed in the external provider URL and is never pasted or submitted automatically.
@@ -31,7 +31,7 @@ The engine can produce false positives and false negatives. It does not understa
 
 ## Enterprise controls
 
-`managed-schema.json` permits administrators to force privacy/profanity scrubbing, disable AI handoff, restrict provider choices, supply approved ChatGPT/Claude destinations, and supply organization masking terms. Managed values are read-only and override synchronized user preferences. User settings can be exported/imported without transcript history; policy remains controlled by the administrator.
+`managed-schema.json` permits administrators to force privacy/profanity scrubbing, require scrubbed release output, disable AI handoff, clipboard, file export, evidence email, attendee capture, or completed-session history, restrict provider choices, set history maximum/retention, supply approved ChatGPT/Claude destinations, and supply organization masking terms. Managed values are read-only and override synchronized user preferences. Protected actions recheck policy at their enforcement boundary rather than relying only on disabled UI controls. User settings can be exported/imported without transcript history; policy remains controlled by the administrator.
 
 ## Threat controls
 

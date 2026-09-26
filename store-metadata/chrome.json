@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "5.1.0",
+  "manifestVersion": "5.2.0",
   "singlePurpose": "Capture, protect, review, and export live captions displayed in supported Microsoft Teams, Google Meet, and Zoom Web pages. The extension stores transcripts locally, supports user-directed exports, and can optionally prepare a reviewable AI prompt without transmitting it automatically.",
   "providers": [
     "Microsoft Teams",

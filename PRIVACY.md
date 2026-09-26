@@ -16,7 +16,7 @@ Meeting information is used to capture and display transcripts, maintain saved s
 
 Exported files are saved to a location controlled by the user and browser. A selected folder may itself be synchronized or backed up by other software. Copying a transcript places it on the system clipboard, which may be accessible to other applications or clipboard synchronization features.
 
-The extension does not operate a developer-hosted transcript collection service. Its code does not include advertising or analytics reporting to the developer. Diagnostic browser-console messages may contain meeting titles or participant details; review and redact logs before sharing them.
+The extension does not operate a developer-hosted transcript collection service. Its code does not include advertising or analytics reporting to the developer. Routine diagnostic browser-console messages are limited to state, counts, and errors rather than transcript or attendee-list values. Error details can still reveal operational context, so review and redact logs before sharing them.
 
 ## Optional BYOAI handoffs
 
@@ -48,7 +48,7 @@ Better CaptionKeep's use and transfer of user data complies with the Chrome Web 
 
 Saved-session history is managed in local browser storage. The current implementation limits session history to ten sessions and may remove older sessions when limits are reached. This limit does not mean all temporary or recovery data is immediately removed.
 
-Users can delete individual saved sessions or use Clear All in session history. These controls do not delete exported files, clipboard contents, browser history, synchronized preferences, managed administrator policy, or data the user submitted to AI providers. Manage those copies through the applicable browser, operating-system, storage-service, administrator, or provider controls. Uninstalling the extension removes its local extension storage through the browser; separately manage synchronized settings and copies outside the extension.
+Users can delete individual saved sessions or use Clear All in session history. Administrators can limit completed-session count and age or disable completed-session history through managed browser policy. Short-lived recovery checkpoints remain a separate resilience feature. These controls do not delete exported files, clipboard contents, browser history, synchronized preferences, managed administrator policy, or data the user submitted to AI providers. Manage those copies through the applicable browser, operating-system, storage-service, administrator, or provider controls. Uninstalling the extension removes its local extension storage through the browser; separately manage synchronized settings and copies outside the extension.
 
 ## Meeting participation and security
 

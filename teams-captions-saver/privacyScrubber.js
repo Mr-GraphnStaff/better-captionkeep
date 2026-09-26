@@ -107,14 +107,27 @@
         return Object.freeze({text: context.apply(input), replacements: Object.freeze(context.replacements)});
     }
 
-    function scrubTranscript(transcript, options = {}) {
-        if (!Array.isArray(transcript)) return Object.freeze({ transcript: [], replacements: Object.freeze([]) });
+    function scrubObject(value, options = {}) {
         const context = createScrubContext(options);
-        function scrubAttendeeValue(value) {
+        function clean(item) {
+            if (typeof item === 'string') return context.apply(item);
+            if (Array.isArray(item)) return item.map(clean);
+            if (item && typeof item === 'object') {
+                return Object.fromEntries(Object.entries(item).map(([key, entry]) => [key, clean(entry)]));
+            }
+            return item;
+        }
+        return Object.freeze({value: clean(value), replacements: Object.freeze(context.replacements)});
+    }
+
+    function scrubBundle(transcript, attendeeReport = null, options = {}) {
+        if (!Array.isArray(transcript)) return Object.freeze({ transcript: [], attendeeReport: null, replacements: Object.freeze([]) });
+        const context = createScrubContext(options);
+        function scrubValue(value) {
             if (typeof value === 'string') return context.apply(value);
-            if (Array.isArray(value)) return value.map(scrubAttendeeValue);
+            if (Array.isArray(value)) return value.map(scrubValue);
             if (value && typeof value === 'object') {
-                return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scrubAttendeeValue(item)]));
+                return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scrubValue(item)]));
             }
             return value;
         }
@@ -125,12 +138,21 @@
                 if (typeof next[field] === 'string') next[field] = context.apply(next[field]);
             }
             for (const field of ['attendees', 'attendeeList', 'currentAttendees', 'attendeeHistory']) {
-                if (Object.hasOwn(next, field)) next[field] = scrubAttendeeValue(next[field]);
+                if (Object.hasOwn(next, field)) next[field] = scrubValue(next[field]);
             }
             return next;
         });
-        return Object.freeze({transcript: cleaned, replacements: Object.freeze(context.replacements)});
+        return Object.freeze({
+            transcript: cleaned,
+            attendeeReport: attendeeReport && typeof attendeeReport === 'object' ? scrubValue(attendeeReport) : null,
+            replacements: Object.freeze(context.replacements)
+        });
     }
 
-    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubTranscript });
+    function scrubTranscript(transcript, options = {}) {
+        const result = scrubBundle(transcript, null, options);
+        return Object.freeze({transcript: result.transcript, replacements: result.replacements});
+    }
+
+    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubObject, scrubTranscript });
 })();

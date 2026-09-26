@@ -37,6 +37,19 @@
     let selectedSessionId = '';
     let polling = false;
     let transcriptSignature = '';
+    let enterprisePolicy = {};
+    let scrubOptions = {};
+
+    async function refreshEnterprisePolicy() {
+        const user = await chrome.storage.sync.get(['profanityFilterEnabled', 'customScrubTerms']);
+        const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+        enterprisePolicy = policy.settings;
+        scrubOptions = {
+            profanityFilterEnabled: !!enterprisePolicy.profanityFilterEnabled,
+            customTerms: enterprisePolicy.customScrubTerms || []
+        };
+        return enterprisePolicy;
+    }
 
     function setStatus(message) {
         elements.boardStatus.textContent = message;
@@ -221,10 +234,10 @@
             for (const marker of [...markers].reverse()) elements.markerList.append(markerNode(marker));
         }
         elements.markerCount.textContent = String(markers.length);
-        elements.copyBoard.disabled = !markers.length;
-        elements.downloadBoard.disabled = !markers.length;
-        elements.emailBoard.disabled = !markers.length;
-        elements.downloadBundle.disabled = !markers.length;
+        elements.copyBoard.disabled = !markers.length || !!enterprisePolicy.disableClipboard;
+        elements.downloadBoard.disabled = !markers.length || !!enterprisePolicy.disableFileExport;
+        elements.emailBoard.disabled = !markers.length || !!enterprisePolicy.disableEvidenceEmail;
+        elements.downloadBundle.disabled = !markers.length || !!enterprisePolicy.disableFileExport;
     }
 
     async function saveMarkers() {
@@ -346,18 +359,38 @@
     }
 
     async function copyBoard() {
-        await navigator.clipboard.writeText(boardMarkdown());
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableClipboard) throw new Error('Clipboard copy is disabled by your organization.');
+        const markdown = boardMarkdown();
+        const output = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(markdown, scrubOptions).text
+            : markdown;
+        await navigator.clipboard.writeText(output);
         setStatus('Evidence brief copied.');
     }
 
     async function downloadBoard() {
-        await saveTextFile(boardMarkdown(), 'text/markdown;charset=utf-8', 'evidence-board.md');
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableFileExport) throw new Error('File export is disabled by your organization.');
+        const markdown = boardMarkdown();
+        const output = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(markdown, scrubOptions).text
+            : markdown;
+        await saveTextFile(output, 'text/markdown;charset=utf-8', 'evidence-board.md');
         setStatus('Evidence brief ready to save.');
     }
 
-    function emailBoard() {
+    async function emailBoard() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableEvidenceEmail) {
+            setStatus('Evidence email is disabled by your organization.');
+            return;
+        }
         const subject = `Evidence brief: ${selectedContext()?.meetingTitle || 'Meeting'}`;
-        const markdown = boardMarkdown();
+        const rawMarkdown = boardMarkdown();
+        const markdown = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(rawMarkdown, scrubOptions).text
+            : rawMarkdown;
         const body = markdown.length > 12000
             ? `${markdown.slice(0, 12000)}\n\n[Brief shortened for email. Attach the saved Markdown for the complete evidence board.]`
             : markdown;
@@ -368,6 +401,8 @@
     }
 
     async function downloadBundle() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableFileExport) throw new Error('File export is disabled by your organization.');
         const context = selectedContext();
         const transcriptSha256 = context?.transcriptArray?.length
             ? await sha256Hex(board.canonicalTranscript(context))
@@ -376,7 +411,10 @@
             generatedAt: new Date().toISOString(),
             transcriptSha256
         });
-        await saveTextFile(`${JSON.stringify(bundle, null, 2)}\n`, 'application/json;charset=utf-8', 'provenance.json');
+        const output = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrubObject(bundle, scrubOptions).value
+            : bundle;
+        await saveTextFile(`${JSON.stringify(output, null, 2)}\n`, 'application/json;charset=utf-8', 'provenance.json');
         setStatus(bundle.source.transcriptIncluded
             ? `Provenance saved with transcript fingerprint ${transcriptSha256.slice(0, 12)}…`
             : 'Marker provenance saved. Reopen the source meeting to include its transcript fingerprint.');
@@ -399,7 +437,7 @@
     elements.closePanel.addEventListener('click', () => void closePanel().catch(error => setStatus(error.message)));
     elements.copyBoard.addEventListener('click', () => void copyBoard().catch(error => setStatus(error.message)));
     elements.downloadBoard.addEventListener('click', () => void downloadBoard().catch(error => setStatus(error.message)));
-    elements.emailBoard.addEventListener('click', emailBoard);
+    elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
     elements.markerList.addEventListener('click', event => {
@@ -421,7 +459,14 @@
     chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
         if (changeInfo.status === 'complete') void pollContext();
     });
+    chrome.storage.onChanged.addListener((_changes, areaName) => {
+        if (areaName === 'managed') void refreshEnterprisePolicy().then(renderMarkers).catch(error => setStatus(error.message));
+    });
 
-    void loadMarkers().then(pollContext);
+    void (async () => {
+        await refreshEnterprisePolicy();
+        await loadMarkers();
+        await pollContext();
+    })().catch(error => setStatus(error.message));
     setInterval(() => void pollContext(), POLL_INTERVAL_MS);
 })();
