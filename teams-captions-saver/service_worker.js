@@ -1,5 +1,44 @@
-importScripts('sessionManager.js');
+importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js');
 let historyQueue = Promise.resolve();
+
+async function readEffectivePolicy(userKeys = []) {
+    const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
+    return CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+}
+
+function historyOptions(settings = {}) {
+    return {
+        maxStoredSessions: settings.maxStoredSessions,
+        sessionRetentionDays: settings.sessionRetentionDays
+    };
+}
+
+async function applyManagedHistoryPolicy() {
+    const policy = await readEffectivePolicy();
+    const manager = new SessionManager(true, historyOptions(policy.settings));
+    if (policy.settings.disableSessionHistory) {
+        await manager.clearAllSessions();
+        return;
+    }
+    await manager.pruneExpiredSessions();
+    await manager.pruneExcessSessions();
+}
+
+function queueManagedHistoryPolicy() {
+    const operation = historyQueue.then(() => applyManagedHistoryPolicy());
+    historyQueue = operation.catch(() => {});
+    return operation;
+}
+
+async function prepareManagedExport(transcriptArray, attendeeReport, policy) {
+    if (policy.settings.disableFileExport) throw new Error('File export is disabled by your organization.');
+    if (!policy.settings.forceScrubbedExport) return {transcriptArray, attendeeReport};
+    const cleaned = globalThis.CaptionKeepPrivacyScrubber.scrubBundle(transcriptArray, attendeeReport, {
+        profanityFilterEnabled: !!policy.settings.profanityFilterEnabled,
+        customTerms: policy.settings.customScrubTerms || []
+    });
+    return {transcriptArray:cleaned.transcript, attendeeReport:cleaned.attendeeReport};
+}
 // --- Utility Functions ---
 function getSanitizedMeetingName(fullTitle) {
     if (!fullTitle) return "Meeting";
@@ -91,8 +130,7 @@ function formatAsTxt(transcript, attendeeReport) {
     console.log('[Teams Caption Saver] formatAsTxt called with:', {
         transcriptLength: transcript?.length,
         hasAttendeeReport: !!attendeeReport,
-        attendeeCount: attendeeReport?.totalUniqueAttendees || 0,
-        attendeeList: attendeeReport?.attendeeList || []
+        attendeeCount: attendeeReport?.totalUniqueAttendees || 0
     });
     
     // Add attendee information if available
@@ -305,11 +343,17 @@ function calculateDuration(transcriptArray) {
 chrome.runtime.onInstalled.addListener(() => {
     updateBadge(false);
     cleanupViewerPayloads().catch(() => {});
+    queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
 });
 
 chrome.runtime.onStartup.addListener(() => {
     updateBadge(false);
     cleanupViewerPayloads().catch(() => {});
+    queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
+});
+
+chrome.storage.onChanged.addListener((_changes, areaName) => {
+    if (areaName === 'managed') queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -334,7 +378,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'save_session_history':
                 {
                     const operation = historyQueue.then(async () => {
-                        const manager = new SessionManager(true);
+                        const policy = await readEffectivePolicy();
+                        const manager = new SessionManager(true, historyOptions(policy.settings));
+                        if (policy.settings.disableSessionHistory) {
+                            await manager.clearAllSessions();
+                            if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
+                            return;
+                        }
                         await manager.saveSession(message.transcriptArray, message.meetingTitle, message.attendeeReport);
                         if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
                     });
@@ -364,15 +414,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     attendeeCount: message.attendeeReport?.totalUniqueAttendees || 0
                 });
                 {
+                    const policy = await readEffectivePolicy(['profanityFilterEnabled', 'customScrubTerms']);
+                    const output = await prepareManagedExport(message.transcriptArray, message.attendeeReport, policy);
                     const saveOptions = await resolveSavePreferences({ forAutoSave: false });
                     await saveTranscript(
                         message.meetingTitle,
-                        message.transcriptArray,
+                        output.transcriptArray,
                         speakerAliases,
                         message.format,
                         message.recordingStartTime,
                         saveOptions,
-                        message.attendeeReport
+                        output.attendeeReport
                     );
                 }
                 break;
@@ -392,7 +444,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 try {
                     const settings = await chrome.storage.sync.get(['autoSaveOnEnd', 'defaultSaveFormat']);
-                    if (settings.autoSaveOnEnd && message.transcriptArray.length > 0) {
+                    const policy = await readEffectivePolicy(['profanityFilterEnabled', 'customScrubTerms']);
+                    if (settings.autoSaveOnEnd && message.transcriptArray.length > 0 && !policy.settings.disableFileExport) {
                         let formatToSave = typeof settings.defaultSaveFormat === 'string'
                             ? settings.defaultSaveFormat.toLowerCase()
                             : 'txt';
@@ -400,15 +453,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             formatToSave = 'txt';
                         }
                         console.log(`Auto-saving transcript in ${formatToSave.toUpperCase()} format.`);
+                        const output = await prepareManagedExport(message.transcriptArray, message.attendeeReport, policy);
                         const saveOptions = await resolveSavePreferences({ forAutoSave: true });
                         await saveTranscript(
                             message.meetingTitle,
-                            message.transcriptArray,
+                            output.transcriptArray,
                             speakerAliases,
                             formatToSave,
                             message.recordingStartTime,
                             saveOptions,
-                            message.attendeeReport
+                            output.attendeeReport
                         );
                         console.log('Export queued; file completion is shown in the export page.');
                     }
@@ -423,6 +477,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
 
             case 'open_ai_assistants':
+                if ((await readEffectivePolicy()).settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
                 await openAiAssistantTabs(message.providers, message.prompt, message.meetingTitle);
                 break;
 

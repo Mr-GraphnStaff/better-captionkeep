@@ -2,9 +2,12 @@
 // Local storage is quota limited across all keys; 8KB/item applies to sync storage.
 
 class SessionManager {
-    constructor(writer = false) {
+    constructor(writer = false, options = {}) {
         this.writer = writer;
-        this.MAX_SESSIONS = 10;
+        const requestedMaximum = Number(options.maxStoredSessions);
+        const requestedRetention = Number(options.sessionRetentionDays);
+        this.MAX_SESSIONS = Number.isInteger(requestedMaximum) ? Math.min(10, Math.max(1, requestedMaximum)) : 10;
+        this.RETENTION_DAYS = Number.isInteger(requestedRetention) ? Math.min(365, Math.max(1, requestedRetention)) : null;
         this.MAX_CHUNK_SIZE = 7000; // Stay under 8KB limit per key
         this.STORAGE_QUOTA = 8 * 1024 * 1024; // Reserve 8MB for sessions (leaving 2MB for settings)
     }
@@ -48,9 +51,41 @@ class SessionManager {
         return keys;
     }
 
+    isExpired(metadata, now = Date.now()) {
+        if (!this.RETENTION_DAYS) return false;
+        const timestamp = Date.parse(metadata?.timestamp || '');
+        return Number.isFinite(timestamp) && timestamp < now - (this.RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    }
+
+    async pruneExpiredSessions(now = Date.now()) {
+        if (!this.writer || !this.RETENTION_DAYS) return 0;
+        const index = await this.getStoredIndex();
+        const expired = index.filter(session => this.isExpired(session, now));
+        if (!expired.length) return 0;
+        const keys = expired.flatMap(session => this.sessionKeys(session));
+        if (keys.length) await chrome.storage.local.remove(keys);
+        await chrome.storage.local.set({session_index:index.filter(session => !this.isExpired(session, now))});
+        return expired.length;
+    }
+
+    async pruneExcessSessions() {
+        if (!this.writer) return 0;
+        const index = await this.getStoredIndex();
+        if (index.length <= this.MAX_SESSIONS) return 0;
+        const sorted = [...index].sort((a, b) => Date.parse(b.timestamp || '') - Date.parse(a.timestamp || ''));
+        const retained = sorted.slice(0, this.MAX_SESSIONS);
+        const excess = sorted.slice(this.MAX_SESSIONS);
+        const keys = excess.flatMap(session => this.sessionKeys(session));
+        if (keys.length) await chrome.storage.local.remove(keys);
+        await chrome.storage.local.set({session_index:retained});
+        return excess.length;
+    }
+
     // Save a meeting session with automatic chunking
     async saveSession(transcriptArray, meetingTitle, attendeeReport = null) {
         try {
+            await this.pruneExpiredSessions();
+            await this.pruneExcessSessions();
             const sessionId = `session_${crypto.randomUUID()}`;
             const chunks = this.chunkTranscript(transcriptArray);
             

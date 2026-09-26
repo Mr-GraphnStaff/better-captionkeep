@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Better CaptionKeep",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "description": "Capture, protect, review, and export live captions from Microsoft Teams, Google Meet, and Zoom Web.",
   "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
   "icons": {

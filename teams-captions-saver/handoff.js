@@ -5,9 +5,22 @@ const providersBox = document.getElementById('providers');
 const scrubberToggle = document.getElementById('privacyScrubberToggle');
 const scrubberMode = document.getElementById('scrubberMode');
 const copyButton = document.getElementById('copy');
+copyButton.disabled = true;
 let originalPrompt = '';
 let unmaskedCopyArmed = false;
 let scrubOptions = {};
+let enterprisePolicy = {};
+
+async function refreshHandoffPolicy() {
+    const userSettings = await chrome.storage.sync.get(['privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms', 'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl']);
+    const policy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
+    enterprisePolicy = policy.settings;
+    scrubOptions = { profanityFilterEnabled: !!enterprisePolicy.profanityFilterEnabled, customTerms: enterprisePolicy.customScrubTerms || [] };
+    if (enterprisePolicy.forceScrubbedExport) scrubberToggle.checked = true;
+    scrubberToggle.disabled = policy.locked.includes('privacyScrubberEnabled');
+    copyButton.disabled = !!enterprisePolicy.disableClipboard || !!enterprisePolicy.disableAiHandoff;
+    return policy;
+}
 
 function renderScrubberMode() {
     unmaskedCopyArmed = false;
@@ -31,13 +44,35 @@ function renderScrubberMode() {
 scrubberToggle.addEventListener('change', renderScrubberMode);
 
 copyButton.onclick = async () => {
+    await refreshHandoffPolicy();
+    if (enterprisePolicy.disableAiHandoff) {
+        originalPrompt = '';
+        promptBox.value = '';
+        statusBox.textContent = 'AI handoff is disabled by your organization.';
+        return;
+    }
+    if (enterprisePolicy.disableClipboard) {
+        statusBox.textContent = 'Clipboard copy is disabled by your organization.';
+        return;
+    }
     if (!scrubberToggle.checked && !unmaskedCopyArmed) {
         unmaskedCopyArmed = true;
         statusBox.textContent = 'Scrubby is off. Click “Copy unmasked prompt” again to confirm.';
         return;
     }
     try {
-        await navigator.clipboard.writeText(promptBox.value);
+        let output = promptBox.value;
+        if (enterprisePolicy.forceScrubbedExport) {
+            const scrubbed = CaptionKeepPrivacyScrubber.scrub(output, scrubOptions);
+            output = scrubbed.text;
+            promptBox.value = output;
+            scrubberToggle.checked = true;
+            copyButton.textContent = 'Copy cleaned prompt';
+            scrubberMode.textContent = scrubbed.replacements.length
+                ? `On · masked ${scrubbed.replacements.length} sensitive detail${scrubbed.replacements.length === 1 ? '' : 's'} locally.`
+                : 'On · no supported sensitive-data patterns found.';
+        }
+        await navigator.clipboard.writeText(output);
         unmaskedCopyArmed = false;
         statusBox.textContent = 'Copied. Paste only into a workspace authorized for this meeting.';
     } catch (error) {
@@ -90,12 +125,10 @@ function renderProvider(providerKey, settings) {
         const data = (await chrome.storage.local.get(id))[id];
         if (!data) throw new Error('This handoff is no longer available');
         originalPrompt = data.prompt;
-        const userSettings = await chrome.storage.sync.get(['privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms', 'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl']);
-        const policy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
+        const policy = await refreshHandoffPolicy();
         const settings = policy.settings;
-        scrubOptions = { profanityFilterEnabled: !!settings.profanityFilterEnabled, customTerms: settings.customScrubTerms || [] };
+        if (settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
         scrubberToggle.checked = settings.privacyScrubberEnabled !== false;
-        scrubberToggle.disabled = policy.locked.includes('privacyScrubberEnabled');
         renderScrubberMode();
         for (const provider of data.providers) renderProvider(provider, settings);
         // Page memory holds the editable prompt; remove the temporary durable copy after loading.

@@ -36,7 +36,7 @@ function harness() {
     const context=vm.createContext({chrome,document,crypto:webcrypto,Blob,URL,console:{log(){},warn(){},error(){}},
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
-        importScripts(name){vm.runInContext(read(name),context);}});
+        importScripts(...names){for(const name of names) vm.runInContext(read(name),context);}});
     return {data,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
 }
 
@@ -686,6 +686,25 @@ test('eleventh history save evicts oldest and retains newest prior session',asyn
     assert(h.data.session_index.some(s=>s.id==='old_0'));
     assert(!h.data.session_index.some(s=>s.id==='old_9'));
 });
+test('managed history options prune expired sessions and lower the session maximum',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    const now=Date.parse('2026-09-26T12:00:00Z');
+    h.data.session_index=[
+        {id:'expired',timestamp:'2026-08-01T00:00:00Z',chunkCount:1},
+        ...Array.from({length:5},(_,i)=>({id:'recent_'+i,timestamp:new Date(now-i*60000).toISOString(),chunkCount:1}))
+    ];
+    h.data.expired_chunk_0=[{Text:'expired'}];
+    for(let i=0;i<5;i++) h.data[`recent_${i}_chunk_0`]=[{Text:`recent ${i}`}];
+    const manager=h.run('new SessionManager(true,{maxStoredSessions:5,sessionRetentionDays:30})');
+    assert.equal(await manager.pruneExpiredSessions(now),1);
+    assert.equal('expired_chunk_0' in h.data,false);
+    h.data.session_index.push({id:'extra',timestamp:'2026-09-25T00:00:00Z',chunkCount:1});
+    h.data.extra_chunk_0=[{Text:'extra'}];
+    assert.equal(await manager.pruneExcessSessions(),1);
+    assert.equal('extra_chunk_0' in h.data,false);
+    await manager.saveSession([{Name:'A',Text:'new',Time:'10:00',capturedAt:'2026-09-26T12:00:00Z'}],'New');
+    assert.equal(h.data.session_index.length,5);
+});
 test('quota rejection preserves existing history',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'keep',chunkCount:1}];h.data.keep_chunk_0=[{Text:'keep'}];h.area.fail=true;
     await assert.rejects(h.run('new SessionManager(true)').saveSession([{Name:'A',Text:'new',Time:'10'}],'New'),/QUOTA/);
@@ -892,6 +911,30 @@ test('Scrubby preserves transcript schema and reuses placeholders across explici
     assert.equal(cleaned.attendeeList[0].role,'[CUSTOM_TERM_1]');
     assert.deepEqual(Object.keys(cleaned),Object.keys(original));
 });
+test('service-worker export enforcement scrubs transcript and attendee data',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    const policy={settings:{forceScrubbedExport:true,profanityFilterEnabled:false,customScrubTerms:[]}};
+    const result=await h.run(`prepareManagedExport(
+        [{Name:'alice@example.com',Text:'Email alice@example.com',Time:'10:00'}],
+        {attendeeList:['alice@example.com']},
+        ${JSON.stringify(policy)}
+    )`);
+    assert.equal(result.transcriptArray[0].Name,'[EMAIL_1]');
+    assert.equal(result.transcriptArray[0].Text,'Email [EMAIL_1]');
+    assert.equal(result.attendeeReport.attendeeList[0],'[EMAIL_1]');
+    await assert.rejects(h.run(`prepareManagedExport([],null,{settings:{disableFileExport:true}})`),/disabled by your organization/);
+});
+test('Scrubby masks transcript and attendee report through one release context',()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('privacyScrubber.js'),context);
+    const result=context.CaptionKeepPrivacyScrubber.scrubBundle(
+        [{Name:'alice@example.com',Text:'Contact alice@example.com',Time:'10:00'}],
+        {attendeeList:['alice@example.com']}
+    );
+    assert.equal(result.transcript[0].Name,'[EMAIL_1]');
+    assert.equal(result.transcript[0].Text,'Contact [EMAIL_1]');
+    assert.equal(result.attendeeReport.attendeeList[0],'[EMAIL_1]');
+});
 test('configuration import is bounded and managed policy takes precedence',()=>{
     const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
     vm.runInContext(read('configuration.js'),context);
@@ -904,6 +947,19 @@ test('configuration import is bounded and managed policy takes precedence',()=>{
     assert.equal(effective.settings.privacyScrubberEnabled,true);
     assert.equal(effective.settings.autoAISummary,false);
     assert(effective.locked.includes('privacyScrubberEnabled'));
+    const enterprise=config.applyPolicy({trackAttendees:true,autoOpenAttendees:true,privacyScrubberEnabled:false},{
+        forceScrubbedExport:true,disableClipboard:true,disableFileExport:true,disableEvidenceEmail:true,
+        disableAttendeeCapture:true,disableSessionHistory:true,maxStoredSessions:5,sessionRetentionDays:30
+    });
+    assert.equal(enterprise.settings.privacyScrubberEnabled,true);
+    assert.equal(enterprise.settings.trackAttendees,false);
+    assert.equal(enterprise.settings.autoOpenAttendees,false);
+    assert.equal(enterprise.settings.disableClipboard,true);
+    assert.equal(enterprise.settings.disableFileExport,true);
+    assert.equal(enterprise.settings.disableEvidenceEmail,true);
+    assert.equal(enterprise.settings.disableSessionHistory,true);
+    assert.equal(enterprise.settings.maxStoredSessions,5);
+    assert.equal(enterprise.settings.sessionRetentionDays,30);
 });
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
@@ -937,6 +993,28 @@ test('extension pages use only packaged scripts and settings use progressive dis
     assert(popup.includes('<details class="settings-group" open>'));
     for(const section of ['Appearance','Speaker aliases','Saving transcripts','Bring your own AI (BYOAI) and privacy','Naming and timestamps','Configuration portability']) {
         assert(popup.includes(`<summary>${section}</summary>`));
+    }
+});
+test('managed release restrictions are enforced across extension action surfaces',()=>{
+    const worker=read('service_worker.js');
+    const popup=read('popup.js');
+    const viewer=read('viewer.js');
+    const handoff=read('handoff.js');
+    const sidepanel=read('sidepanel.js');
+    const exportPage=read('export.js');
+    assert(worker.includes('prepareManagedExport'));
+    assert(worker.includes('disableSessionHistory'));
+    assert(worker.includes('disableAiHandoff'));
+    assert(popup.includes('currentEnterprisePolicy.disableClipboard'));
+    assert(popup.includes('currentEnterprisePolicy.disableFileExport'));
+    assert(viewer.includes('enterprisePolicy.disableClipboard'));
+    assert(viewer.includes('enterprisePolicy.disableFileExport'));
+    assert(handoff.includes('enterprisePolicy.disableClipboard'));
+    assert(handoff.includes('CaptionKeepPrivacyScrubber.scrub(output, scrubOptions)'));
+    assert(sidepanel.includes('enterprisePolicy.disableEvidenceEmail'));
+    assert(exportPage.includes('Pending exports were discarded'));
+    for(const page of ['viewer.html','handoff.html','sidepanel.html','export.html']) {
+        assert(read(page).includes('configuration.js'),`${page} must load managed-policy configuration`);
     }
 });
 test('all target manifests expose the local Evidence Board through the side panel',()=>{

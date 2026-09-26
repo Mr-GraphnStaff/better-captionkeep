@@ -38,6 +38,11 @@ export function validateManagedPolicy(policy, schema) {
     if (!definition) throw new Error(`Unknown managed policy key: ${key}`);
     if (definition.type === 'boolean' && typeof value !== 'boolean') throw new Error(`${key} must be a boolean.`);
     if (definition.type === 'string' && typeof value !== 'string') throw new Error(`${key} must be a string.`);
+    if (definition.type === 'integer' && (!Number.isInteger(value)
+      || (Number.isFinite(definition.minimum) && value < definition.minimum)
+      || (Number.isFinite(definition.maximum) && value > definition.maximum))) {
+      throw new Error(`${key} must be an integer between ${definition.minimum} and ${definition.maximum}.`);
+    }
     if (definition.type === 'array' && (!Array.isArray(value) || value.some(item => typeof item !== definition.items?.type))) {
       throw new Error(`${key} must be an array of ${definition.items?.type || 'valid'} values.`);
     }
@@ -59,9 +64,10 @@ function policyValueCommands(policy) {
       commands.push('Get-Item -LiteralPath $arrayPath | Select-Object -ExpandProperty Property | ForEach-Object { Remove-ItemProperty -LiteralPath $arrayPath -Name $_ -Force }');
       value.forEach((item, index) => commands.push(`New-ItemProperty -Path $arrayPath -Name ${psQuote(String(index + 1))} -PropertyType String -Value ${psQuote(item)} -Force | Out-Null`));
     } else {
-      const type = typeof value === 'boolean' ? 'DWord' : 'String';
+      const type = typeof value === 'boolean' || Number.isInteger(value) ? 'DWord' : 'String';
       const rendered = typeof value === 'boolean' ? (value ? '1' : '0') : psQuote(value);
-      commands.push(`New-ItemProperty -Path $policyPath -Name ${psQuote(key)} -PropertyType ${type} -Value ${rendered} -Force | Out-Null`);
+      const normalized = Number.isInteger(value) ? String(value) : rendered;
+      commands.push(`New-ItemProperty -Path $policyPath -Name ${psQuote(key)} -PropertyType ${type} -Value ${normalized} -Force | Out-Null`);
     }
   }
   return commands.join('\n');
@@ -95,6 +101,11 @@ export async function buildIntuneBundle(options = {}) {
       toolbar_state: 'force_shown'
     }
   };
+  if (profile.minimumVersionRequired) {
+    const minimumVersion = String(profile.minimumVersionRequired).trim();
+    if (!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(minimumVersion)) throw new Error('minimumVersionRequired must be a browser extension version.');
+    extensionSettings[extensionId].minimum_version_required = minimumVersion;
+  }
 
   await mkdir(outputDir, { recursive: true });
   await Promise.all([

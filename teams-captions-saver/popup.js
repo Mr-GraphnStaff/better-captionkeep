@@ -49,6 +49,7 @@ const UI_ELEMENTS = {
 
 
 let currentDefaultFormat = 'txt';
+let currentEnterprisePolicy = {};
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -143,16 +144,22 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
 }
 
 function updateButtonStates(hasData) {
-    const buttons = [
-        UI_ELEMENTS.copyButton, UI_ELEMENTS.copyDropdownButton,
-        UI_ELEMENTS.saveButton, UI_ELEMENTS.saveDropdownButton,
-        UI_ELEMENTS.viewButton
-    ];
-    buttons.forEach(btn => btn.disabled = !hasData);
+    UI_ELEMENTS.copyButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
+    UI_ELEMENTS.copyDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
+    UI_ELEMENTS.saveButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
+    UI_ELEMENTS.saveDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
+    UI_ELEMENTS.viewButton.disabled = !hasData;
+}
+
+async function refreshEnterprisePolicy() {
+    const user = await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS);
+    const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+    currentEnterprisePolicy = policy.settings;
+    return currentEnterprisePolicy;
 }
 
 function updateSaveButtonText(format) {
-    UI_ELEMENTS.saveButton.textContent = `Save ${format.toUpperCase()}`;
+    UI_ELEMENTS.saveButton.textContent = `${currentEnterprisePolicy.forceScrubbedExport ? 'Save Cleaned' : 'Save'} ${format.toUpperCase()}`;
 }
 
 function updateSaveBehaviorHint(type) {
@@ -315,14 +322,16 @@ async function loadSettings() {
     const policy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
     const settings = policy.settings;
     const locked = new Set(policy.locked);
+    currentEnterprisePolicy = settings;
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
     UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
+    UI_ELEMENTS.trackAttendeesToggle.disabled = locked.has('trackAttendees');
     if (UI_ELEMENTS.autoOpenAttendeesToggle) {
         UI_ELEMENTS.autoOpenAttendeesToggle.checked = !!settings.autoOpenAttendees;
-        UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked;
+        UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked || locked.has('autoOpenAttendees');
     }
     if (UI_ELEMENTS.autoAISummaryToggle) {
         UI_ELEMENTS.autoAISummaryToggle.checked = !!settings.autoAISummary;
@@ -332,6 +341,22 @@ async function loadSettings() {
         UI_ELEMENTS.privacyScrubberToggle.checked = settings.privacyScrubberEnabled !== false;
         UI_ELEMENTS.privacyScrubberToggle.disabled = locked.has('privacyScrubberEnabled');
     }
+    if (settings.forceScrubbedExport) {
+        UI_ELEMENTS.copyButton.textContent = 'Copy Cleaned Transcript';
+    } else {
+        UI_ELEMENTS.copyButton.textContent = 'Copy Transcript';
+    }
+    UI_ELEMENTS.copyOptions.querySelectorAll('[data-copy-type="standard"]').forEach(option => { option.hidden = !!settings.forceScrubbedExport; });
+    UI_ELEMENTS.saveOptions.querySelectorAll('[data-format]:not([data-cleaned="true"])').forEach(option => { option.hidden = !!settings.forceScrubbedExport; });
+    UI_ELEMENTS.copyButton.title = settings.disableClipboard ? 'Clipboard copy is disabled by your organization.' : '';
+    UI_ELEMENTS.copyDropdownButton.title = settings.disableClipboard ? 'Clipboard copy is disabled by your organization.' : '';
+    UI_ELEMENTS.saveButton.title = settings.disableFileExport ? 'File export is disabled by your organization.' : '';
+    UI_ELEMENTS.saveDropdownButton.title = settings.disableFileExport ? 'File export is disabled by your organization.' : '';
+    if (settings.disableFileExport) {
+        UI_ELEMENTS.autoSaveOnEndToggle.checked = false;
+    }
+    UI_ELEMENTS.autoSaveOnEndToggle.disabled = !!settings.disableFileExport;
+    if (UI_ELEMENTS.sessionHistory) UI_ELEMENTS.sessionHistory.hidden = !!settings.disableSessionHistory;
     if (UI_ELEMENTS.profanityFilterToggle) {
         UI_ELEMENTS.profanityFilterToggle.checked = !!settings.profanityFilterEnabled;
         UI_ELEMENTS.profanityFilterToggle.disabled = locked.has('profanityFilterEnabled');
@@ -561,6 +586,8 @@ function setupEventListeners() {
     });
 
     UI_ELEMENTS.saveButton.addEventListener('click', async () => {
+        await refreshEnterprisePolicy();
+        if (currentEnterprisePolicy.disableFileExport) return;
         const tab = await getActiveMeetingTab();
         if (tab) {
             chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format: currentDefaultFormat });
@@ -601,6 +628,11 @@ function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandl
 
 async function handleCopy(target) {
     if (!target.dataset.copyType) return;
+    await refreshEnterprisePolicy();
+    if (currentEnterprisePolicy.disableClipboard) {
+        UI_ELEMENTS.statusMessage.textContent = 'Clipboard copy is disabled by your organization.';
+        return;
+    }
 
     const tab = await getActiveMeetingTab();
     if (!tab) return;
@@ -611,7 +643,7 @@ async function handleCopy(target) {
         if (response?.transcriptArray) {
             const { speakerAliases = {} } = await chrome.storage.session.get('speakerAliases');
             const formattedText = await formatTranscript(response.transcriptArray, speakerAliases);
-            const output = target.dataset.copyType === 'cleaned'
+            const output = target.dataset.copyType === 'cleaned' || currentEnterprisePolicy.forceScrubbedExport
                 ? CaptionKeepPrivacyScrubber.scrub(formattedText, await getScrubOptions())
                 : { text: formattedText, replacements: [] };
             await navigator.clipboard.writeText(output.text);
@@ -629,11 +661,16 @@ async function handleCopy(target) {
 async function handleSave(target) {
     const format = target.dataset.format;
     if (!format) return;
+    await refreshEnterprisePolicy();
+    if (currentEnterprisePolicy.disableFileExport) {
+        UI_ELEMENTS.statusMessage.textContent = 'File export is disabled by your organization.';
+        return;
+    }
     
     const tab = await getActiveMeetingTab();
     if (tab) {
         UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
-        if (target.dataset.cleaned !== 'true') {
+        if (target.dataset.cleaned !== 'true' && !currentEnterprisePolicy.forceScrubbedExport) {
             chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format });
             return;
         }
@@ -920,3 +957,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', initializePopup);
+
+chrome.storage.onChanged.addListener((_changes, areaName) => {
+    if (areaName === 'managed') void loadSettings().catch(error => {
+        UI_ELEMENTS.statusMessage.textContent = `Could not refresh managed settings: ${error.message}`;
+    });
+});
