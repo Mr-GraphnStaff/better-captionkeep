@@ -1104,6 +1104,31 @@ readEffectiveCaptureSettings().then(async settings => {
 });
 
 // --- Message Handling ---
+function supportedTeamsJoinUrl(value) {
+    try {
+        const url = new URL(String(value || ''));
+        const host = url.hostname.toLowerCase();
+        const path = url.pathname;
+        const supportedHost = host === 'teams.microsoft.com' || host === 'teams.cloud.microsoft';
+        const supportedPath = path.startsWith('/l/meetup-join/') || /^\/meet\/[^/]+\/?$/.test(path);
+        if (!supportedHost || url.protocol !== 'https:' || !supportedPath) return '';
+        url.hash = '';
+        return url.toString();
+    } catch {
+        return '';
+    }
+}
+
+function findCurrentTeamsJoinUrl() {
+    const pageUrl = supportedTeamsJoinUrl(window.location.href);
+    if (pageUrl) return pageUrl;
+    for (const link of document.querySelectorAll('a[href]')) {
+        const joinUrl = supportedTeamsJoinUrl(link.href || link.getAttribute('href'));
+        if (joinUrl) return joinUrl;
+    }
+    return '';
+}
+
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     switch (request.message) {
         case 'viewer_ready':
@@ -1128,6 +1153,10 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                 });
             })();
             return true; // Will respond asynchronously
+
+        case 'get_teams_meeting_join_url':
+            sendResponse({ joinUrl: findCurrentTeamsJoinUrl() });
+            break;
 
         case 'return_transcript':
             flushPendingCaptions();

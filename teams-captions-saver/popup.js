@@ -51,6 +51,7 @@ const UI_ELEMENTS = {
     graphConnectButton: document.getElementById('graphConnectButton'),
     graphDisconnectButton: document.getElementById('graphDisconnectButton'),
     graphJoinUrl: document.getElementById('graphJoinUrl'),
+    graphUseCurrentMeeting: document.getElementById('graphUseCurrentMeeting'),
     graphImportButton: document.getElementById('graphImportButton'),
     graphImportStatus: document.getElementById('graphImportStatus')
 };
@@ -198,6 +199,29 @@ async function refreshGraphStatus() {
         UI_ELEMENTS.graphConnectionStatus.textContent = `Connection status unavailable: ${error.message}`;
     }
     setGraphBusy(false);
+}
+
+async function populateCurrentTeamsMeeting(tab = null, silent = false) {
+    if (!UI_ELEMENTS.graphJoinUrl || UI_ELEMENTS.graphTranscriptSection?.hidden) return false;
+    const meetingTab = tab || await getActiveMeetingTab();
+    if (!meetingTab || !/^https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)(?:\/|$)/.test(meetingTab.url || '')) {
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Open the active Teams meeting, then try again.';
+        return false;
+    }
+    try {
+        const response = await chrome.tabs.sendMessage(meetingTab.id, {message:'get_teams_meeting_join_url'});
+        if (!response?.joinUrl) {
+            if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Open Meeting info in Teams, then choose Use current Teams meeting again.';
+            return false;
+        }
+        UI_ELEMENTS.graphJoinUrl.value = response.joinUrl;
+        UI_ELEMENTS.graphImportStatus.textContent = 'Current Teams meeting link captured locally. Import after Teams publishes its official transcript.';
+        setGraphBusy(false);
+        return true;
+    } catch {
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Refresh the Teams meeting tab, then try again.';
+        return false;
+    }
 }
 
 function updateSaveButtonText(format) {
@@ -456,6 +480,7 @@ async function loadSettings() {
 // --- Event Handling ---
 function setupEventListeners() {
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => setGraphBusy(false));
+    UI_ELEMENTS.graphUseCurrentMeeting?.addEventListener('click', () => populateCurrentTeamsMeeting());
     UI_ELEMENTS.graphConnectButton?.addEventListener('click', async () => {
         setGraphBusy(true);
         UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
@@ -985,6 +1010,8 @@ async function initializePopup() {
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
         return;
     }
+
+    await populateCurrentTeamsMeeting(tab, true);
 
     try {
         const status = await chrome.tabs.sendMessage(tab.id, { message: "get_status" });

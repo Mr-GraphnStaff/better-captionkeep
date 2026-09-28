@@ -1067,6 +1067,15 @@ test('popup uses a compact three-platform launcher without an inline Teams warni
     assert(script.includes("textContent = 'Open Teams, Zoom Web, or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
 });
+test('Graph pilot can capture the active Teams meeting link without new permissions',()=>{
+    const content=read('content_script.js');
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
+    assert(content.includes("case 'get_teams_meeting_join_url'"));
+    assert(content.includes("document.querySelectorAll('a[href]')"));
+    assert(popup.includes('id="graphUseCurrentMeeting"'));
+    assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
+});
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');
     assert(html.includes('Better CaptionKeep 5.0'));
