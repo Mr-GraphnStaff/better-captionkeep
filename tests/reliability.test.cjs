@@ -740,6 +740,21 @@ test('session mutations never persist transient recovery entries',async()=>{
     await manager.updateSessionIndex({id:'new',timestamp:'2026-09-25T12:00:00Z',chunkCount:1});
     assert.equal(h.data.session_index.some(item=>item.id==='backup_transient'),false);
 });
+test('Graph source artifact is retained separately and deleted with its saved session',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    const manager=h.run('new SessionManager(true)');
+    const raw='WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Pilot User>Synthetic phrase.</v>\n';
+    const source={type:'microsoft-graph',sourceSha256:'a'.repeat(64),speakerAttribution:'included'};
+    const id=await manager.saveSession([{Name:'Pilot User',Text:'Synthetic phrase.',Time:'00:00:01.000'}],'Graph Pilot',null,{source,rawSource:raw});
+    const loaded=await manager.loadSession(id);
+    assert.equal(loaded.sourceArtifact,raw);
+    assert.equal(loaded.metadata.source.type,'microsoft-graph');
+    assert.equal(loaded.metadata.source.sourceSha256,'a'.repeat(64));
+    assert.equal(h.data[`${id}_source`],raw);
+    await manager.deleteSession(id);
+    assert.equal(`${id}_source` in h.data,false);
+    assert.equal(h.data.session_index.some(item=>item.id===id),false);
+});
 test('missing chunks are reported rather than silently omitted',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'broken',chunkCount:2,captionCount:2}];h.data.broken_chunk_0=[];
     await assert.rejects(h.run('new SessionManager()').loadSession('broken'),/missing chunk/);

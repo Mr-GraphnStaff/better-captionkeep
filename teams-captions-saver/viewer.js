@@ -695,7 +695,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (session) {
                 if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
                 const saved = await new SessionManager().loadSession(session);
-                viewerData = {transcriptArray:saved.transcript, meetingTitle:saved.metadata.title, isHistorical:true};
+                viewerData = {transcriptArray:saved.transcript, meetingTitle:saved.metadata.title,
+                    source:saved.metadata.source || null, sessionId:saved.metadata.id, isHistorical:true};
             } else if (payload?.startsWith('viewer_payload_')) {
                 viewerData = (await chrome.storage.local.get(payload))[payload];
                 await chrome.storage.local.remove(payload);
@@ -726,6 +727,14 @@ document.addEventListener('DOMContentLoaded', () => {
             sourceTabId = viewerData?.sourceTabId ?? null;
             sourceSessionId = viewerData?.sessionId ?? null;
             if (viewerData?.meetingTitle) document.querySelector('h1').textContent = viewerData.meetingTitle + (historical ? ' (Historical)' : '');
+            const sourceLabel = document.getElementById('viewer-source');
+            if (sourceLabel && viewerData?.source?.type === 'microsoft-graph') {
+                sourceLabel.hidden = false;
+                const attribution = viewerData.source.speakerAttribution === 'included'
+                    ? 'speaker attribution included'
+                    : 'speaker attribution unavailable by tenant policy';
+                sourceLabel.textContent = `Official Microsoft Teams transcript imported through Microsoft Graph · ${attribution}`;
+            }
             setupEventListeners();
             // Use viewerData if captionsToView is not available
             if (!transcript && viewerData && viewerData.transcriptArray) {

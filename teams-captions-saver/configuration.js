@@ -17,7 +17,8 @@
         'forceProfanityFilter', 'customScrubTerms', 'forceScrubbedExport',
         'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
         'disableAttendeeCapture', 'disableSessionHistory', 'maxStoredSessions',
-        'sessionRetentionDays'
+        'sessionRetentionDays', 'enableGraphTranscriptImport', 'graphTenantId',
+        'graphClientId'
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
@@ -108,6 +109,16 @@
             if (Number.isInteger(managed[key]) && managed[key] >= minimum && managed[key] <= maximum) {
                 settings[key] = managed[key];
                 locked.add(key);
+            }
+        }
+        if (managed.enableGraphTranscriptImport === true) {
+            settings.enableGraphTranscriptImport = true;
+            locked.add('enableGraphTranscriptImport');
+            for (const key of ['graphTenantId', 'graphClientId']) {
+                if (typeof managed[key] === 'string' && managed[key].trim()) {
+                    settings[key] = managed[key].trim();
+                    locked.add(key);
+                }
             }
         }
         if (Array.isArray(managed.allowedAiProviders)) {

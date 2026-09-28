@@ -44,12 +44,21 @@ const UI_ELEMENTS = {
     // Session History Elements
     sessionHistory: document.getElementById('sessionHistory'),
     historyButton: document.getElementById('historyButton'),
-    sessionList: document.getElementById('sessionList')
+    sessionList: document.getElementById('sessionList'),
+    graphTranscriptSection: document.getElementById('graphTranscriptSection'),
+    graphConnectionStatus: document.getElementById('graphConnectionStatus'),
+    graphRedirectUri: document.getElementById('graphRedirectUri'),
+    graphConnectButton: document.getElementById('graphConnectButton'),
+    graphDisconnectButton: document.getElementById('graphDisconnectButton'),
+    graphJoinUrl: document.getElementById('graphJoinUrl'),
+    graphImportButton: document.getElementById('graphImportButton'),
+    graphImportStatus: document.getElementById('graphImportStatus')
 };
 
 
 let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
+let graphConnected = false;
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -156,6 +165,39 @@ async function refreshEnterprisePolicy() {
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
     currentEnterprisePolicy = policy.settings;
     return currentEnterprisePolicy;
+}
+
+function setGraphBusy(busy) {
+    if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected;
+    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+}
+
+async function sendGraphMessage(message) {
+    const response = await chrome.runtime.sendMessage(message);
+    if (!response?.ok) {
+        const error = new Error(response?.error || 'The Microsoft Graph operation failed.');
+        error.code = response?.code;
+        throw error;
+    }
+    return response;
+}
+
+async function refreshGraphStatus() {
+    if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    try {
+        const status = await sendGraphMessage({message:'graph_get_status'});
+        graphConnected = !!status.connected;
+        UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
+            ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Imports require an explicit meeting link.`
+            : (status.configured ? 'Administrator configuration detected. Connect Microsoft 365 to begin.' : 'The managed Graph configuration is incomplete.');
+        UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Pilot redirect URI: ${status.redirectUri}` : '';
+    } catch (error) {
+        graphConnected = false;
+        UI_ELEMENTS.graphConnectionStatus.textContent = `Connection status unavailable: ${error.message}`;
+    }
+    setGraphBusy(false);
 }
 
 function updateSaveButtonText(format) {
@@ -323,6 +365,9 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
+    if (UI_ELEMENTS.graphTranscriptSection) {
+        UI_ELEMENTS.graphTranscriptSection.hidden = settings.enableGraphTranscriptImport !== true;
+    }
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
@@ -410,6 +455,43 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
+    UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => setGraphBusy(false));
+    UI_ELEMENTS.graphConnectButton?.addEventListener('click', async () => {
+        setGraphBusy(true);
+        UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
+        try {
+            await sendGraphMessage({message:'graph_connect'});
+            await refreshGraphStatus();
+        } catch (error) {
+            graphConnected = false;
+            UI_ELEMENTS.graphConnectionStatus.textContent = `Could not connect: ${error.message}`;
+            setGraphBusy(false);
+        }
+    });
+    UI_ELEMENTS.graphDisconnectButton?.addEventListener('click', async () => {
+        setGraphBusy(true);
+        try {
+            await sendGraphMessage({message:'graph_disconnect'});
+            graphConnected = false;
+            UI_ELEMENTS.graphConnectionStatus.textContent = 'Disconnected. Tenant consent was not changed.';
+        } catch (error) {
+            UI_ELEMENTS.graphConnectionStatus.textContent = `Could not disconnect: ${error.message}`;
+        }
+        setGraphBusy(false);
+    });
+    UI_ELEMENTS.graphImportButton?.addEventListener('click', async () => {
+        const joinUrl = UI_ELEMENTS.graphJoinUrl.value.trim();
+        if (!joinUrl) return;
+        setGraphBusy(true);
+        UI_ELEMENTS.graphImportStatus.textContent = 'Requesting the official transcript from Microsoft Graph…';
+        try {
+            const result = await sendGraphMessage({message:'graph_import_transcript', joinUrl});
+            UI_ELEMENTS.graphImportStatus.textContent = `Imported ${result.captionCount} transcript lines as a separate Microsoft Graph source.`;
+        } catch (error) {
+            UI_ELEMENTS.graphImportStatus.textContent = `Import failed: ${error.message}`;
+        }
+        setGraphBusy(false);
+    });
     document.getElementById('exportSettings').addEventListener('click', () => chrome.tabs.create({url:chrome.runtime.getURL('export.html')}));
     UI_ELEMENTS.openLastTranscriptFolder?.addEventListener('click', async () => {
         try {
@@ -894,6 +976,7 @@ function escapeHtml(text) {
 async function initializePopup() {
     await loadSettings();
     setupEventListeners();
+    await refreshGraphStatus();
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();

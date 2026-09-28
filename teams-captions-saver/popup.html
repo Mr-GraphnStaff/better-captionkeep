@@ -247,6 +247,11 @@
         }
         details.settings-group[open] > summary { border-bottom: 1px solid var(--ck-border); margin-bottom: 8px; }
         .settings-intro { margin: 3px 0 8px; color: var(--ck-text-muted); font-size: 12px; }
+        .graph-actions { display: flex; gap: 8px; margin: 8px 0; }
+        .graph-actions button { flex: 1; border-radius: 6px; background: var(--ck-primary); }
+        #graphDisconnectButton { background: #5f6b73; }
+        #graphJoinUrl { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
+        #graphRedirectUri { overflow-wrap: anywhere; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
         .setting-item {
             width: 100%;
             display: flex;
@@ -568,6 +573,21 @@
                 <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle"><span class="slider"></span></label>
             </div>
             <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
+        </details>
+
+        <details class="settings-group" id="graphTranscriptSection" hidden>
+            <summary>Verified Teams Transcript <span aria-label="Pilot">· Pilot</span></summary>
+            <p class="small-info-text">Import an available official Teams transcript through your organization's administrator-approved Microsoft Graph connection. The Graph source stays separate from local live capture.</p>
+            <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+            <p class="small-info-text" id="graphRedirectUri"></p>
+            <div class="graph-actions">
+                <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
+                <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
+            </div>
+            <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
+            <textarea id="graphJoinUrl" rows="3" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
+            <button id="graphImportButton" type="button" disabled>Import official transcript</button>
+            <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Teams transcription must have produced an official transcript for this meeting.</p>
         </details>
 
         <details class="settings-group">

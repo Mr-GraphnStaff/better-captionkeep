@@ -48,7 +48,21 @@ class SessionManager {
             keys.push(`${metadata.id}_chunk_${index}`);
         }
         if (metadata?.id) keys.push(`${metadata.id}_attendees`);
+        if (typeof metadata?.sourceArtifactKey === 'string' && metadata.sourceArtifactKey.startsWith(`${metadata.id}_`)) {
+            keys.push(metadata.sourceArtifactKey);
+        }
         return keys;
+    }
+
+    normalizeSourceMetadata(source = null) {
+        if (!source || typeof source !== 'object') return null;
+        const allowed = ['type', 'provider', 'importedAt', 'createdDateTime', 'contentType', 'speakerAttribution',
+            'tenantId', 'meetingIdSha256', 'transcriptIdSha256', 'sourceSha256'];
+        const normalized = {};
+        for (const key of allowed) {
+            if (typeof source[key] === 'string' && source[key].length <= 200) normalized[key] = source[key];
+        }
+        return normalized.type ? normalized : null;
     }
 
     isExpired(metadata, now = Date.now()) {
@@ -82,12 +96,17 @@ class SessionManager {
     }
 
     // Save a meeting session with automatic chunking
-    async saveSession(transcriptArray, meetingTitle, attendeeReport = null) {
+    async saveSession(transcriptArray, meetingTitle, attendeeReport = null, options = {}) {
         try {
             await this.pruneExpiredSessions();
             await this.pruneExcessSessions();
             const sessionId = `session_${crypto.randomUUID()}`;
             const chunks = this.chunkTranscript(transcriptArray);
+            const source = this.normalizeSourceMetadata(options.source);
+            const rawSource = typeof options.rawSource === 'string' ? options.rawSource : null;
+            if (rawSource && this.calculateSize(rawSource) > 4 * 1024 * 1024) {
+                throw new Error('Source transcript exceeds the pilot local-storage limit');
+            }
             
             // Create session metadata
             const metadata = {
@@ -103,7 +122,9 @@ class SessionManager {
                 attendees: attendeeReport?.attendeeList?.slice(0, 20), // Limit attendees
                 attendeeCount: attendeeReport?.totalUniqueAttendees || 0,
                 preview: transcriptArray.slice(0, 3).map(c => `${c.Name}: ${c.Text.substring(0, 50)}`).join(' | '),
-                size: this.calculateSize(transcriptArray)
+                size: this.calculateSize(transcriptArray) + (rawSource ? this.calculateSize(rawSource) : 0),
+                source,
+                sourceArtifactKey: rawSource ? `${sessionId}_source` : null
             };
 
             // Evict before staging so a quota-sized save can succeed. Keep the
@@ -111,6 +132,7 @@ class SessionManager {
             // back the exact prior history.
             const staged = Object.fromEntries(chunks.map((chunk, index) => [`${sessionId}_chunk_${index}`, chunk]));
             if (attendeeReport) staged[`${sessionId}_attendees`] = attendeeReport;
+            if (rawSource) staged[metadata.sourceArtifactKey] = rawSource;
             const originalIndex = await this.getStoredIndex();
             let nextIndex = [...originalIndex, metadata].sort((a,b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
             const oldest = [...originalIndex].sort((a,b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
@@ -194,12 +216,15 @@ class SessionManager {
             if (transcriptArray.length !== metadata.captionCount) throw new Error('Incomplete transcript: caption count mismatch');
 
             // Load attendee data if exists
-            const attendeeData = await chrome.storage.local.get(`${sessionId}_attendees`);
+            const extraKeys = [`${sessionId}_attendees`];
+            if (metadata.sourceArtifactKey) extraKeys.push(metadata.sourceArtifactKey);
+            const attendeeData = await chrome.storage.local.get(extraKeys);
             
             return {
                 transcript: transcriptArray,
                 metadata: metadata,
-                attendeeReport: attendeeData[`${sessionId}_attendees`] || null
+                attendeeReport: attendeeData[`${sessionId}_attendees`] || null,
+                sourceArtifact: metadata.sourceArtifactKey ? attendeeData[metadata.sourceArtifactKey] || null : null
             };
             
         } catch (error) {
@@ -226,11 +251,7 @@ class SessionManager {
             if (!metadata) return;
 
             // Delete all chunks
-            const keysToDelete = [];
-            for (let i = 0; i < metadata.chunkCount; i++) {
-                keysToDelete.push(`${sessionId}_chunk_${i}`);
-            }
-            keysToDelete.push(`${sessionId}_attendees`);
+            const keysToDelete = this.sessionKeys(metadata);
             
             await chrome.storage.local.remove(keysToDelete);
             

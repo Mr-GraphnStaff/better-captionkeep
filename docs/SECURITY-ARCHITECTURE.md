@@ -2,7 +2,7 @@
 
 Status: review candidate
 
-Applies to: Better CaptionKeep 5.2 development line
+Applies to: Better CaptionKeep 5.2 security baseline and 5.3 Graph pilot development line
 
 Last reviewed: September 26, 2026
 
@@ -145,6 +145,8 @@ The suggested classifications below are defaults. The adopting organization must
 | Temporary aliases | speaker aliases | `storage.session` | Personal/Internal | Browser session lifetime |
 | Export and handoff jobs | staged file content or AI prompt | `storage.local`, then extension-page memory | Same as source transcript | Temporary; removed after load/completion or by cleanup; blocked jobs are discarded |
 | Diagnostic logs | counts, state, errors | Browser developer console | Internal; errors can still reveal context | Production logs avoid transcript and attendee-list values; redact before sharing |
+| Graph authentication | access token, refresh token, account label | `storage.session` | Restricted credential and Personal/Internal label | Browser-session lifetime; cleared on disconnect; never synchronized, exported, or written to transcript history |
+| Official Graph transcript source | raw transcript, normalized captions, tenant identifier, meeting/transcript hashes, retrieval and attribution state | `storage.local` saved-session source artifact | Confidential or Restricted | Separate from local live capture; subject to saved-session retention and deletion; raw source capped at 4 MB in the pilot |
 
 ### Storage-security statement
 
@@ -158,9 +160,12 @@ Better CaptionKeep does not add application-level encryption to extension storag
 | `downloads` | Explicit TXT, Markdown, and evidence exports | Managed policy can disable file export; filenames are normalized |
 | `activeTab` | Popup interaction with the active supported meeting tab | Does not provide persistent arbitrary-site access |
 | `sidePanel` | Local Evidence Board | Data remains within extension storage until an explicit release action |
+| `identity` | Interactive Microsoft Entra authorization through Chromium's extension callback | Authorization code with PKCE; no embedded client secret; enabled feature still requires managed policy |
 | Teams hosts | Read displayed captions and optional attendee DOM | Exact Microsoft hosts only |
 | `meet.google.com` | Read displayed captions | Exact host only |
 | `app.zoom.us` | Read tested Web-client subtitle overlay in the matching frame | No vanity-domain wildcard; no native client, audio, or video |
+| `login.microsoftonline.com` | Single-tenant interactive sign-in and token exchange | Exact Microsoft identity host; tenant GUID comes from managed policy |
+| `graph.microsoft.com` | Resolve one user-supplied Teams join URL and retrieve its available transcript | Delegated access only; exact Graph host; no tenant-wide background collection |
 
 The extension does not request cookies, browsing history, microphone, camera, geolocation, native messaging, web request interception, or broad `<all_urls>` access.
 
@@ -184,6 +189,7 @@ Managed values override user settings and are defined in `teams-captions-saver/m
 | `disableSessionHistory` | Prevents completed-session history and clears existing indexed session history |
 | `maxStoredSessions` | Limits completed-session history to 1–10 sessions |
 | `sessionRetentionDays` | Removes completed sessions older than 1–365 days during policy enforcement and writes |
+| Graph pilot settings | `enableGraphTranscriptImport` plus valid `graphTenantId` and `graphClientId` reveal and bind the connector to an approved tenant registration |
 
 `disableSessionHistory` does not disable short-lived crash/reload recovery checkpoints. A future policy may control recovery persistence separately if an adopting organization determines that resilience cannot be accepted for its data class.
 
@@ -219,6 +225,8 @@ These are controls over Better CaptionKeep-provided workflows, not a universal b
 | Information disclosure | Transcript reaches clipboard, file, mail, sync, logs, or AI without authorization | Explicit actions, managed release controls, local-only profile, scrubbed-only enforcement, log minimization | Scrubby is not DLP; endpoint administrators and local malware remain in scope |
 | Denial of service | Provider DOM change, storage quota, browser suspension, or policy error stops capture | Adapter isolation, capture health, bounded recovery, quota-safe writes, live UAT and rollback | Caption providers expose no stable supported transcript DOM contract |
 | Elevation of privilege | Force-installed extension receives browser-granted permissions or CI action changes build output | Exact permissions, Store review, scoped workflow permissions, pinned Action SHAs, code review | Force-installed extensions cannot be disabled by ordinary users |
+| Spoofing / token theft | An attacker substitutes an OAuth response or reuses a token outside the intended tenant | PKCE, random state and nonce, tenant and client claim validation, HTTPS Microsoft endpoints, session-only token storage | A compromised browser profile or malicious extension remains in scope |
+| Information disclosure | A Graph import retrieves an unintended meeting or exposes the official transcript | Exact Teams join-link validation, delegated user context, one-meeting lookup, admin consent, Teams API control, explicit import, separate provenance | Microsoft authorization and tenant configuration remain external dependencies |
 
 ## Prioritized risk register
 
@@ -234,6 +242,8 @@ These are controls over Better CaptionKeep-provided workflows, not a universal b
 | R-08 | Maintainer bypass or zero-review repository rule permits an unreviewed production change | Medium | High | High | Require one approval, code-owner review, resolved threads, passing validation and CodeQL, audited emergency bypass | Repository Owner | Must close before enterprise GA |
 | R-09 | Diagnostic output discloses meeting identity or personal information | Low | Medium | Low | Count/state-only production logs, no attendee-list or transcript logs, redact support evidence | Product Engineering | Mitigated |
 | R-10 | Removal of force-install policy has an unexpected uninstall or data-retention result | Low | High | Medium | Pilot rollback test, export prohibition decision, documented browser behavior, help-desk runbook | Endpoint Engineering | Must test per tenant |
+| R-11 | Graph OAuth or transcript permissions are broader or behave differently than documented | Medium | High | High | Single-tenant app, delegated minimum permissions, synthetic tenant proof, consent/revocation tests, no application permissions | Identity/Security Architecture | Must close before packaged release |
+| R-12 | Official transcript source or token persists beyond the intended boundary | Low | High | Medium | Session-only tokens, explicit disconnect, source artifact bound to session deletion/retention, storage tests | Product Engineering | Automated evidence present; live UAT pending |
 
 ## Enterprise deployment profiles
 
@@ -358,11 +368,20 @@ Reason: preserves provenance and prevents an inferred or cleaned derivative from
 
 Trade-off: the original remains locally present until retention or deletion controls remove it.
 
+### ADR-005: Graph transcript access is delegated, managed, and direct
+
+Decision: the pilot uses a single-tenant public-client registration, authorization code with PKCE, delegated Graph permissions, and direct Microsoft endpoints. It has no developer relay, application credential, or unattended tenant-wide collection.
+
+Reason: tenant administrators retain consent and API controls while the signed-in user selects the meeting and initiates each import.
+
+Trade-off: deployment requires coordinated Entra, Teams, and browser policy configuration, and browser-extension OAuth behavior must be proven live for each supported extension identity.
+
 ## Revisit triggers
 
 Security Architecture review is mandatory before:
 
 - adding a host permission or browser permission;
+- changing Microsoft Graph scopes, Entra registration type, redirect behavior, token persistence, or Teams transcript API controls;
 - adding a developer-operated API, analytics, authentication, or telemetry;
 - automating paste, submission, email sending, or recipient selection;
 - capturing chat, audio, video, files, or network traffic;
@@ -380,6 +399,8 @@ Security Architecture review is mandatory before:
 - [Enterprise security review record](ENTERPRISE-SECURITY-REVIEW.md)
 - [Privacy policy](../PRIVACY.md)
 - [Security policy](../SECURITY.md)
+- [Graph transcript connector](GRAPH-TRANSCRIPT-CONNECTOR.md)
+- [Entra app-registration runbook](ENTRA-GRAPH-APP-REGISTRATION.md)
 
 Authoritative external references:
 

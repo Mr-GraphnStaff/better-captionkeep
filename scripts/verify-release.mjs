@@ -60,7 +60,8 @@ for (const name of ['edge-extension-settings.json', 'edge-extension-force-instal
   artifacts.push({ target: 'intune', path: `intune/${name}`, bytes: (await stat(filePath)).size, sha256: await sha256(filePath) });
 }
 
-const commit = execFileSync('git', ['-c', 'safe.directory=P:/Projects/better-captionkeep', 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
+const safeProjectRoot = projectRoot.replaceAll('\\', '/');
+const commit = execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
 const provenance = { product: 'Better CaptionKeep', version: sourceManifest.version, commit, createdAt: new Date().toISOString(), artifacts };
 await writeFile(path.join(distDir, 'release-provenance.json'), `${JSON.stringify(provenance, null, 2)}\n`, 'utf8');
 console.log(JSON.stringify(provenance, null, 2));

@@ -1,4 +1,4 @@
-importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js');
+importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
@@ -285,7 +285,8 @@ async function createViewerTab(transcriptArray, sender, message) {
     const key = `viewer_payload_${crypto.randomUUID()}`;
     const createdAt = Date.now();
     await chrome.storage.local.set({[key]: {transcriptArray, sourceTabId:sender.tab?.id,
-        sessionId:message.sessionId, meetingTitle:message.meetingTitle, createdAt, expiresAt:createdAt + VIEWER_PAYLOAD_TTL_MS}});
+        sessionId:message.sessionId, meetingTitle:message.meetingTitle, source:message.source || null,
+        isHistorical:!!message.isHistorical, createdAt, expiresAt:createdAt + VIEWER_PAYLOAD_TTL_MS}});
     await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?payload=${key}`)});
 }
 
@@ -367,14 +368,61 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return false;
     }
     const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
-        'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
+        'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
+        'graph_get_status','graph_connect','graph_disconnect','graph_import_transcript']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
-    if (['delete_session','clear_sessions'].includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
+    const extensionPageOnly = ['delete_session','clear_sessions','graph_get_status','graph_connect','graph_disconnect','graph_import_transcript'];
+    if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
+        let responsePayload = {};
 
         switch (message.message) {
+            case 'graph_get_status':
+                {
+                    const policy = await readEffectivePolicy();
+                    responsePayload = await CaptionKeepGraphTranscript.status(policy.settings);
+                }
+                break;
+
+            case 'graph_connect':
+                {
+                    const policy = await readEffectivePolicy();
+                    responsePayload = await CaptionKeepGraphTranscript.connect(policy.settings);
+                }
+                break;
+
+            case 'graph_disconnect':
+                responsePayload = await CaptionKeepGraphTranscript.disconnect();
+                break;
+
+            case 'graph_import_transcript':
+                {
+                    const policy = await readEffectivePolicy();
+                    if (policy.settings.disableSessionHistory) {
+                        throw new Error('Official transcript import requires local session history, which your organization has disabled.');
+                    }
+                    const imported = await CaptionKeepGraphTranscript.importTranscript(policy.settings, message.joinUrl);
+                    const manager = new SessionManager(true, historyOptions(policy.settings));
+                    const sessionId = await manager.saveSession(imported.transcript, imported.title, null, {
+                        source: imported.source,
+                        rawSource: imported.rawSource
+                    });
+                    await createViewerTab(imported.transcript, sender, {
+                        sessionId,
+                        meetingTitle: imported.title,
+                        source: imported.source,
+                        isHistorical: true
+                    });
+                    responsePayload = {
+                        sessionId,
+                        captionCount: imported.transcript.length,
+                        sourceSha256: imported.source.sourceSha256
+                    };
+                }
+                break;
+
             case 'save_session_history':
                 {
                     const operation = historyQueue.then(async () => {
@@ -501,7 +549,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 // Could implement error reporting here
                 break;
         }
-    })().then(() => sendResponse({ok:true}), error => sendResponse({ok:false, error:error.message}));
+        return responsePayload;
+    })().then(result => sendResponse({ok:true, ...result}), error => sendResponse({ok:false, error:error.message, code:error.code || 'UNEXPECTED_ERROR'}));
     
     return true; // Indicates that the response will be sent asynchronously
 });

@@ -183,8 +183,13 @@ Managed settings override user controls:
 | `disableSessionHistory` | Boolean | Prevents completed-session history and clears indexed history |
 | `maxStoredSessions` | Integer 1–10 | Limits completed local session history |
 | `sessionRetentionDays` | Integer 1–365 | Removes completed sessions older than the selected age |
+| `enableGraphTranscriptImport` | Boolean | Reveals the 5.3 Graph pilot only when valid tenant and client identifiers are also managed |
+| `graphTenantId` | String GUID | Restricts interactive authentication to the approved Microsoft Entra tenant |
+| `graphClientId` | String GUID | Identifies the approved public-client app registration; it is not a credential |
 
 `disableSessionHistory` does not disable short-lived recovery checkpoints. Document that residual persistence in the organization's risk decision.
+
+The Graph pilot must remain disabled in standard profiles until the organization completes the [Entra app-registration runbook](ENTRA-GRAPH-APP-REGISTRATION.md). Assign the three Graph values only to a named test group. App registration, Teams transcript API access, and browser managed policy are separate controls; failure or removal of any one must block new imports. Do not place a secret or certificate in browser policy.
 
 Managed keys restrict actions supplied by Better CaptionKeep. They are not a substitute for browser or endpoint DLP, do not defeat developer tools or screenshots, and cannot recall a file, clipboard value, mail draft, or AI submission created before a policy change.
 
