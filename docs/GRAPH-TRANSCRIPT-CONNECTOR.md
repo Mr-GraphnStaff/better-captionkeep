@@ -8,7 +8,7 @@ Administrator setup and rollback are defined in [Microsoft Entra App Registratio
 
 ## Product outcome
 
-Better CaptionKeep now has an administrator-approved pilot connection to Microsoft Graph that lets a signed-in organizational user explicitly import an available Microsoft Teams transcript. The imported Graph artifact complements local live-caption capture; it does not silently replace it. The implementation remains unavailable unless valid tenant and application identifiers are supplied through managed policy.
+Better CaptionKeep now has an administrator-approved pilot connection to Microsoft Graph that lets a signed-in organizational user explicitly import an available Microsoft Teams transcript using either the current `/meet/` link or the legacy `/l/meetup-join/` link. The imported Graph artifact complements local live-caption capture; it does not silently replace it. The implementation remains unavailable unless valid tenant and application identifiers are supplied through managed policy.
 
 The intended enterprise value is:
 

@@ -43,10 +43,13 @@ test('managed Graph configuration is opt-in and requires tenant and client GUIDs
 
 test('meeting input accepts only exact HTTPS Teams join links', () => {
   const valid = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_example/0?context=%7B%7D';
+  const current = 'https://teams.microsoft.com/meet/276858178406116?p=syntheticToken';
   assert.equal(Graph.validateJoinUrl(valid), valid);
+  assert.equal(Graph.validateJoinUrl(current), current);
   for (const rejected of [
     'http://teams.microsoft.com/l/meetup-join/example',
     'https://evil.example/l/meetup-join/example',
+    'https://teams.microsoft.com/meet/',
     'https://teams.microsoft.com/v2/'
   ]) {
     assert.throws(() => Graph.validateJoinUrl(rejected), error => error.code === 'JOIN_URL_INVALID');

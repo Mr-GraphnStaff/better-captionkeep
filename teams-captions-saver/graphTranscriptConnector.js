@@ -248,7 +248,8 @@
         } catch {
             throw new GraphConnectorError('JOIN_URL_INVALID', 'Paste the complete Microsoft Teams meeting join link.');
         }
-        if (url.protocol !== 'https:' || !TEAMS_JOIN_HOSTS.has(url.hostname.toLowerCase()) || !url.pathname.startsWith('/l/meetup-join/')) {
+        const supportedPath = url.pathname.startsWith('/l/meetup-join/') || /^\/meet\/[^/]+\/?$/.test(url.pathname);
+        if (url.protocol !== 'https:' || !TEAMS_JOIN_HOSTS.has(url.hostname.toLowerCase()) || !supportedPath) {
             throw new GraphConnectorError('JOIN_URL_INVALID', 'Use an HTTPS Microsoft Teams meeting join link.');
         }
         url.hash = '';
