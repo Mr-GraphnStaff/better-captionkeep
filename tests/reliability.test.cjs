@@ -1114,28 +1114,30 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph dev/UAT access is enforced by the worker and hidden from Store builds',()=>{
+test('Graph test builds stay visible without consumer entitlement machinery',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
-    const entitlement=read('devUatEntitlement.js');
-    assert(worker.includes("'graphTranscriptConnector.js', 'devUatEntitlement.js'"));
-    assert(worker.includes('await requireGraphDevUatAccess();'));
-    assert(worker.includes("case 'dev_uat_activate'"));
-    assert(popup.includes('id="devUatSection" hidden'));
-    assert(entitlement.includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
-    assert(entitlement.includes('chromeApi.storage.session.set'));
-    assert(!entitlement.includes('storage.sync.set'));
-});
-test('test popup explains locked Graph access instead of hiding the configured feature',()=>{
     const popupScript=read('popup.js');
     const buildScript=readProject('scripts/build-browser-targets.mjs');
-    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !devUatStatus.eligibleBuild'));
+    assert(!popup.includes('devUatSection'));
+    assert(!popup.includes('Signed UAT pass'));
+    assert(!worker.includes('requireGraphDevUatAccess'));
+    assert(!worker.includes('dev_uat_'));
+    assert(popupScript.includes('const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild'));
     assert(popupScript.includes('&& currentEnterprisePolicy.enableGraphTranscriptImport !== true'));
-    assert(popupScript.includes('Activate a current internal dev/UAT pass above to unlock Microsoft 365 access.'));
-    assert(popupScript.includes('const accessLocked = devUatStatus.eligibleBuild'));
     assert(buildScript.includes("target !== 'chrome-store'"));
-    assert(buildScript.includes("replace('id=\"devUatSection\" hidden open', 'id=\"devUatSection\" open')"));
     assert(buildScript.includes("replace('id=\"graphTranscriptSection\" hidden open', 'id=\"graphTranscriptSection\" open')"));
+});
+test('worker accepts an optional unpacked-only Graph configuration only for test manifests',()=>{
+    const worker=read('service_worker.js');
+    const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
+    assert(worker.includes("importScripts('devUatLocalConfig.js')"));
+    assert(worker.includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(worker.includes('/\\bdevelopment\\b/i'));
+    assert(worker.includes('localConfig?.enableGraphTranscriptImport === true'));
+    assert(overlayScript.includes("Refusing to configure a non-test build."));
+    assert(overlayScript.includes("dist', `${target}-unpacked`"));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');

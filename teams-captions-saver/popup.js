@@ -55,19 +55,16 @@ const UI_ELEMENTS = {
     graphRefreshMeetings: document.getElementById('graphRefreshMeetings'),
     graphRecentMeetings: document.getElementById('graphRecentMeetings'),
     graphImportButton: document.getElementById('graphImportButton'),
-    graphImportStatus: document.getElementById('graphImportStatus'),
-    devUatSection: document.getElementById('devUatSection'),
-    devUatPass: document.getElementById('devUatPass'),
-    devUatActivate: document.getElementById('devUatActivate'),
-    devUatClear: document.getElementById('devUatClear'),
-    devUatStatus: document.getElementById('devUatStatus')
+    graphImportStatus: document.getElementById('graphImportStatus')
 };
 
 
 let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
-let devUatStatus = {eligibleBuild:false, active:false, features:[]};
+const runtimeManifest = chrome.runtime.getManifest();
+const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(runtimeManifest.name || ''))
+    && /\bdevelopment\b/i.test(String(runtimeManifest.version_name || ''));
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -178,16 +175,14 @@ async function refreshEnterprisePolicy() {
 
 function setGraphBusy(busy) {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    const accessLocked = devUatStatus.eligibleBuild
-        && (!devUatStatus.active || !devUatStatus.features.includes('verified-teams-transcript'));
-    UI_ELEMENTS.graphConnectButton.disabled = accessLocked || busy || graphConnected;
-    UI_ELEMENTS.graphDisconnectButton.disabled = accessLocked || busy || !graphConnected;
-    UI_ELEMENTS.graphUseCurrentMeeting.disabled = accessLocked || busy;
-    UI_ELEMENTS.graphRefreshMeetings.disabled = accessLocked || busy || !graphConnected;
+    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected;
+    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
     UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
-        button.disabled = accessLocked || busy || !graphConnected;
+        button.disabled = busy || !graphConnected;
     });
-    UI_ELEMENTS.graphImportButton.disabled = accessLocked || busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
 }
 
 function graphErrorMessage(error) {
@@ -200,7 +195,9 @@ function graphErrorMessage(error) {
         MEETING_NOT_FOUND: 'Microsoft 365 could not find that meeting for this account.',
         TRANSCRIPT_NOT_FOUND: 'Teams has not finished producing an official transcript for this meeting.',
         JOIN_URL_INVALID: 'Choose a recent Teams meeting or paste its complete Teams join link.',
-        AUTH_CANCELLED: 'Microsoft 365 sign-in was cancelled.'
+        AUTH_CANCELLED: 'Microsoft 365 sign-in was cancelled.',
+        GRAPH_NOT_ENABLED: 'The local dev/UAT Graph configuration is unavailable. Rebuild the authorized unpacked test overlay.',
+        GRAPH_CONFIG_INVALID: 'The local dev/UAT Graph configuration is incomplete.'
     };
     return messages[error?.code] || error?.message || 'Microsoft 365 could not complete the request.';
 }
@@ -291,39 +288,12 @@ async function sendGraphMessage(message) {
 
 function applyGraphVisibility() {
     if (!UI_ELEMENTS.graphTranscriptSection) return;
-    UI_ELEMENTS.graphTranscriptSection.hidden = !devUatStatus.eligibleBuild
+    UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild
         && currentEnterprisePolicy.enableGraphTranscriptImport !== true;
-}
-
-async function refreshDevUatStatus() {
-    try {
-        devUatStatus = await sendGraphMessage({message:'dev_uat_status'});
-    } catch (error) {
-        devUatStatus = {eligibleBuild:false, active:false, features:[]};
-        if (UI_ELEMENTS.devUatStatus) UI_ELEMENTS.devUatStatus.textContent = `Internal access unavailable: ${error.message}`;
-        return;
-    }
-    if (UI_ELEMENTS.devUatSection) UI_ELEMENTS.devUatSection.hidden = !devUatStatus.eligibleBuild;
-    if (UI_ELEMENTS.devUatStatus && devUatStatus.eligibleBuild) {
-        UI_ELEMENTS.devUatStatus.textContent = devUatStatus.active
-            ? `Active for ${devUatStatus.subject} (${devUatStatus.environment}) until ${new Date(devUatStatus.expiresAt).toLocaleString()}.`
-            : 'No active pass. Verified Teams transcript controls remain locked in this test build.';
-    }
-    if (UI_ELEMENTS.devUatClear) UI_ELEMENTS.devUatClear.disabled = !devUatStatus.active;
-    applyGraphVisibility();
 }
 
 async function refreshGraphStatus() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    const accessLocked = devUatStatus.eligibleBuild
-        && (!devUatStatus.active || !devUatStatus.features.includes('verified-teams-transcript'));
-    if (accessLocked) {
-        graphConnected = false;
-        UI_ELEMENTS.graphConnectionStatus.textContent = 'Activate a current internal dev/UAT pass above to unlock Microsoft 365 access.';
-        UI_ELEMENTS.graphRedirectUri.textContent = '';
-        setGraphBusy(false);
-        return;
-    }
     try {
         const status = await sendGraphMessage({message:'graph_get_status'});
         graphConnected = !!status.connected;
@@ -615,30 +585,6 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
-    UI_ELEMENTS.devUatActivate?.addEventListener('click', async () => {
-        const pass = UI_ELEMENTS.devUatPass.value.trim();
-        if (!pass) {
-            UI_ELEMENTS.devUatStatus.textContent = 'Paste the signed pass first.';
-            return;
-        }
-        UI_ELEMENTS.devUatActivate.disabled = true;
-        try {
-            devUatStatus = await sendGraphMessage({message:'dev_uat_activate', pass});
-            UI_ELEMENTS.devUatPass.value = '';
-            await refreshDevUatStatus();
-            await refreshGraphStatus();
-        } catch (error) {
-            UI_ELEMENTS.devUatStatus.textContent = error.message;
-        } finally {
-            UI_ELEMENTS.devUatActivate.disabled = false;
-        }
-    });
-    UI_ELEMENTS.devUatClear?.addEventListener('click', async () => {
-        devUatStatus = await sendGraphMessage({message:'dev_uat_clear'});
-        graphConnected = false;
-        await refreshDevUatStatus();
-        await refreshGraphStatus();
-    });
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
         markSelectedGraphMeeting();
         setGraphBusy(false);
@@ -1167,7 +1113,6 @@ function escapeHtml(text) {
 
 // --- Initialization ---
 async function initializePopup() {
-    await refreshDevUatStatus();
     await loadSettings();
     setupEventListeners();
     await refreshGraphStatus();

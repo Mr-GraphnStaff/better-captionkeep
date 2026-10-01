@@ -44,7 +44,6 @@ async function stageTarget(target) {
     const popupPath = path.join(targetDir, 'popup.html');
     const popup = await readFile(popupPath, 'utf8');
     const testPopup = popup
-      .replace('id="devUatSection" hidden open', 'id="devUatSection" open')
       .replace('id="graphTranscriptSection" hidden open', 'id="graphTranscriptSection" open');
     if (testPopup === popup) throw new Error(`Could not expose the ${target} UAT controls.`);
     await writeFile(popupPath, testPopup, 'utf8');

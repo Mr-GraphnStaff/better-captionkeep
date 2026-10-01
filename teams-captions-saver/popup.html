@@ -267,9 +267,6 @@
         .graph-manual summary { cursor: pointer; color: var(--ck-text-muted); font-size: 11px; font-weight: 650; }
         .graph-manual .setting-label { display: block; margin-top: 8px; }
         #graphImportButton { width: 100%; background: var(--ck-primary); }
-        #devUatPass { width: 100%; box-sizing: border-box; resize: vertical; font: 11px ui-monospace, "Cascadia Mono", Consolas, monospace; }
-        .dev-uat-actions { display: flex; gap: 8px; margin-top: 8px; }
-        .dev-uat-actions button { flex: 1; }
         .setting-item {
             width: 100%;
             display: flex;
@@ -507,18 +504,6 @@
     <div id="sessionList" style="display: none; margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px;">
         <div style="text-align: center; color: #999;">Loading sessions...</div>
     </div>
-
-    <details class="settings-group" id="devUatSection" hidden open>
-        <summary>Internal dev/UAT access</summary>
-        <p class="small-info-text">Test builds only. Paste a short-lived signed pass issued to you. It stays in this browser session and is never saved with preferences.</p>
-        <label for="devUatPass" class="setting-label">Signed UAT pass</label>
-        <textarea id="devUatPass" rows="3" autocomplete="off" spellcheck="false"></textarea>
-        <div class="dev-uat-actions">
-            <button id="devUatActivate" type="button">Activate pass</button>
-            <button id="devUatClear" type="button">Clear pass</button>
-        </div>
-        <p class="small-info-text" id="devUatStatus" role="status" aria-live="polite">Checking internal access…</p>
-    </details>
 
     <details class="settings-group" id="graphTranscriptSection" hidden open>
         <summary>Verified Teams transcripts</summary>
