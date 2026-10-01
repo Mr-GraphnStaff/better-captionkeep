@@ -1088,15 +1088,21 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanelScript.includes("crypto.subtle.digest('SHA-256'"));
     assert(sidepanelScript.includes('mailto:?subject='));
 });
-test('popup uses a compact three-platform launcher without an inline Teams warning link',()=>{
+test('popup uses compact native quick-start actions for all three meeting platforms',()=>{
     const popup=read('popup.html');const script=read('popup.js');
     assert(popup.includes('class="platform-launchers"'));
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
+    assert.equal((popup.match(/class="platform-start"/g)||[]).length,3);
     assert(popup.includes('aria-label="Open Microsoft Teams"'));
+    assert(popup.includes('aria-label="Open Microsoft Teams to Meet now">Meet now</a>'));
     assert(popup.includes('href="https://app.zoom.us/wc"'));
     assert(popup.includes('aria-label="Open Zoom Web"'));
+    assert(popup.includes('href="https://zoom.new"'));
+    assert(popup.includes('aria-label="Start a new Zoom meeting">New meeting</a>'));
     assert(popup.includes('href="https://meet.google.com"'));
     assert(popup.includes('aria-label="Open Google Meet"'));
+    assert(popup.includes('href="https://meet.new"'));
+    assert(popup.includes('aria-label="Start a new Google Meet meeting">Start meeting</a>'));
     assert(script.includes('getActiveMeetingTab'));
     assert(script.includes('https:\\/\\/meet\\.google\\.com'));
     assert(script.includes('https:\\/\\/app\\.zoom\\.us\\/wc'));

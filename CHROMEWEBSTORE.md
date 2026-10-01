@@ -22,6 +22,8 @@ Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet,
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
+Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
+
 The local Evidence Board lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
 
 Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, or an optional AI handoff. AI handoff is review-first: Better CaptionKeep prepares an editable prompt inside the extension and never puts transcript text in a provider URL, pastes it automatically, or submits it for the user.
@@ -138,7 +140,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.3.0 | 2026-10-01 | Adds administrator-enabled Verified Teams Transcript, current/recent/manual meeting selection, official-source provenance, polished recovery states, and refreshed Store artwork. | Candidate — not submitted |
+| 5.3.0 | 2026-10-01 | Adds administrator-enabled Verified Teams Transcript, current/recent/manual meeting selection, official-source provenance, polished recovery states, three-platform quick-start meeting actions, and refreshed Store artwork. | Candidate — not submitted |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
 | 5.0.0 | 2026-09-20 | Established the independent Teams and Google Meet release. | Published |
 

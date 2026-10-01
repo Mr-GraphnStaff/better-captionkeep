@@ -57,6 +57,12 @@
             width: 100%;
         }
 
+        .platform-card {
+            min-width: 0;
+            display: grid;
+            gap: 5px;
+        }
+
         .platform-launcher {
             min-width: 0;
             min-height: 42px;
@@ -106,6 +112,27 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .platform-start {
+            display: block;
+            min-width: 0;
+            padding: 5px 3px;
+            border: 1px solid color-mix(in srgb, var(--ck-primary) 55%, var(--ck-border));
+            border-radius: 7px;
+            background: var(--ck-surface-soft);
+            color: var(--ck-primary);
+            font-size: 10px;
+            font-weight: 750;
+            line-height: 1.2;
+            text-align: center;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .platform-start:hover {
+            border-color: var(--ck-primary);
+            background: var(--ck-surface);
         }
 
         kbd {
@@ -454,16 +481,25 @@
     <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature">by Señor Farris</p></div></header>
     <p class="subtitle">Keep the words. Stay in the conversation.</p>
 
-    <nav class="platform-launchers" aria-label="Open a meeting app">
-        <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
-            <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
-        </a>
-        <a class="platform-launcher" href="https://app.zoom.us/wc" target="_blank" rel="noopener" aria-label="Open Zoom Web">
-            <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
-        </a>
-        <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
-            <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
-        </a>
+    <nav class="platform-launchers" aria-label="Start a meeting">
+        <div class="platform-card">
+            <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
+                <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
+            </a>
+            <a class="platform-start" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams to Meet now">Meet now</a>
+        </div>
+        <div class="platform-card">
+            <a class="platform-launcher" href="https://app.zoom.us/wc" target="_blank" rel="noopener" aria-label="Open Zoom Web">
+                <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
+            </a>
+            <a class="platform-start" href="https://zoom.new" target="_blank" rel="noopener" aria-label="Start a new Zoom meeting">New meeting</a>
+        </div>
+        <div class="platform-card">
+            <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
+                <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
+            </a>
+            <a class="platform-start" href="https://meet.new" target="_blank" rel="noopener" aria-label="Start a new Google Meet meeting">Start meeting</a>
+        </div>
     </nav>
 
     <p id="manual-start-info" class="info-text">If captions do not start automatically, turn on CC in the meeting to begin capturing.</p>

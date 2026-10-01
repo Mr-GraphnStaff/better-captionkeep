@@ -13,6 +13,7 @@ Version 5.3 carries the isolated **Verified Teams Transcript** candidate. It rec
 - [x] Popup attempts current-meeting auto-fill, retains temporary Teams meeting-info links only for the active meeting, and resolves modern numeric meeting links without another permission.
 - [x] Five-recent-meeting selector uses delegated `Calendars.ReadBasic`, requests bounded basic fields, excludes future and non-Teams events, and does not retain calendar results.
 - [x] Link entry remains available through a progressively disclosed fallback rather than leading the normal workflow.
+- [x] Compact launcher keeps app-open controls separate from familiar quick-start actions directly below: Teams Meet now, Zoom New meeting, and Google Meet Start meeting.
 - [x] Revoked Graph tokens clear session authentication and return the interface to reconnection.
 - [x] Latest available transcript import with governed unattributed fallback.
 - [x] Separate immutable raw Graph source, normalized captions, and hashed provenance in local history.
