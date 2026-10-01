@@ -13,7 +13,11 @@ The 5.0 artwork names Microsoft Teams and Google Meet consistently with the pack
 ## 5.3 candidate
 
 - `5.3/01-verified-teams-transcript.png` — 1280 x 800 synthetic-data feature screenshot
+- `5.3/02-local-evidence-board.png` — 1280 x 800 synthetic-data feature screenshot
+- `5.3/03-private-review-and-export.png` — 1280 x 800 synthetic-data feature screenshot
+- `5.3/04-three-meeting-platforms.png` — 1280 x 800 feature overview
+- `5.3/05-enterprise-controls.png` — 1280 x 800 managed-controls overview
 - `5.3/small-promotional-tile.png` — 440 x 280
 - `5.3/large-promotional-tile.png` — 1400 x 560
 
-The 5.3 artwork presents Verified Teams Transcript with controlled synthetic meeting names and contains no real meeting identifier, join link, transcript, tenant identifier, token, or customer data. Confirm it still matches the exact release candidate during Chrome UAT.
+The 5.3 artwork presents Verified Teams Transcript, the Evidence Board, private review/export, all three supported platforms, and enterprise controls with controlled synthetic content. It contains no real meeting identifier, join link, transcript, tenant identifier, token, or customer data. Confirm it still matches the exact release candidate during Chrome UAT.

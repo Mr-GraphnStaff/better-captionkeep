@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let meetingStartTime = null;
     let meetingEndTime = null;
     const SEARCH_DEBOUNCE_DELAY = 300;
+    const COPY_FEEDBACK_DURATION_MS = 1500;
+    const ERROR_FEEDBACK_DURATION_MS = 3000;
     let scrubOptions = {};
     let enterprisePolicy = {};
     let enterprisePolicyReady = Promise.resolve();
@@ -355,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 copyButton.classList.remove('copied');
                 copyButton.querySelector('.tooltip-text').textContent = 'Copy';
-            }, 1500); // TODO: Extract to TIMING constant
+            }, COPY_FEEDBACK_DURATION_MS);
         } catch (err) {
             console.error('Failed to copy text: ', err);
             copyButton.querySelector('.tooltip-text').textContent = 'Copy failed';
@@ -364,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 10px; border-radius: 4px; z-index: 1000;';
             errorMsg.textContent = 'Failed to copy text to clipboard';
             document.body.appendChild(errorMsg);
-            setTimeout(() => document.body.removeChild(errorMsg), 3000);
+            setTimeout(() => document.body.removeChild(errorMsg), ERROR_FEEDBACK_DURATION_MS);
         }
     }
     

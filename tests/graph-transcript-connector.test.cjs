@@ -101,6 +101,7 @@ test('interactive connection uses PKCE, validates state and stores tokens only i
   assert.equal(status.connected, true);
   assert.equal(status.accountLabel, 'pilot@example.com');
   assert.equal(authorizationUrl.searchParams.get('code_challenge_method'), 'S256');
+  assert.deepEqual(authorizationUrl.searchParams.get('scope').split(' '), [...Graph.AUTH_SCOPES]);
   assert.equal(tokenBody.get('code_verifier').length > 40, true);
   assert.equal(tokenBody.has('client_secret'), false);
   assert.equal(JSON.stringify(status).includes('access_token'), false);
@@ -292,6 +293,72 @@ test('revoked Microsoft token fails closed and clears session authentication', a
     error => error.code === 'SIGN_IN_REQUIRED'
   );
   assert.equal(Object.hasOwn(harness.session, 'graphTranscriptAuthV1'), false);
+});
+
+test('expired refresh-token denial clears session authentication', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'expired-token',refreshToken:'revoked-refresh-token',expiresAt:0,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  await assert.rejects(
+    Graph.listRecentMeetings(SETTINGS, {
+      chromeApi:harness.api,
+      fetchImpl:async () => Response.json({error:'invalid_grant'}, {status:400})
+    }),
+    error => error.code === 'invalid_grant'
+  );
+  assert.equal(Object.hasOwn(harness.session, 'graphTranscriptAuthV1'), false);
+});
+
+test('disconnect removes the complete delegated session', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh-token',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{username:'pilot@example.com'}
+    }
+  });
+  assert.deepEqual(await Graph.disconnect({chromeApi:harness.api}), {connected:false});
+  assert.deepEqual(harness.session, {});
+  assert.equal((await Graph.status(SETTINGS, {chromeApi:harness.api})).connected, false);
+});
+
+test('meeting denial, missing transcript, and disabled transcript access remain distinct recovery states', async () => {
+  const joinUrl = 'https://teams.microsoft.com/meet/423456789000?p=negativeproof';
+  const cases = [
+    {
+      code:'Authorization_RequestDenied',
+      fetchImpl:async () => Response.json({error:{code:'Authorization_RequestDenied'}}, {status:403})
+    },
+    {
+      code:'TRANSCRIPT_NOT_FOUND',
+      fetchImpl:async url => url.includes('/me/onlineMeetings?')
+        ? Response.json({value:[{id:'meeting-id'}]})
+        : Response.json({value:[]})
+    },
+    {
+      code:'GraphAccessToTranscriptsDisabled',
+      fetchImpl:async url => {
+        if (url.includes('/me/onlineMeetings?')) return Response.json({value:[{id:'meeting-id'}]});
+        return Response.json({error:{code:'GraphAccessToTranscriptsDisabled'}}, {status:403});
+      }
+    }
+  ];
+
+  for (const scenario of cases) {
+    const harness = chromeHarness({
+      graphTranscriptAuthV1: {
+        accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+        tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+      }
+    });
+    await assert.rejects(
+      Graph.importTranscript(SETTINGS, joinUrl, {chromeApi:harness.api,cryptoApi:webcrypto,fetchImpl:scenario.fetchImpl}),
+      error => error.code === scenario.code
+    );
+    assert.equal(Object.hasOwn(harness.session, 'graphTranscriptAuthV1'), true);
+  }
 });
 
 test('recent meeting discovery follows bounded Graph pagination until five Teams meetings are found', async () => {
