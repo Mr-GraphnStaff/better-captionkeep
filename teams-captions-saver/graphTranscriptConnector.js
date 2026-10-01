@@ -248,7 +248,7 @@
         } catch {
             throw new GraphConnectorError('JOIN_URL_INVALID', 'Paste the complete Microsoft Teams meeting join link.');
         }
-        const supportedPath = url.pathname.startsWith('/l/meetup-join/') || /^\/meet\/[^/]+\/?$/.test(url.pathname);
+        const supportedPath = url.pathname.startsWith('/l/meetup-join/') || /^\/meet\/\d+\/?$/.test(url.pathname);
         if (url.protocol !== 'https:' || !TEAMS_JOIN_HOSTS.has(url.hostname.toLowerCase()) || !supportedPath) {
             throw new GraphConnectorError('JOIN_URL_INVALID', 'Use an HTTPS Microsoft Teams meeting join link.');
         }
@@ -283,7 +283,11 @@
     }
 
     async function resolveMeeting(joinUrl, token, fetchImpl) {
-        const filter = `JoinWebUrl eq '${joinUrl.replace(/'/g, "''")}'`;
+        const parsed = new URL(joinUrl);
+        const currentMeetingMatch = parsed.pathname.match(/^\/meet\/(\d+)\/?$/);
+        const filter = currentMeetingMatch
+            ? `joinMeetingIdSettings/joinMeetingId eq '${currentMeetingMatch[1]}'`
+            : `JoinWebUrl eq '${joinUrl.replace(/'/g, "''")}'`;
         const url = new URL(`${GRAPH_ROOT}me/onlineMeetings`);
         url.searchParams.set('$filter', filter);
         const response = await graphResponse(url, token, fetchImpl);

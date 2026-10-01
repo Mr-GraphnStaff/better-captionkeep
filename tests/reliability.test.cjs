@@ -1072,6 +1072,10 @@ test('Graph pilot can capture the active Teams meeting link without new permissi
     const popup=read('popup.html');
     const popupScript=read('popup.js');
     assert(content.includes("case 'get_teams_meeting_join_url'"));
+    assert(content.includes("let lastKnownTeamsJoinUrl = ''"));
+    assert(content.includes('lastKnownTeamsJoinUrl = joinUrl'));
+    assert(content.includes('return lastKnownTeamsJoinUrl'));
+    assert(/lastKnownTeamsJoinUrl = '';\r?\n\s+findCurrentTeamsJoinUrl\(\);/.test(content));
     assert(content.includes("document.querySelectorAll('a[href]')"));
     assert(popup.includes('id="graphUseCurrentMeeting"'));
     assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));

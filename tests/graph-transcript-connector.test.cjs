@@ -50,6 +50,7 @@ test('meeting input accepts only exact HTTPS Teams join links', () => {
     'http://teams.microsoft.com/l/meetup-join/example',
     'https://evil.example/l/meetup-join/example',
     'https://teams.microsoft.com/meet/',
+    'https://teams.microsoft.com/meet/not-a-meeting-id',
     'https://teams.microsoft.com/v2/'
   ]) {
     assert.throws(() => Graph.validateJoinUrl(rejected), error => error.code === 'JOIN_URL_INVALID');
@@ -176,6 +177,32 @@ test('delegated import resolves one join URL and downloads the latest official t
   assert(calls.every(call => call.authorization === 'Bearer delegated-token'));
   assert(calls.some(call => call.url.includes('%24filter=JoinWebUrl')));
   assert(calls.some(call => call.url.endsWith('/transcripts/newest/content')));
+});
+
+test('current Teams meeting links resolve by numeric join meeting ID', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{username:'pilot@example.com'}
+    }
+  });
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(url);
+    if (url.includes('/me/onlineMeetings?')) return Response.json({value:[{id:'meeting-id'}]});
+    if (url.endsWith('/transcripts')) return Response.json({value:[{id:'transcript-id',createdDateTime:'2026-09-29T12:00:00Z'}]});
+    if (url.endsWith('/transcripts/transcript-id/content')) {
+      return new Response('WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Pilot User>Current meeting.</v>\n', {status:200});
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  };
+
+  await Graph.importTranscript(SETTINGS,
+    'https://teams.microsoft.com/meet/123456789012?p=syntheticToken',
+    {chromeApi:harness.api,cryptoApi:webcrypto,fetchImpl});
+
+  const lookup = new URL(calls.find(url => url.includes('/me/onlineMeetings?')));
+  assert.equal(lookup.searchParams.get('$filter'), "joinMeetingIdSettings/joinMeetingId eq '123456789012'");
 });
 
 test('speaker-attribution denial retries only with the unattributed transcript media type', async () => {

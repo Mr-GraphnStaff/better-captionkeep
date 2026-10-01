@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3 Graph Pilot Gate
 
-Status: **unreleased development; tenant validation pending**. This record does not authorize Store submission, production consent, or tenant-wide deployment.
+Status: **unreleased development; first controlled tenant and Edge import validated; remaining pilot gates pending**. This record does not authorize Store submission, production consent, or tenant-wide deployment.
 
 Version 5.3 carries the isolated **Verified Teams Transcript** pilot. It imports one available official Teams transcript after an organizational user signs in and supplies the meeting join link. Version 5.2 remains a separate security-hardening candidate and no promoted Store artifact is changed by this branch.
 
@@ -10,6 +10,7 @@ Version 5.3 carries the isolated **Verified Teams Transcript** pilot. It imports
 - [x] Authorization-code flow with PKCE through `chrome.identity`; no client secret or application credential.
 - [x] Session-only token storage and explicit disconnect.
 - [x] Exact Teams join-link validation and delegated lookup of one meeting.
+- [x] Popup attempts current-meeting auto-fill, retains temporary Teams meeting-info links only for the active meeting, and resolves modern numeric meeting links without another permission.
 - [x] Latest available transcript import with governed unattributed fallback.
 - [x] Separate immutable raw Graph source, normalized captions, and hashed provenance in local history.
 - [x] Chrome, Edge, and Chrome Store manifests declare the identity permission and exact Microsoft hosts.
@@ -26,11 +27,11 @@ Version 5.3 carries the isolated **Verified Teams Transcript** pilot. It imports
 
 ## Tenant and browser gate
 
-- [ ] Create the controlled single-tenant Entra app registration from [the runbook](ENTRA-GRAPH-APP-REGISTRATION.md).
-- [ ] Grant only delegated `OnlineMeetings.Read` and `OnlineMeetingTranscript.Read.All`.
-- [ ] Enable and record the Teams transcript API control and attribution decision.
-- [ ] Register and verify the exact unpacked Chrome and Edge callback URIs.
-- [ ] Import a synthetic transcript successfully in current Chrome and Edge.
+- [x] Create the controlled single-tenant Entra app registration from [the runbook](ENTRA-GRAPH-APP-REGISTRATION.md).
+- [x] Grant only delegated `OnlineMeetings.Read` and `OnlineMeetingTranscript.Read.All`.
+- [x] Enable and record the Teams transcript API control and attribution decision for the pilot tenant.
+- [ ] Register and verify the exact unpacked Chrome and Edge callback URIs. Edge is verified; Chrome remains open.
+- [ ] Import a synthetic transcript successfully in current Chrome and Edge. Edge 5.3.0 succeeded on 2026-09-29; Chrome remains open.
 - [ ] Verify attributed and unattributed behavior, missing transcript, unauthorized meeting, expired token, disconnect, revoked consent, and disabled Teams API access.
 - [ ] Confirm tokens and meeting data do not enter logs, sync, settings export, repository evidence, or packages.
 - [ ] Confirm session deletion and managed retention remove both normalized and raw imported source artifacts.

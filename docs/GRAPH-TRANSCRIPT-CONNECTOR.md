@@ -1,6 +1,6 @@
 # Enterprise Microsoft Graph Transcript Connector
 
-Status: **implemented 5.3 development pilot; tenant validation pending**. This document does not claim that the connector is included in a Store package or approved for tenant deployment.
+Status: **implemented 5.3 development pilot; first controlled tenant and Edge import validated; remaining negative tests and Chrome UAT pending**. This document does not claim that the connector is included in a Store package or approved for tenant deployment.
 
 Working feature name: **Verified Teams Transcript**.
 
@@ -9,6 +9,8 @@ Administrator setup and rollback are defined in [Microsoft Entra App Registratio
 ## Product outcome
 
 Better CaptionKeep now has an administrator-approved pilot connection to Microsoft Graph that lets a signed-in organizational user explicitly import an available Microsoft Teams transcript using either the current `/meet/` link or the legacy `/l/meetup-join/` link. The imported Graph artifact complements local live-caption capture; it does not silently replace it. The implementation remains unavailable unless valid tenant and application identifiers are supplied through managed policy.
+
+When the popup opens over an active Teams tab, it attempts to populate the current meeting link locally. Because Teams exposes the canonical link through temporary meeting-information UI, the content script remembers the last valid link observed for that meeting and clears it when a later meeting starts in the same Teams SPA tab. Manual current-meeting selection and link paste remain available as explicit fallbacks. The modern `/meet/<numeric-id>` form is resolved through `joinMeetingIdSettings/joinMeetingId`; the legacy link continues to use `JoinWebUrl`.
 
 The intended enterprise value is:
 
@@ -62,6 +64,16 @@ Run the connector as the highest-priority enterprise discovery item:
 7. Verify sign-in, explicit import, token expiry, sign-out, consent revocation, tenant-policy denial, missing transcript, disabled attribution, and error handling.
 8. Verify that no token, authorization code, transcript text, or meeting identifier enters logs, source control, browser sync, release artifacts, or support evidence.
 9. Complete security, privacy, Store-disclosure, and managed-policy review before proposing packaged-release scope.
+
+### First controlled live proof — 2026-09-29
+
+- A scheduled synthetic Teams meeting produced one official transcript artifact.
+- The managed Edge 5.3.0 pilot completed interactive Entra sign-in and explicit import.
+- Meeting lookup, transcript listing, and attributed WebVTT content retrieval each returned HTTP 200.
+- The imported source contained three caption cues and opened in the separate historical viewer with the Microsoft Graph source label.
+- Sanitized source SHA-256: `9d62c19b2a1f015de405f660f48d73b37279dfe49139ef45e4bd419ad23930a6`.
+- No token, authorization code, meeting identifier, or raw transcript content was added to repository evidence.
+- Chrome extension UAT, denial/revocation cases, unattributed tenant behavior, and the uninterrupted candidate window remain open.
 
 ### Release promotion gate
 

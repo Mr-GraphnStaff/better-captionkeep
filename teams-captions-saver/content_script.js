@@ -581,6 +581,7 @@ async function getAttendeeReport() {
 // --- Event-Driven Meeting Detection ---
 let meetingStateDebounceTimer = null;
 let captionsStateDebounceTimer = null;
+let lastKnownTeamsJoinUrl = '';
 
 function setupMeetingObserver() {
     if (meetingObserver) return;
@@ -591,6 +592,9 @@ function setupMeetingObserver() {
             clearTimeout(meetingStateDebounceTimer);
         }
         meetingStateDebounceTimer = setTimeout(() => {
+            // Meeting info is temporary UI. Remember its join link while the
+            // panel is open so the popup can retrieve it after the panel closes.
+            findCurrentTeamsJoinUrl();
             handleMeetingStateChange();
         }, 1000);
     });
@@ -706,6 +710,9 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         console.log("Meeting transition detected: Out -> In. Resetting auto-save state.");
         autoSaveTriggered = false;
         lastMeetingId = null;
+        // Never carry a cached join link into a later meeting in the same Teams SPA tab.
+        lastKnownTeamsJoinUrl = '';
+        findCurrentTeamsJoinUrl();
         aiSummaryFeature.reset();
         // Start attendee tracking when entering meeting
         startAttendeeTracking();
@@ -1110,7 +1117,7 @@ function supportedTeamsJoinUrl(value) {
         const host = url.hostname.toLowerCase();
         const path = url.pathname;
         const supportedHost = host === 'teams.microsoft.com' || host === 'teams.cloud.microsoft';
-        const supportedPath = path.startsWith('/l/meetup-join/') || /^\/meet\/[^/]+\/?$/.test(path);
+        const supportedPath = path.startsWith('/l/meetup-join/') || /^\/meet\/\d+\/?$/.test(path);
         if (!supportedHost || url.protocol !== 'https:' || !supportedPath) return '';
         url.hash = '';
         return url.toString();
@@ -1121,12 +1128,18 @@ function supportedTeamsJoinUrl(value) {
 
 function findCurrentTeamsJoinUrl() {
     const pageUrl = supportedTeamsJoinUrl(window.location.href);
-    if (pageUrl) return pageUrl;
+    if (pageUrl) {
+        lastKnownTeamsJoinUrl = pageUrl;
+        return pageUrl;
+    }
     for (const link of document.querySelectorAll('a[href]')) {
         const joinUrl = supportedTeamsJoinUrl(link.href || link.getAttribute('href'));
-        if (joinUrl) return joinUrl;
+        if (joinUrl) {
+            lastKnownTeamsJoinUrl = joinUrl;
+            return joinUrl;
+        }
     }
-    return '';
+    return lastKnownTeamsJoinUrl;
 }
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
