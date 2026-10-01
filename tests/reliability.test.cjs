@@ -997,6 +997,21 @@ test('configuration import is bounded and managed policy takes precedence',()=>{
     assert.equal(enterprise.settings.maxStoredSessions,5);
     assert.equal(enterprise.settings.sessionRetentionDays,30);
 });
+test('dev UAT Graph overlay extends frozen policy without mutating it',()=>{
+    const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
+    vm.runInContext(read('configuration.js'),context);
+    const config=context.CaptionKeepConfiguration;
+    const policy=config.applyPolicy({privacyScrubberEnabled:true},{});
+    const local={enableGraphTranscriptImport:true,graphTenantId:'11111111-1111-1111-1111-111111111111',graphClientId:'22222222-2222-2222-2222-222222222222'};
+    const effective=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - Edge Test',version_name:'5.3.0 development'});
+    assert.equal(effective.settings.enableGraphTranscriptImport,true);
+    assert.equal(effective.settings.graphTenantId,local.graphTenantId);
+    assert(effective.locked.includes('graphTenantId'));
+    assert.equal(policy.settings.enableGraphTranscriptImport,undefined);
+    assert.equal(Object.isFrozen(effective.settings),true);
+    const production=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
+    assert.equal(production,policy);
+});
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
     assert(html.includes('Confirm the destination workspace'));
@@ -1133,9 +1148,10 @@ test('worker accepts an optional unpacked-only Graph configuration only for test
     const worker=read('service_worker.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
     assert(worker.includes("importScripts('devUatLocalConfig.js')"));
-    assert(worker.includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
-    assert(worker.includes('/\\bdevelopment\\b/i'));
-    assert(worker.includes('localConfig?.enableGraphTranscriptImport === true'));
+    assert(worker.includes('CaptionKeepConfiguration.applyDevUatGraphOverlay'));
+    assert(read('configuration.js').includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(read('configuration.js').includes('/\\bdevelopment\\b/i'));
+    assert(read('configuration.js').includes('localConfig.enableGraphTranscriptImport !== true'));
     assert(overlayScript.includes("Refusing to configure a non-test build."));
     assert(overlayScript.includes("dist', `${target}-unpacked`"));
 });

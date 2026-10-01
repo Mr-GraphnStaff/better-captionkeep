@@ -9,17 +9,11 @@ let historyQueue = Promise.resolve();
 async function readEffectivePolicy(userKeys = []) {
     const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
-    const localConfig = globalThis.CaptionKeepDevUatLocalConfig;
-    const manifest = chrome.runtime.getManifest();
-    const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(manifest.name || ''))
-        && /\bdevelopment\b/i.test(String(manifest.version_name || ''));
-    if (isDevUatBuild && localConfig?.enableGraphTranscriptImport === true) {
-        policy.settings.enableGraphTranscriptImport = true;
-        policy.settings.graphTenantId = localConfig.graphTenantId;
-        policy.settings.graphClientId = localConfig.graphClientId;
-        for (const key of ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId']) policy.locked.add(key);
-    }
-    return policy;
+    return CaptionKeepConfiguration.applyDevUatGraphOverlay(
+        policy,
+        globalThis.CaptionKeepDevUatLocalConfig,
+        chrome.runtime.getManifest()
+    );
 }
 
 function historyOptions(settings = {}) {

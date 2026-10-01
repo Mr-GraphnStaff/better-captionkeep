@@ -139,6 +139,24 @@
         return Object.freeze({ settings: Object.freeze(settings), locked: Object.freeze([...locked]) });
     }
 
+    function applyDevUatGraphOverlay(policy, localConfig = {}, manifest = {}) {
+        const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(manifest.name || ''))
+            && /\bdevelopment\b/i.test(String(manifest.version_name || ''));
+        if (!isDevUatBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
+        const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
+        const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
+        graphKeys.forEach(key => locked.add(key));
+        return Object.freeze({
+            settings: Object.freeze({
+                ...policy.settings,
+                enableGraphTranscriptImport: true,
+                graphTenantId: localConfig.graphTenantId,
+                graphClientId: localConfig.graphClientId
+            }),
+            locked: Object.freeze([...locked])
+        });
+    }
+
     function createExport(settings) {
         return JSON.stringify({ product: 'Better CaptionKeep', version: EXPORT_VERSION, settings: sanitize(settings) }, null, 2);
     }
@@ -151,5 +169,5 @@
         return sanitize(parsed.settings);
     }
 
-    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, createExport, parseImport });
+    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyDevUatGraphOverlay, createExport, parseImport });
 })();
