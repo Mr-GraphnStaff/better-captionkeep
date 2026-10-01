@@ -28,6 +28,19 @@ Version 5.3 carries the isolated **Verified Teams Transcript** candidate. It rec
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
 - [ ] A second reviewer approves authentication, storage, provenance, managed-policy, and permission changes.
 
+### Candidate build evidence — 2026-10-01
+
+The full `release:candidate` gate passed against source commit `8753f3d1cbf9b9025cc3d1cf56851d6befe1752c`: 113 of 113 tests passed, extension validation passed, Store metadata matched, and the high-severity dependency audit reported zero vulnerabilities. These are reproducible build-candidate artifacts, not authorization to upload or publish.
+
+| Target | SHA-256 |
+| --- | --- |
+| Chrome unpacked-test ZIP | `769B6FBC80A3A5FE806364FBADB975ED003CFA690EC799AFCA2FC3F5F1092DE8` |
+| Edge unpacked-test ZIP | `B913CF00B3E740D696C941B7AA220D1C39F850B9D350E3390179A8995C5A86C5` |
+| Edge Store ZIP | `63F39F87C6793C2DC6BEE7A64D73E2BD9308D91AEF40E093082AC6F468C34A37` |
+| Chrome Store ZIP | `AF09742F7B5224292AD3BC21C9D036EFD84617C31D8916913EB41D725E9A5751` |
+
+The machine-readable local evidence is `dist/release-provenance.json`. It binds the generated packages to the source commit above; generated artifacts remain outside Git.
+
 ## Tenant and browser gate
 
 - [x] Create the controlled single-tenant Entra app registration from [the runbook](ENTRA-GRAPH-APP-REGISTRATION.md).
