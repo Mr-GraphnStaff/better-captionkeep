@@ -291,7 +291,8 @@ async function sendGraphMessage(message) {
 
 function applyGraphVisibility() {
     if (!UI_ELEMENTS.graphTranscriptSection) return;
-    UI_ELEMENTS.graphTranscriptSection.hidden = currentEnterprisePolicy.enableGraphTranscriptImport !== true;
+    UI_ELEMENTS.graphTranscriptSection.hidden = !devUatStatus.eligibleBuild
+        && currentEnterprisePolicy.enableGraphTranscriptImport !== true;
 }
 
 async function refreshDevUatStatus() {
