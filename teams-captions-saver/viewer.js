@@ -734,6 +734,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? 'speaker attribution included'
                     : 'speaker attribution unavailable by tenant policy';
                 sourceLabel.textContent = `Official Microsoft Teams transcript imported through Microsoft Graph · ${attribution}`;
+                const provenance = document.getElementById('viewer-provenance');
+                const formatSourceTime = value => {
+                    const parsed = new Date(value || '');
+                    return Number.isNaN(parsed.getTime()) ? 'Not reported' : parsed.toLocaleString();
+                };
+                document.getElementById('source-provider').textContent = viewerData.source.provider || 'Microsoft Teams';
+                document.getElementById('source-created').textContent = formatSourceTime(viewerData.source.createdDateTime);
+                document.getElementById('source-imported').textContent = formatSourceTime(viewerData.source.importedAt);
+                document.getElementById('source-attribution').textContent = attribution;
+                document.getElementById('source-fingerprint').textContent = viewerData.source.sourceSha256 || 'Not reported';
+                provenance.hidden = false;
             }
             setupEventListeners();
             // Use viewerData if captionsToView is not available

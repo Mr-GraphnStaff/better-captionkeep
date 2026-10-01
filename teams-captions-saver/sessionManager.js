@@ -105,7 +105,7 @@ class SessionManager {
             const source = this.normalizeSourceMetadata(options.source);
             const rawSource = typeof options.rawSource === 'string' ? options.rawSource : null;
             if (rawSource && this.calculateSize(rawSource) > 4 * 1024 * 1024) {
-                throw new Error('Source transcript exceeds the pilot local-storage limit');
+                throw new Error('Source transcript exceeds the local-storage limit');
             }
             
             // Create session metadata

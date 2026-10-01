@@ -677,6 +677,16 @@ test('viewer includes branded header and purposeful empty state',()=>{
     assert(script.includes('function renderViewerState'));
     assert(script.includes('Ready when your meeting is'));
 });
+test('viewer presents Graph provenance without exposing tenant or meeting identifiers',()=>{
+    const html=read('viewer.html');
+    const script=read('viewer.js');
+    assert(html.includes('id="viewer-provenance"'));
+    assert(html.includes('Verified source details'));
+    assert(html.includes('id="source-fingerprint"'));
+    assert(script.includes('viewerData.source.sourceSha256'));
+    assert(!script.includes("document.getElementById('source-tenant')"));
+    assert(!script.includes("document.getElementById('source-meeting')"));
+});
 test('eleventh history save evicts oldest and retains newest prior session',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
     h.data.session_index=Array.from({length:10},(_,i)=>({id:'old_'+i,timestamp:new Date(2020,0,10-i).toISOString(),chunkCount:1}));
@@ -754,6 +764,17 @@ test('Graph source artifact is retained separately and deleted with its saved se
     await manager.deleteSession(id);
     assert.equal(`${id}_source` in h.data,false);
     assert.equal(h.data.session_index.some(item=>item.id===id),false);
+});
+test('managed retention removes normalized Graph captions and the raw source artifact together',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    const manager=h.run('new SessionManager(true,{sessionRetentionDays:30})');
+    const id=await manager.saveSession([{Name:'Pilot User',Text:'Synthetic phrase.',Time:'00:00:01.000'}],
+        'Graph retention proof',null,{source:{type:'microsoft-graph',sourceSha256:'b'.repeat(64)},rawSource:'WEBVTT\nSynthetic source'});
+    h.data.session_index[0].timestamp='2026-08-01T00:00:00Z';
+    assert.equal(await manager.pruneExpiredSessions(Date.parse('2026-10-01T00:00:00Z')),1);
+    assert.equal(`${id}_chunk_0` in h.data,false);
+    assert.equal(`${id}_source` in h.data,false);
+    assert.equal(h.data.session_index.length,0);
 });
 test('missing chunks are reported rather than silently omitted',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'broken',chunkCount:2,captionCount:2}];h.data.broken_chunk_0=[];
@@ -1079,6 +1100,19 @@ test('Graph pilot can capture the active Teams meeting link without new permissi
     assert(content.includes("document.querySelectorAll('a[href]')"));
     assert(popup.includes('id="graphUseCurrentMeeting"'));
     assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
+});
+test('Verified Teams Transcript offers current, recent-five, and manual meeting selection',()=>{
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
+    const worker=read('service_worker.js');
+    assert(popup.includes('id="graphRecentMeetings"'));
+    assert(popup.includes('id="graphRefreshMeetings"'));
+    assert(popup.includes('Can’t find the meeting? Paste its link'));
+    assert(popup.includes('Import verified transcript'));
+    assert(popupScript.includes("message:'graph_list_recent_meetings'"));
+    assert(popupScript.includes('meetings.slice(0, 5)'));
+    assert(popupScript.includes('graphErrorMessage'));
+    assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');

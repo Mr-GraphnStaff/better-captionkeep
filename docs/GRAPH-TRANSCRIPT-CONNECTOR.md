@@ -8,9 +8,9 @@ Administrator setup and rollback are defined in [Microsoft Entra App Registratio
 
 ## Product outcome
 
-Better CaptionKeep now has an administrator-approved pilot connection to Microsoft Graph that lets a signed-in organizational user explicitly import an available Microsoft Teams transcript using either the current `/meet/` link or the legacy `/l/meetup-join/` link. The imported Graph artifact complements local live-caption capture; it does not silently replace it. The implementation remains unavailable unless valid tenant and application identifiers are supplied through managed policy.
+Better CaptionKeep now has an administrator-approved connection to Microsoft Graph that lets a signed-in organizational user choose the active Teams meeting, select from up to five recent eligible calendar meetings, or paste either a current `/meet/` link or legacy `/l/meetup-join/` link before explicitly importing an available official transcript. The imported Graph artifact complements local live-caption capture; it does not silently replace it. The implementation remains unavailable unless valid tenant and application identifiers are supplied through managed policy.
 
-When the popup opens over an active Teams tab, it attempts to populate the current meeting link locally. Because Teams exposes the canonical link through temporary meeting-information UI, the content script remembers the last valid link observed for that meeting and clears it when a later meeting starts in the same Teams SPA tab. Manual current-meeting selection and link paste remain available as explicit fallbacks. The modern `/meet/<numeric-id>` form is resolved through `joinMeetingIdSettings/joinMeetingId`; the legacy link continues to use `JoinWebUrl`.
+When the popup opens over an active Teams tab, it attempts to populate the current meeting link locally. Because Teams exposes the canonical link through temporary meeting-information UI, the content script remembers the last valid link observed for that meeting and clears it when a later meeting starts in the same Teams SPA tab. After Microsoft 365 connection, the popup also reads a bounded 30-day calendar view and returns at most five Teams meetings that have already started. Only subject, start/end time, organizer flag, and Teams join information are requested; the result is not stored. Manual current-meeting selection and link paste remain explicit fallbacks. The modern `/meet/<numeric-id>` form is resolved through `joinMeetingIdSettings/joinMeetingId`; the legacy link continues to use `JoinWebUrl`.
 
 The intended enterprise value is:
 
@@ -18,6 +18,7 @@ The intended enterprise value is:
 - no developer-operated transcript service;
 - explicit Microsoft Entra administrator consent;
 - direct retrieval from Microsoft Graph on behalf of the signed-in user;
+- recent-meeting discovery with the least-privileged read-only basic-calendar scope and no retained calendar index;
 - local processing and retention under the extension's existing managed controls;
 - independent provenance for the locally captured transcript and the official Teams transcript; and
 - tenant-controlled revocation and speaker-attribution policy.
@@ -27,7 +28,7 @@ The intended enterprise value is:
 The pilot requires two separate administrator decisions:
 
 1. A Teams administrator enables Microsoft Graph transcript API access and decides whether Graph transcripts may include speaker attribution.
-2. A Microsoft Entra administrator grants the Better CaptionKeep app registration the required delegated Microsoft Graph permission.
+2. A Microsoft Entra administrator grants the Better CaptionKeep app registration the required delegated Microsoft Graph permissions: `Calendars.ReadBasic`, `OnlineMeetings.Read`, and `OnlineMeetingTranscript.Read.All`.
 
 Administrator consent authorizes the capability. It does not initiate collection. A user must still sign in through Microsoft and explicitly request an import.
 
@@ -57,7 +58,7 @@ Run the connector as the highest-priority enterprise discovery item:
 
 1. Register a single-tenant test application in the controlled Microsoft Entra tenant.
 2. Enable Graph transcript access for the test environment and record the administrator settings.
-3. Grant only the delegated transcript permission required by the tested endpoint.
+3. Grant only delegated `Calendars.ReadBasic`, `OnlineMeetings.Read`, and `OnlineMeetingTranscript.Read.All`.
 4. Generate a synthetic Teams meeting transcript with no confidential or personal content.
 5. Prove authorized transcript listing and content retrieval independently of Better CaptionKeep.
 6. Validate the implemented unpacked-extension proof using interactive PKCE authentication and direct Graph calls.
@@ -74,6 +75,14 @@ Run the connector as the highest-priority enterprise discovery item:
 - Sanitized source SHA-256: `9d62c19b2a1f015de405f660f48d73b37279dfe49139ef45e4bd419ad23930a6`.
 - No token, authorization code, meeting identifier, or raw transcript content was added to repository evidence.
 - Chrome extension UAT, denial/revocation cases, unattributed tenant behavior, and the uninterrupted candidate window remain open.
+
+### Polished 5.3 candidate scope — 2026-10-01
+
+- Replaces link-first pilot interaction with active-meeting selection, a five-recent-meeting list, and progressively disclosed manual fallback.
+- Keeps calendar discovery transient and returns no calendar event identifier or organizer identity to the popup.
+- Adds explicit revoked-token cleanup and plain-language recovery states.
+- Records every delegated scope in the Store disclosure contract and administrator runbook.
+- Adds automated coverage for recent-meeting filtering, future-event exclusion, bounded results, least-privileged scope, and revoked-token failure.
 
 ### Release promotion gate
 
@@ -99,6 +108,7 @@ If these conditions miss scope lock, the feature moves to the following release 
 - Live-caption replacement through Microsoft Graph
 - Raw audio, video, screen-share, or real-time media-bot access
 - Automatic import without a signed-in user's explicit action
+- Calendar modification, attendee enumeration, event-body reading, or a persistent calendar index
 - Automatic reconciliation that changes either source transcript
 - A claim that Graph access is available when Teams transcription was not enabled or no transcript artifact exists
 

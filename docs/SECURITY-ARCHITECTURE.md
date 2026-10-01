@@ -227,6 +227,7 @@ These are controls over Better CaptionKeep-provided workflows, not a universal b
 | Elevation of privilege | Force-installed extension receives browser-granted permissions or CI action changes build output | Exact permissions, Store review, scoped workflow permissions, pinned Action SHAs, code review | Force-installed extensions cannot be disabled by ordinary users |
 | Spoofing / token theft | An attacker substitutes an OAuth response or reuses a token outside the intended tenant | PKCE, random state and nonce, tenant and client claim validation, HTTPS Microsoft endpoints, session-only token storage | A compromised browser profile or malicious extension remains in scope |
 | Information disclosure | A Graph import retrieves an unintended meeting or exposes the official transcript | Exact Teams join-link validation, delegated user context, one-meeting lookup, admin consent, Teams API control, explicit import, separate provenance | Microsoft authorization and tenant configuration remain external dependencies |
+| Information disclosure | Recent-meeting discovery exposes more calendar information than the selector needs | `Calendars.ReadBasic`, explicit `$select`, 30-day window, five-result limit, no event IDs or organizer identities returned to the popup, no persistence | Microsoft still processes the calendar request and the popup displays event subjects |
 
 ## Prioritized risk register
 
@@ -242,7 +243,7 @@ These are controls over Better CaptionKeep-provided workflows, not a universal b
 | R-08 | Maintainer bypass or zero-review repository rule permits an unreviewed production change | Medium | High | High | Require one approval, code-owner review, resolved threads, passing validation and CodeQL, audited emergency bypass | Repository Owner | Must close before enterprise GA |
 | R-09 | Diagnostic output discloses meeting identity or personal information | Low | Medium | Low | Count/state-only production logs, no attendee-list or transcript logs, redact support evidence | Product Engineering | Mitigated |
 | R-10 | Removal of force-install policy has an unexpected uninstall or data-retention result | Low | High | Medium | Pilot rollback test, export prohibition decision, documented browser behavior, help-desk runbook | Endpoint Engineering | Must test per tenant |
-| R-11 | Graph OAuth or transcript permissions are broader or behave differently than documented | Medium | High | High | Single-tenant app, delegated minimum permissions, synthetic tenant proof, consent/revocation tests, no application permissions | Identity/Security Architecture | Must close before packaged release |
+| R-11 | Graph OAuth, basic-calendar, or transcript permissions are broader or behave differently than documented | Medium | High | High | Single-tenant app, delegated minimum permissions, explicit calendar field selection, synthetic tenant proof, consent/revocation tests, no application permissions | Identity/Security Architecture | Must close before packaged release |
 | R-12 | Official transcript source or token persists beyond the intended boundary | Low | High | Medium | Session-only tokens, explicit disconnect, source artifact bound to session deletion/retention, storage tests | Product Engineering | Automated evidence present; live UAT pending |
 
 ## Enterprise deployment profiles
@@ -370,7 +371,7 @@ Trade-off: the original remains locally present until retention or deletion cont
 
 ### ADR-005: Graph transcript access is delegated, managed, and direct
 
-Decision: the pilot uses a single-tenant public-client registration, authorization code with PKCE, delegated Graph permissions, and direct Microsoft endpoints. It has no developer relay, application credential, or unattended tenant-wide collection.
+Decision: the candidate uses a single-tenant public-client registration, authorization code with PKCE, delegated `Calendars.ReadBasic`, `OnlineMeetings.Read`, and `OnlineMeetingTranscript.Read.All`, and direct Microsoft endpoints. It has no developer relay, application credential, calendar-write access, or unattended tenant-wide collection.
 
 Reason: tenant administrators retain consent and API controls while the signed-in user selects the meeting and initiates each import.
 

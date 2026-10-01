@@ -1,6 +1,6 @@
 {
   "manifestVersion": "5.3.0",
-  "singlePurpose": "Capture, protect, review, and export live captions displayed in supported Microsoft Teams, Google Meet, and Zoom Web pages. The extension stores transcripts locally, supports user-directed exports, and can optionally prepare a reviewable AI prompt without transmitting it automatically.",
+  "singlePurpose": "Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, when enabled by an organization, lets a signed-in user select a recent Teams meeting and privately import its authorized official transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports or copies it.",
   "providers": [
     "Microsoft Teams",
     "Google Meet",
@@ -11,7 +11,15 @@
     "activeTab": "Used when the user opens the extension popup to identify the active supported meeting tab and communicate with the extension's caption-capture content script. Access is limited to the user-invoked active-tab workflow.",
     "storage": "Used for extension preferences, capture-recovery checkpoints, pending exports, temporary speaker aliases, and up to ten locally saved transcript sessions. Managed enterprise settings are also read through the browser's managed-storage system. The developer does not operate a transcript-storage service.",
     "sidePanel": "Used to display the live transcript, recovery status, speaker tools, search, Scrubby privacy controls, and export actions alongside the supported meeting page. The side panel is opened only as part of the user's local caption-capture workflow and does not transmit transcript data to a developer-operated service.",
-    "identity": "Used only when an organization enables Verified Teams Transcript through managed policy. It opens an interactive Microsoft Entra authorization-code flow with PKCE so a signed-in user can explicitly import an authorized Teams transcript. No client secret is embedded in the extension."
+    "identity": "Used only when an organization enables Verified Teams Transcript through managed policy. It opens an interactive Microsoft Entra authorization-code flow with PKCE so a signed-in user can find recent Teams meetings and explicitly import an authorized official transcript. Tokens stay in browser session storage, and no client secret is embedded in the extension."
+  },
+  "oauthScopeJustifications": {
+    "openid": "Confirms the identity returned by Microsoft during the interactive organizational sign-in flow.",
+    "profile": "Displays the connected Microsoft 365 account label so the user can verify which organizational account is active.",
+    "offline_access": "Allows Microsoft to refresh the delegated session while the browser remains open without repeatedly interrupting the user. The refresh token stays only in browser session storage.",
+    "Calendars.ReadBasic": "Reads only basic event fields needed to show up to five recent Teams meetings: subject, start and end time, organizer flag, and Teams join information. Calendar results are not written to transcript history or browser sync.",
+    "OnlineMeetings.Read": "Resolves the one Teams meeting the user selected by its join link or meeting ID before requesting its transcript.",
+    "OnlineMeetingTranscript.Read.All": "Lists and retrieves an official transcript only after the signed-in user explicitly chooses an authorized Teams meeting. Microsoft and tenant policy determine which transcripts the user can access."
   },
   "hostPermissions": [
     "https://teams.microsoft.com/*",
@@ -21,7 +29,7 @@
     "https://login.microsoftonline.com/*",
     "https://graph.microsoft.com/*"
   ],
-  "hostPermissionJustification": "Meeting-origin access is limited to Microsoft Teams, Google Meet, and Zoom Web for local caption capture. When and only when an administrator enables Verified Teams Transcript, login.microsoftonline.com is used for interactive Microsoft Entra authentication and graph.microsoft.com is used to resolve a user-supplied Teams meeting and retrieve an authorized official transcript. Better CaptionKeep does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
+  "hostPermissionJustification": "Meeting-origin access is limited to Microsoft Teams, Google Meet, and Zoom Web for local caption capture. When and only when an administrator enables Verified Teams Transcript, login.microsoftonline.com is used for interactive Microsoft Entra authentication and graph.microsoft.com is used to show up to five recent eligible Teams meetings, resolve the meeting the user selected, and retrieve its authorized official transcript. Calendar results remain transient. Better CaptionKeep does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
   "usesRemoteCode": false,
   "privacyPolicyUrl": "https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md"
 }

@@ -252,6 +252,21 @@
         #graphDisconnectButton { background: #5f6b73; }
         #graphJoinUrl { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
         #graphRedirectUri { overflow-wrap: anywhere; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+        .graph-hero { margin: 8px 0; padding: 10px; border: 1px solid var(--ck-border); border-radius: 8px; background: var(--ck-surface); }
+        .graph-hero strong { display: block; margin-bottom: 3px; color: var(--ck-text); }
+        .graph-recent-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+        .graph-recent-header .setting-label { margin: 0; }
+        #graphRefreshMeetings { padding: 5px 8px; font-size: 11px; color: var(--ck-text); background: var(--ck-surface); border: 1px solid var(--ck-border); }
+        .graph-meeting-list { display: grid; gap: 6px; margin: 7px 0 9px; }
+        .graph-meeting-card { width: 100%; padding: 8px; text-align: left; white-space: normal; color: var(--ck-text); background: var(--ck-surface); border: 1px solid var(--ck-border); border-radius: 7px; }
+        .graph-meeting-card:hover { border-color: var(--ck-primary); background: var(--ck-surface-soft); }
+        .graph-meeting-card[aria-pressed="true"] { border-color: var(--ck-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ck-primary) 22%, transparent); }
+        .graph-meeting-title { display: block; overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+        .graph-meeting-meta { display: block; margin-top: 2px; color: var(--ck-text-muted); font-size: 10px; font-weight: 500; }
+        .graph-manual { margin: 8px 0; }
+        .graph-manual summary { cursor: pointer; color: var(--ck-text-muted); font-size: 11px; font-weight: 650; }
+        .graph-manual .setting-label { display: block; margin-top: 8px; }
+        #graphImportButton { width: 100%; background: var(--ck-primary); }
         .setting-item {
             width: 100%;
             display: flex;
@@ -490,6 +505,38 @@
         <div style="text-align: center; color: #999;">Loading sessions...</div>
     </div>
 
+    <details class="settings-group" id="graphTranscriptSection" hidden open>
+        <summary>Verified Teams transcripts</summary>
+        <div class="graph-hero">
+            <strong>Official words. Verifiable source.</strong>
+            <p class="small-info-text">Bring an authorized Teams transcript directly from Microsoft 365 into your private local history. Better CaptionKeep never receives it.</p>
+        </div>
+        <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+        <div class="graph-actions">
+            <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
+            <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
+        </div>
+        <button id="graphUseCurrentMeeting" type="button">Use this Teams meeting</button>
+        <div class="graph-recent-header">
+            <span class="setting-label">Your five recent Teams meetings</span>
+            <button id="graphRefreshMeetings" type="button" disabled>Refresh</button>
+        </div>
+        <div id="graphRecentMeetings" class="graph-meeting-list" role="list" aria-label="Recent Teams meetings">
+            <p class="small-info-text">Connect Microsoft 365 to find recent meetings.</p>
+        </div>
+        <details class="graph-manual">
+            <summary>Can’t find the meeting? Paste its link</summary>
+            <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
+            <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
+        </details>
+        <details class="graph-manual">
+            <summary>Administrator connection details</summary>
+            <p class="small-info-text" id="graphRedirectUri"></p>
+        </details>
+        <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
+        <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting or use the current Teams meeting. Teams must have finished producing its transcript.</p>
+    </details>
+
     <div class="settings-container">
         <h3 class="settings-header">Settings</h3>
         <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
@@ -573,22 +620,6 @@
                 <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle"><span class="slider"></span></label>
             </div>
             <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
-        </details>
-
-        <details class="settings-group" id="graphTranscriptSection" hidden>
-            <summary>Verified Teams Transcript <span aria-label="Pilot">· Pilot</span></summary>
-            <p class="small-info-text">Import an available official Teams transcript through your organization's administrator-approved Microsoft Graph connection. The Graph source stays separate from local live capture.</p>
-            <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
-            <p class="small-info-text" id="graphRedirectUri"></p>
-            <div class="graph-actions">
-                <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
-                <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
-            </div>
-            <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
-            <textarea id="graphJoinUrl" rows="3" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
-            <button id="graphUseCurrentMeeting" type="button">Use current Teams meeting</button>
-            <button id="graphImportButton" type="button" disabled>Import official transcript</button>
-            <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Teams transcription must have produced an official transcript for this meeting.</p>
         </details>
 
         <details class="settings-group">

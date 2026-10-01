@@ -1,5 +1,13 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
+
+function pngDimensions(relativePath) {
+  const data = fs.readFileSync(path.join(__dirname, '..', relativePath));
+  assert.equal(data.subarray(1, 4).toString(), 'PNG');
+  return [data.readUInt32BE(16), data.readUInt32BE(20)];
+}
 
 function fixture() {
   return {
@@ -57,4 +65,21 @@ test('Chrome Store metadata contract rejects host and version drift', async () =
   const second = fixture();
   second.manifest.host_permissions.push('https://app.zoom.us/*');
   assert.throws(() => validateChromeStoreMetadata(second.manifest, second.metadata), /host-permission disclosures drifted/i);
+});
+
+test('Chrome Store metadata contract requires every Microsoft delegated scope', async () => {
+  const { validateChromeStoreMetadata } = await import('../scripts/check-store-metadata.mjs');
+  const { manifest, metadata } = fixture();
+  manifest.host_permissions.push('https://graph.microsoft.com/*');
+  metadata.hostPermissions.push('https://graph.microsoft.com/*');
+  assert.throws(
+    () => validateChromeStoreMetadata(manifest, metadata),
+    /delegated-scope disclosures drifted/i,
+  );
+});
+
+test('5.3 Store artwork has the exact Chrome listing dimensions', () => {
+  assert.deepEqual(pngDimensions('store-assets/5.3/01-verified-teams-transcript.png'), [1280, 800]);
+  assert.deepEqual(pngDimensions('store-assets/5.3/small-promotional-tile.png'), [440, 280]);
+  assert.deepEqual(pngDimensions('store-assets/5.3/large-promotional-tile.png'), [1400, 560]);
 });

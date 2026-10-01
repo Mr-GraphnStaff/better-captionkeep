@@ -13,21 +13,21 @@ artwork, reviewer instructions, and the final staged-publication decision.
 2. Run `npm run build:chrome-store`.
 3. Record the printed SHA-256 value and preserve the exact ZIP from `dist/chrome-store/`.
 4. Load `dist/chrome-store-unpacked/` through `chrome://extensions` and complete Chrome UAT before uploading the ZIP.
-5. Confirm the installed name is **Better CaptionKeep**, the version is **5.0.0**, and no title contains `Test` or `development`.
+5. Confirm the installed name is **Better CaptionKeep**, the version is **5.3.0**, and no title contains `Test` or `development`.
 
 Do not upload from `dist/chrome-unpacked/` or a ZIP with `chrome_test` in its name. Those artifacts intentionally have a separate testing identity.
 
 ## Store listing
 
 - **Name:** Better CaptionKeep
-- **Summary:** Capture, protect, review, and export live captions from Microsoft Teams and Google Meet.
+- **Summary:** Capture live captions and privately import verified Microsoft Teams transcripts for local review and export.
 - **Category:** Productivity
 - **Language:** English
 - **Privacy policy:** `https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md`
 
 ### Detailed description
 
-Better CaptionKeep helps you stay in the conversation while preserving the live captions already displayed in Microsoft Teams and Google Meet.
+Better CaptionKeep helps you stay in the conversation while preserving live captions displayed in Microsoft Teams, Google Meet, and Zoom Web. When enabled by an organization, Verified Teams Transcript can also find the current or five recent Teams meetings and privately import an authorized official transcript from Microsoft 365.
 
 Capture captions locally, review a readable transcript, search by speaker, and export TXT or Markdown files. Saved-session history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
@@ -39,13 +39,15 @@ The local Evidence Board can remain open beside a supported meeting. Users mark 
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service.
 
+Verified Teams Transcript is administrator-enabled and explicit. Recent calendar choices are read with a basic, read-only scope and are not retained. Microsoft 365 tokens remain in browser session storage. An imported raw transcript and its cryptographic provenance remain local and are deleted with the saved session.
+
 Keep the words. Stay in the conversation.
 
 ## Privacy questionnaire working answers
 
 Recheck the labels shown in the dashboard because Google may revise the questionnaire.
 
-- **Single purpose:** Capture, protect, review, and export live captions rendered by supported Microsoft Teams and Google Meet pages.
+- **Single purpose:** Capture, protect, review, and export meeting transcripts from supported live-caption pages and an optional administrator-enabled Microsoft Teams official-transcript import.
 - **Personally identifiable information:** Yes. Speaker and optional attendee names may identify people.
 - **Personal communications / user-generated content:** Yes. Meeting captions are communications supplied by meeting participants.
 - **Website content:** Yes. The extension reads captions, meeting titles, and optional attendee details rendered by the supported meeting pages.
@@ -58,18 +60,22 @@ Recheck the labels shown in the dashboard because Google may revise the question
 - **`activeTab`:** Lets the popup identify and communicate with the supported meeting tab the user is actively viewing.
 - **`downloads`:** Saves user-requested TXT or Markdown transcript exports and opens the browser's downloads folder when requested.
 - **`storage`:** Stores preferences, managed settings, recovery checkpoints, and up to ten saved transcript sessions in extension-controlled browser storage.
+- **`identity`:** Opens interactive Microsoft Entra sign-in for an administrator-enabled official Teams transcript import. No client secret is embedded.
 - **Host access — `teams.microsoft.com` and `teams.cloud.microsoft`:** Reads captions and optional attendee information rendered during Microsoft Teams meetings.
 - **Host access — `meet.google.com`:** Reads captions rendered during Google Meet meetings.
+- **Host access — `app.zoom.us`:** Reads captions rendered by the Zoom Web subtitle overlay.
+- **Host access — `login.microsoftonline.com`:** Performs interactive Microsoft Entra authorization-code sign-in with PKCE.
+- **Host access — `graph.microsoft.com`:** Shows five recent eligible Teams meetings and retrieves only the official transcript the user explicitly selects.
 
 ## Listing artwork
 
-Use the reviewed assets under `store-assets/5.0/` only after Chrome UAT confirms that they accurately represent the candidate:
+Use the reviewed 5.3 assets under `store-assets/5.3/` after Chrome UAT confirms that they accurately represent the candidate:
 
-- `01-live-capture.png` — 1280 x 800 screenshot
+- `01-verified-teams-transcript.png` — 1280 x 800 screenshot using synthetic meeting names
 - `small-promotional-tile.png` — 440 x 280 required small tile
 - `large-promotional-tile.png` — 1400 x 560 optional marquee tile
 
-Add up to four more 1280 x 800 Chrome screenshots if available. Do not upload screenshots that expose real participant names, meeting links, organization identifiers, or transcript content.
+The earlier 5.0 artwork remains historical and must not replace these feature-accurate assets for the 5.3 listing. Add up to four more 1280 x 800 Chrome screenshots if available. Do not upload screenshots that expose real participant names, meeting links, organization identifiers, or transcript content.
 
 ## Reviewer test instructions
 
@@ -80,6 +86,8 @@ Add up to four more 1280 x 800 Chrome screenshots if available. Do not upload sc
 5. Export the transcript as TXT or Markdown and verify the download completes.
 6. In Settings, confirm Privacy Scrubber is enabled by default. AI handoff can be enabled, but the generated prompt remains on the extension review page until the reviewer explicitly copies it.
 7. Microsoft Teams can be tested through either `teams.microsoft.com` or `teams.cloud.microsoft`; sign-in and meeting access are supplied by the reviewer's Microsoft environment.
+
+Verified Teams Transcript is hidden unless an organization supplies its approved single-tenant Microsoft Entra tenant and application identifiers through managed browser policy. Better CaptionKeep does not provide shared test credentials. In an authorized organizational test profile, connect Microsoft 365, choose the current meeting or one of five recent Teams meetings, and explicitly import an available official transcript. The Store screenshot uses synthetic meeting names and exposes no tenant configuration or meeting data.
 
 No developer-operated server, test credential, paid subscription, microphone recording, or video recording is required for the extension itself.
 

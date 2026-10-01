@@ -7,6 +7,7 @@
         'openid',
         'profile',
         'offline_access',
+        'Calendars.ReadBasic',
         'OnlineMeetings.Read',
         'OnlineMeetingTranscript.Read.All'
     ]);
@@ -241,6 +242,13 @@
         return { connected: false };
     }
 
+    async function failClosedOnAuthError(error, dependencies = {}) {
+        if (!['InvalidAuthenticationToken', 'TokenExpired'].includes(error?.code)) throw error;
+        const chromeApi = dependencies.chromeApi || chrome;
+        await chromeApi.storage.session.remove(AUTH_STORAGE_KEY);
+        throw new GraphConnectorError('SIGN_IN_REQUIRED', 'Your Microsoft 365 session ended. Connect again to continue.');
+    }
+
     function validateJoinUrl(value) {
         let url;
         try {
@@ -265,7 +273,8 @@
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${token}`,
-                Accept: options.accept || 'application/json'
+                Accept: options.accept || 'application/json',
+                ...(options.headers || {})
             }
         });
         if (!response.ok) {
@@ -295,6 +304,84 @@
         const meeting = Array.isArray(body?.value) ? body.value[0] : null;
         if (!meeting?.id) throw new GraphConnectorError('MEETING_NOT_FOUND', 'Microsoft Graph could not find an eligible meeting for that join link.');
         return meeting;
+    }
+
+    function eventDateTime(value) {
+        const raw = String(value?.dateTime || '').trim();
+        const milliseconds = raw.replace(/(\.\d{3})\d+/, '$1');
+        const hasOffset = /(?:Z|[+-]\d{2}:\d{2})$/i.test(milliseconds);
+        const normalized = !hasOffset && String(value?.timeZone || '').toUpperCase() === 'UTC'
+            ? `${milliseconds}Z`
+            : milliseconds;
+        const parsed = Date.parse(normalized);
+        return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+    }
+
+    function calendarMeeting(event, nowMs) {
+        const rawJoinUrl = event?.onlineMeeting?.joinUrl || event?.onlineMeetingUrl || '';
+        let joinUrl;
+        try {
+            joinUrl = validateJoinUrl(rawJoinUrl);
+        } catch {
+            return null;
+        }
+        const startDateTime = eventDateTime(event.start);
+        const endDateTime = eventDateTime(event.end);
+        if (!startDateTime || Date.parse(startDateTime) > nowMs + 5 * 60 * 1000) return null;
+        const subject = String(event.subject || '').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Teams meeting';
+        return Object.freeze({
+            subject,
+            joinUrl,
+            startDateTime,
+            endDateTime,
+            isOrganizer: event.isOrganizer === true,
+            state: endDateTime && Date.parse(endDateTime) < nowMs ? 'ended' : 'in-progress'
+        });
+    }
+
+    async function listRecentMeetings(settings, dependencies = {}) {
+        validateManagedConfig(settings);
+        const fetchImpl = dependencies.fetchImpl || fetch;
+        const token = await getAccessToken(settings, dependencies);
+        const nowMs = Number.isFinite(dependencies.nowMs) ? dependencies.nowMs : Date.now();
+        const startDateTime = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const endDateTime = new Date(nowMs + 5 * 60 * 1000).toISOString();
+        const url = new URL(`${GRAPH_ROOT}me/calendarView`);
+        url.searchParams.set('startDateTime', startDateTime);
+        url.searchParams.set('endDateTime', endDateTime);
+        url.searchParams.set('$select', 'subject,start,end,isOrganizer,isOnlineMeeting,onlineMeeting,onlineMeetingUrl');
+        url.searchParams.set('$orderby', 'start/dateTime desc');
+        url.searchParams.set('$top', '25');
+
+        const events = [];
+        let nextUrl = url.toString();
+        for (let page = 0; nextUrl && page < 4; page += 1) {
+            let body;
+            try {
+                const response = await graphResponse(nextUrl, token, fetchImpl, {
+                    headers: { Prefer: 'outlook.timezone="UTC"' }
+                });
+                body = await response.json();
+            } catch (error) {
+                await failClosedOnAuthError(error, dependencies);
+            }
+            events.push(...(Array.isArray(body?.value) ? body.value : []));
+            const eligibleCount = events.map(event => calendarMeeting(event, nowMs)).filter(Boolean).length;
+            nextUrl = eligibleCount >= 5 ? '' : String(body?.['@odata.nextLink'] || '');
+        }
+        const meetings = events
+            .map(event => calendarMeeting(event, nowMs))
+            .filter(Boolean)
+            .sort((left, right) => Date.parse(right.startDateTime) - Date.parse(left.startDateTime));
+        const unique = [];
+        const seen = new Set();
+        for (const meeting of meetings) {
+            if (seen.has(meeting.joinUrl)) continue;
+            seen.add(meeting.joinUrl);
+            unique.push(meeting);
+            if (unique.length === 5) break;
+        }
+        return unique;
     }
 
     async function listTranscripts(meetingId, token, fetchImpl) {
@@ -380,9 +467,16 @@
         const fetchImpl = dependencies.fetchImpl || fetch;
         const token = await getAccessToken(settings, dependencies);
         const joinUrl = validateJoinUrl(joinUrlValue);
-        const meeting = await resolveMeeting(joinUrl, token, fetchImpl);
-        const [transcript] = await listTranscripts(meeting.id, token, fetchImpl);
-        const downloaded = await downloadTranscript(meeting.id, transcript.id, token, fetchImpl);
+        let meeting;
+        let transcript;
+        let downloaded;
+        try {
+            meeting = await resolveMeeting(joinUrl, token, fetchImpl);
+            [transcript] = await listTranscripts(meeting.id, token, fetchImpl);
+            downloaded = await downloadTranscript(meeting.id, transcript.id, token, fetchImpl);
+        } catch (error) {
+            await failClosedOnAuthError(error, dependencies);
+        }
         const entries = parseTranscript(downloaded.raw, transcript, downloaded.attributed);
         return {
             transcript: entries,
@@ -413,6 +507,7 @@
         connect,
         disconnect,
         status,
+        listRecentMeetings,
         importTranscript
     });
 

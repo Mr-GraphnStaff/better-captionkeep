@@ -1,6 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
+const EXPECTED_GRAPH_SCOPES = [
+  'openid',
+  'profile',
+  'offline_access',
+  'Calendars.ReadBasic',
+  'OnlineMeetings.Read',
+  'OnlineMeetingTranscript.Read.All',
+];
+
 function sorted(values) {
   return [...values].sort((left, right) => left.localeCompare(right));
 }
@@ -45,6 +54,13 @@ export function validateChromeStoreMetadata(manifest, metadata) {
   );
 
   const declaredHosts = new Set(manifest.host_permissions || []);
+  if (declaredHosts.has('https://graph.microsoft.com/*')) {
+    const disclosedScopes = Object.keys(metadata.oauthScopeJustifications || {});
+    requireSameSet(EXPECTED_GRAPH_SCOPES, disclosedScopes, 'Microsoft delegated-scope disclosures');
+    for (const scope of EXPECTED_GRAPH_SCOPES) {
+      requireText(metadata.oauthScopeJustifications[scope], `${scope} justification`);
+    }
+  }
   for (const contentScript of manifest.content_scripts || []) {
     for (const match of contentScript.matches || []) {
       const covered = [...declaredHosts].some(host => {

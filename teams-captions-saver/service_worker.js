@@ -369,10 +369,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
-        'graph_get_status','graph_connect','graph_disconnect','graph_import_transcript']);
+        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
-    const extensionPageOnly = ['delete_session','clear_sessions','graph_get_status','graph_connect','graph_disconnect','graph_import_transcript'];
+    const extensionPageOnly = ['delete_session','clear_sessions','graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript'];
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
@@ -395,6 +395,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             case 'graph_disconnect':
                 responsePayload = await CaptionKeepGraphTranscript.disconnect();
+                break;
+
+            case 'graph_list_recent_meetings':
+                {
+                    const policy = await readEffectivePolicy();
+                    responsePayload = {
+                        meetings: await CaptionKeepGraphTranscript.listRecentMeetings(policy.settings)
+                    };
+                }
                 break;
 
             case 'graph_import_transcript':

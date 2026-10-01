@@ -39,6 +39,8 @@ test('managed Graph configuration is opt-in and requires tenant and client GUIDs
     tenantId: SETTINGS.graphTenantId,
     clientId: SETTINGS.graphClientId
   });
+  assert(Graph.AUTH_SCOPES.includes('Calendars.ReadBasic'));
+  assert(!Graph.AUTH_SCOPES.includes('Calendars.Read'));
 });
 
 test('meeting input accepts only exact HTTPS Teams join links', () => {
@@ -203,6 +205,126 @@ test('current Teams meeting links resolve by numeric join meeting ID', async () 
 
   const lookup = new URL(calls.find(url => url.includes('/me/onlineMeetings?')));
   assert.equal(lookup.searchParams.get('$filter'), "joinMeetingIdSettings/joinMeetingId eq '123456789012'");
+});
+
+test('recent meeting discovery returns five transient eligible Teams meetings in newest-first order', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{username:'pilot@example.com'}
+    }
+  });
+  const nowMs = Date.parse('2026-10-01T15:00:00Z');
+  let calendarUrl;
+  const events = Array.from({length:7}, (_, index) => ({
+    id:`calendar-event-${index}`,
+    subject:`Synthetic meeting ${index}`,
+    isOrganizer:index % 2 === 0,
+    start:{dateTime:new Date(nowMs - index * 3600000).toISOString(),timeZone:'UTC'},
+    end:{dateTime:new Date(nowMs - index * 3600000 + 1800000).toISOString(),timeZone:'UTC'},
+    onlineMeeting:{joinUrl:`https://teams.microsoft.com/meet/${123456789000 + index}?p=synthetic${index}`}
+  }));
+  events.push({
+    subject:'Future meeting',
+    start:{dateTime:new Date(nowMs + 86400000).toISOString(),timeZone:'UTC'},
+    end:{dateTime:new Date(nowMs + 90000000).toISOString(),timeZone:'UTC'},
+    onlineMeeting:{joinUrl:'https://teams.microsoft.com/meet/999999999999?p=future'}
+  });
+  events.push({
+    subject:'Non-Teams event',
+    start:{dateTime:new Date(nowMs - 7200000).toISOString(),timeZone:'UTC'},
+    end:{dateTime:new Date(nowMs - 7000000).toISOString(),timeZone:'UTC'}
+  });
+  const meetings = await Graph.listRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs,
+    fetchImpl:async (url, options) => {
+      calendarUrl = new URL(url);
+      assert.equal(options.headers.Prefer, 'outlook.timezone="UTC"');
+      return Response.json({value:events});
+    }
+  });
+
+  assert.equal(calendarUrl.pathname, '/v1.0/me/calendarView');
+  assert.equal(calendarUrl.searchParams.get('$top'), '25');
+  assert.match(calendarUrl.searchParams.get('$select'), /onlineMeeting/);
+  assert.equal(meetings.length, 5);
+  assert.equal(meetings[0].subject, 'Synthetic meeting 0');
+  assert.equal(meetings[0].state, 'in-progress');
+  assert.equal(meetings[1].state, 'ended');
+  assert.equal(Object.hasOwn(meetings[0], 'id'), false);
+  assert.equal(Object.hasOwn(meetings[0], 'organizer'), false);
+});
+
+test('recent meeting discovery normalizes Graph UTC timestamps with extended fractional seconds', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  const meetings = await Graph.listRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs:Date.parse('2026-10-01T15:00:00Z'),
+    fetchImpl:async () => Response.json({value:[{
+      subject:'Graph UTC meeting',
+      start:{dateTime:'2026-10-01T14:30:00.0000000',timeZone:'UTC'},
+      end:{dateTime:'2026-10-01T15:30:00.0000000',timeZone:'UTC'},
+      onlineMeeting:{joinUrl:'https://teams.microsoft.com/meet/323456789000?p=utcproof'}
+    }]})
+  });
+  assert.equal(meetings[0].startDateTime, '2026-10-01T14:30:00.000Z');
+  assert.equal(meetings[0].state, 'in-progress');
+});
+
+test('revoked Microsoft token fails closed and clears session authentication', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'revoked-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  await assert.rejects(
+    Graph.listRecentMeetings(SETTINGS, {
+      chromeApi:harness.api,
+      fetchImpl:async () => Response.json({error:{code:'InvalidAuthenticationToken'}}, {status:401})
+    }),
+    error => error.code === 'SIGN_IN_REQUIRED'
+  );
+  assert.equal(Object.hasOwn(harness.session, 'graphTranscriptAuthV1'), false);
+});
+
+test('recent meeting discovery follows bounded Graph pagination until five Teams meetings are found', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  const nowMs = Date.parse('2026-10-01T15:00:00Z');
+  let calls = 0;
+  const meetings = await Graph.listRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs,
+    fetchImpl:async url => {
+      calls += 1;
+      if (calls === 1) {
+        return Response.json({
+          value:[{subject:'Non-Teams event',start:{dateTime:'2026-10-01T13:00:00Z'},end:{dateTime:'2026-10-01T14:00:00Z'}}],
+          '@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendarView?$skiptoken=synthetic'
+        });
+      }
+      assert.match(url, /\$skiptoken=synthetic/);
+      return Response.json({value:Array.from({length:5}, (_, index) => ({
+        subject:`Paged Teams meeting ${index}`,
+        start:{dateTime:new Date(nowMs - index * 3600000).toISOString()},
+        end:{dateTime:new Date(nowMs - index * 3600000 + 1800000).toISOString()},
+        onlineMeeting:{joinUrl:`https://teams.microsoft.com/meet/${223456789000 + index}?p=paged${index}`}
+      }))});
+    }
+  });
+  assert.equal(calls, 2);
+  assert.equal(meetings.length, 5);
 });
 
 test('speaker-attribution denial retries only with the unattributed transcript media type', async () => {

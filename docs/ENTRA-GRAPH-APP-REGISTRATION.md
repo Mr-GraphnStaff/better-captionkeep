@@ -62,12 +62,13 @@ Under **API permissions > Add a permission > Microsoft Graph > Delegated permiss
 
 | Permission | Pilot purpose | Consent |
 | --- | --- | --- |
+| `Calendars.ReadBasic` | Read only the basic event fields needed to show up to five recent Teams meetings: subject, time, organizer flag, and Teams join information | Delegated; least-privileged calendar scope; grant administrator consent for the governed deployment |
 | `OnlineMeetings.Read` | Resolve the specific Teams meeting from a user-supplied join URL or meeting ID | Delegated; Microsoft currently marks admin consent as not required |
 | `OnlineMeetingTranscript.Read.All` | List and retrieve transcripts for a meeting the signed-in user is permitted to access | Delegated; administrator consent required |
 
 `openid`, `profile`, and `offline_access` are protocol scopes requested during authentication; they are not a reason to add broader Microsoft Graph data permissions.
 
-Do not add application permissions, `OnlineMeetings.Read.All`, recording permissions, mail, files, chat, directory, or user-directory read permissions for the first pilot.
+Do not add `Calendars.Read`, `Calendars.ReadWrite`, application permissions, `OnlineMeetings.Read.All`, recording permissions, mail, files, chat, directory, or user-directory read permissions. `Calendars.ReadBasic` is sufficient for the recent-meeting selector and does not authorize calendar modification.
 
 Select **Grant admin consent** for the test tenant and retain a screenshot or exported permission record that contains no token or transcript data.
 
@@ -103,11 +104,12 @@ Use a scheduled Teams meeting containing invented phrases and no confidential, p
 3. Open Better CaptionKeep and confirm the Graph connector reports the expected tenant and redirect URI.
 4. Select **Connect Microsoft 365** and complete organizational sign-in.
 5. Confirm the consent screen names only the intended delegated permissions.
-6. Paste the exact Teams join URL for the synthetic meeting.
-7. Import the official transcript and confirm it is labeled as a Microsoft Graph source.
-8. Confirm the local live-capture source remains separate and unchanged.
-9. Verify behavior with speaker attribution enabled and disabled, if both states are approved for testing.
-10. Sign out, revoke the enterprise-app session, disable transcript API access, and remove admin consent in separate tests. Each condition must fail closed without deleting already retained source evidence.
+6. Confirm the synthetic meeting appears in the five recent meetings without exposing attendee lists, message bodies, or unrelated calendar fields.
+7. Select the meeting, import the official transcript, and confirm it is labeled as a Microsoft Graph source.
+8. Confirm current-meeting selection and manual link fallback resolve the same controlled meeting.
+9. Confirm the local live-capture source remains separate and unchanged.
+10. Verify behavior with speaker attribution enabled and disabled, if both states are approved for testing.
+11. Sign out, revoke the enterprise-app session, disable transcript API access, and remove admin consent in separate tests. Each condition must fail closed without deleting already retained source evidence.
 
 Retain status codes, timestamps, extension version and ID, browser version, permission state, hashes, and sanitized response shape. Do not retain access tokens, authorization codes, refresh tokens, cookies, raw diagnostic bodies, or real transcript content in the repository or support record.
 
@@ -118,6 +120,7 @@ Retain status codes, timestamps, extension version and ID, browser version, perm
 | Managed configuration absent | Connector is hidden and Graph calls cannot be initiated |
 | User not signed in | Import is blocked and interactive connection is offered |
 | Admin consent absent | Microsoft denies the requested transcript permission |
+| Basic calendar permission absent | Recent meetings fail closed; current-meeting and manual-link selection remain visible |
 | Teams Graph transcript access disabled | Graph returns a governed access-denied response |
 | Speaker attribution disabled | The attributed representation is rejected or an unattributed representation is used and labeled |
 | Meeting has no Teams transcript | No import is created |
@@ -140,6 +143,7 @@ Deleting the registration or revoking consent prevents future Graph retrieval. I
 - [Chrome Identity API](https://developer.chrome.com/docs/extensions/reference/api/identity)
 - [Microsoft identity platform authorization-code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow)
 - [Microsoft Graph online meeting lookup](https://learn.microsoft.com/en-us/graph/api/onlinemeeting-get?view=graph-rest-1.0)
+- [Microsoft Graph calendar view](https://learn.microsoft.com/en-us/graph/api/user-list-calendarview?view=graph-rest-1.0)
 - [Microsoft Graph list transcripts](https://learn.microsoft.com/en-us/graph/api/onlinemeeting-list-transcripts?view=graph-rest-1.0)
 - [Microsoft Graph get transcript content](https://learn.microsoft.com/en-us/graph/api/calltranscript-get?view=graph-rest-1.0)
 - [Teams transcript API tenant control](https://learn.microsoft.com/en-us/microsoftteams/meeting-transcript-api-access)
