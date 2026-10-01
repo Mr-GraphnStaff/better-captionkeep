@@ -55,13 +55,19 @@ const UI_ELEMENTS = {
     graphRefreshMeetings: document.getElementById('graphRefreshMeetings'),
     graphRecentMeetings: document.getElementById('graphRecentMeetings'),
     graphImportButton: document.getElementById('graphImportButton'),
-    graphImportStatus: document.getElementById('graphImportStatus')
+    graphImportStatus: document.getElementById('graphImportStatus'),
+    devUatSection: document.getElementById('devUatSection'),
+    devUatPass: document.getElementById('devUatPass'),
+    devUatActivate: document.getElementById('devUatActivate'),
+    devUatClear: document.getElementById('devUatClear'),
+    devUatStatus: document.getElementById('devUatStatus')
 };
 
 
 let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
+let devUatStatus = {eligibleBuild:false, active:false, features:[]};
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -281,6 +287,31 @@ async function sendGraphMessage(message) {
     return response;
 }
 
+function applyGraphVisibility() {
+    if (!UI_ELEMENTS.graphTranscriptSection) return;
+    const allowedByPass = !devUatStatus.eligibleBuild
+        || (devUatStatus.active && devUatStatus.features.includes('verified-teams-transcript'));
+    UI_ELEMENTS.graphTranscriptSection.hidden = currentEnterprisePolicy.enableGraphTranscriptImport !== true || !allowedByPass;
+}
+
+async function refreshDevUatStatus() {
+    try {
+        devUatStatus = await sendGraphMessage({message:'dev_uat_status'});
+    } catch (error) {
+        devUatStatus = {eligibleBuild:false, active:false, features:[]};
+        if (UI_ELEMENTS.devUatStatus) UI_ELEMENTS.devUatStatus.textContent = `Internal access unavailable: ${error.message}`;
+        return;
+    }
+    if (UI_ELEMENTS.devUatSection) UI_ELEMENTS.devUatSection.hidden = !devUatStatus.eligibleBuild;
+    if (UI_ELEMENTS.devUatStatus && devUatStatus.eligibleBuild) {
+        UI_ELEMENTS.devUatStatus.textContent = devUatStatus.active
+            ? `Active for ${devUatStatus.subject} (${devUatStatus.environment}) until ${new Date(devUatStatus.expiresAt).toLocaleString()}.`
+            : 'No active pass. Verified Teams transcript controls remain locked in this test build.';
+    }
+    if (UI_ELEMENTS.devUatClear) UI_ELEMENTS.devUatClear.disabled = !devUatStatus.active;
+    applyGraphVisibility();
+}
+
 async function refreshGraphStatus() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
     try {
@@ -486,9 +517,7 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
-    if (UI_ELEMENTS.graphTranscriptSection) {
-        UI_ELEMENTS.graphTranscriptSection.hidden = settings.enableGraphTranscriptImport !== true;
-    }
+    applyGraphVisibility();
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
@@ -576,6 +605,29 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
+    UI_ELEMENTS.devUatActivate?.addEventListener('click', async () => {
+        const pass = UI_ELEMENTS.devUatPass.value.trim();
+        if (!pass) {
+            UI_ELEMENTS.devUatStatus.textContent = 'Paste the signed pass first.';
+            return;
+        }
+        UI_ELEMENTS.devUatActivate.disabled = true;
+        try {
+            devUatStatus = await sendGraphMessage({message:'dev_uat_activate', pass});
+            UI_ELEMENTS.devUatPass.value = '';
+            await refreshDevUatStatus();
+            await refreshGraphStatus();
+        } catch (error) {
+            UI_ELEMENTS.devUatStatus.textContent = error.message;
+        } finally {
+            UI_ELEMENTS.devUatActivate.disabled = false;
+        }
+    });
+    UI_ELEMENTS.devUatClear?.addEventListener('click', async () => {
+        devUatStatus = await sendGraphMessage({message:'dev_uat_clear'});
+        graphConnected = false;
+        await refreshDevUatStatus();
+    });
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
         markSelectedGraphMeeting();
         setGraphBusy(false);
@@ -1104,6 +1156,7 @@ function escapeHtml(text) {
 
 // --- Initialization ---
 async function initializePopup() {
+    await refreshDevUatStatus();
     await loadSettings();
     setupEventListeners();
     await refreshGraphStatus();

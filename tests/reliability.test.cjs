@@ -1114,6 +1114,18 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
+test('Graph dev/UAT access is enforced by the worker and hidden from Store builds',()=>{
+    const worker=read('service_worker.js');
+    const popup=read('popup.html');
+    const entitlement=read('devUatEntitlement.js');
+    assert(worker.includes("'graphTranscriptConnector.js', 'devUatEntitlement.js'"));
+    assert(worker.includes('await requireGraphDevUatAccess();'));
+    assert(worker.includes("case 'dev_uat_activate'"));
+    assert(popup.includes('id="devUatSection" hidden'));
+    assert(entitlement.includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(entitlement.includes('chromeApi.storage.session.set'));
+    assert(!entitlement.includes('storage.sync.set'));
+});
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');
     assert(html.includes('Better CaptionKeep 5.0'));

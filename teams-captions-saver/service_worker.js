@@ -1,9 +1,13 @@
-importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js');
+importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js', 'devUatEntitlement.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
     const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
     return CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+}
+
+async function requireGraphDevUatAccess() {
+    return CaptionKeepDevUatEntitlement.requireFeature('verified-teams-transcript');
 }
 
 function historyOptions(settings = {}) {
@@ -369,18 +373,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
-        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
+        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript',
+        'dev_uat_status','dev_uat_activate','dev_uat_clear']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
-    const extensionPageOnly = ['delete_session','clear_sessions','graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript'];
+    const extensionPageOnly = ['delete_session','clear_sessions','graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript',
+        'dev_uat_status','dev_uat_activate','dev_uat_clear'];
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
         let responsePayload = {};
 
         switch (message.message) {
+            case 'dev_uat_status':
+                responsePayload = await CaptionKeepDevUatEntitlement.status();
+                break;
+
+            case 'dev_uat_activate':
+                responsePayload = await CaptionKeepDevUatEntitlement.activate(message.pass);
+                break;
+
+            case 'dev_uat_clear':
+                responsePayload = await CaptionKeepDevUatEntitlement.clear();
+                break;
+
             case 'graph_get_status':
                 {
+                    await requireGraphDevUatAccess();
                     const policy = await readEffectivePolicy();
                     responsePayload = await CaptionKeepGraphTranscript.status(policy.settings);
                 }
@@ -388,17 +407,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             case 'graph_connect':
                 {
+                    await requireGraphDevUatAccess();
                     const policy = await readEffectivePolicy();
                     responsePayload = await CaptionKeepGraphTranscript.connect(policy.settings);
                 }
                 break;
 
             case 'graph_disconnect':
+                await requireGraphDevUatAccess();
                 responsePayload = await CaptionKeepGraphTranscript.disconnect();
                 break;
 
             case 'graph_list_recent_meetings':
                 {
+                    await requireGraphDevUatAccess();
                     const policy = await readEffectivePolicy();
                     responsePayload = {
                         meetings: await CaptionKeepGraphTranscript.listRecentMeetings(policy.settings)
@@ -408,6 +430,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             case 'graph_import_transcript':
                 {
+                    await requireGraphDevUatAccess();
                     const policy = await readEffectivePolicy();
                     if (policy.settings.disableSessionHistory) {
                         throw new Error('Official transcript import requires local session history, which your organization has disabled.');

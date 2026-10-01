@@ -115,6 +115,7 @@ async function validateManifest(manifest) {
     'googleMeetContentScript.js',
     'googleMeetProvider.js',
     'graphTranscriptConnector.js',
+    'devUatEntitlement.js',
     'privacyScrubber.js',
     'providerRegistry.js',
     'managed-schema.json',

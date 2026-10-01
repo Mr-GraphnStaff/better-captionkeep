@@ -18,6 +18,8 @@ Version 5.3 carries the isolated **Verified Teams Transcript** candidate. It rec
 - [x] Separate immutable raw Graph source, normalized captions, and hashed provenance in local history.
 - [x] Chrome, Edge, and Chrome Store manifests declare the identity permission and exact Microsoft hosts.
 - [x] Administrator registration, consent, validation, and rollback runbook.
+- [x] Internal Chrome/Edge test builds require a named ES256 capability pass, expire it within 24 hours, and retain only verified claims in session storage.
+- [x] The service worker enforces internal access on every Graph action; the public Store manifest cannot activate a dev/UAT pass.
 
 ## Automated gate
 
@@ -26,6 +28,7 @@ Version 5.3 carries the isolated **Verified Teams Transcript** candidate. It rec
 - [x] Dependency audit reports no high-severity vulnerability.
 - [x] Chrome and Edge unpacked and ZIP artifacts build successfully.
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
+- [x] The signing private key is outside the repository and packages; only its public verification key is shipped.
 - [ ] A second reviewer approves authentication, storage, provenance, managed-policy, and permission changes.
 
 ### Code-complete candidate evidence — 2026-10-01

@@ -1,5 +1,7 @@
 # Chrome Web Store Listing — Better CaptionKeep
 
+Internal dev/UAT capability passes are not a Store feature or consumer license. The production-labeled manifest cannot activate them, no signing secret is packaged, and they add no permission or user-data disclosure. Public Pro roadmap language must not imply that this internal control is available for purchase.
+
 > Last Updated: 2026-10-01
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
