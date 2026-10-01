@@ -28,16 +28,16 @@ Version 5.3 carries the isolated **Verified Teams Transcript** candidate. It rec
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
 - [ ] A second reviewer approves authentication, storage, provenance, managed-policy, and permission changes.
 
-### Candidate build evidence — 2026-10-01
+### Code-complete candidate evidence — 2026-10-01
 
-The full `release:candidate` gate passed against source commit `8753f3d1cbf9b9025cc3d1cf56851d6befe1752c`: 113 of 113 tests passed, extension validation passed, Store metadata matched, and the high-severity dependency audit reported zero vulnerabilities. These are reproducible build-candidate artifacts, not authorization to upload or publish.
+The full `release:candidate` gate passed against source commit `9cd46b3d24df54c8a244f723623b9fb74fd7fc98`: 117 of 117 tests passed, extension validation passed, the canonical Chrome publication dossier matched every permission, host, delegated scope, version, description, and Store asset, and the high-severity dependency audit reported zero vulnerabilities. The repository has no unresolved runtime `TODO` or `FIXME` marker. These are reproducible code-complete candidate artifacts, not authorization to upload or publish.
 
 | Target | SHA-256 |
 | --- | --- |
-| Chrome unpacked-test ZIP | `769B6FBC80A3A5FE806364FBADB975ED003CFA690EC799AFCA2FC3F5F1092DE8` |
-| Edge unpacked-test ZIP | `B913CF00B3E740D696C941B7AA220D1C39F850B9D350E3390179A8995C5A86C5` |
-| Edge Store ZIP | `63F39F87C6793C2DC6BEE7A64D73E2BD9308D91AEF40E093082AC6F468C34A37` |
-| Chrome Store ZIP | `AF09742F7B5224292AD3BC21C9D036EFD84617C31D8916913EB41D725E9A5751` |
+| Chrome unpacked-test ZIP | `B4D9FACC969C079B831A4DA9343F0C7965B3AFB10BCD951E1FBC12E28C1EF5EF` |
+| Edge unpacked-test ZIP | `22E020459402C831490BA831EE3D2F85E351B573C272AD072A885B69E10683EC` |
+| Edge Store ZIP | `FD9DA3E9301BBE2727EDC975A198FB0FC46D5361AB93F8A729D552007B017FE5` |
+| Chrome Store ZIP | `8BD577A7A32190A1886DA88FE8C3D867A2F2118A73A9E5D778B0EF0B6C3E668B` |
 
 The machine-readable local evidence is `dist/release-provenance.json`. It binds the generated packages to the source commit above; generated artifacts remain outside Git.
 
