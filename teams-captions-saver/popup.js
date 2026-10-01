@@ -178,14 +178,16 @@ async function refreshEnterprisePolicy() {
 
 function setGraphBusy(busy) {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected;
-    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
-    UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
-    UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
+    const accessLocked = devUatStatus.eligibleBuild
+        && (!devUatStatus.active || !devUatStatus.features.includes('verified-teams-transcript'));
+    UI_ELEMENTS.graphConnectButton.disabled = accessLocked || busy || graphConnected;
+    UI_ELEMENTS.graphDisconnectButton.disabled = accessLocked || busy || !graphConnected;
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = accessLocked || busy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = accessLocked || busy || !graphConnected;
     UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
-        button.disabled = busy || !graphConnected;
+        button.disabled = accessLocked || busy || !graphConnected;
     });
-    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphImportButton.disabled = accessLocked || busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
 }
 
 function graphErrorMessage(error) {
@@ -289,9 +291,7 @@ async function sendGraphMessage(message) {
 
 function applyGraphVisibility() {
     if (!UI_ELEMENTS.graphTranscriptSection) return;
-    const allowedByPass = !devUatStatus.eligibleBuild
-        || (devUatStatus.active && devUatStatus.features.includes('verified-teams-transcript'));
-    UI_ELEMENTS.graphTranscriptSection.hidden = currentEnterprisePolicy.enableGraphTranscriptImport !== true || !allowedByPass;
+    UI_ELEMENTS.graphTranscriptSection.hidden = currentEnterprisePolicy.enableGraphTranscriptImport !== true;
 }
 
 async function refreshDevUatStatus() {
@@ -314,6 +314,15 @@ async function refreshDevUatStatus() {
 
 async function refreshGraphStatus() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    const accessLocked = devUatStatus.eligibleBuild
+        && (!devUatStatus.active || !devUatStatus.features.includes('verified-teams-transcript'));
+    if (accessLocked) {
+        graphConnected = false;
+        UI_ELEMENTS.graphConnectionStatus.textContent = 'Activate a current internal dev/UAT pass above to unlock Microsoft 365 access.';
+        UI_ELEMENTS.graphRedirectUri.textContent = '';
+        setGraphBusy(false);
+        return;
+    }
     try {
         const status = await sendGraphMessage({message:'graph_get_status'});
         graphConnected = !!status.connected;
@@ -627,6 +636,7 @@ function setupEventListeners() {
         devUatStatus = await sendGraphMessage({message:'dev_uat_clear'});
         graphConnected = false;
         await refreshDevUatStatus();
+        await refreshGraphStatus();
     });
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
         markSelectedGraphMeeting();
