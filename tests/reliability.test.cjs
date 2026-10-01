@@ -1128,9 +1128,13 @@ test('Graph dev/UAT access is enforced by the worker and hidden from Store build
 });
 test('test popup explains locked Graph access instead of hiding the configured feature',()=>{
     const popupScript=read('popup.js');
+    const buildScript=readProject('scripts/build-browser-targets.mjs');
     assert(popupScript.includes("UI_ELEMENTS.graphTranscriptSection.hidden = currentEnterprisePolicy.enableGraphTranscriptImport !== true"));
     assert(popupScript.includes('Activate a current internal dev/UAT pass above to unlock Microsoft 365 access.'));
     assert(popupScript.includes('const accessLocked = devUatStatus.eligibleBuild'));
+    assert(buildScript.includes("target !== 'chrome-store'"));
+    assert(buildScript.includes("replace('id=\"devUatSection\" hidden open', 'id=\"devUatSection\" open')"));
+    assert(buildScript.includes("replace('id=\"graphTranscriptSection\" hidden open', 'id=\"graphTranscriptSection\" open')"));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');
