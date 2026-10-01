@@ -33,14 +33,14 @@ Version 5.3 carries the isolated **Verified Teams Transcript** candidate. It rec
 
 ### Code-complete candidate evidence — 2026-10-01
 
-The full `release:candidate` gate passed against source commit `9cd46b3d24df54c8a244f723623b9fb74fd7fc98`: 117 of 117 tests passed, extension validation passed, the canonical Chrome publication dossier matched every permission, host, delegated scope, version, description, and Store asset, and the high-severity dependency audit reported zero vulnerabilities. The repository has no unresolved runtime `TODO` or `FIXME` marker. These are reproducible code-complete candidate artifacts, not authorization to upload or publish.
+The full `release:candidate` gate passed against source commit `f9c5a383f951b438b797dc3471a94692d0b3e02e`: 125 of 125 tests passed, extension validation passed, the canonical Chrome publication dossier matched every permission, host, delegated scope, version, description, and Store asset, and the high-severity dependency audit reported zero vulnerabilities. The repository has no unresolved runtime `TODO` or `FIXME` marker. These are reproducible code-complete candidate artifacts, not authorization to upload or publish.
 
 | Target | SHA-256 |
 | --- | --- |
-| Chrome unpacked-test ZIP | `B4D9FACC969C079B831A4DA9343F0C7965B3AFB10BCD951E1FBC12E28C1EF5EF` |
-| Edge unpacked-test ZIP | `22E020459402C831490BA831EE3D2F85E351B573C272AD072A885B69E10683EC` |
-| Edge Store ZIP | `FD9DA3E9301BBE2727EDC975A198FB0FC46D5361AB93F8A729D552007B017FE5` |
-| Chrome Store ZIP | `8BD577A7A32190A1886DA88FE8C3D867A2F2118A73A9E5D778B0EF0B6C3E668B` |
+| Chrome unpacked-test ZIP | `85D80D72CB5D2FBB172BF0B45E778F5FCC25B94E7ECB58392D8DBAA69966F62B` |
+| Edge unpacked-test ZIP | `570D2B50D3B2D4778E80F56B47C79BD77848E9C05EBDC30D4F12545220FE59C4` |
+| Edge Store ZIP | `E2631111F73EE7C6EFCA95DBB61241AA680E42A4941D42757F9DE4E3829365F7` |
+| Chrome Store ZIP | `570615236BE263B3A2EB829C040CEC032B7B2EC9584AC602E157C059999AB579` |
 
 The machine-readable local evidence is `dist/release-provenance.json`. It binds the generated packages to the source commit above; generated artifacts remain outside Git.
 

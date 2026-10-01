@@ -23,7 +23,8 @@ The current signing key is a local development secret. Its expected path on the 
 Issue an eight-hour UAT pass directly to the Windows clipboard:
 
 ```powershell
-npm run uat:issue-pass -- --key C:\Users\DavidFarris\.captionkeep-secrets\dev-uat-signing-private.jwk --subject "David Farris" --environment uat --hours 8 --clipboard
+$env:BCK_DEV_UAT_PRIVATE_JWK = 'C:\Users\DavidFarris\.captionkeep-secrets\dev-uat-signing-private.jwk'
+node scripts\issue-dev-uat-pass.mjs --subject "David Farris" --environment uat --hours 8 --clipboard
 ```
 
 Use the test extension popup's **Internal dev/UAT access** section to paste and activate it. Then use the separately managed **Verified Teams transcripts** section. Closing the browser session or choosing **Clear pass** removes the entitlement.
