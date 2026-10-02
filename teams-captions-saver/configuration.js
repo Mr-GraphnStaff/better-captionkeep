@@ -23,7 +23,7 @@
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
     const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled']);
     const ENUMS = Object.freeze({
-        defaultSaveFormat: new Set(['txt', 'md']),
+        defaultSaveFormat: new Set(['txt', 'md', 'docx']),
         saveAsType: new Set(['prompt', 'downloads', 'custom']),
         timestampFormat: new Set(['12hr', '24hr', 'relative']),
         uiTheme: new Set(['captionkeep', 'light', 'midnight', 'system'])

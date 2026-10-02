@@ -41,7 +41,7 @@ function harness() {
             onInstalled:{addListener(){}},onStartup:{addListener(){}},onMessage:{addListener(fn){chrome.listener=fn;}}},
         tabs:{create:async tab=>tabs.push(tab),query:async()=>[]},action:{setBadgeText(){},setBadgeBackgroundColor(){}}};
     const document={hidden:false,title:'Synthetic meeting',body:{},querySelector:()=>null,contains:()=>true,addEventListener(){}};
-    const context=vm.createContext({chrome,document,crypto:webcrypto,Blob,URL,console:{log(){},warn(){},error(){}},
+    const context=vm.createContext({chrome,document,crypto:webcrypto,Blob,URL,TextEncoder,Uint8Array,btoa,atob,console:{log(){},warn(){},error(){}},
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
         importScripts(...names){for(const name of names) vm.runInContext(read(name),context);}});
@@ -50,6 +50,63 @@ function harness() {
 
 test('all shipped scripts parse',()=>{
     for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))) new vm.Script(read(name),{filename:name});
+});
+
+function storedZipEntries(bytes) {
+    const decoder=new TextDecoder();
+    const entries={};
+    const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+    let offset=0;
+    while(offset+4<=bytes.length && view.getUint32(offset,true)===0x04034b50) {
+        const compressedSize=view.getUint32(offset+18,true);
+        const nameLength=view.getUint16(offset+26,true);
+        const extraLength=view.getUint16(offset+28,true);
+        const name=decoder.decode(bytes.subarray(offset+30,offset+30+nameLength));
+        const start=offset+30+nameLength+extraLength;
+        entries[name]=decoder.decode(bytes.subarray(start,start+compressedSize));
+        offset=start+compressedSize;
+    }
+    return entries;
+}
+
+test('DOCX export is valid OOXML with Unicode, escaped text, and source provenance',()=>{
+    const context=vm.createContext({TextEncoder,Uint8Array,btoa,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('exportProfiles.js'),context);
+    const source=[
+        {key:'source-α',Time:'10:00',Name:'Zoë & Co',Text:'Café <launch> & résumé'},
+        {key:'source-2',Time:'10:01',Name:'',Text:'Line one\nLine two'},
+        {key:'source-3',Time:'',Name:'李',Text:'x'.repeat(20000)}
+    ];
+    const before=JSON.stringify(source);
+    const profile=context.CaptionKeepExportProfiles.createProfile({format:'docx',meetingTitle:'R&D <review>',transcript:source});
+    const bytes=Uint8Array.from(atob(profile.content),character=>character.charCodeAt(0));
+    const entries=storedZipEntries(bytes);
+    assert.deepEqual(Object.keys(entries),['[Content_Types].xml','_rels/.rels','word/document.xml']);
+    assert.match(entries['[Content_Types].xml'],/wordprocessingml\.document\.main\+xml/);
+    assert.match(entries['_rels/.rels'],/Target="word\/document\.xml"/);
+    assert(entries['word/document.xml'].includes('Café &lt;launch&gt; &amp; résumé'));
+    assert(entries['word/document.xml'].includes('Zoë &amp; Co'));
+    assert(entries['word/document.xml'].includes('Unknown speaker'));
+    assert(entries['word/document.xml'].includes('Source caption: source-α'));
+    assert(entries['word/document.xml'].includes('<w:br/>'));
+    assert(entries['word/document.xml'].includes('x'.repeat(20000)));
+    assert.equal(profile.mimeType,'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    assert.equal(profile.timingBasis,'source-display-or-observation-time');
+    assert.equal(JSON.stringify(source),before);
+    assert.throws(()=>context.CaptionKeepExportProfiles.createProfile({format:'srt',transcript:source}),/not verified speech cue boundaries/);
+});
+
+test('DOCX profile contains only the scrubbed derivative and no hidden raw text',()=>{
+    const context=vm.createContext({TextEncoder,Uint8Array,btoa,globalThis:null});context.globalThis=context;
+    vm.runInContext(read('privacyScrubber.js'),context);
+    vm.runInContext(read('exportProfiles.js'),context);
+    const raw=[{key:'private-1',Time:'10:00',Name:'Ada',Text:'Email secret@example.com'}];
+    const scrubbed=context.CaptionKeepPrivacyScrubber.scrubTranscript(raw).transcript;
+    const profile=context.CaptionKeepExportProfiles.createProfile({format:'docx',meetingTitle:'Synthetic',transcript:scrubbed});
+    const binary=atob(profile.content);
+    assert(!binary.includes('secret@example.com'));
+    assert(!profile.previewText.includes('secret@example.com'));
+    assert(binary.includes('[EMAIL_1]'));
 });
 
 test('local terminology dictionary applies literal longest matches with Unicode word boundaries',()=>{
@@ -1050,6 +1107,22 @@ test('exports stage locally and start automatic downloads in a background tab',a
     const job=Object.values(h.data)[0];assert.equal(job.filename,'_CON.txt');assert.equal(job.browserFilename,'_CON.txt');assert.equal(job.content,'Synthetic private words');assert.equal(job.automatic,true);assert.equal(job.saveAs,false);assert.equal(job.autoStart,true);
     assert(h.tabs[0].url.startsWith('chrome-extension://test/export.html?job='));
     assert.equal(h.tabs[0].active,false);
+});
+test('service worker stages DOCX through the common export contract after managed scrubbing',async()=>{
+    const h=harness();h.managedData.forceScrubbedExport=true;h.run(read('service_worker.js'));
+    const result=await new Promise(resolve=>h.chrome.listener({message:'download_captions',format:'docx',meetingTitle:'Synthetic',
+        transcriptArray:[{key:'source-1',Name:'Ada',Time:'10:00',Text:'Contact secret@example.com'}]}, {id:'test'}, resolve));
+    assert.equal(result.ok,true);
+    const job=Object.values(h.data).find(value=>value?.profile?.format==='docx');
+    assert(job);
+    assert.equal(job.contentEncoding,'base64');
+    assert.equal(job.mimeType,'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    assert.equal(job.profile.subsetCount,1);
+    assert.equal(job.profile.sourceIds[0],'source-1');
+    assert.equal(job.profile.timingBasis,'source-display-or-observation-time');
+    assert(!atob(job.content).includes('secret@example.com'));
+    assert(!job.previewText.includes('secret@example.com'));
+    assert(job.previewText.includes('[EMAIL_1]'));
 });
 test('manual Downloads subfolders survive export staging',async()=>{
     const h=harness();h.run(read('service_worker.js'));

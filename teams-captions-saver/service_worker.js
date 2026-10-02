@@ -1,4 +1,4 @@
-importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'correctionManager.js');
+importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'correctionManager.js', 'exportProfiles.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
@@ -225,63 +225,10 @@ function applyAliasesToAttendeeReport(attendeeReport, aliases = {}) {
     return aliasedReport;
 }
 
-// --- Formatting Functions ---
-function formatAsTxt(transcript, attendeeReport) {
-    let content = '';
-    
-    console.log('[Teams Caption Saver] formatAsTxt called with:', {
-        transcriptLength: transcript?.length,
-        hasAttendeeReport: !!attendeeReport,
-        attendeeCount: attendeeReport?.totalUniqueAttendees || 0
-    });
-    
-    // Add attendee information if available
-    if (attendeeReport && attendeeReport.totalUniqueAttendees > 0) {
-        content += '=== MEETING ATTENDEES ===\n';
-        content += `Total Attendees: ${attendeeReport.totalUniqueAttendees}\n`;
-        content += `Meeting Start: ${new Date(attendeeReport.meetingStartTime).toLocaleString()}\n`;
-        content += '\nAttendee List:\n';
-        attendeeReport.attendeeList.forEach(name => {
-            content += `- ${name}\n`;
-        });
-        content += '\n=== TRANSCRIPT ===\n';
-    }
-    
-    content += transcript.map(entry => `[${entry.Time}] ${entry.Name}: ${entry.Text}`).join('\n');
-    return content;
-}
-
-function formatAsMarkdown(transcript, attendeeReport) {
-    let content = '';
-    
-    // Add attendee information if available
-    if (attendeeReport && attendeeReport.totalUniqueAttendees > 0) {
-        content += '# Meeting Attendees\n\n';
-        content += `**Total Attendees:** ${attendeeReport.totalUniqueAttendees}\n\n`;
-        content += `**Meeting Start:** ${new Date(attendeeReport.meetingStartTime).toLocaleString()}\n\n`;
-        content += '## Attendee List\n\n';
-        attendeeReport.attendeeList.forEach(name => {
-            content += `- ${name}\n`;
-        });
-        content += '\n---\n\n# Transcript\n\n';
-    }
-    
-    let lastSpeaker = null;
-    content += transcript.map(entry => {
-        if (entry.Name !== lastSpeaker) {
-            lastSpeaker = entry.Name;
-            return `\n**${entry.Name}** (${entry.Time}):\n> ${entry.Text}`;
-        }
-        return `> ${entry.Text}`;
-    }).join('\n').trim();
-    
-    return content;
-}
-
 // --- Core Actions ---
 async function downloadFile(filename, content, mimeType, options = {}) {
     const normalizedOptions = typeof options === 'boolean' ? { automatic: options } : options;
-    const { automatic = false, saveAs = true } = normalizedOptions || {};
+    const { automatic = false, saveAs = true, contentEncoding = 'utf8', previewText = '', profile = null } = normalizedOptions || {};
     const id = `export_${crypto.randomUUID()}`;
     const pathParts = String(filename || '').split(/[\\/]+/);
     const leafName = (pathParts.pop() || '').replace(/[<>:"|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '');
@@ -293,6 +240,9 @@ async function downloadFile(filename, content, mimeType, options = {}) {
         filename:safeName.slice(0,200),
         browserFilename:browserFilename.slice(0,240),
         content,
+        contentEncoding,
+        previewText,
+        profile,
         mimeType,
         automatic,
         saveAs,
@@ -336,7 +286,10 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
     // Get filename pattern from settings
     const { filenamePattern } = await chrome.storage.sync.get('filenamePattern');
     const requestedFormat = typeof format === 'string' ? format.toLowerCase() : 'txt';
-    const normalizedFormat = ['md', 'txt'].includes(requestedFormat) ? requestedFormat : 'txt';
+    if (['srt', 'vtt', 'webvtt'].includes(requestedFormat)) {
+        throw new Error('Subtitle export is unavailable because caption observation times are not verified speech cue boundaries.');
+    }
+    const normalizedFormat = ['md', 'txt', 'docx'].includes(requestedFormat) ? requestedFormat : 'txt';
     const filename = await generateFilename(filenamePattern, meetingTitle, normalizedFormat, processedAttendeeReport, recordingStartTime);
 
     let normalizedOptions = saveOptions;
@@ -347,32 +300,24 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
     const { forAutoSave = false, subfolder = '', saveAs = true } = normalizedOptions || {};
     const sanitizedFolder = sanitizeSubfolderPath(subfolder);
 
-    let content;
-    let extension;
-    let mimeType;
-
-    switch (normalizedFormat) {
-        case 'md':
-            content = formatAsMarkdown(processedTranscript, processedAttendeeReport);
-            extension = 'md';
-            mimeType = 'text/markdown';
-            break;
-        case 'txt':
-        default:
-            content = formatAsTxt(processedTranscript, processedAttendeeReport);
-            extension = 'txt';
-            mimeType = 'text/plain';
-            break;
-    }
-    if (versionNotice) {
-        content = normalizedFormat === 'md'
-            ? `> ${versionNotice}\n\n${content}`
-            : `${versionNotice}\n\n${content}`;
-    }
+    const profile = CaptionKeepExportProfiles.createProfile({
+        format:normalizedFormat,
+        meetingTitle,
+        transcript:processedTranscript,
+        attendeeReport:processedAttendeeReport,
+        versionNotice
+    });
 
     // Add extension to filename
-    const fullFilename = sanitizedFolder ? `${sanitizedFolder}/${filename}.${extension}` : `${filename}.${extension}`;
-    await downloadFile(fullFilename, content, mimeType, { automatic:forAutoSave, saveAs });
+    const fullFilename = sanitizedFolder ? `${sanitizedFolder}/${filename}.${profile.extension}` : `${filename}.${profile.extension}`;
+    await downloadFile(fullFilename, profile.content, profile.mimeType, {
+        automatic:forAutoSave,
+        saveAs,
+        contentEncoding:profile.contentEncoding,
+        previewText:profile.previewText,
+        profile:{format:profile.format, subsetCount:profile.subsetCount, sourceIds:profile.sourceIds,
+            warnings:profile.warnings, timingBasis:profile.timingBasis}
+    });
 }
 
 // --- State Management ---
@@ -627,7 +572,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         let formatToSave = typeof settings.defaultSaveFormat === 'string'
                             ? settings.defaultSaveFormat.toLowerCase()
                             : 'txt';
-                        if (!['txt', 'md'].includes(formatToSave)) {
+                        if (!['txt', 'md', 'docx'].includes(formatToSave)) {
                             formatToSave = 'txt';
                         }
                         console.log(`Auto-saving transcript in ${formatToSave.toUpperCase()} format.`);

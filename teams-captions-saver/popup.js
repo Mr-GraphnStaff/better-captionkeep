@@ -385,7 +385,7 @@ async function loadSettings() {
     }
     UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions !== false ? 'none' : 'block';
 
-    const allowedFormats = ['txt', 'md'];
+    const allowedFormats = ['txt', 'md', 'docx'];
     currentDefaultFormat = settings.defaultSaveFormat || 'txt';
     if (!allowedFormats.includes(currentDefaultFormat)) {
         currentDefaultFormat = 'txt';
