@@ -1106,16 +1106,15 @@ test('archive search stays bounded across a thousand retained meetings',async()=
         date:'fixture',chunkCount:1,captionCount:1,speakers:['Speaker']
     }));
     for(let index=0;index<1000;index++) h.data[`bulk_${index}_chunk_0`]=[{key:`key-${index}`,Name:'Speaker',Text:`bounded needle ${index}`,Time:'10:00'}];
-    const started=Date.now();
     const response=await h.run('new SessionManager()').searchSessions('needle',{limit:25});
     assert.equal(response.results.length,25);
     assert.equal(response.hasMore,true);
-    assert(response.searchedSessions>=26);
+    assert.equal(response.searchedSessions,26);
     const last=await h.run('new SessionManager()').searchSessions('needle',{limit:25,offset:975});
     assert.equal(last.results.length,25);
     assert.equal(last.results[0].sourceKey,'key-24');
     assert.equal(last.hasMore,false);
-    assert(Date.now()-started<1000);
+    assert.equal(last.searchedSessions,1000);
 });
 test('archive search pages more than one hundred matches from one meeting without gaps',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
