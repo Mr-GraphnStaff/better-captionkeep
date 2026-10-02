@@ -406,13 +406,30 @@
     }
 
     function decodeEntities(value) {
-        return String(value || '')
-            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+        const entities = {
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&quot;': '"',
+            '&#39;': "'"
+        };
+        return String(value || '').replace(/&(amp|lt|gt|quot|#39);/g, entity => entities[entity]);
     }
 
     function stripVttMarkup(value) {
-        return decodeEntities(String(value || '').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+        const source = String(value || '');
+        let plainText = '';
+        let insideTag = false;
+        for (const character of source) {
+            if (!insideTag && character === '<') {
+                insideTag = true;
+            } else if (insideTag && character === '>') {
+                insideTag = false;
+            } else if (!insideTag) {
+                plainText += character;
+            }
+        }
+        return decodeEntities(plainText).replace(/\s+/g, ' ').trim();
     }
 
     function timestampOffsetMs(value) {

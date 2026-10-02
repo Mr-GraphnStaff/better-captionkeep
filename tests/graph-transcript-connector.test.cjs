@@ -69,6 +69,14 @@ test('WebVTT parsing preserves speaker attribution and stable cue order', () => 
   assert.equal(parsed[0].capturedAt, '2026-09-28T12:00:01.500Z');
 });
 
+test('WebVTT parsing removes markup and decodes entities exactly once', () => {
+  const raw = `WEBVTT\n\n00:00:01.500 --> 00:00:04.000\n<v Ada &amp; Lovelace>Hello <b>team</b> &amp; goodbye &amp;lt;script&amp;gt;.</v>\n`;
+  const [entry] = Graph.parseTranscript(raw, {createdDateTime:'2026-09-28T12:00:00Z'}, true);
+  assert.equal(entry.Name, 'Ada & Lovelace');
+  assert.equal(entry.Text, 'Hello team & goodbye &lt;script&gt;.');
+  assert.equal(entry.Text.includes('<b>'), false);
+});
+
 test('unattributed transcript parsing never invents a speaker', () => {
   const raw = `00:00:01.500 --> 00:00:04.000\n\nHello there.\n`;
   const [entry] = Graph.parseTranscript(raw, {createdDateTime:'2026-09-28T12:00:00Z'}, false);
