@@ -30,10 +30,14 @@ function queueManagedHistoryPolicy() {
     return operation;
 }
 
-async function prepareManagedExport(transcriptArray, attendeeReport, policy) {
+async function prepareManagedExport(transcriptArray, attendeeReport, policy, aliases = {}) {
     if (policy.settings.disableFileExport) throw new Error('File export is disabled by your organization.');
-    if (!policy.settings.forceScrubbedExport) return {transcriptArray, attendeeReport};
-    const cleaned = globalThis.CaptionKeepPrivacyScrubber.scrubBundle(transcriptArray, attendeeReport, {
+    const aliasedTranscript = applyAliasesToTranscript(transcriptArray, aliases);
+    const aliasedAttendeeReport = applyAliasesToAttendeeReport(attendeeReport, aliases);
+    if (!policy.settings.forceScrubbedExport) {
+        return {transcriptArray: aliasedTranscript, attendeeReport: aliasedAttendeeReport};
+    }
+    const cleaned = globalThis.CaptionKeepPrivacyScrubber.scrubBundle(aliasedTranscript, aliasedAttendeeReport, {
         profanityFilterEnabled: !!policy.settings.profanityFilterEnabled,
         customTerms: policy.settings.customScrubTerms || []
     });
@@ -415,12 +419,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 });
                 {
                     const policy = await readEffectivePolicy(['profanityFilterEnabled', 'customScrubTerms']);
-                    const output = await prepareManagedExport(message.transcriptArray, message.attendeeReport, policy);
+                    const output = await prepareManagedExport(message.transcriptArray, message.attendeeReport, policy, speakerAliases);
                     const saveOptions = await resolveSavePreferences({ forAutoSave: false });
                     await saveTranscript(
                         message.meetingTitle,
                         output.transcriptArray,
-                        speakerAliases,
+                        {},
                         message.format,
                         message.recordingStartTime,
                         saveOptions,
@@ -453,12 +457,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             formatToSave = 'txt';
                         }
                         console.log(`Auto-saving transcript in ${formatToSave.toUpperCase()} format.`);
-                        const output = await prepareManagedExport(message.transcriptArray, message.attendeeReport, policy);
+                        const output = await prepareManagedExport(message.transcriptArray, message.attendeeReport, policy, speakerAliases);
                         const saveOptions = await resolveSavePreferences({ forAutoSave: true });
                         await saveTranscript(
                             message.meetingTitle,
                             output.transcriptArray,
-                            speakerAliases,
+                            {},
                             formatToSave,
                             message.recordingStartTime,
                             saveOptions,

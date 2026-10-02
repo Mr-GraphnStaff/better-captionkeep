@@ -120,6 +120,34 @@
         return Object.freeze({value: clean(value), replacements: Object.freeze(context.replacements)});
     }
 
+    function scrubEvidenceBundle(bundle, options = {}) {
+        if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
+            return Object.freeze({value: bundle, replacements: Object.freeze([])});
+        }
+        const context = createScrubContext(options);
+        const cleanFields = (value, fields) => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+            const cleaned = {...value};
+            for (const field of fields) {
+                if (typeof cleaned[field] === 'string') cleaned[field] = context.apply(cleaned[field]);
+            }
+            return cleaned;
+        };
+        return Object.freeze({
+            value: {
+                ...bundle,
+                source: cleanFields(bundle.source, ['meetingTitle', 'providerLabel']),
+                captions: Array.isArray(bundle.captions)
+                    ? bundle.captions.map(caption => cleanFields(caption, ['speaker', 'text']))
+                    : bundle.captions,
+                markers: Array.isArray(bundle.markers)
+                    ? bundle.markers.map(marker => cleanFields(marker, ['speaker', 'markedText', 'finalText', 'note']))
+                    : bundle.markers
+            },
+            replacements: Object.freeze(context.replacements)
+        });
+    }
+
     function scrubBundle(transcript, attendeeReport = null, options = {}) {
         if (!Array.isArray(transcript)) return Object.freeze({ transcript: [], attendeeReport: null, replacements: Object.freeze([]) });
         const context = createScrubContext(options);
@@ -154,5 +182,5 @@
         return Object.freeze({transcript: result.transcript, replacements: result.replacements});
     }
 
-    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubObject, scrubTranscript });
+    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubEvidenceBundle, scrubObject, scrubTranscript });
 })();

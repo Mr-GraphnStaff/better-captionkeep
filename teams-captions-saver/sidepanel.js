@@ -386,8 +386,11 @@
             setStatus('Evidence email is disabled by your organization.');
             return;
         }
-        const subject = `Evidence brief: ${selectedContext()?.meetingTitle || 'Meeting'}`;
+        const rawSubject = `Evidence brief: ${selectedContext()?.meetingTitle || 'Meeting'}`;
         const rawMarkdown = boardMarkdown();
+        const subject = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions).text
+            : rawSubject;
         const markdown = enterprisePolicy.forceScrubbedExport
             ? CaptionKeepPrivacyScrubber.scrub(rawMarkdown, scrubOptions).text
             : rawMarkdown;
@@ -412,7 +415,7 @@
             transcriptSha256
         });
         const output = enterprisePolicy.forceScrubbedExport
-            ? CaptionKeepPrivacyScrubber.scrubObject(bundle, scrubOptions).value
+            ? CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions).value
             : bundle;
         await saveTextFile(`${JSON.stringify(output, null, 2)}\n`, 'application/json;charset=utf-8', 'provenance.json');
         setStatus(bundle.source.transcriptIncluded

@@ -924,6 +924,18 @@ test('service-worker export enforcement scrubs transcript and attendee data',asy
     assert.equal(result.attendeeReport.attendeeList[0],'[EMAIL_1]');
     await assert.rejects(h.run(`prepareManagedExport([],null,{settings:{disableFileExport:true}})`),/disabled by your organization/);
 });
+test('service-worker export enforcement scrubs speaker aliases after applying them',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    const result=await h.run(`prepareManagedExport(
+        [{Name:'Alice',Text:'Hello',Time:'10:00'}],
+        null,
+        {settings:{forceScrubbedExport:true,profanityFilterEnabled:false,customScrubTerms:['Project Cobalt']}},
+        {Alice:'owner@example.com / Project Cobalt'}
+    )`);
+    assert.equal(result.transcriptArray[0].Name,'[EMAIL_1] / [CUSTOM_TERM_1]');
+    assert(!result.transcriptArray[0].Name.includes('owner@example.com'));
+    assert(!result.transcriptArray[0].Name.includes('Project Cobalt'));
+});
 test('Scrubby masks transcript and attendee report through one release context',()=>{
     const context=vm.createContext({globalThis:null});context.globalThis=context;
     vm.runInContext(read('privacyScrubber.js'),context);
@@ -934,6 +946,29 @@ test('Scrubby masks transcript and attendee report through one release context',
     assert.equal(result.transcript[0].Name,'[EMAIL_1]');
     assert.equal(result.transcript[0].Text,'Contact [EMAIL_1]');
     assert.equal(result.attendeeReport.attendeeList[0],'[EMAIL_1]');
+});
+test('Scrubby preserves evidence provenance metadata while cleaning human-authored fields',()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('privacyScrubber.js'),context);
+    const bundle={
+        format:'better-captionkeep-evidence-bundle',version:1,generatedAt:'2026-09-25T12:00:00Z',
+        authority:'The captured transcript is authoritative.',
+        source:{sessionId:'session-ab-1',meetingTitle:'Project ab for owner@example.com',providerLabel:'Teams',transcriptSha256:'ab12ff',transcriptIncluded:true,captionCount:1},
+        captions:[{evidenceId:'C0001',sourceKey:'caption-ab-1',speaker:'owner@example.com',time:'10:00',capturedAt:'2026-09-25T12:00:00Z',text:'Project ab'}],
+        markers:[{id:'marker-ab-1',kind:'Decision',evidenceId:'C0001',sourceKey:'caption-ab-1',speaker:'owner@example.com',time:'10:00',capturedAt:'2026-09-25T12:00:00Z',markedText:'Project ab',finalText:'Email owner@example.com',note:'Project ab',createdAt:'2026-09-25T12:01:00Z'}]
+    };
+    const cleaned=context.CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle,{customTerms:['ab']}).value;
+    assert.equal(cleaned.format,bundle.format);
+    assert.equal(cleaned.generatedAt,bundle.generatedAt);
+    assert.equal(cleaned.source.sessionId,bundle.source.sessionId);
+    assert.equal(cleaned.source.transcriptSha256,bundle.source.transcriptSha256);
+    assert.equal(cleaned.captions[0].sourceKey,bundle.captions[0].sourceKey);
+    assert.equal(cleaned.captions[0].capturedAt,bundle.captions[0].capturedAt);
+    assert.equal(cleaned.markers[0].id,bundle.markers[0].id);
+    assert.equal(cleaned.markers[0].createdAt,bundle.markers[0].createdAt);
+    assert(!cleaned.source.meetingTitle.includes('owner@example.com'));
+    assert(!cleaned.captions[0].speaker.includes('owner@example.com'));
+    assert(!cleaned.markers[0].note.includes('ab'));
 });
 test('configuration import is bounded and managed policy takes precedence',()=>{
     const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
@@ -1036,6 +1071,8 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanelScript.includes('chrome.sidePanel.setOptions({enabled: false})'));
     assert(sidepanelScript.includes("crypto.subtle.digest('SHA-256'"));
     assert(sidepanelScript.includes('mailto:?subject='));
+    assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions)'));
+    assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions)'));
 });
 test('popup uses a compact three-platform launcher without an inline Teams warning link',()=>{
     const popup=read('popup.html');const script=read('popup.js');
