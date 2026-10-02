@@ -52,6 +52,34 @@ test('all shipped scripts parse',()=>{
     for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))) new vm.Script(read(name),{filename:name});
 });
 
+test('same-install entitlement transitions are signed, local, and preserve Free data',async()=>{
+    const h=harness();h.data.unrelatedUserData={captions:'preserved'};h.run(read('entitlement.js'));
+    const api=h.context.CaptionKeepEntitlements;
+    assert.equal((await api.resolveStored()).state,'free');
+    const fixture=clone(api.DEVELOPMENT_FIXTURE);
+    assert.equal((await api.validateDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')})).state,'active');
+    assert.equal((await api.validateDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2099-01-15')})).state,'offline-grace');
+    assert.equal((await api.validateDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2099-03-01')})).state,'expired');
+    const tampered=clone(fixture);tampered.payload.entitlementId='tampered';
+    assert.equal((await api.validateDevelopmentFixture(tampered,{allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')})).state,'unavailable');
+    await api.installDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')});
+    assert.equal((await api.resolveStored({allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')})).effectiveTier,'pro');
+    assert.equal(h.data.unrelatedUserData.captions,'preserved');
+    await api.deactivate();
+    assert.equal((await api.resolveStored()).state,'free');
+    assert.equal(h.data.unrelatedUserData.captions,'preserved');
+});
+
+test('feature tier mapping defaults to Free and managed policy always wins',()=>{
+    const h=harness();h.run(read('entitlement.js'));const api=h.context.CaptionKeepEntitlements;
+    const pro={effectiveTier:'pro'};const free={effectiveTier:'free'};
+    assert.equal(api.evaluateFeature('issue-49',free,{}).allowed,true);
+    assert.equal(api.evaluateFeature('future-feature',free,{'future-feature':'pro'}).allowed,false);
+    assert.equal(api.evaluateFeature('future-feature',pro,{'future-feature':'pro'}).allowed,true);
+    assert.deepEqual({...api.evaluateFeature('future-feature',pro,{'future-feature':'pro'},false)},
+        {allowed:false,reason:'managed-policy'});
+});
+
 function storedZipEntries(bytes) {
     const decoder=new TextDecoder();
     const entries={};
@@ -1088,6 +1116,18 @@ test('archive search stays bounded across a thousand retained meetings',async()=
     assert.equal(last.results[0].sourceKey,'key-24');
     assert.equal(last.hasMore,false);
     assert(Date.now()-started<1000);
+});
+test('archive search pages more than one hundred matches from one meeting without gaps',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[{id:'long-meeting',title:'Long meeting',timestamp:'2026-09-25T12:00:00Z',chunkCount:1,captionCount:225}];
+    h.data['long-meeting_chunk_0']=Array.from({length:225},(_,index)=>({key:`long-${index}`,Name:'Speaker',Text:`needle caption ${index}`,Time:'10:00'}));
+    const first=await h.run('new SessionManager()').searchSessions('needle',{limit:100});
+    const second=await h.run('new SessionManager()').searchSessions('needle',{limit:100,offset:100});
+    const third=await h.run('new SessionManager()').searchSessions('needle',{limit:100,offset:200});
+    assert.equal(first.results.length,100);assert.equal(first.hasMore,true);
+    assert.equal(second.results.length,100);assert.equal(second.hasMore,true);
+    assert.equal(third.results.length,25);assert.equal(third.hasMore,false);
+    assert.equal(new Set([...first.results,...second.results,...third.results].map(item=>item.sourceKey)).size,225);
 });
 test('archive speaker filter searches captions beyond truncated metadata speakers',async()=>{
     const h=harness();h.run(read('sessionManager.js'));

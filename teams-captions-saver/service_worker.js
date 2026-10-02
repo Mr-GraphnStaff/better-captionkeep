@@ -1,4 +1,4 @@
-importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'correctionManager.js', 'exportProfiles.js');
+importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'correctionManager.js', 'exportProfiles.js', 'entitlement.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
@@ -420,6 +420,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
         'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
+        'get_entitlement_state',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
@@ -498,6 +499,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'reset_aliases':
                 await chrome.storage.session.remove('speakerAliases');
                 break;
+            case 'get_entitlement_state':
+                return CaptionKeepEntitlements.resolveStored();
             case 'get_corrections':
             case 'save_correction':
             case 'undo_correction':

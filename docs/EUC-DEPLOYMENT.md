@@ -13,6 +13,19 @@ This is the implementation runbook. Read the [security architecture](SECURITY-AR
 - Treat forced installation as an administrative security decision: users cannot disable or remove a force-installed extension, and Edge site-level extension toggles do not stop policy-installed extensions.
 - Do not claim Store availability, successful installation, policy enforcement, or rollback until each is verified on a managed pilot device.
 - Do not unpack, modify, or re-sign a Store package under the Store identity.
+- Deploy one Store artifact for Free and any future Pro entitlement; activation must never require a second extension, product fork, native companion, or fabricated MSI.
+
+## Install, update, detection, and removal mechanics
+
+| Lifecycle action | Edge | Chrome |
+| --- | --- | --- |
+| Install | Assign the approved Store ID through `ExtensionSettings` or `ExtensionInstallForcelist`. | Assign the approved Chrome Web Store ID through the equivalent managed extension policy. |
+| Update | The official Store update URL updates the same signed identity; validate version availability before setting a minimum. | The Chrome Web Store update URL updates the same identity; retain the reviewed update policy. |
+| Detect | Use managed-browser extension inventory plus the generated policy detection script for Better CaptionKeep settings. | Use Chrome enterprise inventory plus the generated Chrome policy detection script. |
+| Roll back policy | Reassign the previously reviewed extension and managed-setting profile. Package downgrade is not assumed to be supported by either Store. | Same; validate the exact Store/browser behavior in a pilot. |
+| Uninstall | Remove the force-install assignment in a pilot first, then verify browser removal and separately handle exported files. | Remove the managed force-install assignment and verify on a pilot device. |
+
+The entitlement groundwork does not change these mechanics. Free, active, grace, expired, and unavailable states occur inside the same installation. No production activation backend, organization entitlement policy, tenant assignment, or endpoint installation is included in this repository prototype. See [same-install entitlement groundwork](ENTITLEMENT-GROUNDWORK.md).
 
 ## Responsibilities
 
