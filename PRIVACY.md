@@ -20,7 +20,7 @@ The extension does not operate a developer-hosted transcript collection service.
 
 ## Optional BYOAI handoffs
 
-Better CaptionKeep uses a Bring Your Own AI (BYOAI) model. If the user enables AI handoff and selects providers, the extension opens an internal review page after a meeting ends. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
+Better CaptionKeep uses a Bring Your Own AI (BYOAI) model. If the user enables AI handoff and selects providers, the extension opens an internal review page after a meeting ends. The page prepares short instructions, a complete local Markdown evidence file, and bounded numbered copy chunks, and shows caption coverage, size, and privacy mode before release. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
 
 The transcript prompt is not placed in a provider URL and is not automatically pasted or submitted. A temporary local copy is loaded into extension-page memory for review and then removed from extension storage. The user must explicitly copy it and paste or attach it in a provider workspace. Provider terms and privacy policies govern information the user submits there.
 
@@ -32,7 +32,7 @@ The optional Evidence Board stores user-created markers in browser local storage
 
 ## Privacy Scrubber
 
-Privacy Scrubber performs deterministic pattern matching entirely inside the extension. It can mask common email addresses, phone numbers, valid Social Security number formats, Luhn-valid payment-card numbers, IP addresses, labeled dates of birth, labeled medical or member identifiers, optional profanity, and user-defined terms. It can create cleaned copy/export output and a cleaned AI-handoff prompt while retaining the original captured session.
+Privacy Scrubber performs deterministic pattern matching entirely inside the extension. It can mask common email addresses, phone numbers, valid Social Security number formats, Luhn-valid payment-card numbers, IP addresses, labeled dates of birth, labeled medical or member identifiers, optional profanity, and user-defined terms. It can create cleaned copy/export output and a cleaned AI handoff while retaining the original captured session. One shared scrub context is applied before a handoff is divided into file and copy-chunk presentations so repeated values use consistent placeholders.
 
 Pattern matching can miss sensitive information and can mask harmless text. It is a disclosure-reduction aid, not a data-loss-prevention system, legal determination, or guarantee of HIPAA, PCI DSS, GDPR, or other compliance. Users must review cleaned output before sharing it.
 

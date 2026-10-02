@@ -1,111 +1,193 @@
 const id = new URL(location.href).searchParams.get('id');
 const promptBox = document.getElementById('prompt');
+const chunkBox = document.getElementById('chunk');
 const statusBox = document.getElementById('status');
 const providersBox = document.getElementById('providers');
 const scrubberToggle = document.getElementById('privacyScrubberToggle');
 const scrubberMode = document.getElementById('scrubberMode');
 const copyButton = document.getElementById('copy');
-copyButton.disabled = true;
-let originalPrompt = '';
+const saveEvidenceButton = document.getElementById('saveEvidence');
+const copyChunkButton = document.getElementById('copyChunk');
+const previousChunkButton = document.getElementById('previousChunk');
+const nextChunkButton = document.getElementById('nextChunk');
+let sourceData = null;
+let currentPackage = null;
+let currentChunk = 0;
 let unmaskedCopyArmed = false;
 let scrubOptions = {};
-let enterprisePolicy = {};
+let effectivePolicy = null;
 
-async function refreshHandoffPolicy() {
-    const userSettings = await chrome.storage.sync.get(['privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms', 'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl']);
-    const policy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
-    enterprisePolicy = policy.settings;
-    scrubOptions = { profanityFilterEnabled: !!enterprisePolicy.profanityFilterEnabled, customTerms: enterprisePolicy.customScrubTerms || [] };
-    if (enterprisePolicy.forceScrubbedExport) scrubberToggle.checked = true;
-    scrubberToggle.disabled = policy.locked.includes('privacyScrubberEnabled');
-    copyButton.disabled = !!enterprisePolicy.disableClipboard || !!enterprisePolicy.disableAiHandoff;
-    return policy;
+async function readPolicy() {
+    const userSettings = await chrome.storage.sync.get([
+        'privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms',
+        'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl'
+    ]);
+    return CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
 }
 
-function renderScrubberMode() {
+function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function safeFilename(value) {
+    return `${String(value || 'Meeting').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim() || 'Meeting'}-complete-evidence.md`;
+}
+
+function renderCoverage() {
+    const coverage = currentPackage.coverage;
+    document.getElementById('coverageCaptions').textContent = `${coverage.included} / ${coverage.selected}`;
+    document.getElementById('coverageOmitted').textContent = String(coverage.omitted);
+    document.getElementById('coverageChunks').textContent = String(coverage.chunkCount);
+    document.getElementById('coverageSize').textContent = formatBytes(coverage.bytes);
+    document.getElementById('coveragePrivacy').textContent = coverage.privacyMode;
+}
+
+function renderChunk() {
+    const chunks = currentPackage?.chunks || [];
+    currentChunk = Math.max(0, Math.min(currentChunk, Math.max(0, chunks.length - 1)));
+    chunkBox.value = chunks[currentChunk]?.text || '';
+    document.getElementById('chunkPosition').textContent = `Chunk ${chunks.length ? currentChunk + 1 : 0} / ${chunks.length}`;
+    previousChunkButton.disabled = currentChunk <= 0;
+    nextChunkButton.disabled = currentChunk >= chunks.length - 1;
+    copyChunkButton.disabled = !chunks.length || !!effectivePolicy?.settings.disableClipboard;
+}
+
+function renderPackage() {
     unmaskedCopyArmed = false;
+    const privacyMode = scrubberToggle.checked ? 'cleaned by Scrubby' : 'unmasked';
+    let transcript = sourceData.transcript;
+    let metadata = {
+        meetingTitle:sourceData.meetingTitle,
+        providerLabel:sourceData.providerLabel,
+        warnings:sourceData.warnings
+    };
     if (scrubberToggle.checked) {
-        const scrubbed = CaptionKeepPrivacyScrubber.scrub(originalPrompt, scrubOptions);
-        promptBox.value = scrubbed.text;
-        copyButton.textContent = 'Copy cleaned prompt';
+        const scrubbed = CaptionKeepPrivacyScrubber.scrubHandoff(transcript, metadata, scrubOptions);
+        transcript = scrubbed.transcript;
+        metadata = scrubbed.metadata;
         scrubberMode.textContent = scrubbed.replacements.length
-            ? `On · masked ${scrubbed.replacements.length} sensitive detail${scrubbed.replacements.length === 1 ? '' : 's'} locally.`
-            : 'On · no supported sensitive-data patterns found.';
-        statusBox.textContent = 'Review the cleaned prompt before sharing.';
+            ? `On - masked ${scrubbed.replacements.length} sensitive detail${scrubbed.replacements.length === 1 ? '' : 's'} consistently across the complete evidence.`
+            : 'On - no supported sensitive-data patterns found.';
+        copyButton.textContent = 'Copy cleaned instructions';
+    } else {
+        scrubberMode.textContent = 'Off - instructions and evidence may contain sensitive data.';
+        copyButton.textContent = 'Copy unmasked instructions';
+    }
+    currentPackage = CaptionKeepHandoffPackage.buildPackage(transcript, {
+        meetingTitle:metadata.meetingTitle,
+        providerLabel:metadata.providerLabel,
+        sessionId:sourceData.sessionId,
+        warnings:metadata.warnings,
+        privacyMode
+    });
+    promptBox.value = currentPackage.prompt;
+    currentChunk = 0;
+    renderCoverage();
+    renderChunk();
+    statusBox.textContent = `Review the ${privacyMode} instructions and complete evidence before sharing.`;
+}
+
+scrubberToggle.addEventListener('change', () => {
+    if (effectivePolicy?.settings.forceScrubbedExport && !scrubberToggle.checked) {
+        scrubberToggle.checked = true;
+        statusBox.textContent = 'Your organization requires cleaned output.';
         return;
     }
+    renderPackage();
+});
 
-    promptBox.value = originalPrompt;
-    copyButton.textContent = 'Copy unmasked prompt';
-    scrubberMode.textContent = 'Off · this prompt may contain sensitive data.';
-    statusBox.textContent = 'Privacy Scrubber is off. Review carefully before copying.';
+async function requireAllowedAction(action) {
+    effectivePolicy = await readPolicy();
+    if (effectivePolicy.settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+    if (action === 'copy' && effectivePolicy.settings.disableClipboard) throw new Error('Clipboard actions are disabled by your organization.');
+    if (action === 'save' && effectivePolicy.settings.disableFileExport) throw new Error('File export is disabled by your organization.');
+    if (effectivePolicy.settings.forceScrubbedExport && !scrubberToggle.checked) {
+        scrubberToggle.checked = true;
+        renderPackage();
+    }
 }
-
-scrubberToggle.addEventListener('change', renderScrubberMode);
 
 copyButton.onclick = async () => {
-    await refreshHandoffPolicy();
-    if (enterprisePolicy.disableAiHandoff) {
-        originalPrompt = '';
-        promptBox.value = '';
-        statusBox.textContent = 'AI handoff is disabled by your organization.';
-        return;
-    }
-    if (enterprisePolicy.disableClipboard) {
-        statusBox.textContent = 'Clipboard copy is disabled by your organization.';
-        return;
-    }
-    if (!scrubberToggle.checked && !unmaskedCopyArmed) {
-        unmaskedCopyArmed = true;
-        statusBox.textContent = 'Scrubby is off. Click “Copy unmasked prompt” again to confirm.';
-        return;
-    }
     try {
-        let output = promptBox.value;
-        if (enterprisePolicy.forceScrubbedExport) {
-            const scrubbed = CaptionKeepPrivacyScrubber.scrub(output, scrubOptions);
-            output = scrubbed.text;
-            promptBox.value = output;
-            scrubberToggle.checked = true;
-            copyButton.textContent = 'Copy cleaned prompt';
-            scrubberMode.textContent = scrubbed.replacements.length
-                ? `On · masked ${scrubbed.replacements.length} sensitive detail${scrubbed.replacements.length === 1 ? '' : 's'} locally.`
-                : 'On · no supported sensitive-data patterns found.';
+        await requireAllowedAction('copy');
+        if (!scrubberToggle.checked && !unmaskedCopyArmed) {
+            unmaskedCopyArmed = true;
+            statusBox.textContent = 'Scrubby is off. Click "Copy unmasked instructions" again to confirm.';
+            return;
         }
-        await navigator.clipboard.writeText(output);
+        await navigator.clipboard.writeText(promptBox.value);
         unmaskedCopyArmed = false;
-        statusBox.textContent = 'Copied. Paste only into a workspace authorized for this meeting.';
+        statusBox.textContent = 'Instructions copied. Attach the complete evidence file, or copy every numbered chunk in order.';
     } catch (error) {
-        statusBox.textContent = `Copy failed: ${error.message}`;
+        statusBox.textContent = error.message;
     }
 };
 
+copyChunkButton.onclick = async () => {
+    try {
+        await requireAllowedAction('copy');
+        if (!scrubberToggle.checked && !unmaskedCopyArmed) {
+            unmaskedCopyArmed = true;
+            statusBox.textContent = 'Scrubby is off. Click "Copy this chunk" again to confirm unmasked copying.';
+            return;
+        }
+        await navigator.clipboard.writeText(currentPackage.chunks[currentChunk].text);
+        unmaskedCopyArmed = false;
+        statusBox.textContent = `Copied chunk ${currentChunk + 1} of ${currentPackage.chunks.length}.`;
+    } catch (error) {
+        statusBox.textContent = error.message;
+    }
+};
+
+saveEvidenceButton.onclick = async () => {
+    try {
+        await requireAllowedAction('save');
+        const blobUrl = URL.createObjectURL(new Blob([currentPackage.file], {type:'text/markdown;charset=utf-8'}));
+        try {
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = safeFilename(sourceData.meetingTitle);
+            link.click();
+            statusBox.textContent = 'Complete local evidence save started. Attach it only to an approved workspace.';
+        } finally {
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        }
+    } catch (error) {
+        statusBox.textContent = error.message;
+    }
+};
+
+previousChunkButton.onclick = () => { currentChunk -= 1; renderChunk(); };
+nextChunkButton.onclick = () => { currentChunk += 1; renderChunk(); };
+
 document.getElementById('discard').onclick = async () => {
     await chrome.storage.local.remove(id);
-    originalPrompt = '';
+    sourceData = null;
+    currentPackage = null;
     promptBox.value = '';
+    chunkBox.value = '';
     scrubberToggle.disabled = true;
     copyButton.disabled = true;
-    statusBox.textContent = 'Handoff discarded.';
+    copyChunkButton.disabled = true;
+    saveEvidenceButton.disabled = true;
+    statusBox.textContent = 'Handoff discarded. Temporary evidence was removed.';
 };
 
 function renderProvider(providerKey, settings) {
     const destination = CaptionKeepDestinations.resolve(providerKey, settings);
     if (!destination) return;
-
     const card = document.createElement('article');
     card.className = 'provider-card';
     const heading = document.createElement('h3');
     heading.textContent = destination.name;
     const detail = document.createElement('p');
-    if (destination.configured) {
-        detail.textContent = `Saved enterprise destination · ${new URL(destination.url).hostname}`;
-    } else if (destination.requiresWorkspaceConfirmation) {
-        detail.textContent = 'No enterprise destination saved · choose the correct workspace after opening';
-    } else {
-        detail.textContent = new URL(destination.url).hostname;
-    }
-
+    detail.textContent = destination.configured
+        ? `Saved enterprise destination - ${new URL(destination.url).hostname}`
+        : destination.requiresWorkspaceConfirmation
+            ? 'No enterprise destination saved - choose the correct workspace after opening'
+            : new URL(destination.url).hostname;
     const link = document.createElement('a');
     link.className = 'provider-link';
     link.textContent = destination.configured ? 'Open saved workspace' : `Open ${destination.name}`;
@@ -113,7 +195,7 @@ function renderProvider(providerKey, settings) {
     link.target = '_blank';
     link.rel = 'noreferrer';
     link.addEventListener('click', () => {
-        statusBox.textContent = `Opened ${destination.name}. Confirm the active workspace before pasting.`;
+        statusBox.textContent = `Opened ${destination.name}. Confirm the active workspace before attaching or pasting.`;
     });
     card.append(heading, detail, link);
     providersBox.append(card);
@@ -122,18 +204,23 @@ function renderProvider(providerKey, settings) {
 (async () => {
     try {
         if (!id?.startsWith('handoff_')) throw new Error('No handoff selected');
-        const data = (await chrome.storage.local.get(id))[id];
-        if (!data) throw new Error('This handoff is no longer available');
-        originalPrompt = data.prompt;
-        const policy = await refreshHandoffPolicy();
-        const settings = policy.settings;
-        if (settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
-        scrubberToggle.checked = settings.privacyScrubberEnabled !== false;
-        renderScrubberMode();
-        for (const provider of data.providers) renderProvider(provider, settings);
-        // Page memory holds the editable prompt; remove the temporary durable copy after loading.
+        sourceData = (await chrome.storage.local.get(id))[id];
+        if (!sourceData) throw new Error('This handoff is no longer available');
+        effectivePolicy = await readPolicy();
+        if (effectivePolicy.settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        scrubOptions = {
+            profanityFilterEnabled:!!effectivePolicy.settings.profanityFilterEnabled,
+            customTerms:effectivePolicy.settings.customScrubTerms || []
+        };
+        scrubberToggle.checked = effectivePolicy.settings.privacyScrubberEnabled !== false || !!effectivePolicy.settings.forceScrubbedExport;
+        scrubberToggle.disabled = effectivePolicy.locked.includes('privacyScrubberEnabled') || !!effectivePolicy.settings.forceScrubbedExport;
+        copyButton.disabled = !!effectivePolicy.settings.disableClipboard;
+        saveEvidenceButton.disabled = !!effectivePolicy.settings.disableFileExport;
+        renderPackage();
+        for (const provider of sourceData.providers) renderProvider(provider, effectivePolicy.settings);
         await chrome.storage.local.remove(id);
     } catch (error) {
+        if (id?.startsWith('handoff_')) await chrome.storage.local.remove(id).catch(() => {});
         statusBox.textContent = error.message;
     }
 })();

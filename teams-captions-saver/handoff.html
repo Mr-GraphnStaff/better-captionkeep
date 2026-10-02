@@ -37,12 +37,18 @@
         .provider-card p { color: var(--ck-text-muted); font-size: .9rem; }
         .provider-link { justify-self: start; }
         #status { min-height: 24px; margin-bottom: 0; color: var(--ck-text-muted); }
+        .coverage { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; }
+        .coverage div { padding: 12px; border: 1px solid var(--ck-border); border-radius: 9px; background: var(--ck-surface); }
+        .coverage strong { display: block; font-size: 1.2rem; }
+        .chunk-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+        #chunk { min-height: 240px; }
         @media (max-width: 560px) { body { padding: 22px 14px 40px; } }
     </style>
     <script src="theme.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
+    <script src="handoffPackage.js" defer></script>
     <script src="handoff.js" defer></script>
 </head>
 <body>
@@ -69,9 +75,31 @@
     <textarea id="prompt" aria-label="Editable cleaned meeting prompt"></textarea>
     <div class="actions">
         <button class="primary" id="copy">Copy prompt</button>
+        <button class="primary" id="saveEvidence">Save complete evidence</button>
         <button id="discard">Discard handoff</button>
     </div>
     <p id="status" role="status" aria-live="polite"></p>
+    <section aria-labelledby="coverageTitle">
+        <h2 id="coverageTitle">Complete evidence coverage</h2>
+        <div class="coverage">
+            <div><strong id="coverageCaptions">0 / 0</strong>captions included</div>
+            <div><strong id="coverageOmitted">0</strong>captions omitted</div>
+            <div><strong id="coverageChunks">0</strong>copy chunks</div>
+            <div><strong id="coverageSize">0 B</strong>evidence file</div>
+            <div><strong id="coveragePrivacy">Loading</strong>privacy mode</div>
+        </div>
+    </section>
+    <section aria-labelledby="chunkTitle">
+        <h2 id="chunkTitle">Bounded copy chunks</h2>
+        <p class="intro">Use these numbered chunks when an attachment is unavailable. Copy them in order; long captions retain their caption ID and part number.</p>
+        <div class="chunk-controls">
+            <button id="previousChunk">Previous</button>
+            <strong id="chunkPosition">Chunk 0 / 0</strong>
+            <button id="nextChunk">Next</button>
+            <button class="primary" id="copyChunk">Copy this chunk</button>
+        </div>
+        <textarea id="chunk" readonly aria-label="Current complete-evidence copy chunk"></textarea>
+    </section>
     <section aria-labelledby="providerTitle">
         <h2 id="providerTitle">Choose an approved assistant</h2>
         <div id="providers"></div>

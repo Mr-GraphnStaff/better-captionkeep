@@ -10,7 +10,7 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 2. Active transcript recovery checkpoints and completed-session history remain in `chrome.storage.local`. The default completed-history limit is ten sessions; managed policy can lower the limit, apply an age limit, or disable indexed completed-session history.
 3. User preferences remain in `chrome.storage.sync`; temporary aliases remain in `chrome.storage.session`.
 4. Exports are staged locally and opened in the extension's save page. The browser or user selects the final location.
-5. AI handoff opens an internal review page. Transcript text is never placed in the external provider URL and is never pasted or submitted automatically.
+5. AI handoff opens an internal review page with coverage-checked local file and copy-chunk options. Transcript text is never placed in the external provider URL and is never attached, pasted, or submitted automatically.
 6. Privacy Scrubber creates a distinct cleaned value in memory. It does not overwrite the original saved transcript.
 7. The Evidence Board stores user-created caption markers and notes locally. It preserves a source caption ID and never rewrites the raw transcript.
 8. Evidence sharing is user-directed: email opens a draft with no recipients, while Markdown and provenance JSON require explicit save actions.
