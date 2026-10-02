@@ -271,6 +271,7 @@
         }
         const response = await fetchImpl(target.toString(), {
             method: 'GET',
+            cache: 'no-store',
             headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: options.accept || 'application/json',
@@ -366,8 +367,11 @@
                 await failClosedOnAuthError(error, dependencies);
             }
             events.push(...(Array.isArray(body?.value) ? body.value : []));
-            const eligibleCount = events.map(event => calendarMeeting(event, nowMs)).filter(Boolean).length;
-            nextUrl = eligibleCount >= 5 ? '' : String(body?.['@odata.nextLink'] || '');
+            const eligibleJoinUrls = new Set(events
+                .map(event => calendarMeeting(event, nowMs))
+                .filter(Boolean)
+                .map(meeting => meeting.joinUrl));
+            nextUrl = eligibleJoinUrls.size >= 5 ? '' : String(body?.['@odata.nextLink'] || '');
         }
         const meetings = events
             .map(event => calendarMeeting(event, nowMs))

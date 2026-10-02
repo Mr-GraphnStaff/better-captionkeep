@@ -250,6 +250,7 @@ test('recent meeting discovery returns five transient eligible Teams meetings in
     fetchImpl:async (url, options) => {
       calendarUrl = new URL(url);
       assert.equal(options.headers.Prefer, 'outlook.timezone="UTC"');
+      assert.equal(options.cache, 'no-store');
       return Response.json({value:events});
     }
   });
@@ -400,6 +401,54 @@ test('recent meeting discovery follows bounded Graph pagination until five Teams
   });
   assert.equal(calls, 2);
   assert.equal(meetings.length, 5);
+});
+
+test('recent meeting discovery pages past recurring occurrences until five unique meetings are found', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  const nowMs = Date.parse('2026-10-01T15:00:00Z');
+  const recurringJoinUrl = 'https://teams.microsoft.com/meet/523456789000?p=recurring';
+  let calls = 0;
+  const meetings = await Graph.listRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs,
+    fetchImpl:async url => {
+      calls += 1;
+      if (calls === 1) {
+        return Response.json({
+          value:Array.from({length:5}, (_, index) => ({
+            subject:`Recurring validation ${index}`,
+            start:{dateTime:new Date(nowMs - index * 3600000).toISOString(),timeZone:'UTC'},
+            end:{dateTime:new Date(nowMs - index * 3600000 + 1800000).toISOString(),timeZone:'UTC'},
+            onlineMeeting:{joinUrl:recurringJoinUrl}
+          })),
+          '@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendarView?$skiptoken=after-recurring'
+        });
+      }
+      assert.match(url, /\$skiptoken=after-recurring/);
+      return Response.json({value:Array.from({length:4}, (_, index) => ({
+        subject:`Unique meeting ${index}`,
+        start:{dateTime:new Date(nowMs - (index + 5) * 3600000).toISOString(),timeZone:'UTC'},
+        end:{dateTime:new Date(nowMs - (index + 5) * 3600000 + 1800000).toISOString(),timeZone:'UTC'},
+        onlineMeeting:{joinUrl:`https://teams.microsoft.com/meet/${623456789000 + index}?p=unique${index}`}
+      }))});
+    }
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(meetings.length, 5);
+  assert.deepEqual(meetings.map(meeting => meeting.subject), [
+    'Recurring validation 0',
+    'Unique meeting 0',
+    'Unique meeting 1',
+    'Unique meeting 2',
+    'Unique meeting 3'
+  ]);
+  assert.equal(new Set(meetings.map(meeting => meeting.joinUrl)).size, 5);
 });
 
 test('speaker-attribution denial retries only with the unattributed transcript media type', async () => {
