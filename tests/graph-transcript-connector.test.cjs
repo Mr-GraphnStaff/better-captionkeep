@@ -248,14 +248,16 @@ test('recent meeting discovery returns five transient eligible Teams meetings in
     chromeApi:harness.api,
     nowMs,
     fetchImpl:async (url, options) => {
-      calendarUrl = new URL(url);
+      const requested = new URL(url);
+      if (requested.pathname === '/v1.0/me/calendars') return Response.json({value:[{id:'primary-calendar'}]});
+      calendarUrl = requested;
       assert.equal(options.headers.Prefer, 'outlook.timezone="UTC"');
       assert.equal(options.cache, 'no-store');
       return Response.json({value:events});
     }
   });
 
-  assert.equal(calendarUrl.pathname, '/v1.0/me/calendarView');
+  assert.equal(calendarUrl.pathname, '/v1.0/me/calendars/primary-calendar/calendarView');
   assert.equal(calendarUrl.searchParams.get('$top'), '25');
   assert.match(calendarUrl.searchParams.get('$select'), /onlineMeeting/);
   assert.equal(meetings.length, 5);
@@ -276,12 +278,14 @@ test('recent meeting discovery normalizes Graph UTC timestamps with extended fra
   const meetings = await Graph.listRecentMeetings(SETTINGS, {
     chromeApi:harness.api,
     nowMs:Date.parse('2026-10-01T15:00:00Z'),
-    fetchImpl:async () => Response.json({value:[{
-      subject:'Graph UTC meeting',
-      start:{dateTime:'2026-10-01T14:30:00.0000000',timeZone:'UTC'},
-      end:{dateTime:'2026-10-01T15:30:00.0000000',timeZone:'UTC'},
-      onlineMeeting:{joinUrl:'https://teams.microsoft.com/meet/323456789000?p=utcproof'}
-    }]})
+    fetchImpl:async url => new URL(url).pathname === '/v1.0/me/calendars'
+      ? Response.json({value:[{id:'primary-calendar'}]})
+      : Response.json({value:[{
+        subject:'Graph UTC meeting',
+        start:{dateTime:'2026-10-01T14:30:00.0000000',timeZone:'UTC'},
+        end:{dateTime:'2026-10-01T15:30:00.0000000',timeZone:'UTC'},
+        onlineMeeting:{joinUrl:'https://teams.microsoft.com/meet/323456789000?p=utcproof'}
+      }]})
   });
   assert.equal(meetings[0].startDateTime, '2026-10-01T14:30:00.000Z');
   assert.equal(meetings[0].state, 'in-progress');
@@ -383,11 +387,14 @@ test('recent meeting discovery follows bounded Graph pagination until five Teams
     chromeApi:harness.api,
     nowMs,
     fetchImpl:async url => {
+      if (new URL(url).pathname === '/v1.0/me/calendars') {
+        return Response.json({value:[{id:'primary-calendar'}]});
+      }
       calls += 1;
       if (calls === 1) {
         return Response.json({
           value:[{subject:'Non-Teams event',start:{dateTime:'2026-10-01T13:00:00Z'},end:{dateTime:'2026-10-01T14:00:00Z'}}],
-          '@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendarView?$skiptoken=synthetic'
+          '@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendars/primary-calendar/calendarView?$skiptoken=synthetic'
         });
       }
       assert.match(url, /\$skiptoken=synthetic/);
@@ -417,6 +424,9 @@ test('recent meeting discovery pages past recurring occurrences until five uniqu
     chromeApi:harness.api,
     nowMs,
     fetchImpl:async url => {
+      if (new URL(url).pathname === '/v1.0/me/calendars') {
+        return Response.json({value:[{id:'primary-calendar'}]});
+      }
       calls += 1;
       if (calls === 1) {
         return Response.json({
@@ -426,7 +436,7 @@ test('recent meeting discovery pages past recurring occurrences until five uniqu
             end:{dateTime:new Date(nowMs - index * 3600000 + 1800000).toISOString(),timeZone:'UTC'},
             onlineMeeting:{joinUrl:recurringJoinUrl}
           })),
-          '@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendarView?$skiptoken=after-recurring'
+          '@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendars/primary-calendar/calendarView?$skiptoken=after-recurring'
         });
       }
       assert.match(url, /\$skiptoken=after-recurring/);
@@ -449,6 +459,107 @@ test('recent meeting discovery pages past recurring occurrences until five uniqu
     'Unique meeting 3'
   ]);
   assert.equal(new Set(meetings.map(meeting => meeting.joinUrl)).size, 5);
+});
+
+test('recent meeting discovery merges every signed-in user calendar and reports privacy-safe counts', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  const nowMs = Date.parse('2026-10-01T15:00:00Z');
+  const requestedPaths = [];
+  const discovery = await Graph.discoverRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs,
+    fetchImpl:async url => {
+      const requested = new URL(url);
+      requestedPaths.push(requested.pathname);
+      if (requested.pathname === '/v1.0/me/calendars') {
+        return Response.json({value:[{id:'primary'},{id:'project calendar/with slash'}]});
+      }
+      const isProject = requested.pathname.includes('project%20calendar%2Fwith%20slash');
+      const count = isProject ? 4 : 1;
+      return Response.json({value:Array.from({length:count}, (_, index) => ({
+        subject:`${isProject ? 'Project' : 'Primary'} meeting ${index}`,
+        start:{dateTime:new Date(nowMs - (isProject ? index + 1 : 0) * 3600000).toISOString(),timeZone:'UTC'},
+        end:{dateTime:new Date(nowMs - (isProject ? index + 1 : 0) * 3600000 + 1800000).toISOString(),timeZone:'UTC'},
+        onlineMeeting:{joinUrl:`https://teams.microsoft.com/meet/${723456789000 + (isProject ? index + 1 : 0)}?p=calendar${index}`}
+      }))});
+    }
+  });
+
+  assert.equal(discovery.meetings.length, 5);
+  assert.deepEqual(discovery.discovery, {
+    calendarCount:2,
+    eventCount:5,
+    teamsEventCount:5,
+    uniqueMeetingCount:5,
+    calendarErrorCount:0,
+    calendarEnumerationLimited:false,
+    windowDays:30
+  });
+  assert(requestedPaths.includes('/v1.0/me/calendars/primary/calendarView'));
+  assert(requestedPaths.includes('/v1.0/me/calendars/project%20calendar%2Fwith%20slash/calendarView'));
+  assert.equal(JSON.stringify(discovery.discovery).includes('project'), false);
+});
+
+test('recent meeting diagnostics report inaccessible calendars without discarding readable results', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  const nowMs = Date.parse('2026-10-01T15:00:00Z');
+  const discovery = await Graph.discoverRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs,
+    fetchImpl:async url => {
+      const path = new URL(url).pathname;
+      if (path === '/v1.0/me/calendars') return Response.json({value:[{id:'readable'},{id:'denied'}]});
+      if (path.includes('/denied/')) return Response.json({error:{code:'ErrorAccessDenied'}}, {status:403});
+      return Response.json({value:[{
+        subject:'Readable calendar meeting',
+        start:{dateTime:new Date(nowMs - 3600000).toISOString(),timeZone:'UTC'},
+        end:{dateTime:new Date(nowMs - 1800000).toISOString(),timeZone:'UTC'},
+        onlineMeeting:{joinUrl:'https://teams.microsoft.com/meet/823456789000?p=readable'}
+      }]});
+    }
+  });
+
+  assert.equal(discovery.meetings.length, 1);
+  assert.equal(discovery.discovery.calendarCount, 2);
+  assert.equal(discovery.discovery.calendarErrorCount, 1);
+  assert.equal(discovery.discovery.calendarEnumerationLimited, false);
+});
+
+test('recent meeting discovery falls back to the default calendar when enumeration is denied', async () => {
+  const harness = chromeHarness({
+    graphTranscriptAuthV1: {
+      accessToken:'delegated-token',refreshToken:'refresh',expiresAt:Date.now()+3600000,
+      tenantId:SETTINGS.graphTenantId,clientId:SETTINGS.graphClientId,account:{}
+    }
+  });
+  const nowMs = Date.parse('2026-10-01T15:00:00Z');
+  const requestedPaths = [];
+  const discovery = await Graph.discoverRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    nowMs,
+    fetchImpl:async url => {
+      const path = new URL(url).pathname;
+      requestedPaths.push(path);
+      if (path === '/v1.0/me/calendars') {
+        return Response.json({error:{code:'ErrorAccessDenied'}}, {status:403});
+      }
+      return Response.json({value:[]});
+    }
+  });
+
+  assert(requestedPaths.includes('/v1.0/me/calendarView'));
+  assert.equal(discovery.discovery.calendarCount, 1);
+  assert.equal(discovery.discovery.calendarEnumerationLimited, true);
 });
 
 test('speaker-attribution denial retries only with the unattributed transcript media type', async () => {

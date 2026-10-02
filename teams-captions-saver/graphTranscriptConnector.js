@@ -340,52 +340,118 @@
         });
     }
 
-    async function listRecentMeetings(settings, dependencies = {}) {
+    async function graphJson(url, token, fetchImpl, dependencies, options = {}) {
+        try {
+            const response = await graphResponse(url, token, fetchImpl, options);
+            return await response.json();
+        } catch (error) {
+            await failClosedOnAuthError(error, dependencies);
+        }
+    }
+
+    async function listUserCalendarIds(token, fetchImpl, dependencies) {
+        const url = new URL(`${GRAPH_ROOT}me/calendars`);
+        url.searchParams.set('$select', 'id');
+        url.searchParams.set('$top', '25');
+        const ids = [];
+        const seen = new Set();
+        let nextUrl = url.toString();
+        for (let page = 0; nextUrl && page < 2 && ids.length < 25; page += 1) {
+            const body = await graphJson(nextUrl, token, fetchImpl, dependencies);
+            for (const calendar of Array.isArray(body?.value) ? body.value : []) {
+                const id = String(calendar?.id || '');
+                if (!id || seen.has(id)) continue;
+                seen.add(id);
+                ids.push(id);
+                if (ids.length === 25) break;
+            }
+            nextUrl = ids.length < 25 ? String(body?.['@odata.nextLink'] || '') : '';
+        }
+        return ids;
+    }
+
+    function calendarViewUrl(calendarId, startDateTime, endDateTime) {
+        const path = calendarId
+            ? `me/calendars/${encodeURIComponent(calendarId)}/calendarView`
+            : 'me/calendarView';
+        const url = new URL(`${GRAPH_ROOT}${path}`);
+        url.searchParams.set('startDateTime', startDateTime);
+        url.searchParams.set('endDateTime', endDateTime);
+        url.searchParams.set('$select', 'subject,start,end,isOrganizer,isOnlineMeeting,onlineMeeting,onlineMeetingUrl');
+        url.searchParams.set('$orderby', 'start/dateTime desc');
+        url.searchParams.set('$top', '25');
+        return url.toString();
+    }
+
+    async function discoverRecentMeetings(settings, dependencies = {}) {
         validateManagedConfig(settings);
         const fetchImpl = dependencies.fetchImpl || fetch;
         const token = await getAccessToken(settings, dependencies);
         const nowMs = Number.isFinite(dependencies.nowMs) ? dependencies.nowMs : Date.now();
         const startDateTime = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString();
         const endDateTime = new Date(nowMs + 5 * 60 * 1000).toISOString();
-        const url = new URL(`${GRAPH_ROOT}me/calendarView`);
-        url.searchParams.set('startDateTime', startDateTime);
-        url.searchParams.set('endDateTime', endDateTime);
-        url.searchParams.set('$select', 'subject,start,end,isOrganizer,isOnlineMeeting,onlineMeeting,onlineMeetingUrl');
-        url.searchParams.set('$orderby', 'start/dateTime desc');
-        url.searchParams.set('$top', '25');
-
-        const events = [];
-        let nextUrl = url.toString();
-        for (let page = 0; nextUrl && page < 4; page += 1) {
-            let body;
-            try {
-                const response = await graphResponse(nextUrl, token, fetchImpl, {
-                    headers: { Prefer: 'outlook.timezone="UTC"' }
-                });
-                body = await response.json();
-            } catch (error) {
-                await failClosedOnAuthError(error, dependencies);
-            }
-            events.push(...(Array.isArray(body?.value) ? body.value : []));
-            const eligibleJoinUrls = new Set(events
-                .map(event => calendarMeeting(event, nowMs))
-                .filter(Boolean)
-                .map(meeting => meeting.joinUrl));
-            nextUrl = eligibleJoinUrls.size >= 5 ? '' : String(body?.['@odata.nextLink'] || '');
+        let listedCalendarIds;
+        let calendarEnumerationLimited = false;
+        try {
+            listedCalendarIds = await listUserCalendarIds(token, fetchImpl, dependencies);
+        } catch (error) {
+            if (!['ErrorAccessDenied', 'Authorization_RequestDenied'].includes(error?.code)) throw error;
+            listedCalendarIds = [];
+            calendarEnumerationLimited = true;
         }
-        const meetings = events
+        const calendarIds = listedCalendarIds.length ? listedCalendarIds : [null];
+        const events = [];
+        let calendarErrorCount = 0;
+        for (const calendarId of calendarIds) {
+            const calendarEvents = [];
+            let nextUrl = calendarViewUrl(calendarId, startDateTime, endDateTime);
+            try {
+                for (let page = 0; nextUrl && page < 4; page += 1) {
+                    const body = await graphJson(nextUrl, token, fetchImpl, dependencies, {
+                        headers: { Prefer: 'outlook.timezone="UTC"' }
+                    });
+                    const pageEvents = Array.isArray(body?.value) ? body.value : [];
+                    calendarEvents.push(...pageEvents);
+                    events.push(...pageEvents);
+                    const eligibleJoinUrls = new Set(calendarEvents
+                        .map(event => calendarMeeting(event, nowMs))
+                        .filter(Boolean)
+                        .map(meeting => meeting.joinUrl));
+                    nextUrl = eligibleJoinUrls.size >= 5 ? '' : String(body?.['@odata.nextLink'] || '');
+                }
+            } catch (error) {
+                if (!['ErrorAccessDenied', 'Authorization_RequestDenied'].includes(error?.code)) throw error;
+                calendarErrorCount += 1;
+            }
+        }
+        const eligibleMeetings = events
             .map(event => calendarMeeting(event, nowMs))
             .filter(Boolean)
             .sort((left, right) => Date.parse(right.startDateTime) - Date.parse(left.startDateTime));
         const unique = [];
         const seen = new Set();
-        for (const meeting of meetings) {
+        for (const meeting of eligibleMeetings) {
             if (seen.has(meeting.joinUrl)) continue;
             seen.add(meeting.joinUrl);
             unique.push(meeting);
             if (unique.length === 5) break;
         }
-        return unique;
+        return Object.freeze({
+            meetings: unique,
+            discovery: Object.freeze({
+                calendarCount: calendarIds.length,
+                eventCount: events.length,
+                teamsEventCount: eligibleMeetings.length,
+                uniqueMeetingCount: seen.size,
+                calendarErrorCount,
+                calendarEnumerationLimited,
+                windowDays: 30
+            })
+        });
+    }
+
+    async function listRecentMeetings(settings, dependencies = {}) {
+        return (await discoverRecentMeetings(settings, dependencies)).meetings;
     }
 
     async function listTranscripts(meetingId, token, fetchImpl) {
@@ -528,6 +594,7 @@
         connect,
         disconnect,
         status,
+        discoverRecentMeetings,
         listRecentMeetings,
         importTranscript
     });

@@ -467,9 +467,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'graph_list_recent_meetings':
                 {
                     const policy = await readEffectivePolicy();
-                    responsePayload = {
-                        meetings: await CaptionKeepGraphTranscript.listRecentMeetings(policy.settings)
-                    };
+                    responsePayload = await CaptionKeepGraphTranscript.discoverRecentMeetings(policy.settings);
                 }
                 break;
 

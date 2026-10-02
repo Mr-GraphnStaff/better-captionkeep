@@ -265,9 +265,22 @@ async function refreshRecentGraphMeetings(silent = false) {
     try {
         const result = await sendGraphMessage({message:'graph_list_recent_meetings'});
         renderRecentGraphMeetings(result.meetings);
-        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = result.meetings?.length
-            ? 'Choose a meeting, then import its verified transcript.'
-            : 'No recent meeting was found. Use the current meeting or paste its link.';
+        if (!silent) {
+            const count = Array.isArray(result.meetings) ? result.meetings.length : 0;
+            const discovery = result.discovery || {};
+            const limited = discovery.calendarEnumerationLimited
+                ? ' Microsoft 365 limited discovery to the default calendar.'
+                : '';
+            const unavailable = discovery.calendarErrorCount
+                ? ` ${discovery.calendarErrorCount} calendar${discovery.calendarErrorCount === 1 ? ' was' : 's were'} unavailable to the signed-in account.`
+                : '';
+            const diagnostic = Number.isFinite(discovery.eventCount)
+                ? ` Checked ${discovery.eventCount} events across ${discovery.calendarCount || 1} Microsoft 365 calendar${discovery.calendarCount === 1 ? '' : 's'}; ${discovery.teamsEventCount || 0} had a usable Teams join link.${limited}${unavailable} This is separate from local Previous Sessions.`
+                : '';
+            UI_ELEMENTS.graphImportStatus.textContent = count
+                ? `Found ${count} recent Teams meeting${count === 1 ? '' : 's'}.${diagnostic} Choose a meeting, then import its verified transcript.`
+                : `No recent Teams meeting was found.${diagnostic} Use the current meeting or paste its link.`;
+        }
     } catch (error) {
         renderRecentGraphMeetings([]);
         UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
