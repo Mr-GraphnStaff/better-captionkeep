@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root,file),'utf8');
 const readProject = file => fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const clone = data => JSON.parse(JSON.stringify(data));
 function harness() {
-    const data = {}; const callbacks=[]; const messages=[]; const tabs=[];
+    const data = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[];
     const area = {
         async get(keys) { if (keys===null) return clone(data); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in data)out[k]=clone(data[k]); return out; },
         async set(values) {
@@ -24,7 +24,10 @@ function harness() {
             return JSON.stringify(selected).length;
         }
     };
-    const chrome={storage:{local:area,session:area,sync:area,onChanged:{addListener(fn){callbacks.push(fn);}}},
+    const managed = {
+        async get(keys) { const out={}; for(const key of (Array.isArray(keys)?keys:Object.keys(managedData))) if(key in managedData) out[key]=clone(managedData[key]); return out; }
+    };
+    const chrome={storage:{local:area,session:area,sync:area,managed,onChanged:{addListener(fn){callbacks.push(fn);}}},
         runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{
             messages.push(m);
             if(m?.message==='get_capture_surface') return {ok:true,surfaceId:`${m.providerId}-tab-1`};
@@ -37,7 +40,7 @@ function harness() {
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
         importScripts(...names){for(const name of names) vm.runInContext(read(name),context);}});
-    return {data,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
+    return {data,managedData,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
 }
 
 test('all shipped scripts parse',()=>{
@@ -781,10 +784,10 @@ test('archive failure remains visible and recovery retry commits before cleanup'
     h.data.backup_abc123={
         transcript:[{Name:'A',Text:'retained recovery',Time:'10:00',capturedAt:'2026-09-25T10:00:00Z'}],
         meetingTitle:'Retry meeting',recordingStartTime:'2026-09-25T10:00:00Z',lastBackup:'2026-09-25T10:01:00Z',
-        surfaceId:'teams-tab-7',documentSessionId:'abc123',
+        providerId:'google-meet',surfaceId:'meet-tab-7',documentSessionId:'abc123',backupKey:'backup_abc123',
         attendeeData:{allAttendees:['Ada'],currentAttendees:[['Ada','Presenter']],attendeeHistory:[{name:'Ada',action:'joined'}]}
     };
-    h.data['active_capture_v2_teams-tab-7']={...h.data.backup_abc123};
+    h.data['active_capture_v3_google-meet_meet-tab-7']={...h.data.backup_abc123};
     h.area.failNext=values=>Object.keys(values).some(key=>key.includes('_generation_'));
     const failed=await new Promise(resolve=>h.chrome.listener({
         message:'save_session_history',backupKey:'backup_abc123',recordingStartTime:'2026-09-25T10:00:00Z',
@@ -801,12 +804,44 @@ test('archive failure remains visible and recovery retry commits before cleanup'
     assert.equal(retried.ok,true);
     assert.equal(h.data.backup_abc123,undefined);
     assert.equal(h.data.archive_last_error,undefined);
-    assert.equal(h.data['active_capture_v2_teams-tab-7'],undefined);
+    assert.equal(h.data['active_capture_v3_google-meet_meet-tab-7'],undefined);
     assert.equal(h.data.session_index.length,1);
     const loaded=await h.run('new SessionManager()').loadSession(h.data.session_index[0].id);
     assert.equal(loaded.transcript[0].Text,'retained recovery');
     assert.equal(loaded.attendeeReport.attendeeList[0],'Ada');
     assert.equal(loaded.attendeeReport.currentAttendees[0].role,'Presenter');
+});
+test('recovery retry respects current user and managed attendee capture settings',async()=>{
+    for (const mode of ['user','managed']) {
+        const h=harness();h.run(read('service_worker.js'));
+        if (mode === 'user') h.data.trackAttendees=false;
+        else h.managedData.disableAttendeeCapture=true;
+        h.data[`backup_${mode}`]={transcript:[{Name:'A',Text:'recovery',Time:'10:00'}],meetingTitle:'Retry',
+            recordingStartTime:'2026-09-25T10:00:00Z',lastBackup:'2026-09-25T10:01:00Z',
+            attendeeData:{allAttendees:['Private attendee'],currentAttendees:[['Private attendee','Presenter']],attendeeHistory:[{name:'Private attendee'}]}};
+        const retried=await new Promise(resolve=>h.chrome.listener(
+            {message:'retry_archive',sessionId:`backup_${mode}`},
+            {id:'test',url:'chrome-extension://test/popup.html'},resolve
+        ));
+        assert.equal(retried.ok,true,mode);
+        const loaded=await h.run('new SessionManager()').loadSession(h.data.session_index[0].id);
+        assert.equal(loaded.attendeeReport,null,mode);
+    }
+});
+test('expired recovery retry keeps recovery data and active checkpoint',async()=>{
+    const h=harness();h.managedData.sessionRetentionDays=1;h.run(read('service_worker.js'));
+    h.data.backup_expired={transcript:[{Name:'A',Text:'old',Time:'10:00'}],meetingTitle:'Expired',
+        recordingStartTime:'2020-01-01T00:00:00Z',lastBackup:'2020-01-01T00:01:00Z',surfaceId:'teams-tab-7',documentSessionId:'expired'};
+    h.data['active_capture_v2_teams-tab-7']={...h.data.backup_expired};
+    const retried=await new Promise(resolve=>h.chrome.listener(
+        {message:'retry_archive',sessionId:'backup_expired'},
+        {id:'test',url:'chrome-extension://test/popup.html'},resolve
+    ));
+    assert.equal(retried.ok,false);
+    assert.match(retried.error,/retention period/);
+    assert(h.data.backup_expired);
+    assert(h.data['active_capture_v2_teams-tab-7']);
+    assert.equal(h.data.session_index,undefined);
 });
 test('recovery retry does not clear a newer active capture on the same surface',async()=>{
     const h=harness();h.run(read('service_worker.js'));
@@ -1216,7 +1251,8 @@ test('a recent same-page checkpoint restores captions and warns about the gap',a
     h.data['active_capture_v2_teams-tab-1']={transcript:[{Name:'A',Text:'before reload',Time:'10:00',key:'teams-caption-1',capturedAt:new Date().toISOString()}],meetingTitle:'Synthetic meeting',
         recordingStartTime:new Date(Date.now()-60000).toISOString(),lastBackup:new Date().toISOString(),
         documentSessionId:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',pageUrl:'https://teams.microsoft.com/',surfaceId:'teams-tab-1'};
-    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('teamsCaptionBuffer.js'));h.run(read('content_script.js'));for(let i=0;i<12;i++)await Promise.resolve();
+    h.run(read('configuration.js'));h.run(read('transcriptInsights.js'));h.run(read('teamsCaptionBuffer.js'));h.run(read('content_script.js'));
+    await new Promise(resolve=>setImmediate(resolve));
     assert.equal(h.run('transcriptArray.length'),1);
     assert.equal(h.run('documentSessionId'),'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.match(h.run('checkpointError'),/resumed from a recovery checkpoint/i);

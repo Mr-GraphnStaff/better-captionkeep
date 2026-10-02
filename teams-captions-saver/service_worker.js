@@ -416,14 +416,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'save_session_history':
                 {
                     const operation = historyQueue.then(async () => {
-                        const policy = await readEffectivePolicy();
+                        const policy = await readEffectivePolicy(['trackAttendees']);
                         const manager = new SessionManager(true, historyOptions(policy.settings));
                         if (policy.settings.disableSessionHistory) {
                             await manager.clearAllSessions();
                             if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
                             return;
                         }
-                        await manager.saveSession(message.transcriptArray, message.meetingTitle, message.attendeeReport, {
+                        await manager.saveSession(message.transcriptArray, message.meetingTitle,
+                            policy.settings.trackAttendees === false ? null : message.attendeeReport, {
                             sourceSessionId:message.recordingStartTime,
                             recordedAt:message.recordingStartTime
                         });
@@ -448,14 +449,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 {
                     if (!/^backup_[a-z0-9-]+$/i.test(message.sessionId || '')) throw new Error('Recovery snapshot is invalid');
                     const operation = historyQueue.then(async () => {
-                        const policy = await readEffectivePolicy();
+                        const policy = await readEffectivePolicy(['trackAttendees']);
                         if (policy.settings.disableSessionHistory) throw new Error('Transcript archive is disabled by your organization.');
                         const backup = (await chrome.storage.local.get(message.sessionId))[message.sessionId];
                         if (!Array.isArray(backup?.transcript) || !backup.transcript.length) throw new Error('Recovery snapshot not found');
                         const archivedSessionId = await new SessionManager(true, historyOptions(policy.settings)).saveSession(
                             backup.transcript,
                             backup.meetingTitle,
-                            attendeeReportFromBackup(backup),
+                            policy.settings.trackAttendees === false ? null : attendeeReportFromBackup(backup),
                             {sourceSessionId:backup.recordingStartTime, recordedAt:backup.recordingStartTime}
                         );
                         await removeMatchingActiveCheckpoint(backup);
