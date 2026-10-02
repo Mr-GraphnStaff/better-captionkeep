@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrubOutputToggle = document.getElementById('scrub-output-toggle');
     const sessionModal = document.getElementById('sessionModal');
     const sessionListModal = document.getElementById('sessionListModal');
+    const archiveSearchForm = document.getElementById('archiveSearchForm');
+    const archiveSearchResults = document.getElementById('archiveSearchResults');
+    const archiveSearchStatus = document.getElementById('archiveSearchStatus');
     const closeModal = document.querySelector('.close-modal');
 
     // --- State ---
@@ -23,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrubOptions = {};
     let enterprisePolicy = {};
     let enterprisePolicyReady = Promise.resolve();
+    let archiveSearchGeneration = 0;
     
     // Live streaming state
     let isLiveStreaming = false;
@@ -552,6 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Session history handlers
         historyBtn.addEventListener('click', showSessionHistory);
+        archiveSearchForm.addEventListener('submit', handleArchiveSearch);
+        document.getElementById('clearArchiveSearch').addEventListener('click', clearArchiveSearch);
         closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
@@ -619,13 +625,84 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionListModal.innerHTML = '<div style="text-align: center; color: var(--ck-danger); padding: 20px;">Error loading sessions</div>';
         }
     }
+
+    function archiveSearchOptions() {
+        const from = document.getElementById('archiveSearchFrom').value;
+        const through = document.getElementById('archiveSearchTo').value;
+        return {
+            title:document.getElementById('archiveSearchTitle').value,
+            speaker:document.getElementById('archiveSearchSpeaker').value,
+            dateFrom:from ? `${from}T00:00:00` : '',
+            dateTo:through ? `${through}T23:59:59.999` : '',
+            order:document.getElementById('archiveSearchOrder').value,
+            limit:100
+        };
+    }
+
+    async function handleArchiveSearch(event) {
+        event.preventDefault();
+        const generation = ++archiveSearchGeneration;
+        const query = document.getElementById('archiveSearchQuery').value.trim();
+        if (!query) return;
+        archiveSearchStatus.textContent = 'Searching this browser\'s retained archive…';
+        archiveSearchResults.hidden = true;
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableSessionHistory) throw new Error('Transcript archive is disabled by your organization.');
+            const response = await new SessionManager().searchSessions(query, archiveSearchOptions());
+            if (generation !== archiveSearchGeneration) return;
+            archiveSearchResults.replaceChildren();
+            for (const result of response.results) {
+                const link = document.createElement('a');
+                link.className = 'archive-result';
+                link.href = `viewer.html?session=${encodeURIComponent(result.sessionId)}&caption=${result.captionIndex}`;
+                link.addEventListener('click', event => {
+                    event.preventDefault();
+                    window.loadSessionFromHistory(result.sessionId, result.captionIndex);
+                });
+                const heading = document.createElement('strong');
+                heading.textContent = result.title;
+                const meta = document.createElement('div');
+                meta.className = 'session-meta';
+                meta.textContent = `${result.date} · ${result.time} · ${result.speaker} · ${result.sourceKey}`;
+                const snippet = document.createElement('p');
+                snippet.className = 'archive-snippet';
+                snippet.textContent = result.snippet;
+                link.append(heading, meta, snippet);
+                archiveSearchResults.append(link);
+            }
+            archiveSearchResults.hidden = false;
+            const skipped = response.skippedSessions.length;
+            archiveSearchStatus.textContent = response.results.length
+                ? `${response.results.length} result${response.results.length === 1 ? '' : 's'} across ${response.searchedSessions} meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`
+                : `No matches in ${response.searchedSessions} readable meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`;
+        } catch (error) {
+            if (generation !== archiveSearchGeneration) return;
+            archiveSearchStatus.textContent = error.message;
+            archiveSearchResults.hidden = false;
+            archiveSearchResults.textContent = 'Search could not be completed. Your archive was not changed.';
+        }
+    }
+
+    function clearArchiveSearch() {
+        archiveSearchGeneration += 1;
+        archiveSearchForm.reset();
+        archiveSearchStatus.textContent = '';
+        archiveSearchResults.replaceChildren();
+        archiveSearchResults.hidden = true;
+    }
     
-    window.loadSessionFromHistory = async function(sessionId) {
+    window.loadSessionFromHistory = async function(sessionId, captionIndex = null) {
         try {
             await refreshViewerPolicy();
             if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
             const sessionManager = new SessionManager();
             const sessionData = await sessionManager.loadSession(sessionId);
+            const next = new URL(location.href);
+            next.search = '';
+            next.searchParams.set('session', sessionId);
+            if (captionIndex !== null && Number.isInteger(Number(captionIndex))) next.searchParams.set('caption', String(captionIndex));
+            history.replaceState(null, '', next);
             
             // Close modal
             sessionModal.style.display = 'none';
@@ -648,6 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Render the transcript
             renderCaptions(allCaptions);
             populateSpeakerFilters(allCaptions);
+            if (captionIndex !== null && Number.isInteger(Number(captionIndex))) focusCaption(Number(captionIndex));
             
             // Clear any live indicators
             const liveIndicator = document.getElementById('live-indicator');
@@ -659,6 +737,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('[Session History] Failed to load session:', error);
             alert('Failed to load session');
         }
+    }
+
+    function focusCaption(captionIndex) {
+        const caption = captionsContainer.querySelector(`[data-index="${captionIndex}"]`);
+        if (!caption) return;
+        caption.tabIndex = -1;
+        caption.focus({preventScroll:true});
+        caption.scrollIntoView({behavior:'smooth', block:'center'});
     }
     
     function getTimeAgo(date) {
@@ -688,6 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const params = new URL(location.href).searchParams;
             const payload = params.get('payload');
             const session = params.get('session');
+            const caption = params.get('caption');
             const liveTab = params.get('liveTab');
             const liveSession = params.get('liveSession');
             const result = {};
@@ -745,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 renderCaptions(transcript);
                 populateSpeakerFilters(transcript);
+                if (historical && /^\d+$/.test(caption || '')) focusCaption(Number(caption));
 
                 
                 // Setup live streaming after initial load

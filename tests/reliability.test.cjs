@@ -680,6 +680,17 @@ test('viewer includes branded header and purposeful empty state',()=>{
     assert(script.includes('function renderViewerState'));
     assert(script.includes('Ready when your meeting is'));
 });
+test('viewer archive search is keyboard-accessible, source-linked, and stale-query safe',()=>{
+    const html=read('viewer.html');
+    const script=read('viewer.js');
+    for(const id of ['archiveSearchForm','archiveSearchQuery','archiveSearchTitle','archiveSearchSpeaker','archiveSearchFrom','archiveSearchTo','archiveSearchOrder','archiveSearchResults']) {
+        assert(html.includes(`id="${id}"`));
+    }
+    assert(script.includes('generation !== archiveSearchGeneration'));
+    assert(script.includes('viewer.html?session=${encodeURIComponent(result.sessionId)}&caption=${result.captionIndex}'));
+    assert(script.includes('focusCaption(Number(caption))'));
+    assert(script.includes('disableSessionHistory'));
+});
 test('local archive retains more than a workday without automatic eviction',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
     h.data.session_index=Array.from({length:25},(_,i)=>({id:'old_'+i,timestamp:new Date(2026,8,25-i).toISOString(),chunkCount:1}));
@@ -768,6 +779,42 @@ test('legacy completed sessions load without chunk migration or data loss',async
     assert.equal(loaded.transcript[0].Text,'authoritative raw');
     assert.equal(loaded.transcript[0].key,'source-1');
     assert.equal(h.data.session_index[0].storagePrefix,undefined);
+});
+test('archive search supports Unicode phrases, filters, ordering, and corrupt-session recovery',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[
+        {id:'newer',title:'Product résumé',timestamp:'2026-09-25T12:00:00Z',date:'9/25/2026',chunkCount:1,captionCount:2,speakers:['Zoë']},
+        {id:'older',title:'Planning',timestamp:'2026-09-20T12:00:00Z',date:'9/20/2026',chunkCount:1,captionCount:1,speakers:['Lee']},
+        {id:'broken',title:'Broken',timestamp:'2026-09-24T12:00:00Z',date:'9/24/2026',chunkCount:1,captionCount:1,speakers:['Zoë']}
+    ];
+    h.data.newer_chunk_0=[
+        {key:'new-1',Name:'Zoë',Text:'The CAFÉ launch decision is approved.',Time:'10:00'},
+        {key:'new-2',Name:'Zoë',Text:'Unicode निर्णय follows.',Time:'10:01'}
+    ];
+    h.data.older_chunk_0=[{key:'old-1',Name:'Lee',Text:'The café launch was proposed.',Time:'09:00'}];
+    const manager=h.run('new SessionManager(true)');
+    const newest=await manager.searchSessions('café launch',{order:'newest'});
+    assert.deepEqual(Array.from(newest.results,item=>item.sessionId),['newer','older']);
+    assert.equal(newest.skippedSessions[0].sessionId,'broken');
+    assert.equal(newest.results[0].sourceKey,'new-1');
+    const filtered=await manager.searchSessions('UNICODE निर्णय',{title:'résumé',speaker:'zoë',dateFrom:'2026-09-25T00:00:00Z'});
+    assert.equal(filtered.results.length,1);
+    assert.equal(filtered.results[0].captionIndex,1);
+    await manager.deleteSession('newer');
+    assert.equal((await manager.searchSessions('approved')).results.length,0);
+});
+test('archive search stays bounded across a thousand retained meetings',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=Array.from({length:1000},(_,index)=>({
+        id:`bulk_${index}`,title:`Meeting ${index}`,timestamp:new Date(Date.UTC(2026,0,1,0,index)).toISOString(),
+        date:'fixture',chunkCount:1,captionCount:1,speakers:['Speaker']
+    }));
+    for(let index=0;index<1000;index++) h.data[`bulk_${index}_chunk_0`]=[{key:`key-${index}`,Name:'Speaker',Text:`bounded needle ${index}`,Time:'10:00'}];
+    const started=Date.now();
+    const response=await h.run('new SessionManager()').searchSessions('needle',{limit:25});
+    assert.equal(response.results.length,25);
+    assert.equal(response.searchedSessions,25);
+    assert(Date.now()-started<1000);
 });
 test('legacy and document recovery snapshots are discoverable and readable',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.backup_example={transcript:[{Name:'A',Text:'recovered'}],lastBackup:new Date().toISOString()};

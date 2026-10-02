@@ -418,6 +418,13 @@
             font-size: 13px;
             color: #6c757d;
         }
+        .archive-search { display: grid; gap: 10px; margin-bottom: 18px; padding: 14px; border: 1px solid var(--ck-border); border-radius: 8px; }
+        .archive-search-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
+        .archive-search label { display: grid; gap: 4px; font-size: 12px; color: var(--ck-text-muted); }
+        .archive-search input, .archive-search select { box-sizing: border-box; width: 100%; min-height: 38px; padding: 7px; border: 1px solid var(--ck-border); border-radius: 6px; color: var(--ck-text); background: var(--ck-surface); }
+        .archive-result { display: block; padding: 12px; margin-bottom: 8px; border: 1px solid var(--ck-border); border-radius: 6px; color: var(--ck-text); background: var(--ck-surface); text-decoration: none; }
+        .archive-result:hover, .archive-result:focus-visible { border-color: var(--ck-primary); }
+        .archive-snippet { margin: 6px 0 0; color: var(--ck-text-muted); }
     </style>
     <link rel="stylesheet" href="theme.css">
     <script src="theme.js" defer></script>
@@ -484,9 +491,26 @@
     <div id="sessionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Previous Sessions</h2>
+                <h2>Local transcript archive</h2>
                 <span class="close-modal">&times;</span>
             </div>
+            <form id="archiveSearchForm" class="archive-search">
+                <label>Keyword or phrase
+                    <input id="archiveSearchQuery" type="search" maxlength="200" autocomplete="off" placeholder="Search archived captions" required>
+                </label>
+                <div class="archive-search-grid">
+                    <label>Meeting title <input id="archiveSearchTitle" type="search" maxlength="200"></label>
+                    <label>Speaker <input id="archiveSearchSpeaker" type="search" maxlength="200"></label>
+                    <label>From <input id="archiveSearchFrom" type="date"></label>
+                    <label>Through <input id="archiveSearchTo" type="date"></label>
+                    <label>Order
+                        <select id="archiveSearchOrder"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
+                    </label>
+                </div>
+                <div><button type="submit">Search archive</button> <button type="button" id="clearArchiveSearch">Clear</button></div>
+                <p id="archiveSearchStatus" role="status" aria-live="polite"></p>
+            </form>
+            <div id="archiveSearchResults" hidden></div>
             <div id="sessionListModal">
                 <div style="text-align: center; color: #999;">Loading sessions...</div>
             </div>
