@@ -11,16 +11,22 @@ Version 5.2 is the enterprise-security hardening line that follows the immutable
 - [x] Managed controls are enforced both in the interface and again at the action boundary.
 - [x] The hardened local-only profile disables AI handoff, clipboard, evidence email, and attendee capture; forces scrubbed exports; and bounds local history.
 - [x] Release automation emits an SBOM and provenance attestations and pins third-party actions to reviewed commits.
-- [ ] Scope is frozen on one integration branch and release notes describe the exact candidate.
+- [x] Scope is consolidated on `release/5.2`: long-meeting local BYOAI handoff, durable local archive, cross-session search, reversible corrections/local dictionary, DOCX export, and same-install entitlement/Intune groundwork.
+- [x] Issues #49-#53 remain available in Free by default; no paid-tier allocation, production activation service, billing, or cloud transcript service is included.
+- [x] Scope is frozen on one release branch and this record describes the exact candidate.
 
 ## Automated evidence
 
 - [ ] `npm run release:candidate` passes on the exact commit.
 - [ ] GitHub validation and CodeQL pass on the pull request.
-- [ ] Edge and Chrome packages have distinct verified manifests and identities.
-- [ ] The Intune standard, Chrome, and hardened bundles build from the managed schema.
+- [x] Edge and Chrome packages build locally with distinct verified manifests and identities.
+- [x] The Intune standard, Chrome, and hardened bundles build locally from the managed schema.
 - [ ] Release ZIPs, provenance, checksums, SBOM, and GitHub attestations are retained together.
 - [ ] A second reviewer approves security-critical workflow, policy, and runtime changes.
+
+Current blocker: the strict development dependency audit reports high-severity `node-forge` advisory `GHSA-86w9-cpqp-85rv` through `web-ext` → `@devicefarmer/adbkit`. The offered automated fix downgrades `web-ext` to a breaking major version and is not accepted. Do not mark this line Store-ready, suppress the audit, remove the gate, or publish until a reviewed patched dependency path is available. Local package builds passing does not override this blocker.
+
+Local automated checks and package builds are evidence for the exact candidate commit only. Browser UAT, Microsoft Word/LibreOffice DOCX opening, GitHub checks, CodeQL, Store review, and managed-device pilot evidence remain separate unchecked gates.
 
 ## Managed-policy UAT
 
