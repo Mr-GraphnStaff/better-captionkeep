@@ -1109,8 +1109,8 @@ test('exports stage locally and start automatic downloads in a background tab',a
     assert.equal(h.tabs[0].active,false);
 });
 test('service worker stages DOCX through the common export contract after managed scrubbing',async()=>{
-    const h=harness();h.managedData.forceScrubbedExport=true;h.run(read('service_worker.js'));
-    const result=await new Promise(resolve=>h.chrome.listener({message:'download_captions',format:'docx',meetingTitle:'Synthetic',
+    const h=harness();h.managedData.forceScrubbedExport=true;h.managedData.customScrubTerms=['Project Nightfall'];h.run(read('service_worker.js'));
+    const result=await new Promise(resolve=>h.chrome.listener({message:'download_captions',format:'docx',meetingTitle:'Project Nightfall secret@example.com',
         transcriptArray:[{key:'source-1',Name:'Ada',Time:'10:00',Text:'Contact secret@example.com'}]}, {id:'test'}, resolve));
     assert.equal(result.ok,true);
     const job=Object.values(h.data).find(value=>value?.profile?.format==='docx');
@@ -1121,7 +1121,11 @@ test('service worker stages DOCX through the common export contract after manage
     assert.equal(job.profile.sourceIds[0],'source-1');
     assert.equal(job.profile.timingBasis,'source-display-or-observation-time');
     assert(!atob(job.content).includes('secret@example.com'));
+    assert(!atob(job.content).includes('Project Nightfall'));
     assert(!job.previewText.includes('secret@example.com'));
+    assert(!job.filename.includes('Project Nightfall'));
+    assert(!job.filename.includes('secret@example.com'));
+    assert(atob(job.content).includes('[CUSTOM_TERM_1] [EMAIL_1]'));
     assert(job.previewText.includes('[EMAIL_1]'));
 });
 test('manual Downloads subfolders survive export staging',async()=>{
@@ -1264,6 +1268,7 @@ test('service-worker export enforcement scrubs transcript and attendee data',asy
     const h=harness();h.run(read('service_worker.js'));
     const policy={settings:{forceScrubbedExport:true,profanityFilterEnabled:false,customScrubTerms:[]}};
     const result=await h.run(`prepareManagedExport(
+        'Meeting alice@example.com',
         [{Name:'alice@example.com',Text:'Email alice@example.com',Time:'10:00'}],
         {attendeeList:['alice@example.com']},
         ${JSON.stringify(policy)}
@@ -1271,11 +1276,13 @@ test('service-worker export enforcement scrubs transcript and attendee data',asy
     assert.equal(result.transcriptArray[0].Name,'[EMAIL_1]');
     assert.equal(result.transcriptArray[0].Text,'Email [EMAIL_1]');
     assert.equal(result.attendeeReport.attendeeList[0],'[EMAIL_1]');
-    await assert.rejects(h.run(`prepareManagedExport([],null,{settings:{disableFileExport:true}})`),/disabled by your organization/);
+    assert.equal(result.meetingTitle,'Meeting [EMAIL_1]');
+    await assert.rejects(h.run(`prepareManagedExport('Meeting',[],null,{settings:{disableFileExport:true}})`),/disabled by your organization/);
 });
 test('service-worker export enforcement scrubs speaker aliases after applying them',async()=>{
     const h=harness();h.run(read('service_worker.js'));
     const result=await h.run(`prepareManagedExport(
+        'Meeting',
         [{Name:'Alice',Text:'Hello',Time:'10:00'}],
         null,
         {settings:{forceScrubbedExport:true,profanityFilterEnabled:false,customScrubTerms:['Project Cobalt']}},

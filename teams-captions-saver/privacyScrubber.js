@@ -148,9 +148,9 @@
         });
     }
 
-    function scrubBundle(transcript, attendeeReport = null, options = {}) {
-        if (!Array.isArray(transcript)) return Object.freeze({ transcript: [], attendeeReport: null, replacements: Object.freeze([]) });
+    function scrubReleaseBundle(meetingTitle, transcript, attendeeReport = null, options = {}) {
         const context = createScrubContext(options);
+        if (!Array.isArray(transcript)) return Object.freeze({ meetingTitle: context.apply(meetingTitle), transcript: [], attendeeReport: null, replacements: Object.freeze(context.replacements) });
         function scrubValue(value) {
             if (typeof value === 'string') return context.apply(value);
             if (Array.isArray(value)) return value.map(scrubValue);
@@ -171,9 +171,19 @@
             return next;
         });
         return Object.freeze({
+            meetingTitle: context.apply(meetingTitle),
             transcript: cleaned,
             attendeeReport: attendeeReport && typeof attendeeReport === 'object' ? scrubValue(attendeeReport) : null,
             replacements: Object.freeze(context.replacements)
+        });
+    }
+
+    function scrubBundle(transcript, attendeeReport = null, options = {}) {
+        const result = scrubReleaseBundle('', transcript, attendeeReport, options);
+        return Object.freeze({
+            transcript: result.transcript,
+            attendeeReport: result.attendeeReport,
+            replacements: result.replacements
         });
     }
 
@@ -182,5 +192,5 @@
         return Object.freeze({transcript: result.transcript, replacements: result.replacements});
     }
 
-    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubEvidenceBundle, scrubObject, scrubTranscript });
+    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubReleaseBundle, scrubEvidenceBundle, scrubObject, scrubTranscript });
 })();
