@@ -146,29 +146,46 @@
     }
 
     class CorrectionManager {
+        constructor(writer = false, storageArea = null) {
+            this.writer = writer;
+            this.storage = storageArea || chrome.storage.local;
+        }
+
+        async request(message, payload = {}) {
+            const response = await chrome.runtime.sendMessage({message, ...payload});
+            if (!response?.ok) throw new Error(response?.error || 'Correction update failed.');
+            return response.value;
+        }
+
         async getDictionary() {
-            const stored = await chrome.storage.local.get(DICTIONARY_KEY);
+            const stored = await this.storage.get(DICTIONARY_KEY);
             return normalizeDictionary(stored[DICTIONARY_KEY]);
         }
 
         async saveDictionary(entries) {
+            if (!this.writer) return this.request('save_correction_dictionary', {entries});
             const prior = await this.getDictionary();
             const dictionary = normalizeDictionary({
                 version:prior.version + 1,
                 updatedAt:new Date().toISOString(),
                 entries
             });
-            await chrome.storage.local.set({[DICTIONARY_KEY]:dictionary});
+            await this.storage.set({[DICTIONARY_KEY]:dictionary});
             return dictionary;
         }
 
-        async getCorrections(sessionId) {
+        async getCorrections(sessionId, context = {}) {
+            if (!this.writer) return this.request('get_corrections', {sessionId, historical:Boolean(context.historical)});
             const key = storageKey(sessionId);
-            const stored = await chrome.storage.local.get(key);
+            const stored = await this.storage.get(key);
             return normalizeRecords(stored[key], sessionId);
         }
 
-        async saveCorrection(sessionId, caption, index, replacementText, kind = 'manual', dictionaryVersion = null) {
+        async saveCorrection(sessionId, caption, index, replacementText, kind = 'manual', dictionaryVersion = null, context = {}) {
+            if (!this.writer) return this.request('save_correction', {
+                sessionId, sourceKey:sourceKey(caption, index), replacementText, kind, dictionaryVersion,
+                historical:Boolean(context.historical)
+            });
             const correctionSet = await this.getCorrections(sessionId);
             const key = sourceKey(caption, index);
             const replacement = String(replacementText ?? '');
@@ -185,15 +202,18 @@
                 changedAt:new Date().toISOString()
             };
             correctionSet.updatedAt = new Date().toISOString();
-            await chrome.storage.local.set({[storageKey(sessionId)]:correctionSet});
+            await this.storage.set({[storageKey(sessionId)]:correctionSet});
             return correctionSet.records[key];
         }
 
-        async undoCorrection(sessionId, caption, index) {
+        async undoCorrection(sessionId, caption, index, context = {}) {
+            if (!this.writer) return this.request('undo_correction', {
+                sessionId, sourceKey:sourceKey(caption, index), historical:Boolean(context.historical)
+            });
             const correctionSet = await this.getCorrections(sessionId);
             delete correctionSet.records[sourceKey(caption, index)];
             correctionSet.updatedAt = new Date().toISOString();
-            await chrome.storage.local.set({[storageKey(sessionId)]:correctionSet});
+            await this.storage.set({[storageKey(sessionId)]:correctionSet});
             return correctionSet;
         }
 
@@ -207,7 +227,10 @@
             return {transcript:corrected, changes};
         }
 
-        async applyDictionary(sessionId, transcript, dictionary) {
+        async applyDictionary(sessionId, transcript, dictionary, context = {}) {
+            if (!this.writer) return this.request('apply_correction_dictionary', {
+                sessionId, dictionary, historical:Boolean(context.historical)
+            });
             const preview = this.previewDictionary(transcript, dictionary);
             const correctionSet = await this.getCorrections(sessionId);
             const appliedChanges = [];
@@ -231,7 +254,7 @@
             }
             if (Object.keys(correctionSet.records).length > MAX_CORRECTIONS) throw new Error(`A transcript is limited to ${MAX_CORRECTIONS} correction records.`);
             correctionSet.updatedAt = new Date().toISOString();
-            await chrome.storage.local.set({[storageKey(sessionId)]:correctionSet});
+            await this.storage.set({[storageKey(sessionId)]:correctionSet});
             return {...preview, appliedChanges, skippedManualChanges};
         }
     }

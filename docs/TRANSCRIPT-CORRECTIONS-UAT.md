@@ -10,6 +10,9 @@ This checklist validates issue #50 using synthetic meetings. Corrections and ter
 - [ ] Explicitly apply the dictionary, reload the extension, and confirm the corrected derivative survives while the original remains available.
 - [ ] Export both views and confirm the file identifies Original versus Corrected before Scrubby masks configured sensitive details.
 - [ ] Delete the archived session and confirm its correction records are also removed while the shared terminology dictionary remains.
+- [ ] Open the same transcript in two viewer tabs; overlap edits, undo, and dictionary apply, then confirm no unrelated correction is lost or resurrected.
+- [ ] Disable managed session history during a live meeting and confirm new corrections remain browser-session-only; confirm an already-open historical viewer cannot recreate purged correction data.
+- [ ] Correct a recovery snapshot, retry archive, and confirm the correction follows the stable capture into the archived transcript; delete a recovery snapshot and confirm both legacy and stable correction records are removed.
 - [ ] Force a local storage write failure and confirm the last complete dictionary and correction set remain intact.
 - [ ] Confirm no network request, cloud AI call, account prompt, or host permission is introduced.
 

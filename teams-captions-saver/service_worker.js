@@ -1,4 +1,4 @@
-importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js');
+importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'correctionManager.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
@@ -62,6 +62,66 @@ function queueManagedHistoryPolicy() {
     const operation = historyQueue.then(() => applyManagedHistoryPolicy());
     historyQueue = operation.catch(() => {});
     return operation;
+}
+
+async function migrateCorrectionRecords(fromSessionId, toSessionId) {
+    if (!fromSessionId || !toSessionId || fromSessionId === toSessionId) return;
+    const fromKey = CaptionKeepCorrections.storageKey(fromSessionId);
+    const toKey = CaptionKeepCorrections.storageKey(toSessionId);
+    for (const area of [chrome.storage.local, chrome.storage.session]) {
+        if (!area) continue;
+        const stored = await area.get([fromKey, toKey]);
+        if (!stored[fromKey]) continue;
+        const merged = {...(stored[fromKey].records || {}), ...(stored[toKey]?.records || {})};
+        await area.set({[toKey]:{version:1, sessionId:String(toSessionId), updatedAt:new Date().toISOString(), records:merged}});
+        await area.remove(fromKey);
+    }
+}
+
+async function findCorrectionSource(sessionId) {
+    const normalized = String(sessionId || '').trim();
+    if (!normalized) return null;
+    const data = await chrome.storage.local.get(null);
+    const metadata = (data.session_index || []).find(item => item?.id === normalized || item?.sourceSessionId === normalized);
+    if (metadata) {
+        const loaded = await new SessionManager(true).loadSession(metadata.id);
+        return {kind:'archive', transcript:loaded.transcript};
+    }
+    for (const [key, value] of Object.entries(data)) {
+        if (!(key === 'transcriptBackup' || key.startsWith('backup_') || key.startsWith('active_capture_'))) continue;
+        if (!Array.isArray(value?.transcript)) continue;
+        const identities = [key, value.recordingStartTime, value.sessionId, value.sourceSessionId];
+        if (identities.some(identity => String(identity || '') === normalized)) {
+            return {kind:key.startsWith('active_capture_') ? 'live' : 'recovery', transcript:value.transcript};
+        }
+    }
+    return null;
+}
+
+async function correctionAuthority(sessionId, historical, requireSource = true) {
+    const policy = await readEffectivePolicy();
+    const source = await findCorrectionSource(sessionId);
+    if (requireSource && !source) {
+        await chrome.storage.local.remove(CaptionKeepCorrections.storageKey(sessionId));
+        await chrome.storage.session.remove(CaptionKeepCorrections.storageKey(sessionId));
+        throw new Error('The source transcript is no longer available. No correction was saved.');
+    }
+    if (policy.settings.disableSessionHistory && (historical || source?.kind !== 'live')) {
+        await new SessionManager(true).clearAllSessions();
+        throw new Error('Transcript history is disabled by your organization. No correction was saved.');
+    }
+    const area = policy.settings.disableSessionHistory ? chrome.storage.session : chrome.storage.local;
+    if (policy.settings.disableSessionHistory) {
+        await chrome.storage.local.remove(CaptionKeepCorrections.storageKey(sessionId));
+    }
+    return {manager:new CaptionKeepCorrections.CorrectionManager(true, area), source};
+}
+
+function authoritativeCaption(transcript, requestedSourceKey) {
+    const index = transcript.findIndex((caption, candidateIndex) =>
+        CaptionKeepCorrections.sourceKey(caption, candidateIndex) === String(requestedSourceKey || ''));
+    if (index < 0) throw new Error('The source caption is no longer available. No correction was saved.');
+    return {caption:transcript[index], index};
 }
 
 async function prepareManagedExport(transcriptArray, attendeeReport, policy, aliases = {}) {
@@ -414,10 +474,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return false;
     }
     const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
+        'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
-    if (['retry_archive','delete_session','clear_sessions'].includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
+    if (['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
+        'save_correction_dictionary','apply_correction_dictionary'].includes(message.message)
+        && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
 
@@ -468,6 +531,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             policy.settings.trackAttendees === false ? null : attendeeReportFromBackup(backup),
                             {sourceSessionId:backup.recordingStartTime, recordedAt:backup.recordingStartTime}
                         );
+                        await migrateCorrectionRecords(message.sessionId, backup.recordingStartTime);
                         await removeMatchingActiveCheckpoint(backup);
                         await chrome.storage.local.remove([message.sessionId, 'archive_last_error']);
                         return archivedSessionId;
@@ -489,6 +553,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'reset_aliases':
                 await chrome.storage.session.remove('speakerAliases');
                 break;
+            case 'get_corrections':
+            case 'save_correction':
+            case 'undo_correction':
+            case 'save_correction_dictionary':
+            case 'apply_correction_dictionary':
+                {
+                    const operation = historyQueue.then(async () => {
+                        if (message.message === 'save_correction_dictionary') {
+                            return new CaptionKeepCorrections.CorrectionManager(true).saveDictionary(message.entries);
+                        }
+                        const authority = await correctionAuthority(message.sessionId, message.historical,
+                            message.message !== 'get_corrections');
+                        if (!authority.source) return authority.manager.getCorrections(message.sessionId);
+                        if (message.message === 'get_corrections') return authority.manager.getCorrections(message.sessionId);
+                        if (message.message === 'apply_correction_dictionary') {
+                            return authority.manager.applyDictionary(message.sessionId, authority.source.transcript,
+                                CaptionKeepCorrections.normalizeDictionary(message.dictionary));
+                        }
+                        const source = authoritativeCaption(authority.source.transcript, message.sourceKey);
+                        if (message.message === 'undo_correction') {
+                            return authority.manager.undoCorrection(message.sessionId, source.caption, source.index);
+                        }
+                        await authority.manager.saveCorrection(message.sessionId, source.caption, source.index,
+                            message.replacementText, message.kind, message.dictionaryVersion);
+                        return authority.manager.getCorrections(message.sessionId);
+                    });
+                    historyQueue = operation.catch(() => {});
+                    return await operation;
+                }
 
             case 'download_captions':
                 console.log('[Teams Caption Saver] Download request received:', {
@@ -586,7 +679,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 // Could implement error reporting here
                 break;
         }
-    })().then(() => sendResponse({ok:true}), error => sendResponse({ok:false, error:error.message}));
+    })().then(value => sendResponse({ok:true, value}), error => sendResponse({ok:false, error:error.message}));
     
     return true; // Indicates that the response will be sent asynchronously
 });

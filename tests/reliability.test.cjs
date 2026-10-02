@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root,file),'utf8');
 const readProject = file => fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const clone = data => JSON.parse(JSON.stringify(data));
 function harness() {
-    const data = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[];
+    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[];
     const area = {
         async get(keys) { if (keys===null) return clone(data); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in data)out[k]=clone(data[k]); return out; },
         async set(values) {
@@ -27,7 +27,12 @@ function harness() {
     const managed = {
         async get(keys) { const out={}; for(const key of (Array.isArray(keys)?keys:Object.keys(managedData))) if(key in managedData) out[key]=clone(managedData[key]); return out; }
     };
-    const chrome={storage:{local:area,session:area,sync:area,managed,onChanged:{addListener(fn){callbacks.push(fn);}}},
+    const sessionArea = {
+        async get(keys) { if (keys===null) return clone(sessionData); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in sessionData)out[k]=clone(sessionData[k]); return out; },
+        async set(values) { Object.assign(sessionData,clone(values)); },
+        async remove(keys) { for(const key of (Array.isArray(keys)?keys:[keys])) delete sessionData[key]; }
+    };
+    const chrome={storage:{local:area,session:sessionArea,sync:area,managed,onChanged:{addListener(fn){callbacks.push(fn);}}},
         runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{
             messages.push(m);
             if(m?.message==='get_capture_surface') return {ok:true,surfaceId:`${m.providerId}-tab-1`};
@@ -40,7 +45,7 @@ function harness() {
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
         importScripts(...names){for(const name of names) vm.runInContext(read(name),context);}});
-    return {data,managedData,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
+    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
 }
 
 test('all shipped scripts parse',()=>{
@@ -62,7 +67,7 @@ test('corrections preserve raw captions, are reversible, and detect provider rev
     const h=harness();
     vm.runInContext(read('correctionManager.js'),h.context);
     const {CorrectionManager,applyCorrectionRecords}=h.context.CaptionKeepCorrections;
-    const manager=new CorrectionManager();
+    const manager=new CorrectionManager(true);
     const raw=[{key:'provider-1',Name:'Ada',Time:'10:00',Text:'ship teh build'}];
     await manager.saveCorrection('meeting-1',raw[0],0,'ship the build');
     const stored=await manager.getCorrections('meeting-1');
@@ -79,7 +84,7 @@ test('corrections preserve raw captions, are reversible, and detect provider rev
 test('dictionary preview does not rewrite history and quota failure preserves prior corrections',async()=>{
     const h=harness();
     vm.runInContext(read('correctionManager.js'),h.context);
-    const manager=new h.context.CaptionKeepCorrections.CorrectionManager();
+    const manager=new h.context.CaptionKeepCorrections.CorrectionManager(true);
     const raw=[{key:'c1',Name:'A',Text:'project orion'}];
     const dictionary=await manager.saveDictionary([{term:'orion',replacement:'Orion',wholeWord:true}]);
     const preview=manager.previewDictionary(raw,dictionary);
@@ -94,7 +99,7 @@ test('dictionary preview does not rewrite history and quota failure preserves pr
 
 test('explicit dictionary apply preserves reviewed manual edits',async()=>{
     const h=harness();vm.runInContext(read('correctionManager.js'),h.context);
-    const manager=new h.context.CaptionKeepCorrections.CorrectionManager();
+    const manager=new h.context.CaptionKeepCorrections.CorrectionManager(true);
     const raw=[{key:'manual',Text:'acme'},{key:'dictionary',Text:'acme'}];
     await manager.saveCorrection('s2',raw[0],0,'ACME reviewed');
     const dictionary=await manager.saveDictionary([{term:'acme',replacement:'Acme Corp',wholeWord:true}]);
@@ -103,6 +108,107 @@ test('explicit dictionary apply preserves reviewed manual edits',async()=>{
     assert.equal(stored.records.manual.replacementText,'ACME reviewed');
     assert.equal(stored.records.dictionary.replacementText,'Acme Corp');
     assert.equal(result.skippedManualChanges.length,1);
+});
+
+function sendWorker(h, message) {
+    return new Promise(resolve => h.chrome.listener(message,
+        {id:'test',url:'chrome-extension://test/viewer.html'}, resolve));
+}
+
+test('service worker serializes corrections from multiple viewer contexts',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    const sessionId='2026-10-02T10:00:00.000Z';
+    const transcript=[{key:'c1',Text:'alpha'},{key:'c2',Text:'beta'}];
+    h.data.active_capture_v3_teams_test={recordingStartTime:sessionId,transcript};
+    const [first,second]=await Promise.all([
+        sendWorker(h,{message:'save_correction',sessionId,sourceKey:'c1',replacementText:'ALPHA'}),
+        sendWorker(h,{message:'save_correction',sessionId,sourceKey:'c2',replacementText:'BETA'})
+    ]);
+    assert.equal(first.ok,true);assert.equal(second.ok,true);
+    const stored=h.data[h.run(`CaptionKeepCorrections.storageKey(${JSON.stringify(sessionId)})`)];
+    assert.equal(stored.records.c1.replacementText,'ALPHA');
+    assert.equal(stored.records.c2.replacementText,'BETA');
+});
+
+test('serialized edit, dictionary apply, and undo preserve independent updates',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    const sessionId='2026-10-02T10:10:00.000Z';
+    h.data.active_capture_v3_teams_test={recordingStartTime:sessionId,
+        transcript:[{key:'manual',Text:'acme'},{key:'dictionary',Text:'acme'}]};
+    const dictionary={version:1,entries:[{id:'term-1',term:'acme',replacement:'Acme Corp',wholeWord:true}]};
+    const results=await Promise.all([
+        sendWorker(h,{message:'save_correction',sessionId,sourceKey:'manual',replacementText:'ACME reviewed'}),
+        sendWorker(h,{message:'apply_correction_dictionary',sessionId,dictionary}),
+        sendWorker(h,{message:'undo_correction',sessionId,sourceKey:'manual'})
+    ]);
+    assert(results.every(result=>result.ok));
+    const stored=h.data[h.run(`CaptionKeepCorrections.storageKey(${JSON.stringify(sessionId)})`)];
+    assert.equal(stored.records.manual,undefined);
+    assert.equal(stored.records.dictionary.replacementText,'Acme Corp');
+});
+
+test('disabled history keeps live corrections session-scoped and rejects stale historical viewers',async()=>{
+    const h=harness();h.managedData.disableSessionHistory=true;h.run(read('service_worker.js'));
+    const liveId='2026-10-02T10:20:00.000Z';
+    h.data.active_capture_v3_teams_test={recordingStartTime:liveId,transcript:[{key:'live',Text:'raw'}]};
+    const saved=await sendWorker(h,{message:'save_correction',sessionId:liveId,sourceKey:'live',replacementText:'edited'});
+    assert.equal(saved.ok,true);
+    const liveKey=h.run(`CaptionKeepCorrections.storageKey(${JSON.stringify(liveId)})`);
+    assert.equal(h.data[liveKey],undefined);
+    assert.equal(h.sessionData[liveKey].records.live.replacementText,'edited');
+
+    h.data.session_index=[{id:'archived',sourceSessionId:'old-source',storagePrefix:'old',chunkCount:1,captionCount:1}];
+    h.data.old_chunk_0=[{key:'old',Text:'private raw'}];
+    h.data[h.run("CaptionKeepCorrections.storageKey('old-source')")]={sessionId:'old-source',records:{old:{originalText:'private raw',replacementText:'prior'}}};
+    const rejected=await sendWorker(h,{message:'save_correction',sessionId:'old-source',sourceKey:'old',replacementText:'stale',historical:true});
+    assert.equal(rejected.ok,false);
+    assert.match(rejected.error,/history is disabled/);
+    assert.equal(h.data[h.run("CaptionKeepCorrections.storageKey('old-source')")],undefined);
+});
+
+test('deleted source blocks a stale viewer from recreating corrections',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    h.data.session_index=[{id:'archived',sourceSessionId:'capture',storagePrefix:'generation',chunkCount:1,captionCount:1}];
+    h.data.generation_chunk_0=[{key:'caption-1',Text:'raw'}];
+    assert.equal((await sendWorker(h,{message:'delete_session',sessionId:'archived'})).ok,true);
+    const stale=await sendWorker(h,{message:'save_correction',sessionId:'capture',sourceKey:'caption-1',replacementText:'resurrected',historical:true});
+    assert.equal(stale.ok,false);
+    assert.match(stale.error,/source transcript is no longer available/);
+    assert.equal(h.data[h.run("CaptionKeepCorrections.storageKey('capture')")],undefined);
+});
+
+test('recovery corrections retain stable identity through retry and archive reload',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    const sourceSessionId='2026-10-02T10:30:00.000Z';
+    h.data.backup_edit={recordingStartTime:sourceSessionId,lastBackup:'2026-10-02T10:31:00.000Z',
+        meetingTitle:'Recovery',transcript:[{key:'caption-1',Name:'Ada',Time:'10:30',Text:'raw recovery'}]};
+    const indexed=await h.run('new SessionManager().getSessionIndex()');
+    assert.equal(indexed[0].sourceSessionId,sourceSessionId);
+    const edited=await sendWorker(h,{message:'save_correction',sessionId:sourceSessionId,sourceKey:'caption-1',replacementText:'reviewed recovery',historical:true});
+    assert.equal(edited.ok,true);
+    const retried=await sendWorker(h,{message:'retry_archive',sessionId:'backup_edit'});
+    assert.equal(retried.ok,true);
+    assert.equal(h.data.backup_edit,undefined);
+    const session=h.data.session_index.find(item=>item.sourceSessionId===sourceSessionId);
+    const loaded=await h.run(`new SessionManager().loadSession(${JSON.stringify(session.id)})`);
+    const corrections=h.data[h.run(`CaptionKeepCorrections.storageKey(${JSON.stringify(sourceSessionId)})`)];
+    const applied=h.context.CaptionKeepCorrections.applyCorrectionRecords(loaded.transcript,corrections);
+    assert.equal(applied.transcript[0].Text,'reviewed recovery');
+});
+
+test('deleting a recovery snapshot removes stable and legacy corrections',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    const sourceSessionId='2026-10-02T10:40:00.000Z';
+    h.data.backup_delete={recordingStartTime:sourceSessionId,transcript:[{key:'caption-1',Text:'raw'}]};
+    const stableKey=h.run(`CaptionKeepCorrections.storageKey(${JSON.stringify(sourceSessionId)})`);
+    const legacyKey=h.run("CaptionKeepCorrections.storageKey('backup_delete')");
+    h.data[stableKey]={records:{'caption-1':{originalText:'raw',replacementText:'edited'}}};
+    h.data[legacyKey]={records:{'caption-1':{originalText:'raw',replacementText:'legacy'}}};
+    const deleted=await sendWorker(h,{message:'delete_session',sessionId:'backup_delete'});
+    assert.equal(deleted.ok,true);
+    assert.equal(h.data.backup_delete,undefined);
+    assert.equal(h.data[stableKey],undefined);
+    assert.equal(h.data[legacyKey],undefined);
 });
 test('provider registry resolves adapters without leaking provider selectors',()=>{
     const context=vm.createContext({URL,globalThis:null});

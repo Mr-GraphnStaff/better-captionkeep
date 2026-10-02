@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadCorrectionContext(transcript, sessionId) {
         rawCaptions = (Array.isArray(transcript) ? transcript : []).map(caption => ({...caption}));
         sourceSessionId = sessionId || sourceSessionId;
-        correctionSet = sourceSessionId ? await correctionManager.getCorrections(sourceSessionId) : {records:{}};
+        correctionSet = sourceSessionId ? await correctionManager.getCorrections(sourceSessionId, {historical}) : {records:{}};
         renderCorrectionView();
     }
 
@@ -313,14 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const rawCaption = rawCaptions[index];
         if (!rawCaption || !sourceSessionId) return;
         if (undoButton) {
-            correctionSet = await correctionManager.undoCorrection(sourceSessionId, rawCaption, index);
+            correctionSet = await correctionManager.undoCorrection(sourceSessionId, rawCaption, index, {historical});
         } else {
             const key = CaptionKeepCorrections.sourceKey(rawCaption, index);
             const current = correctionSet.records[key]?.replacementText ?? rawCaption.Text;
             const replacement = prompt('Correct this caption. The original remains preserved locally.', current);
             if (replacement === null) return;
-            await correctionManager.saveCorrection(sourceSessionId, rawCaption, index, replacement);
-            correctionSet = await correctionManager.getCorrections(sourceSessionId);
+            await correctionManager.saveCorrection(sourceSessionId, rawCaption, index, replacement, 'manual', null, {historical});
+            correctionSet = await correctionManager.getCorrections(sourceSessionId, {historical});
         }
         transcriptVersion.value = 'corrected';
         renderCorrectionView();
@@ -361,8 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function applyDictionary() {
         if (!sourceSessionId) throw new Error('Open a live or archived transcript before applying dictionary terms.');
         const dictionary = await saveDictionary();
-        const preview = await correctionManager.applyDictionary(sourceSessionId, rawCaptions, dictionary);
-        correctionSet = await correctionManager.getCorrections(sourceSessionId);
+        const preview = await correctionManager.applyDictionary(sourceSessionId, rawCaptions, dictionary, {historical});
+        correctionSet = await correctionManager.getCorrections(sourceSessionId, {historical});
         transcriptVersion.value = 'corrected';
         renderCorrectionView();
         dictionaryStatus.textContent = `Applied reversible corrections to ${preview.appliedChanges.length} caption${preview.appliedChanges.length === 1 ? '' : 's'}${preview.skippedManualChanges.length ? `; preserved ${preview.skippedManualChanges.length} manual edit${preview.skippedManualChanges.length === 1 ? '' : 's'}` : ''}.`;

@@ -203,7 +203,14 @@ class SessionManager {
             return;
         }
         if (sessionId === 'transcriptBackup' || sessionId.startsWith('backup_')) {
-            await chrome.storage.local.remove(sessionId);
+            const stored = await chrome.storage.local.get(sessionId);
+            const stableId = stored[sessionId]?.recordingStartTime || sessionId;
+            const correctionKeys = [sessionId, stableId].map(value => {
+                const encoded = encodeURIComponent(String(value).trim()).replace(/%/g, '_').slice(0, 240);
+                return encoded ? `transcript_corrections_${encoded}` : null;
+            }).filter(Boolean);
+            await chrome.storage.local.remove([sessionId, ...correctionKeys]);
+            if (chrome.storage.session) await chrome.storage.session.remove(correctionKeys);
             return;
         }
         try {
@@ -244,6 +251,7 @@ class SessionManager {
         const recovery = Object.entries(data).filter(([key,value]) =>
             (key === 'transcriptBackup' || key.startsWith('backup_')) && Array.isArray(value?.transcript) && value.transcript.length);
         const snapshots = recovery.map(([id,value]) => ({id, title:'Recovery: ' + (value.meetingTitle || 'Meeting'),
+            sourceSessionId:value.recordingStartTime || id,
             timestamp:value.lastBackup || new Date().toISOString(), date:new Date(value.lastBackup || Date.now()).toLocaleDateString(),
             captionCount:value.transcript.length, duration:'Recovery snapshot', speakers:[...new Set(value.transcript.map(c=>c.Name))]}));
         return [...(data.session_index || []), ...snapshots].sort((a,b) => Date.parse(b.timestamp)-Date.parse(a.timestamp));
@@ -318,6 +326,9 @@ class SessionManager {
         for (const session of index) {
             await this.deleteSession(session.id);
         }
+        const data = await chrome.storage.local.get(null);
+        const orphanCorrections = Object.keys(data).filter(key => key.startsWith('transcript_corrections_'));
+        if (orphanCorrections.length) await chrome.storage.local.remove(orphanCorrections);
         
         await chrome.storage.local.set({ 'session_index': [] });
         console.log('[SessionManager] Cleared all sessions');
