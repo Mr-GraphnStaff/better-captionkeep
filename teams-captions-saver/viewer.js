@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrubOutputToggle = document.getElementById('scrub-output-toggle');
     const sessionModal = document.getElementById('sessionModal');
     const sessionListModal = document.getElementById('sessionListModal');
+    const archiveSearchForm = document.getElementById('archiveSearchForm');
+    const archiveSearchResults = document.getElementById('archiveSearchResults');
+    const archiveSearchStatus = document.getElementById('archiveSearchStatus');
+    const archiveSearchPagination = document.getElementById('archiveSearchPagination');
+    const archiveSearchPrevious = document.getElementById('archiveSearchPrevious');
+    const archiveSearchNext = document.getElementById('archiveSearchNext');
     const closeModal = document.querySelector('.close-modal');
     const transcriptVersion = document.getElementById('transcript-version');
     const dictionaryBtn = document.getElementById('dictionary-btn');
@@ -35,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrubOptions = {};
     let enterprisePolicy = {};
     let enterprisePolicyReady = Promise.resolve();
+    let archiveSearchGeneration = 0;
+    let archiveSearchOffset = 0;
     
     // Live streaming state
     let isLiveStreaming = false;
@@ -683,6 +691,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('dictionary-save').addEventListener('click', () => saveDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
         document.getElementById('dictionary-preview').addEventListener('click', () => previewDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
         document.getElementById('dictionary-apply').addEventListener('click', () => applyDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
+        archiveSearchForm.addEventListener('submit', handleArchiveSearch);
+        document.getElementById('clearArchiveSearch').addEventListener('click', clearArchiveSearch);
+        archiveSearchPrevious.addEventListener('click', () => changeArchiveSearchPage(-1));
+        archiveSearchNext.addEventListener('click', () => changeArchiveSearchPage(1));
         closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
@@ -750,13 +762,102 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionListModal.innerHTML = '<div style="text-align: center; color: var(--ck-danger); padding: 20px;">Error loading sessions</div>';
         }
     }
+
+    function archiveSearchOptions() {
+        const from = document.getElementById('archiveSearchFrom').value;
+        const through = document.getElementById('archiveSearchTo').value;
+        return {
+            title:document.getElementById('archiveSearchTitle').value,
+            speaker:document.getElementById('archiveSearchSpeaker').value,
+            dateFrom:from ? `${from}T00:00:00` : '',
+            dateTo:through ? `${through}T23:59:59.999` : '',
+            order:document.getElementById('archiveSearchOrder').value,
+            limit:100,
+            offset:archiveSearchOffset
+        };
+    }
+
+    async function handleArchiveSearch(event) {
+        event.preventDefault();
+        archiveSearchOffset = 0;
+        await runArchiveSearch();
+    }
+
+    async function changeArchiveSearchPage(direction) {
+        archiveSearchOffset = Math.max(0, archiveSearchOffset + (direction * 100));
+        await runArchiveSearch();
+    }
+
+    async function runArchiveSearch() {
+        const generation = ++archiveSearchGeneration;
+        const query = document.getElementById('archiveSearchQuery').value.trim();
+        if (!query) return;
+        archiveSearchStatus.textContent = 'Searching this browser\'s retained archive…';
+        archiveSearchResults.hidden = true;
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableSessionHistory) throw new Error('Transcript archive is disabled by your organization.');
+            const response = await new SessionManager().searchSessions(query, archiveSearchOptions());
+            if (generation !== archiveSearchGeneration) return;
+            archiveSearchResults.replaceChildren();
+            for (const result of response.results) {
+                const link = document.createElement('a');
+                link.className = 'archive-result';
+                link.href = `viewer.html?session=${encodeURIComponent(result.sessionId)}&caption=${result.captionIndex}`;
+                link.addEventListener('click', event => {
+                    event.preventDefault();
+                    window.loadSessionFromHistory(result.sessionId, result.captionIndex);
+                });
+                const heading = document.createElement('strong');
+                heading.textContent = result.title;
+                const meta = document.createElement('div');
+                meta.className = 'session-meta';
+                meta.textContent = `${result.date} · ${result.time} · ${result.speaker} · ${result.sourceKey}`;
+                const snippet = document.createElement('p');
+                snippet.className = 'archive-snippet';
+                snippet.textContent = result.snippet;
+                link.append(heading, meta, snippet);
+                archiveSearchResults.append(link);
+            }
+            archiveSearchResults.hidden = false;
+            const skipped = response.skippedSessions.length;
+            archiveSearchPrevious.disabled = archiveSearchOffset === 0;
+            archiveSearchNext.disabled = !response.hasMore;
+            archiveSearchPagination.hidden = archiveSearchOffset === 0 && !response.hasMore;
+            const rangeStart = response.results.length ? archiveSearchOffset + 1 : 0;
+            const rangeEnd = archiveSearchOffset + response.results.length;
+            archiveSearchStatus.textContent = response.results.length
+                ? `Showing matches ${rangeStart}-${rangeEnd}${response.hasMore ? '; more matches are available' : ''} across ${response.searchedSessions} meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`
+                : `No matches in ${response.searchedSessions} readable meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`;
+        } catch (error) {
+            if (generation !== archiveSearchGeneration) return;
+            archiveSearchStatus.textContent = error.message;
+            archiveSearchResults.hidden = false;
+            archiveSearchResults.textContent = 'Search could not be completed. Your archive was not changed.';
+        }
+    }
+
+    function clearArchiveSearch() {
+        archiveSearchGeneration += 1;
+        archiveSearchForm.reset();
+        archiveSearchStatus.textContent = '';
+        archiveSearchResults.replaceChildren();
+        archiveSearchResults.hidden = true;
+        archiveSearchPagination.hidden = true;
+        archiveSearchOffset = 0;
+    }
     
-    window.loadSessionFromHistory = async function(sessionId) {
+    window.loadSessionFromHistory = async function(sessionId, captionIndex = null) {
         try {
             await refreshViewerPolicy();
             if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
             const sessionManager = new SessionManager();
             const sessionData = await sessionManager.loadSession(sessionId);
+            const next = new URL(location.href);
+            next.search = '';
+            next.searchParams.set('session', sessionId);
+            if (captionIndex !== null && Number.isInteger(Number(captionIndex))) next.searchParams.set('caption', String(captionIndex));
+            history.replaceState(null, '', next);
             
             // Close modal
             sessionModal.style.display = 'none';
@@ -779,6 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Render the transcript
             await loadCorrectionContext(sessionData.transcript, sourceSessionId);
             populateSpeakerFilters(sessionData.transcript);
+            if (captionIndex !== null && Number.isInteger(Number(captionIndex))) focusCaption(Number(captionIndex));
             
             // Clear any live indicators
             const liveIndicator = document.getElementById('live-indicator');
@@ -790,6 +892,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('[Session History] Failed to load session:', error);
             alert('Failed to load session');
         }
+    }
+
+    function focusCaption(captionIndex) {
+        const caption = captionsContainer.querySelector(`[data-index="${captionIndex}"]`);
+        if (!caption) return;
+        caption.tabIndex = -1;
+        caption.focus({preventScroll:true});
+        caption.scrollIntoView({behavior:'smooth', block:'center'});
     }
     
     function getTimeAgo(date) {
@@ -819,6 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const params = new URL(location.href).searchParams;
             const payload = params.get('payload');
             const session = params.get('session');
+            const caption = params.get('caption');
             const liveTab = params.get('liveTab');
             const liveSession = params.get('liveSession');
             const result = {};
@@ -861,6 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
             historical = !!viewerData?.isHistorical;
             sourceTabId = viewerData?.sourceTabId ?? null;
             sourceSessionId = viewerData?.sessionId ?? null;
+            if (historical && /^\d+$/.test(caption || '')) autoScroll = false;
             if (viewerData?.meetingTitle) document.querySelector('h1').textContent = viewerData.meetingTitle + (historical ? ' (Historical)' : '');
             setupEventListeners();
             // Use viewerData if captionsToView is not available
@@ -881,6 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 await loadCorrectionContext(transcript, sourceSessionId);
                 populateSpeakerFilters(transcript);
+                if (historical && /^\d+$/.test(caption || '')) focusCaption(Number(caption));
 
                 
                 // Setup live streaming after initial load

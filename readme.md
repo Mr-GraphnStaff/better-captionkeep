@@ -38,7 +38,7 @@ Screenshots below show the current packaged HTML and styling rendered in Microso
 
 - Capture displayed Teams and Google Meet captions and available speaker information; development builds also capture the tested Zoom Web subtitle overlay with explicit `Unknown speaker` attribution.
 - Export TXT or Markdown with a choice of save location.
-- Automatically archive completed meetings locally, reopen them after browser restart, and use speaker aliases. The archive does not silently evict older meetings; explicit user deletion and managed retention remain available.
+- Automatically archive completed meetings locally, reopen them after browser restart, and use speaker aliases. Search the full retained archive by keyword or phrase with meeting-title, speaker, date, and ordering filters, then jump to the matching source caption. The archive does not silently evict older meetings; explicit user deletion and managed retention remain available.
 - Optionally include attendee information or hand a transcript to an AI provider.
 - Choose CaptionKeep, Light, Midnight, or Follow system appearance across every extension page.
 - Work in a branded transcript viewer with a sticky search, speaker-filter, copy, save, and history toolbar.
