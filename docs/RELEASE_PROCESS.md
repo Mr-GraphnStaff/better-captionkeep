@@ -2,6 +2,12 @@
 
 This process keeps the Microsoft Edge Add-ons production package separate from unfinished development.
 
+## Launch-mode acceleration
+
+During the early contender phase, the two-week train is a planning ceiling rather than a mandatory wait. A coherent, high-value release may enter its candidate gate as soon as its scope is complete. The next scoped branch may continue while the frozen candidate completes browser validation or Store review, provided the candidate commit and package remain unchanged.
+
+Launch mode compresses idle calendar time; it does not remove source review, automated validation, permission/privacy disclosure, live affected-browser UAT, immutable artifact hashes, the uninterrupted candidate window, or explicit publication approval. If a candidate changes, its affected checks and test window restart. After the product establishes a stable adoption and support baseline, the owner may return to the regular train for more predictable operations.
+
 ## Two-week release cadence
 
 Better CaptionKeep uses a rolling two-week release cadence. Day 0 is the date

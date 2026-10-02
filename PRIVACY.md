@@ -1,6 +1,6 @@
 # Better CaptionKeep Privacy Policy
 
-Effective date: September 17, 2026
+Effective date: October 1, 2026
 
 Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams, Google Meet, and the Zoom Web client in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional Bring Your Own AI (BYOAI) handoff features.
 
@@ -10,6 +10,8 @@ The extension reads captions already displayed by Microsoft Teams, Google Meet, 
 
 It also handles user preferences, such as capture settings, export format, filename patterns, save locations, selected AI providers, approved provider workspace URLs, custom masking terms, and temporary speaker aliases. An administrator may supply read-only managed settings through the browser's enterprise-policy system.
 
+When an organization enables Verified Teams Transcript, a signed-in organizational user can select the current meeting, choose from up to five recent eligible Teams meetings, or paste a meeting join link before explicitly importing an available official transcript from Microsoft Graph. To populate the recent-meeting choices, the extension requests only basic calendar fields: event subject, start and end time, organizer flag, and Teams join information. Those calendar results are held only while the popup is open and are not added to transcript history, synchronized preferences, exports, or developer logs. Microsoft Entra and Teams administrator policy determine access and whether speaker attribution is available. The feature does not request audio or video and does not automatically collect transcripts across the tenant.
+
 ## Storage and use
 
 Meeting information is used to capture and display transcripts, maintain saved sessions, and create exports. Saved transcripts and meeting information are stored in the extension's local browser storage. Temporary speaker aliases use browser session storage. Preferences use the browser's extension sync storage and may be synchronized by the browser provider according to the user's signed-in browser account and sync settings.
@@ -17,6 +19,8 @@ Meeting information is used to capture and display transcripts, maintain saved s
 Exported files are saved to a location controlled by the user and browser. A selected folder may itself be synchronized or backed up by other software. Copying a transcript places it on the system clipboard, which may be accessible to other applications or clipboard synchronization features.
 
 The extension does not operate a developer-hosted transcript collection service. Its code does not include advertising or analytics reporting to the developer. Routine diagnostic browser-console messages are limited to state, counts, and errors rather than transcript or attendee-list values. Error details can still reveal operational context, so review and redact logs before sharing them.
+
+For Verified Teams Transcript, authentication, basic-calendar discovery, meeting resolution, and transcript requests go directly from the extension to Microsoft identity services and Microsoft Graph. Access and refresh tokens are kept only in browser session storage and are cleared on disconnect, browser-session loss, or a rejected token. They are not placed in synchronized preferences, local transcript history, exports, or developer logs. An imported raw transcript and its provenance are retained as a separate local source artifact with the saved session; deleting that session deletes both. Tenant consent, Microsoft service retention, calendar retention, and the original Teams transcript remain controlled outside Better CaptionKeep.
 
 ## Optional BYOAI handoffs
 

@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let meetingStartTime = null;
     let meetingEndTime = null;
     const SEARCH_DEBOUNCE_DELAY = 300;
+    const COPY_FEEDBACK_DURATION_MS = 1500;
+    const ERROR_FEEDBACK_DURATION_MS = 3000;
     let scrubOptions = {};
     let enterprisePolicy = {};
     let enterprisePolicyReady = Promise.resolve();
@@ -477,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 copyButton.classList.remove('copied');
                 copyButton.querySelector('.tooltip-text').textContent = 'Copy';
-            }, 1500); // TODO: Extract to TIMING constant
+            }, COPY_FEEDBACK_DURATION_MS);
         } catch (err) {
             console.error('Failed to copy text: ', err);
             copyButton.querySelector('.tooltip-text').textContent = 'Copy failed';
@@ -486,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 10px; border-radius: 4px; z-index: 1000;';
             errorMsg.textContent = 'Failed to copy text to clipboard';
             document.body.appendChild(errorMsg);
-            setTimeout(() => document.body.removeChild(errorMsg), 3000);
+            setTimeout(() => document.body.removeChild(errorMsg), ERROR_FEEDBACK_DURATION_MS);
         }
     }
     
@@ -940,6 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 viewerData = {
                     transcriptArray:saved.transcript,
                     meetingTitle:saved.metadata.title,
+                    source:saved.metadata.source || null,
                     sessionId:saved.metadata.sourceSessionId || saved.metadata.id,
                     isHistorical:true
                 };
@@ -974,6 +977,25 @@ document.addEventListener('DOMContentLoaded', () => {
             sourceSessionId = viewerData?.sessionId ?? null;
             if (historical && /^\d+$/.test(caption || '')) autoScroll = false;
             if (viewerData?.meetingTitle) document.querySelector('h1').textContent = viewerData.meetingTitle + (historical ? ' (Historical)' : '');
+            const sourceLabel = document.getElementById('viewer-source');
+            if (sourceLabel && viewerData?.source?.type === 'microsoft-graph') {
+                sourceLabel.hidden = false;
+                const attribution = viewerData.source.speakerAttribution === 'included'
+                    ? 'speaker attribution included'
+                    : 'speaker attribution unavailable by tenant policy';
+                sourceLabel.textContent = `Official Microsoft Teams transcript imported through Microsoft Graph · ${attribution}`;
+                const provenance = document.getElementById('viewer-provenance');
+                const formatSourceTime = value => {
+                    const parsed = new Date(value || '');
+                    return Number.isNaN(parsed.getTime()) ? 'Not reported' : parsed.toLocaleString();
+                };
+                document.getElementById('source-provider').textContent = viewerData.source.provider || 'Microsoft Teams';
+                document.getElementById('source-created').textContent = formatSourceTime(viewerData.source.createdDateTime);
+                document.getElementById('source-imported').textContent = formatSourceTime(viewerData.source.importedAt);
+                document.getElementById('source-attribution').textContent = attribution;
+                document.getElementById('source-fingerprint').textContent = viewerData.source.sourceSha256 || 'Not reported';
+                provenance.hidden = false;
+            }
             setupEventListeners();
             // Use viewerData if captionsToView is not available
             if (!transcript && viewerData && viewerData.transcriptArray) {

@@ -40,6 +40,14 @@ async function stageTarget(target) {
       return path.basename(sourcePath).toLowerCase() !== 'manifest.json';
     }
   });
+  if (target !== 'chrome-store') {
+    const popupPath = path.join(targetDir, 'popup.html');
+    const popup = await readFile(popupPath, 'utf8');
+    const testPopup = popup
+      .replace('id="graphTranscriptSection" hidden open', 'id="graphTranscriptSection" open');
+    if (testPopup === popup) throw new Error(`Could not expose the ${target} UAT controls.`);
+    await writeFile(popupPath, testPopup, 'utf8');
+  }
   await writeFile(
     path.join(targetDir, 'manifest.json'),
     `${JSON.stringify(manifest, null, 2)}\n`,

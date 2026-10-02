@@ -39,7 +39,7 @@ async function validateManifest(manifest) {
     warnings.push('Extension version is missing in manifest.');
   }
 
-  const requiredPermissions = ['downloads', 'storage', 'sidePanel'];
+  const requiredPermissions = ['downloads', 'storage', 'sidePanel', 'identity'];
   const permissions = manifest.permissions ?? [];
   for (const permission of requiredPermissions) {
     if (!permissions.includes(permission)) {
@@ -59,6 +59,9 @@ async function validateManifest(manifest) {
   }
   if (!hostPermissions.includes('https://meet.google.com/*')) {
     errors.push('Google Meet development requires the exact "https://meet.google.com/*" host permission.');
+  }
+  for (const host of ['https://login.microsoftonline.com/*', 'https://graph.microsoft.com/*']) {
+    if (!hostPermissions.includes(host)) errors.push(`Verified Teams Transcript requires the exact "${host}" host permission.`);
   }
 
   const backgroundWorker = manifest.background?.service_worker;
@@ -111,6 +114,7 @@ async function validateManifest(manifest) {
     'content_script.js',
     'googleMeetContentScript.js',
     'googleMeetProvider.js',
+    'graphTranscriptConnector.js',
     'privacyScrubber.js',
     'providerRegistry.js',
     'managed-schema.json',

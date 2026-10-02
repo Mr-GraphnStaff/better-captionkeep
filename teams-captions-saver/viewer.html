@@ -58,6 +58,12 @@
         .viewer-brand img { width: 68px; height: 68px; flex: 0 0 auto; border-radius: 17px; box-shadow: var(--ck-shadow); }
         .viewer-eyebrow { margin: 0 0 5px; color: var(--ck-primary); font-size: 12px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
         .viewer-subtitle { margin: 0; color: var(--ck-text-muted); font-size: 14px; }
+        .viewer-source { margin: 7px 0 0; color: var(--ck-primary); font-size: 12px; font-weight: 700; }
+        .viewer-provenance { margin-top: 10px; max-width: 720px; padding: 9px 11px; border: 1px solid var(--ck-border); border-radius: 8px; background: var(--ck-surface-soft); }
+        .viewer-provenance summary { cursor: pointer; color: var(--ck-text); font-size: 12px; font-weight: 700; }
+        .viewer-provenance dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 9px 0 0; font-size: 11px; }
+        .viewer-provenance dt { color: var(--ck-text-muted); }
+        .viewer-provenance dd { margin: 0; overflow-wrap: anywhere; color: var(--ck-text); }
         .viewer-body { padding: 0 30px 30px; }
         
         /* Live Indicator Styles */
@@ -453,6 +459,17 @@
                     <p class="viewer-eyebrow">Better CaptionKeep · by Señor Farris</p>
                     <h1>Teams Transcript</h1>
                     <p class="viewer-subtitle">Keep the words. Stay in the conversation.</p>
+                    <p class="viewer-source" id="viewer-source" hidden></p>
+                    <details class="viewer-provenance" id="viewer-provenance" hidden>
+                        <summary>Verified source details</summary>
+                        <dl>
+                            <dt>Provider</dt><dd id="source-provider">Microsoft Teams</dd>
+                            <dt>Transcript created</dt><dd id="source-created">Not reported</dd>
+                            <dt>Imported</dt><dd id="source-imported">Not reported</dd>
+                            <dt>Attribution</dt><dd id="source-attribution">Not reported</dd>
+                            <dt>Source fingerprint</dt><dd id="source-fingerprint">Not reported</dd>
+                        </dl>
+                    </details>
                 </div>
             </div>
         </header>

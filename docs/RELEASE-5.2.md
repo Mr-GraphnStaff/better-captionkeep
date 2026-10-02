@@ -1,8 +1,14 @@
 # Better CaptionKeep 5.2 Development Gate
 
-Status: **unreleased development**. This record does not authorize Store submission, tenant-wide deployment, or a release-candidate claim.
+Status: **historical development record; scope absorbed into the 5.3 next-release line**. This record does not authorize Store submission, tenant-wide deployment, or a release-candidate claim.
 
-Version 5.2 is the enterprise-security hardening line that follows the immutable 5.1.0 Store artifacts. It cannot reuse, replace, or retroactively describe those artifacts.
+Version 5.2 was the parallel enterprise-security hardening line that followed the immutable 5.1.0 Store artifacts. Its completed work is now integrated into 5.3 rather than promoted as a separate release. It cannot reuse, replace, or retroactively describe the 5.1 artifacts.
+
+## Next enterprise feature
+
+The administrator-approved Microsoft Graph transcript connector is the highest-priority feature after the 5.2 hardening scope. A tenant API proof may run during the 5.2 validation window, but the connector is not part of the packaged 5.2 candidate and must not reset or weaken the current release gate. See [Enterprise Microsoft Graph Transcript Connector](GRAPH-TRANSCRIPT-CONNECTOR.md).
+
+Promotion into a packaged release requires a successful Entra/Graph tenant proof, unpacked Chrome and Edge extension UAT, authentication and revocation review, separate provenance for local and Graph transcripts, updated privacy and Store disclosures, and a new frozen-candidate test window. If that evidence is not complete before the next scope lock, the connector moves to the following train.
 
 ## Scope freeze
 

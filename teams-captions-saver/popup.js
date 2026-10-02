@@ -44,12 +44,27 @@ const UI_ELEMENTS = {
     // Session History Elements
     sessionHistory: document.getElementById('sessionHistory'),
     historyButton: document.getElementById('historyButton'),
-    sessionList: document.getElementById('sessionList')
+    sessionList: document.getElementById('sessionList'),
+    graphTranscriptSection: document.getElementById('graphTranscriptSection'),
+    graphConnectionStatus: document.getElementById('graphConnectionStatus'),
+    graphRedirectUri: document.getElementById('graphRedirectUri'),
+    graphConnectButton: document.getElementById('graphConnectButton'),
+    graphDisconnectButton: document.getElementById('graphDisconnectButton'),
+    graphJoinUrl: document.getElementById('graphJoinUrl'),
+    graphUseCurrentMeeting: document.getElementById('graphUseCurrentMeeting'),
+    graphRefreshMeetings: document.getElementById('graphRefreshMeetings'),
+    graphRecentMeetings: document.getElementById('graphRecentMeetings'),
+    graphImportButton: document.getElementById('graphImportButton'),
+    graphImportStatus: document.getElementById('graphImportStatus')
 };
 
 
 let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
+let graphConnected = false;
+const runtimeManifest = chrome.runtime.getManifest();
+const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(runtimeManifest.name || ''))
+    && /\bdevelopment\b/i.test(String(runtimeManifest.version_name || ''));
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -156,6 +171,165 @@ async function refreshEnterprisePolicy() {
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
     currentEnterprisePolicy = policy.settings;
     return currentEnterprisePolicy;
+}
+
+function setGraphBusy(busy) {
+    if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected;
+    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
+        button.disabled = busy || !graphConnected;
+    });
+    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+}
+
+function graphErrorMessage(error) {
+    const messages = {
+        SIGN_IN_REQUIRED: 'Your Microsoft 365 session ended. Connect again to continue.',
+        invalid_grant: 'Microsoft 365 access expired or was revoked. Connect again to continue.',
+        Authorization_RequestDenied: 'Your organization denied access to this meeting.',
+        ErrorAccessDenied: 'Your organization did not grant access to the required calendar or transcript data.',
+        GraphAccessToTranscriptsDisabled: 'Your Teams administrator has disabled transcript access through Microsoft Graph.',
+        MEETING_NOT_FOUND: 'Microsoft 365 could not find that meeting for this account.',
+        TRANSCRIPT_NOT_FOUND: 'Teams has not finished producing an official transcript for this meeting.',
+        JOIN_URL_INVALID: 'Choose a recent Teams meeting or paste its complete Teams join link.',
+        AUTH_CANCELLED: 'Microsoft 365 sign-in was cancelled.',
+        GRAPH_NOT_ENABLED: 'The local dev/UAT Graph configuration is unavailable. Rebuild the authorized unpacked test overlay.',
+        GRAPH_CONFIG_INVALID: 'The local dev/UAT Graph configuration is incomplete.'
+    };
+    return messages[error?.code] || error?.message || 'Microsoft 365 could not complete the request.';
+}
+
+function formatGraphMeetingTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Time unavailable';
+    return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    }).format(date);
+}
+
+function markSelectedGraphMeeting() {
+    const selected = UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('.graph-meeting-card').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.joinUrl === selected));
+    });
+}
+
+function selectGraphMeeting(meeting, message) {
+    UI_ELEMENTS.graphJoinUrl.value = String(meeting?.joinUrl || '');
+    markSelectedGraphMeeting();
+    UI_ELEMENTS.graphImportStatus.textContent = message;
+    setGraphBusy(false);
+}
+
+function renderRecentGraphMeetings(meetings) {
+    const container = UI_ELEMENTS.graphRecentMeetings;
+    if (!container) return;
+    container.replaceChildren();
+    if (!Array.isArray(meetings) || meetings.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'small-info-text';
+        empty.textContent = 'No recent Teams meetings were found in the last 30 days. You can still use the current meeting or paste a link.';
+        container.appendChild(empty);
+        return;
+    }
+    for (const meeting of meetings.slice(0, 5)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'graph-meeting-card';
+        button.dataset.joinUrl = meeting.joinUrl;
+        button.setAttribute('role', 'listitem');
+        button.setAttribute('aria-pressed', 'false');
+        const title = document.createElement('span');
+        title.className = 'graph-meeting-title';
+        title.textContent = meeting.subject || 'Teams meeting';
+        const meta = document.createElement('span');
+        meta.className = 'graph-meeting-meta';
+        meta.textContent = `${formatGraphMeetingTime(meeting.startDateTime)} · ${meeting.state === 'in-progress' ? 'In progress' : 'Ended'}`;
+        button.append(title, meta);
+        button.addEventListener('click', () => selectGraphMeeting(
+            meeting,
+            `${meeting.subject || 'Meeting'} selected. Import when Teams has finished producing the transcript.`
+        ));
+        container.appendChild(button);
+    }
+    markSelectedGraphMeeting();
+}
+
+async function refreshRecentGraphMeetings(silent = false) {
+    if (!graphConnected || !UI_ELEMENTS.graphRecentMeetings) return;
+    setGraphBusy(true);
+    if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Finding your recent Teams meetings…';
+    try {
+        const result = await sendGraphMessage({message:'graph_list_recent_meetings'});
+        renderRecentGraphMeetings(result.meetings);
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = result.meetings?.length
+            ? 'Choose a meeting, then import its verified transcript.'
+            : 'No recent meeting was found. Use the current meeting or paste its link.';
+    } catch (error) {
+        renderRecentGraphMeetings([]);
+        UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
+        if (['SIGN_IN_REQUIRED', 'invalid_grant'].includes(error.code)) graphConnected = false;
+    }
+    setGraphBusy(false);
+}
+
+async function sendGraphMessage(message) {
+    const response = await chrome.runtime.sendMessage(message);
+    if (!response?.ok) {
+        const error = new Error(response?.error || 'The Microsoft Graph operation failed.');
+        error.code = response?.code;
+        throw error;
+    }
+    return response;
+}
+
+function applyGraphVisibility() {
+    if (!UI_ELEMENTS.graphTranscriptSection) return;
+    UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild
+        && currentEnterprisePolicy.enableGraphTranscriptImport !== true;
+}
+
+async function refreshGraphStatus() {
+    if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    try {
+        const status = await sendGraphMessage({message:'graph_get_status'});
+        graphConnected = !!status.connected;
+        UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
+            ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
+            : (status.configured ? 'Administrator configuration detected. Connect Microsoft 365 to begin.' : 'The managed Graph configuration is incomplete.');
+        UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
+    } catch (error) {
+        graphConnected = false;
+        UI_ELEMENTS.graphConnectionStatus.textContent = `Connection status unavailable: ${error.message}`;
+    }
+    setGraphBusy(false);
+}
+
+async function populateCurrentTeamsMeeting(tab = null, silent = false) {
+    if (!UI_ELEMENTS.graphJoinUrl || UI_ELEMENTS.graphTranscriptSection?.hidden) return false;
+    const meetingTab = tab || await getActiveMeetingTab();
+    if (!meetingTab || !/^https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)(?:\/|$)/.test(meetingTab.url || '')) {
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Open the active Teams meeting, then try again.';
+        return false;
+    }
+    try {
+        const response = await chrome.tabs.sendMessage(meetingTab.id, {message:'get_teams_meeting_join_url'});
+        if (!response?.joinUrl) {
+            if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Open Meeting info in Teams, then choose Use current Teams meeting again.';
+            return false;
+        }
+        selectGraphMeeting(
+            {joinUrl:response.joinUrl},
+            'Current Teams meeting selected. Import after Teams publishes its official transcript.'
+        );
+        return true;
+    } catch {
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Refresh the Teams meeting tab, then try again.';
+        return false;
+    }
 }
 
 function updateSaveButtonText(format) {
@@ -323,6 +497,7 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
+    applyGraphVisibility();
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
@@ -410,6 +585,52 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
+    UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
+        markSelectedGraphMeeting();
+        setGraphBusy(false);
+    });
+    UI_ELEMENTS.graphUseCurrentMeeting?.addEventListener('click', () => populateCurrentTeamsMeeting());
+    UI_ELEMENTS.graphRefreshMeetings?.addEventListener('click', () => refreshRecentGraphMeetings());
+    UI_ELEMENTS.graphConnectButton?.addEventListener('click', async () => {
+        setGraphBusy(true);
+        UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
+        try {
+            await sendGraphMessage({message:'graph_connect'});
+            await refreshGraphStatus();
+            await refreshRecentGraphMeetings();
+        } catch (error) {
+            graphConnected = false;
+            UI_ELEMENTS.graphConnectionStatus.textContent = graphErrorMessage(error);
+            setGraphBusy(false);
+        }
+    });
+    UI_ELEMENTS.graphDisconnectButton?.addEventListener('click', async () => {
+        setGraphBusy(true);
+        try {
+            await sendGraphMessage({message:'graph_disconnect'});
+            graphConnected = false;
+            UI_ELEMENTS.graphConnectionStatus.textContent = 'Disconnected. Tenant consent was not changed.';
+            UI_ELEMENTS.graphJoinUrl.value = '';
+            renderRecentGraphMeetings([]);
+        } catch (error) {
+            UI_ELEMENTS.graphConnectionStatus.textContent = `Could not disconnect: ${graphErrorMessage(error)}`;
+        }
+        setGraphBusy(false);
+    });
+    UI_ELEMENTS.graphImportButton?.addEventListener('click', async () => {
+        const joinUrl = UI_ELEMENTS.graphJoinUrl.value.trim();
+        if (!joinUrl) return;
+        setGraphBusy(true);
+        UI_ELEMENTS.graphImportStatus.textContent = 'Requesting the official transcript from Microsoft Graph…';
+        try {
+            const result = await sendGraphMessage({message:'graph_import_transcript', joinUrl});
+            UI_ELEMENTS.graphImportStatus.textContent = `Imported ${result.captionCount} transcript lines as a separate Microsoft Graph source.`;
+        } catch (error) {
+            UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
+            if (['SIGN_IN_REQUIRED', 'invalid_grant'].includes(error.code)) await refreshGraphStatus();
+        }
+        setGraphBusy(false);
+    });
     document.getElementById('exportSettings').addEventListener('click', () => chrome.tabs.create({url:chrome.runtime.getURL('export.html')}));
     UI_ELEMENTS.openLastTranscriptFolder?.addEventListener('click', async () => {
         try {
@@ -911,6 +1132,7 @@ function escapeHtml(text) {
 async function initializePopup() {
     await loadSettings();
     setupEventListeners();
+    await refreshGraphStatus();
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();
@@ -919,6 +1141,9 @@ async function initializePopup() {
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
         return;
     }
+
+    await populateCurrentTeamsMeeting(tab, true);
+    if (graphConnected) await refreshRecentGraphMeetings(true);
 
     try {
         const status = await chrome.tabs.sendMessage(tab.id, { message: "get_status" });

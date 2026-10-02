@@ -17,7 +17,8 @@
         'forceProfanityFilter', 'customScrubTerms', 'forceScrubbedExport',
         'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
         'disableAttendeeCapture', 'disableSessionHistory', 'maxStoredSessions',
-        'sessionRetentionDays'
+        'sessionRetentionDays', 'enableGraphTranscriptImport', 'graphTenantId',
+        'graphClientId'
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
@@ -110,6 +111,16 @@
                 locked.add(key);
             }
         }
+        if (managed.enableGraphTranscriptImport === true) {
+            settings.enableGraphTranscriptImport = true;
+            locked.add('enableGraphTranscriptImport');
+            for (const key of ['graphTenantId', 'graphClientId']) {
+                if (typeof managed[key] === 'string' && managed[key].trim()) {
+                    settings[key] = managed[key].trim();
+                    locked.add(key);
+                }
+            }
+        }
         if (Array.isArray(managed.allowedAiProviders)) {
             const allowed = new Set(managed.allowedAiProviders.filter(provider => ALLOWED_PROVIDERS.has(provider)));
             settings.aiSummaryProviders = (Array.isArray(settings.aiSummaryProviders) ? settings.aiSummaryProviders : []).filter(provider => allowed.has(provider));
@@ -128,6 +139,24 @@
         return Object.freeze({ settings: Object.freeze(settings), locked: Object.freeze([...locked]) });
     }
 
+    function applyDevUatGraphOverlay(policy, localConfig = {}, manifest = {}) {
+        const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(manifest.name || ''))
+            && /\bdevelopment\b/i.test(String(manifest.version_name || ''));
+        if (!isDevUatBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
+        const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
+        const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
+        graphKeys.forEach(key => locked.add(key));
+        return Object.freeze({
+            settings: Object.freeze({
+                ...policy.settings,
+                enableGraphTranscriptImport: true,
+                graphTenantId: localConfig.graphTenantId,
+                graphClientId: localConfig.graphClientId
+            }),
+            locked: Object.freeze([...locked])
+        });
+    }
+
     function createExport(settings) {
         return JSON.stringify({ product: 'Better CaptionKeep', version: EXPORT_VERSION, settings: sanitize(settings) }, null, 2);
     }
@@ -140,5 +169,5 @@
         return sanitize(parsed.settings);
     }
 
-    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, createExport, parseImport });
+    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyDevUatGraphOverlay, createExport, parseImport });
 })();

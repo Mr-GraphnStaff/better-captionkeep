@@ -52,7 +52,22 @@ class SessionManager {
             const encoded = encodeURIComponent(String(correctionSessionId).trim()).replace(/%/g, '_').slice(0, 240);
             if (encoded) keys.push(`transcript_corrections_${encoded}`);
         }
+        if (typeof metadata?.sourceArtifactKey === 'string'
+            && (metadata.sourceArtifactKey.startsWith(`${prefix}_`) || metadata.sourceArtifactKey.startsWith(`${metadata?.id}_`))) {
+            keys.push(metadata.sourceArtifactKey);
+        }
         return keys;
+    }
+
+    normalizeSourceMetadata(source = null) {
+        if (!source || typeof source !== 'object') return null;
+        const allowed = ['type', 'provider', 'importedAt', 'createdDateTime', 'contentType', 'speakerAttribution',
+            'tenantId', 'meetingIdSha256', 'transcriptIdSha256', 'sourceSha256'];
+        const normalized = {};
+        for (const key of allowed) {
+            if (typeof source[key] === 'string' && source[key].length <= 200) normalized[key] = source[key];
+        }
+        return normalized.type ? normalized : null;
     }
 
     isExpired(metadata, now = Date.now()) {
@@ -99,6 +114,11 @@ class SessionManager {
             const chunks = this.chunkTranscript(transcriptArray);
             const recordedAt = new Date(options.recordedAt || sourceSessionId || Date.now());
             const timestamp = Number.isFinite(recordedAt.getTime()) ? recordedAt.toISOString() : new Date().toISOString();
+            const source = this.normalizeSourceMetadata(options.source);
+            const rawSource = typeof options.rawSource === 'string' ? options.rawSource : null;
+            if (rawSource && this.calculateSize(rawSource) > 4 * 1024 * 1024) {
+                throw new Error('Source transcript exceeds the local-storage limit');
+            }
             const metadata = {
                 id: sessionId,
                 archiveVersion: 1,
@@ -116,13 +136,16 @@ class SessionManager {
                 attendees: attendeeReport?.attendeeList?.slice(0, 20), // Limit attendees
                 attendeeCount: attendeeReport?.totalUniqueAttendees || 0,
                 preview: transcriptArray.slice(0, 3).map(c => `${c.Name}: ${c.Text.substring(0, 50)}`).join(' | '),
-                size: this.calculateSize(transcriptArray)
+                size: this.calculateSize(transcriptArray) + (rawSource ? this.calculateSize(rawSource) : 0),
+                source,
+                sourceArtifactKey: rawSource ? `${storagePrefix}_source` : null
             };
             if (this.isExpired(metadata)) {
                 throw new Error('This recovery snapshot is outside the managed transcript retention period.');
             }
             const staged = Object.fromEntries(chunks.map((chunk, index) => [`${storagePrefix}_chunk_${index}`, chunk]));
             if (attendeeReport) staged[`${storagePrefix}_attendees`] = attendeeReport;
+            if (rawSource) staged[metadata.sourceArtifactKey] = rawSource;
             const nextIndex = [...originalIndex.filter(item => item.id !== sessionId), metadata]
                 .sort((a,b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
             try {
@@ -181,12 +204,15 @@ class SessionManager {
             if (transcriptArray.length !== metadata.captionCount) throw new Error('Incomplete transcript: caption count mismatch');
 
             // Load attendee data if exists
-            const attendeeData = await chrome.storage.local.get(`${storagePrefix}_attendees`);
+            const extraKeys = [`${storagePrefix}_attendees`];
+            if (metadata.sourceArtifactKey) extraKeys.push(metadata.sourceArtifactKey);
+            const attendeeData = await chrome.storage.local.get(extraKeys);
             
             return {
                 transcript: transcriptArray,
                 metadata: metadata,
-                attendeeReport: attendeeData[`${storagePrefix}_attendees`] || null
+                attendeeReport: attendeeData[`${storagePrefix}_attendees`] || null,
+                sourceArtifact: metadata.sourceArtifactKey ? attendeeData[metadata.sourceArtifactKey] || null : null
             };
             
         } catch (error) {
@@ -219,7 +245,9 @@ class SessionManager {
             
             if (!metadata) return;
 
+            // Delete all chunks
             const keysToDelete = this.sessionKeys(metadata);
+
             await chrome.storage.local.remove(keysToDelete);
             
             // Update index

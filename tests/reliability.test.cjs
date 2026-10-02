@@ -33,7 +33,8 @@ function harness() {
         async remove(keys) { for(const key of (Array.isArray(keys)?keys:[keys])) delete sessionData[key]; }
     };
     const chrome={storage:{local:area,session:sessionArea,sync:area,managed,onChanged:{addListener(fn){callbacks.push(fn);}}},
-        runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{
+        runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,
+            getManifest:()=>({name:'Better CaptionKeep',version:'5.3.0',version_name:'5.3.0'}),sendMessage:async m=>{
             messages.push(m);
             if(m?.message==='get_capture_surface') return {ok:true,surfaceId:`${m.providerId}-tab-1`};
             return {ok:true};
@@ -328,6 +329,35 @@ test('deleting a recovery snapshot removes stable and legacy corrections',async(
     assert.equal(h.data.backup_delete,undefined);
     assert.equal(h.data[stableKey],undefined);
     assert.equal(h.data[legacyKey],undefined);
+});
+
+test('service worker imports verified Graph source through the consolidated generational archive',async()=>{
+    const h=harness();
+    h.managedData.enableGraphTranscriptImport=true;
+    h.managedData.graphTenantId='11111111-1111-4111-8111-111111111111';
+    h.managedData.graphClientId='22222222-2222-4222-8222-222222222222';
+    h.run(read('service_worker.js'));
+    h.context.CaptionKeepGraphTranscript={
+        async importTranscript(){
+            return {
+                transcript:[{key:'graph-1',Name:'Pilot User',Text:'Synthetic verified caption.',Time:'00:00:01.000'}],
+                rawSource:'WEBVTT\nSynthetic verified source',
+                title:'Official Teams transcript - Synthetic QA',
+                source:{type:'microsoft-graph',provider:'Microsoft Teams',sourceSha256:'c'.repeat(64),speakerAttribution:'included'}
+            };
+        }
+    };
+    const response=await sendWorker(h,{message:'graph_import_transcript',joinUrl:'https://teams.microsoft.com/meet/123?p=fixture'});
+    assert.equal(response.ok,true);
+    assert.equal(response.captionCount,1);
+    assert.equal(response.sourceSha256,'c'.repeat(64));
+    const metadata=h.data.session_index.find(item=>item.id===response.sessionId);
+    assert.equal(metadata.source.type,'microsoft-graph');
+    assert.match(metadata.storagePrefix,/^session_.+_generation_/);
+    assert.equal(h.data[metadata.sourceArtifactKey],'WEBVTT\nSynthetic verified source');
+    const loaded=await h.run(`new SessionManager().loadSession(${JSON.stringify(response.sessionId)})`);
+    assert.equal(loaded.transcript[0].Text,'Synthetic verified caption.');
+    assert.equal(loaded.sourceArtifact,'WEBVTT\nSynthetic verified source');
 });
 test('provider registry resolves adapters without leaking provider selectors',()=>{
     const context=vm.createContext({URL,globalThis:null});
@@ -963,6 +993,16 @@ test('viewer includes branded header and purposeful empty state',()=>{
     assert(script.includes('function renderViewerState'));
     assert(script.includes('Ready when your meeting is'));
 });
+test('viewer presents Graph provenance without exposing tenant or meeting identifiers',()=>{
+    const html=read('viewer.html');
+    const script=read('viewer.js');
+    assert(html.includes('id="viewer-provenance"'));
+    assert(html.includes('Verified source details'));
+    assert(html.includes('id="source-fingerprint"'));
+    assert(script.includes('viewerData.source.sourceSha256'));
+    assert(!script.includes("document.getElementById('source-tenant')"));
+    assert(!script.includes("document.getElementById('source-meeting')"));
+});
 test('viewer archive search is keyboard-accessible, source-linked, and stale-query safe',()=>{
     const html=read('viewer.html');
     const script=read('viewer.js');
@@ -1051,6 +1091,34 @@ test('session mutations never persist transient recovery entries',async()=>{
     const manager=h.run('new SessionManager(true)');
     await manager.updateSessionIndex({id:'new',timestamp:'2026-09-25T12:00:00Z',chunkCount:1});
     assert.equal(h.data.session_index.some(item=>item.id==='backup_transient'),false);
+});
+test('Graph source artifact is retained separately and deleted with its saved session',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    const manager=h.run('new SessionManager(true)');
+    const raw='WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Pilot User>Synthetic phrase.</v>\n';
+    const source={type:'microsoft-graph',sourceSha256:'a'.repeat(64),speakerAttribution:'included'};
+    const id=await manager.saveSession([{Name:'Pilot User',Text:'Synthetic phrase.',Time:'00:00:01.000'}],'Graph Pilot',null,{source,rawSource:raw});
+    const loaded=await manager.loadSession(id);
+    assert.equal(loaded.sourceArtifact,raw);
+    assert.equal(loaded.metadata.source.type,'microsoft-graph');
+    assert.equal(loaded.metadata.source.sourceSha256,'a'.repeat(64));
+    const metadata=h.data.session_index.find(item=>item.id===id);
+    assert.equal(h.data[metadata.sourceArtifactKey],raw);
+    await manager.deleteSession(id);
+    assert.equal(metadata.sourceArtifactKey in h.data,false);
+    assert.equal(h.data.session_index.some(item=>item.id===id),false);
+});
+test('managed retention removes normalized Graph captions and the raw source artifact together',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    const manager=h.run('new SessionManager(true,{sessionRetentionDays:30})');
+    const id=await manager.saveSession([{Name:'Pilot User',Text:'Synthetic phrase.',Time:'00:00:01.000'}],
+        'Graph retention proof',null,{source:{type:'microsoft-graph',sourceSha256:'b'.repeat(64)},rawSource:'WEBVTT\nSynthetic source'});
+    const metadata=h.data.session_index[0];
+    h.data.session_index[0].timestamp='2026-08-01T00:00:00Z';
+    assert.equal(await manager.pruneExpiredSessions(Date.parse('2026-10-01T00:00:00Z')),1);
+    assert.equal(`${metadata.storagePrefix}_chunk_0` in h.data,false);
+    assert.equal(metadata.sourceArtifactKey in h.data,false);
+    assert.equal(h.data.session_index.length,0);
 });
 test('missing chunks are reported rather than silently omitted',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'broken',chunkCount:2,captionCount:2}];h.data.broken_chunk_0=[];
@@ -1488,6 +1556,21 @@ test('configuration import is bounded and managed policy takes precedence',()=>{
     assert.equal(enterprise.settings.maxStoredSessions,5);
     assert.equal(enterprise.settings.sessionRetentionDays,30);
 });
+test('dev UAT Graph overlay extends frozen policy without mutating it',()=>{
+    const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
+    vm.runInContext(read('configuration.js'),context);
+    const config=context.CaptionKeepConfiguration;
+    const policy=config.applyPolicy({privacyScrubberEnabled:true},{});
+    const local={enableGraphTranscriptImport:true,graphTenantId:'11111111-1111-1111-1111-111111111111',graphClientId:'22222222-2222-2222-2222-222222222222'};
+    const effective=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - Edge Test',version_name:'5.3.0 development'});
+    assert.equal(effective.settings.enableGraphTranscriptImport,true);
+    assert.equal(effective.settings.graphTenantId,local.graphTenantId);
+    assert(effective.locked.includes('graphTenantId'));
+    assert.equal(policy.settings.enableGraphTranscriptImport,undefined);
+    assert.equal(Object.isFrozen(effective.settings),true);
+    const production=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
+    assert.equal(production,policy);
+});
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
     assert(html.includes('Confirm the destination workspace'));
@@ -1566,20 +1649,78 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions)'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions)'));
 });
-test('popup uses a compact three-platform launcher without an inline Teams warning link',()=>{
+test('popup uses compact native quick-start actions for all three meeting platforms',()=>{
     const popup=read('popup.html');const script=read('popup.js');
     assert(popup.includes('class="platform-launchers"'));
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
+    assert.equal((popup.match(/class="platform-start"/g)||[]).length,3);
     assert(popup.includes('aria-label="Open Microsoft Teams"'));
+    assert(popup.includes('aria-label="Open Microsoft Teams to Meet now">Meet now</a>'));
     assert(popup.includes('href="https://app.zoom.us/wc"'));
     assert(popup.includes('aria-label="Open Zoom Web"'));
+    assert(popup.includes('href="https://zoom.new"'));
+    assert(popup.includes('aria-label="Start a new Zoom meeting">New meeting</a>'));
     assert(popup.includes('href="https://meet.google.com"'));
     assert(popup.includes('aria-label="Open Google Meet"'));
+    assert(popup.includes('href="https://meet.new"'));
+    assert(popup.includes('aria-label="Start a new Google Meet meeting">Start meeting</a>'));
     assert(script.includes('getActiveMeetingTab'));
     assert(script.includes('https:\\/\\/meet\\.google\\.com'));
     assert(script.includes('https:\\/\\/app\\.zoom\\.us\\/wc'));
     assert(script.includes("textContent = 'Open Teams, Zoom Web, or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
+});
+test('Graph pilot can capture the active Teams meeting link without new permissions',()=>{
+    const content=read('content_script.js');
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
+    assert(content.includes("case 'get_teams_meeting_join_url'"));
+    assert(content.includes("let lastKnownTeamsJoinUrl = ''"));
+    assert(content.includes('lastKnownTeamsJoinUrl = joinUrl'));
+    assert(content.includes('return lastKnownTeamsJoinUrl'));
+    assert(/lastKnownTeamsJoinUrl = '';\r?\n\s+findCurrentTeamsJoinUrl\(\);/.test(content));
+    assert(content.includes("document.querySelectorAll('a[href]')"));
+    assert(popup.includes('id="graphUseCurrentMeeting"'));
+    assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
+});
+test('Verified Teams Transcript offers current, recent-five, and manual meeting selection',()=>{
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
+    const worker=read('service_worker.js');
+    assert(popup.includes('id="graphRecentMeetings"'));
+    assert(popup.includes('id="graphRefreshMeetings"'));
+    assert(popup.includes('Can’t find the meeting? Paste its link'));
+    assert(popup.includes('Import verified transcript'));
+    assert(popupScript.includes("message:'graph_list_recent_meetings'"));
+    assert(popupScript.includes('meetings.slice(0, 5)'));
+    assert(popupScript.includes('graphErrorMessage'));
+    assert(worker.includes("case 'graph_list_recent_meetings'"));
+});
+test('Graph test builds stay visible without consumer entitlement machinery',()=>{
+    const worker=read('service_worker.js');
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
+    const buildScript=readProject('scripts/build-browser-targets.mjs');
+    assert(!popup.includes('devUatSection'));
+    assert(!popup.includes('Signed UAT pass'));
+    assert(!worker.includes('requireGraphDevUatAccess'));
+    assert(!worker.includes('dev_uat_'));
+    assert(popupScript.includes('const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild'));
+    assert(popupScript.includes('&& currentEnterprisePolicy.enableGraphTranscriptImport !== true'));
+    assert(buildScript.includes("target !== 'chrome-store'"));
+    assert(buildScript.includes("replace('id=\"graphTranscriptSection\" hidden open', 'id=\"graphTranscriptSection\" open')"));
+});
+test('worker accepts an optional unpacked-only Graph configuration only for test manifests',()=>{
+    const worker=read('service_worker.js');
+    const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
+    assert(worker.includes("importScripts('devUatLocalConfig.js')"));
+    assert(worker.includes('CaptionKeepConfiguration.applyDevUatGraphOverlay'));
+    assert(read('configuration.js').includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(read('configuration.js').includes('/\\bdevelopment\\b/i'));
+    assert(read('configuration.js').includes('localConfig.enableGraphTranscriptImport !== true'));
+    assert(overlayScript.includes("Refusing to configure a non-test build."));
+    assert(overlayScript.includes("dist', `${target}-unpacked`"));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');
