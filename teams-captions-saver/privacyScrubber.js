@@ -192,5 +192,29 @@
         return Object.freeze({transcript: result.transcript, replacements: result.replacements});
     }
 
-    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubReleaseBundle, scrubEvidenceBundle, scrubObject, scrubTranscript });
+    function scrubHandoff(transcript, metadata = {}, options = {}) {
+        const context = createScrubContext(options);
+        const cleanedTranscript = (Array.isArray(transcript) ? transcript : []).map(record => {
+            if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+            const next = {...record};
+            for (const field of ['Name', 'Text']) {
+                if (typeof next[field] === 'string') next[field] = context.apply(next[field]);
+            }
+            return next;
+        });
+        const cleanedMetadata = {...metadata};
+        for (const field of ['meetingTitle', 'providerLabel']) {
+            if (typeof cleanedMetadata[field] === 'string') cleanedMetadata[field] = context.apply(cleanedMetadata[field]);
+        }
+        if (Array.isArray(cleanedMetadata.warnings)) {
+            cleanedMetadata.warnings = cleanedMetadata.warnings.map(warning => context.apply(String(warning || '')));
+        }
+        return Object.freeze({
+            transcript:cleanedTranscript,
+            metadata:Object.freeze(cleanedMetadata),
+            replacements:Object.freeze(context.replacements)
+        });
+    }
+
+    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubReleaseBundle, scrubEvidenceBundle, scrubHandoff, scrubObject, scrubTranscript });
 })();

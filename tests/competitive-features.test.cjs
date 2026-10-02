@@ -102,8 +102,8 @@ test('built-in templates require grounded owners, dates and translation language
     assert(templates.BUILT_INS.find(item => item.id === 'actions').instructions.includes('Not stated'));
     assert(templates.BUILT_INS.find(item => item.id === 'translate').instructions.includes('Ask for the target language'));
     const handoff = source('handoff.js');
-    assert(handoff.includes('CaptionKeepPromptTemplates.apply(basePrompt, templateInstructions.value)'));
-    assert(handoff.includes('if (scrubberToggle.checked || enterprisePolicy.forceScrubbedExport)'));
+    assert(handoff.includes('CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions)'));
+    assert(handoff.includes('effectivePolicy.settings.forceScrubbedExport && !scrubberToggle.checked'));
 });
 
 test('extras enforce bounds, reject non-PNG content, deduplicate and keep speech separate', () => {

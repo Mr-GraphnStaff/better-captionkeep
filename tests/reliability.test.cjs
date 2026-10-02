@@ -1398,9 +1398,25 @@ test('automatic saving skips prompts while ask-each-time always prompts',async()
     assert.equal((await h.run('resolveSavePreferences({forAutoSave:true})')).saveAs,true);
 });
 test('AI handoff never navigates transcript text to a provider',async()=>{
-    const h=harness();h.run(read('service_worker.js'));await h.run("openAiAssistantTabs(['chatgpt'],'Synthetic private words','Test')");
+    const h=harness();h.run(read('service_worker.js'));await h.run("openAiAssistantTabs(['chatgpt'],'Synthetic private words','Test',{transcript:[{key:'caption-1',Text:'Synthetic private words'}],sessionId:'meeting-1',providerLabel:'Teams'})");
     assert(h.tabs[0].url.startsWith('chrome-extension://test/handoff.html?'));
-    assert(!h.tabs[0].url.includes('private'));assert.equal(Object.values(h.data)[0].prompt,'Synthetic private words');
+    assert(!h.tabs[0].url.includes('private'));
+    const payload=Object.values(h.data)[0];
+    assert.equal(payload.prompt,'Synthetic private words');
+    assert.equal(payload.transcript[0].key,'caption-1');
+    assert.equal(payload.sessionId,'meeting-1');
+    assert.equal(payload.providerLabel,'Teams');
+});
+test('expired and failed AI handoffs remove temporary transcript payloads',async()=>{
+    const expired=harness();expired.run(read('service_worker.js'));
+    expired.data.handoff_old={createdAt:Date.now()-(16*60*1000),transcript:[{Text:'temporary'}]};
+    await expired.run('cleanupViewerPayloads()');
+    assert.equal(expired.data.handoff_old,undefined);
+
+    const failed=harness();failed.run(read('service_worker.js'));
+    failed.chrome.tabs.create=async()=>{throw new Error('synthetic tab failure');};
+    await assert.rejects(failed.run("openAiAssistantTabs(['chatgpt'],'Prompt','Test',{transcript:[{Text:'temporary'}]})"),/synthetic tab failure/);
+    assert.equal(Object.keys(failed.data).filter(key=>key.startsWith('handoff_')).length,0);
 });
 test('enterprise AI destinations accept only official HTTPS workspace URLs',()=>{
     const context=vm.createContext({URL,globalThis:null});context.globalThis=context;
@@ -1603,7 +1619,7 @@ test('AI handoff requires workspace confirmation and supports saved enterprise d
     const html=read('handoff.html');const script=read('handoff.js');
     assert(html.includes('Confirm the destination workspace'));
     assert(script.includes('Saved enterprise destination'));
-    assert(script.includes('Confirm the active workspace before pasting'));
+    assert(script.includes('Confirm the active workspace before attaching or pasting'));
     assert(html.includes('privacyScrubber.js'));
     assert(script.includes('CaptionKeepPrivacyScrubber.scrub'));
     assert(!script.includes('const destinations ='));
@@ -1615,8 +1631,8 @@ test('Privacy Scrubber is visible, defaults on, and guards unmasked copying',()=
     assert(popupScript.includes('settings.privacyScrubberEnabled !== false'));
     assert(popupScript.includes('privacyScrubberEnabled: event.target.checked'));
     assert(handoff.includes('<h2 id="scrubberTitle">Privacy Scrubber</h2>'));
-    assert(handoffScript.includes("copyButton.textContent = 'Copy cleaned prompt'"));
-    assert(handoffScript.includes("copyButton.textContent = 'Copy unmasked prompt'"));
+    assert(handoffScript.includes("copyButton.textContent = 'Copy cleaned instructions'"));
+    assert(handoffScript.includes("copyButton.textContent = 'Copy unmasked instructions'"));
     assert(handoffScript.includes('!scrubberToggle.checked && !unmaskedCopyArmed'));
 });
 test('extension pages use only packaged scripts and settings use progressive disclosure',()=>{
@@ -1647,8 +1663,8 @@ test('managed release restrictions are enforced across extension action surfaces
     assert(popup.includes('currentEnterprisePolicy.disableFileExport'));
     assert(viewer.includes('enterprisePolicy.disableClipboard'));
     assert(viewer.includes('enterprisePolicy.disableFileExport'));
-    assert(handoff.includes('enterprisePolicy.disableClipboard'));
-    assert(handoff.includes('CaptionKeepPrivacyScrubber.scrub(output, scrubOptions)'));
+    assert(handoff.includes('effectivePolicy.settings.disableClipboard'));
+    assert(handoff.includes('CaptionKeepPrivacyScrubber.scrubHandoff(transcript, metadata, scrubOptions)'));
     assert(sidepanel.includes('enterprisePolicy.disableEvidenceEmail'));
     assert(exportPage.includes('Pending exports were discarded'));
     for(const page of ['viewer.html','handoff.html','sidepanel.html','export.html']) {

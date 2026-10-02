@@ -192,11 +192,27 @@ const TRANSCRIPT_VERSION_NOTICES = new Set([
     'Transcript version: Original provider transcript. Local corrections were not included.'
 ]);
 
-async function openAiAssistantTabs(providers, prompt, meetingTitle) {
+async function openAiAssistantTabs(providers, prompt, meetingTitle, context = {}) {
     if (!Array.isArray(providers) || !providers.length || typeof prompt !== 'string') return;
+    await cleanupViewerPayloads();
     const id = `handoff_${crypto.randomUUID()}`;
-    await chrome.storage.local.set({[id]:{providers:providers.filter(key => Object.hasOwn(AI_ASSISTANT_TARGETS,key)),prompt,meetingTitle}});
-    await chrome.tabs.create({url:chrome.runtime.getURL(`handoff.html?id=${id}`)});
+    const payload = {
+        providers:providers.filter(key => Object.hasOwn(AI_ASSISTANT_TARGETS,key)),
+        prompt,
+        meetingTitle,
+        transcript:Array.isArray(context.transcript) ? context.transcript : [],
+        sessionId:context.sessionId,
+        providerLabel:context.providerLabel,
+        warnings:Array.isArray(context.warnings) ? context.warnings : [],
+        createdAt:Date.now()
+    };
+    try {
+        await chrome.storage.local.set({[id]:payload});
+        await chrome.tabs.create({url:chrome.runtime.getURL(`handoff.html?id=${id}`)});
+    } catch (error) {
+        await chrome.storage.local.remove(id).catch(() => {});
+        throw error;
+    }
 }
 
 function applyAliasesToTranscript(transcriptArray, aliases = {}) {
@@ -333,12 +349,15 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
 let lastAutoSaveId = null;
 let autoSaveInProgress = false;
 const VIEWER_PAYLOAD_TTL_MS = 5 * 60 * 1000;
+const HANDOFF_PAYLOAD_TTL_MS = 15 * 60 * 1000;
 
 async function cleanupViewerPayloads() {
     const data = await chrome.storage.local.get(null);
     const now = Date.now();
-    const expired = Object.entries(data).filter(([key, value]) => key.startsWith('viewer_payload_')
-        && (!Number.isFinite(value?.expiresAt) || value.expiresAt <= now)).map(([key]) => key);
+    const expired = Object.entries(data).filter(([key, value]) =>
+        (key.startsWith('viewer_payload_') && (!Number.isFinite(value?.expiresAt) || value.expiresAt <= now))
+        || (key.startsWith('handoff_') && (!Number.isFinite(value?.createdAt) || value.createdAt + HANDOFF_PAYLOAD_TTL_MS <= now))
+    ).map(([key]) => key);
     if (expired.length) await chrome.storage.local.remove(expired);
 }
 
@@ -714,7 +733,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             case 'open_ai_assistants':
                 if ((await readEffectivePolicy()).settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
-                await openAiAssistantTabs(message.providers, message.prompt, message.meetingTitle);
+                await openAiAssistantTabs(message.providers, message.prompt, message.meetingTitle, message);
                 break;
 
             case 'display_captions':
