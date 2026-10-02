@@ -730,13 +730,16 @@ async function loadSessionList() {
         const sessionManager = new SessionManager();
         const sessions = await sessionManager.getSessionIndex();
         const stats = await sessionManager.getStorageStats();
+        const {archive_last_error: archiveError} = await chrome.storage.local.get('archive_last_error');
         
         if (!sessions || sessions.length === 0) {
             UI_ELEMENTS.sessionList.innerHTML = '<div style="text-align: center; color: var(--ck-text-muted);">No saved sessions</div>';
             return;
         }
         
-        let html = '';
+        let html = archiveError?.retryable
+            ? `<div class="error-message">A completed transcript could not be archived. Its recovery snapshot was retained; use Retry archive below.</div>`
+            : '';
         for (const session of sessions) {
             const timeAgo = getTimeAgo(new Date(session.timestamp));
             html += `
@@ -752,6 +755,7 @@ async function loadSessionList() {
                     <div class="session-actions">
                         <button class="session-btn view-btn" data-id="${session.id}">View</button>
                         <button class="session-btn export-btn" data-id="${session.id}">Export</button>
+                        ${session.id.startsWith('backup_') ? `<button class="session-btn retry-btn" data-id="${session.id}">Retry archive</button>` : ''}
                         <button class="session-btn delete" data-id="${session.id}">Delete</button>
                     </div>
                 </div>
@@ -761,7 +765,7 @@ async function loadSessionList() {
         // Add storage info
         html += `
             <div class="storage-info">
-                Storage: ${stats.usedMB}MB / ${stats.quotaMB}MB (${stats.percentUsed}%)
+                Local archive: ${stats.usedMB} MB used. Capacity is managed by this browser profile.
                 <button id="clearAllSessions" style="margin-left: 10px; font-size: 11px; color: var(--ck-danger); background: none; border: none; cursor: pointer; text-decoration: underline;">Clear All</button>
             </div>
         `;
@@ -775,6 +779,19 @@ async function loadSessionList() {
         
         document.querySelectorAll('.export-btn').forEach(btn => {
             btn.addEventListener('click', (e) => exportSession(e.target.dataset.id));
+        });
+        document.querySelectorAll('.retry-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const button = e.currentTarget;
+                button.disabled = true;
+                try {
+                    await new SessionManager().retryRecovery(button.dataset.id);
+                    await loadSessionList();
+                } catch (error) {
+                    alert(error.message);
+                    button.disabled = false;
+                }
+            });
         });
         
         document.querySelectorAll('.session-btn.delete').forEach(btn => {

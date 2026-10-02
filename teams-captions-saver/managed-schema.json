@@ -10,7 +10,7 @@
     "disableEvidenceEmail": { "type": "boolean" },
     "disableAttendeeCapture": { "type": "boolean" },
     "disableSessionHistory": { "type": "boolean" },
-    "maxStoredSessions": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "maxStoredSessions": { "type": "integer", "minimum": 1, "maximum": 10000 },
     "sessionRetentionDays": { "type": "integer", "minimum": 1, "maximum": 365 },
     "allowedAiProviders": { "type": "array", "items": { "type": "string" } },
     "chatgptWorkspaceUrl": { "type": "string" },

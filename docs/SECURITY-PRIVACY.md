@@ -7,7 +7,7 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 ## Data flow
 
 1. Provider-specific content scripts read captions already rendered by Teams, Google Meet, or Zoom Web.
-2. Active transcript recovery checkpoints and completed-session history remain in `chrome.storage.local`. The default completed-history limit is ten sessions; managed policy can lower the limit, apply an age limit, or disable indexed completed-session history.
+2. Active transcript recovery checkpoints and the completed-meeting archive remain in `chrome.storage.local`. The archive does not silently evict older records; managed policy can explicitly set a count limit, apply an age limit, or disable completed-session storage.
 3. User preferences remain in `chrome.storage.sync`; temporary aliases remain in `chrome.storage.session`.
 4. Exports are staged locally and opened in the extension's save page. The browser or user selects the final location.
 5. AI handoff opens an internal review page. Transcript text is never placed in the external provider URL and is never pasted or submitted automatically.
@@ -17,7 +17,8 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 
 ## Permissions
 
-- `storage`: session history, recovery checkpoints, preferences, managed configuration, and temporary handoff/export jobs.
+- `storage`: local transcript archive, recovery checkpoints, preferences, managed configuration, and temporary handoff/export jobs.
+- `unlimitedStorage`: removes the Storage API's default 10 MB quota for the local archive; it does not upload, synchronize, or guarantee physical device capacity.
 - `downloads`: user-directed TXT and Markdown exports.
 - `activeTab`: popup interaction with the active supported meeting tab.
 - `sidePanel`: the local Evidence Board beside a supported meeting tab.

@@ -677,14 +677,14 @@ test('viewer includes branded header and purposeful empty state',()=>{
     assert(script.includes('function renderViewerState'));
     assert(script.includes('Ready when your meeting is'));
 });
-test('eleventh history save evicts oldest and retains newest prior session',async()=>{
+test('local archive retains more than a workday without automatic eviction',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
-    h.data.session_index=Array.from({length:10},(_,i)=>({id:'old_'+i,timestamp:new Date(2020,0,10-i).toISOString(),chunkCount:1}));
+    h.data.session_index=Array.from({length:25},(_,i)=>({id:'old_'+i,timestamp:new Date(2026,8,25-i).toISOString(),chunkCount:1}));
+    for(let i=0;i<25;i++) h.data[`old_${i}_chunk_0`]=[{Text:`archive ${i}`}];
     const manager=h.run('new SessionManager(true)');
-    await manager.saveSession([{Name:'A',Text:'Synthetic',Time:'10:00'}],'Test');
-    assert.equal(h.data.session_index.length,10);
-    assert(h.data.session_index.some(s=>s.id==='old_0'));
-    assert(!h.data.session_index.some(s=>s.id==='old_9'));
+    await manager.saveSession([{Name:'A',Text:'Synthetic',Time:'10:00'}],'Test',null,{sourceSessionId:'meeting-new'});
+    assert.equal(h.data.session_index.length,26);
+    for(let i=0;i<25;i++) assert(h.data.session_index.some(s=>s.id===`old_${i}`));
 });
 test('managed history options prune expired sessions and lower the session maximum',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
@@ -710,27 +710,30 @@ test('quota rejection preserves existing history',async()=>{
     await assert.rejects(h.run('new SessionManager(true)').saveSession([{Name:'A',Text:'new',Time:'10'}],'New'),/QUOTA/);
     assert.equal(h.data.session_index[0].id,'keep');assert.equal(h.data.keep_chunk_0[0].Text,'keep');
 });
-test('quota-boundary save evicts before staging and rollback restores the prior index',async()=>{
+test('idempotent archive replacement publishes one generation and removes obsolete chunks',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
-    h.data.session_index=[{id:'old',timestamp:'2020-01-01T00:00:00Z',chunkCount:1,size:2000}];
-    h.data.old_chunk_0=[{Text:'x'.repeat(2000)}];
     const manager=h.run('new SessionManager(true)');
-    manager.STORAGE_QUOTA=JSON.stringify(h.data).length;
-    const saved=await manager.saveSession([{Name:'A',Text:'new',Time:'10:00'}],'New');
-    assert(!('old_chunk_0' in h.data));
+    const saved=await manager.saveSession([{Name:'A',Text:'draft',Time:'10:00'}],'New',null,{sourceSessionId:'stable-meeting',recordedAt:'2026-09-25T10:00:00Z'});
+    const firstPrefix=h.data.session_index[0].storagePrefix;
+    const repeated=await manager.saveSession([{Name:'A',Text:'final',Time:'10:00'}],'New',null,{sourceSessionId:'stable-meeting',recordedAt:'2026-09-25T10:00:00Z'});
+    assert.equal(repeated,saved);
     assert.equal(h.data.session_index.length,1);
-    assert.equal(h.data.session_index[0].id,saved);
+    assert.notEqual(h.data.session_index[0].storagePrefix,firstPrefix);
+    assert.equal(Object.keys(h.data).some(key=>key.startsWith(firstPrefix)),false);
+    assert.equal((await manager.loadSession(saved)).transcript[0].Text,'final');
+});
 
+test('failed archive replacement preserves the prior generation and removes staged data',async()=>{
     const rollback=harness();rollback.run(read('sessionManager.js'));
-    rollback.data.session_index=[{id:'keep',timestamp:'2020-01-01T00:00:00Z',chunkCount:1,size:2000}];
-    rollback.data.keep_chunk_0=[{Text:'y'.repeat(2000)}];
     const rollbackManager=rollback.run('new SessionManager(true)');
-    rollbackManager.STORAGE_QUOTA=JSON.stringify(rollback.data).length;
+    const saved=await rollbackManager.saveSession([{Name:'A',Text:'keep',Time:'10:00'}],'Keep',null,{sourceSessionId:'stable-meeting'});
+    const prior={...rollback.data.session_index[0]};
     rollback.area.failNext=values=>Object.hasOwn(values,'session_index');
-    await assert.rejects(rollbackManager.saveSession([{Name:'A',Text:'new',Time:'10:00'}],'New'),/QUOTA/);
-    assert.equal(rollback.data.session_index[0].id,'keep');
-    assert.equal(rollback.data.keep_chunk_0[0].Text.length,2000);
-    assert.equal(Object.keys(rollback.data).filter(key=>key.startsWith('session_')&&key!=='session_index').length,0);
+    await assert.rejects(rollbackManager.saveSession([{Name:'A',Text:'replace',Time:'10:00'}],'Keep',null,{sourceSessionId:'stable-meeting'}),/QUOTA/);
+    assert.equal(rollback.data.session_index[0].id,saved);
+    assert.equal(rollback.data.session_index[0].storagePrefix,prior.storagePrefix);
+    assert.equal((await rollbackManager.loadSession(saved)).transcript[0].Text,'keep');
+    assert.deepEqual(Object.keys(rollback.data).filter(key=>key.includes('_generation_')).sort(),[`${prior.storagePrefix}_chunk_0`]);
 });
 test('session mutations never persist transient recovery entries',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
@@ -744,6 +747,15 @@ test('missing chunks are reported rather than silently omitted',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'broken',chunkCount:2,captionCount:2}];h.data.broken_chunk_0=[];
     await assert.rejects(h.run('new SessionManager()').loadSession('broken'),/missing chunk/);
 });
+test('legacy completed sessions load without chunk migration or data loss',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[{id:'session_legacy',title:'Legacy',timestamp:'2026-09-01T12:00:00Z',chunkCount:1,captionCount:1}];
+    h.data.session_legacy_chunk_0=[{key:'source-1',Name:'A',Text:'authoritative raw',Time:'10:00'}];
+    const loaded=await h.run('new SessionManager()').loadSession('session_legacy');
+    assert.equal(loaded.transcript[0].Text,'authoritative raw');
+    assert.equal(loaded.transcript[0].key,'source-1');
+    assert.equal(h.data.session_index[0].storagePrefix,undefined);
+});
 test('legacy and document recovery snapshots are discoverable and readable',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.backup_example={transcript:[{Name:'A',Text:'recovered'}],lastBackup:new Date().toISOString()};
     const manager=h.run('new SessionManager()');assert.equal((await manager.getSessionIndex())[0].id,'backup_example');
@@ -753,6 +765,31 @@ test('worker acknowledges success and ignores unrelated messages',async()=>{
     const h=harness();h.run(read('service_worker.js'));
     assert.equal(h.chrome.listener({message:'live_caption_update'},{id:'test'},()=>{}),false);
     const result=await new Promise(resolve=>h.chrome.listener({message:'reset_aliases'},{id:'test'},resolve));assert.equal(result.ok,true);
+});
+test('archive failure remains visible and recovery retry commits before cleanup',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    h.data.backup_abc123={
+        transcript:[{Name:'A',Text:'retained recovery',Time:'10:00',capturedAt:'2026-09-25T10:00:00Z'}],
+        meetingTitle:'Retry meeting',recordingStartTime:'2026-09-25T10:00:00Z',lastBackup:'2026-09-25T10:01:00Z'
+    };
+    h.area.failNext=values=>Object.keys(values).some(key=>key.includes('_generation_'));
+    const failed=await new Promise(resolve=>h.chrome.listener({
+        message:'save_session_history',backupKey:'backup_abc123',recordingStartTime:'2026-09-25T10:00:00Z',
+        transcriptArray:h.data.backup_abc123.transcript,meetingTitle:'Retry meeting'
+    },{id:'test'},resolve));
+    assert.equal(failed.ok,false);
+    assert(h.data.backup_abc123);
+    assert.equal(h.data.archive_last_error.retryable,true);
+
+    const retried=await new Promise(resolve=>h.chrome.listener(
+        {message:'retry_archive',sessionId:'backup_abc123'},
+        {id:'test',url:'chrome-extension://test/popup.html'},resolve
+    ));
+    assert.equal(retried.ok,true);
+    assert.equal(h.data.backup_abc123,undefined);
+    assert.equal(h.data.archive_last_error,undefined);
+    assert.equal(h.data.session_index.length,1);
+    assert.equal((await h.run('new SessionManager()').loadSession(h.data.session_index[0].id)).transcript[0].Text,'retained recovery');
 });
 test('viewer launch payloads have a bounded lifetime and expired snapshots are removed',async()=>{
     const h=harness();h.run(read('service_worker.js'));

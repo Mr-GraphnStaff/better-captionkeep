@@ -104,7 +104,7 @@
                 locked.add(key);
             }
         }
-        for (const [key, minimum, maximum] of [['maxStoredSessions', 1, 10], ['sessionRetentionDays', 1, 365]]) {
+        for (const [key, minimum, maximum] of [['maxStoredSessions', 1, 10000], ['sessionRetentionDays', 1, 365]]) {
             if (Number.isInteger(managed[key]) && managed[key] >= minimum && managed[key] <= maximum) {
                 settings[key] = managed[key];
                 locked.add(key);

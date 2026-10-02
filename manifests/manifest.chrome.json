@@ -15,6 +15,7 @@
     "downloads",
     "activeTab",
     "storage",
+    "unlimitedStorage",
     "sidePanel"
   ],
   "side_panel": {

@@ -181,7 +181,7 @@ Managed settings override user controls:
 | `disableEvidenceEmail` | Boolean | Blocks Evidence Board mail-draft creation |
 | `disableAttendeeCapture` | Boolean | Stops and locks off Teams attendee collection |
 | `disableSessionHistory` | Boolean | Prevents completed-session history and clears indexed history |
-| `maxStoredSessions` | Integer 1–10 | Limits completed local session history |
+| `maxStoredSessions` | Integer 1–10,000 | Applies an explicit administrator maximum to the completed local archive; unset retains records until user deletion or another managed retention rule |
 | `sessionRetentionDays` | Integer 1–365 | Removes completed sessions older than the selected age |
 
 `disableSessionHistory` does not disable short-lived recovery checkpoints. Document that residual persistence in the organization's risk decision.

@@ -370,11 +370,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             : {ok: false, error: 'Capture surface is unavailable'});
         return false;
     }
-    const handled = new Set(['save_session_history','delete_session','clear_sessions','reset_aliases',
+    const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
-    if (['delete_session','clear_sessions'].includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
+    if (['retry_archive','delete_session','clear_sessions'].includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
 
@@ -389,13 +389,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
                             return;
                         }
-                        await manager.saveSession(message.transcriptArray, message.meetingTitle, message.attendeeReport);
+                        await manager.saveSession(message.transcriptArray, message.meetingTitle, message.attendeeReport, {
+                            sourceSessionId:message.recordingStartTime,
+                            recordedAt:message.recordingStartTime
+                        });
+                        await chrome.storage.local.remove('archive_last_error');
                         if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
                     });
                     historyQueue = operation.catch(() => {});
-                    await operation;
+                    try {
+                        await operation;
+                    } catch (error) {
+                        await chrome.storage.local.set({archive_last_error:{
+                            occurredAt:new Date().toISOString(),
+                            sourceSessionId:String(message.recordingStartTime || '').slice(0, 200),
+                            message:String(error?.message || 'Archive save failed').slice(0, 300),
+                            retryable:true
+                        }}).catch(() => {});
+                        throw error;
+                    }
                 }
                 break;
+            case 'retry_archive':
+                {
+                    if (!/^backup_[a-z0-9-]+$/i.test(message.sessionId || '')) throw new Error('Recovery snapshot is invalid');
+                    const operation = historyQueue.then(async () => {
+                        const policy = await readEffectivePolicy();
+                        if (policy.settings.disableSessionHistory) throw new Error('Transcript archive is disabled by your organization.');
+                        const backup = (await chrome.storage.local.get(message.sessionId))[message.sessionId];
+                        if (!Array.isArray(backup?.transcript) || !backup.transcript.length) throw new Error('Recovery snapshot not found');
+                        const archivedSessionId = await new SessionManager(true, historyOptions(policy.settings)).saveSession(
+                            backup.transcript,
+                            backup.meetingTitle,
+                            null,
+                            {sourceSessionId:backup.recordingStartTime, recordedAt:backup.recordingStartTime}
+                        );
+                        await chrome.storage.local.remove([message.sessionId, 'archive_last_error']);
+                        return archivedSessionId;
+                    });
+                    historyQueue = operation.catch(() => {});
+                    await operation;
+                    return;
+                }
             case 'delete_session':
             case 'clear_sessions':
                 {

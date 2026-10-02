@@ -137,7 +137,7 @@ The suggested classifications below are defaults. The adopting organization must
 | Data | Example fields | Location | Default sensitivity | Retention and release |
 | --- | --- | --- | --- | --- |
 | Active transcript | speaker, caption text, timestamp, stable key | Page memory and bounded recovery checkpoint in `storage.local` | Confidential; may become Restricted based on meeting content | Recovery is bounded to the same recent meeting page; release only through approved local actions |
-| Saved session | transcript chunks, title, preview, speakers, optional attendees | `storage.local` | Confidential or Restricted | Default maximum ten; managed maximum 1–10 and retention 1–365 days; user deletion available |
+| Archived session | transcript chunks, title, preview, speakers, optional attendees | `storage.local` with `unlimitedStorage` | Confidential or Restricted | Retained locally until user deletion or explicit managed maximum/retention; extension removal clears the archive |
 | Attendee data | name, role, join/leave observations | Memory, optional session history/export | Personal and Confidential | Can be disabled by managed policy; not available on every provider |
 | Evidence markers | caption snapshot, source key, category, user note | `storage.local` | Same classification as source meeting | Maximum 500 markers; explicit copy, file, or mail-draft action |
 | User preferences | formats, theme, filenames, AI destinations, masking terms | `storage.sync` | Internal; custom terms may reveal organizational vocabulary | Subject to browser-account sync behavior; no transcript history is included |
@@ -182,7 +182,7 @@ Managed values override user settings and are defined in `teams-captions-saver/m
 | `disableEvidenceEmail` | Blocks creation of an Evidence Board mail draft |
 | `disableAttendeeCapture` | Stops Teams attendee collection and locks related user controls off |
 | `disableSessionHistory` | Prevents completed-session history and clears existing indexed session history |
-| `maxStoredSessions` | Limits completed-session history to 1–10 sessions |
+| `maxStoredSessions` | Optional explicit limit of 1–10,000 archived sessions |
 | `sessionRetentionDays` | Removes completed sessions older than 1–365 days during policy enforcement and writes |
 
 `disableSessionHistory` does not disable short-lived crash/reload recovery checkpoints. A future policy may control recovery persistence separately if an adopting organization determines that resilience cannot be accepted for its data class.

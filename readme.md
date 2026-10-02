@@ -6,7 +6,7 @@
 
 [Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft Edge, including the Teams PWA. The next development track adds evidence-gated Zoom Web capture. Export TXT or Markdown, choose a save location, revisit saved sessions, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft Edge, including the Teams PWA. The next development track adds evidence-gated Zoom Web capture. Export TXT or Markdown, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
 ## Better CaptionKeep 5.0
 
@@ -38,7 +38,7 @@ Screenshots below show the current packaged HTML and styling rendered in Microso
 
 - Capture displayed Teams and Google Meet captions and available speaker information; development builds also capture the tested Zoom Web subtitle overlay with explicit `Unknown speaker` attribution.
 - Export TXT or Markdown with a choice of save location.
-- Reopen saved sessions and use speaker aliases.
+- Automatically archive completed meetings locally, reopen them after browser restart, and use speaker aliases. The archive does not silently evict older meetings; explicit user deletion and managed retention remain available.
 - Optionally include attendee information or hand a transcript to an AI provider.
 - Choose CaptionKeep, Light, Midnight, or Follow system appearance across every extension page.
 - Work in a branded transcript viewer with a sticky search, speaker-filter, copy, save, and history toolbar.

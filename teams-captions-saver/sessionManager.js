@@ -1,15 +1,13 @@
-// Session Manager - Handles storage of meeting history with size management
-// Local storage is quota limited across all keys; 8KB/item applies to sync storage.
+// Session Manager - durable local completed-meeting archive.
 
 class SessionManager {
     constructor(writer = false, options = {}) {
         this.writer = writer;
         const requestedMaximum = Number(options.maxStoredSessions);
         const requestedRetention = Number(options.sessionRetentionDays);
-        this.MAX_SESSIONS = Number.isInteger(requestedMaximum) ? Math.min(10, Math.max(1, requestedMaximum)) : 10;
+        this.MAX_SESSIONS = Number.isInteger(requestedMaximum) ? Math.min(10000, Math.max(1, requestedMaximum)) : null;
         this.RETENTION_DAYS = Number.isInteger(requestedRetention) ? Math.min(365, Math.max(1, requestedRetention)) : null;
-        this.MAX_CHUNK_SIZE = 7000; // Stay under 8KB limit per key
-        this.STORAGE_QUOTA = 8 * 1024 * 1024; // Reserve 8MB for sessions (leaving 2MB for settings)
+        this.MAX_CHUNK_SIZE = 256 * 1024;
     }
 
     // Calculate approximate size of data in bytes
@@ -25,7 +23,7 @@ class SessionManager {
 
         for (const item of transcriptArray) {
             const itemSize = this.calculateSize(item);
-            if (currentSize + itemSize > this.MAX_CHUNK_SIZE) {
+            if (currentChunk.length && currentSize + itemSize > this.MAX_CHUNK_SIZE) {
                 chunks.push([...currentChunk]);
                 currentChunk = [item];
                 currentSize = itemSize;
@@ -44,10 +42,11 @@ class SessionManager {
 
     sessionKeys(metadata) {
         const keys = [];
+        const prefix = metadata?.storagePrefix || metadata?.id;
         for (let index = 0; index < Number(metadata?.chunkCount || 0); index += 1) {
-            keys.push(`${metadata.id}_chunk_${index}`);
+            keys.push(`${prefix}_chunk_${index}`);
         }
-        if (metadata?.id) keys.push(`${metadata.id}_attendees`);
+        if (prefix) keys.push(`${prefix}_attendees`);
         return keys;
     }
 
@@ -69,7 +68,7 @@ class SessionManager {
     }
 
     async pruneExcessSessions() {
-        if (!this.writer) return 0;
+        if (!this.writer || !this.MAX_SESSIONS) return 0;
         const index = await this.getStoredIndex();
         if (index.length <= this.MAX_SESSIONS) return 0;
         const sorted = [...index].sort((a, b) => Date.parse(b.timestamp || '') - Date.parse(a.timestamp || ''));
@@ -81,21 +80,30 @@ class SessionManager {
         return excess.length;
     }
 
-    // Save a meeting session with automatic chunking
-    async saveSession(transcriptArray, meetingTitle, attendeeReport = null) {
+    // Stage a complete generation, publish metadata atomically, then remove the prior generation.
+    async saveSession(transcriptArray, meetingTitle, attendeeReport = null, options = {}) {
         try {
+            if (!Array.isArray(transcriptArray) || !transcriptArray.length) throw new Error('Cannot archive an empty transcript');
             await this.pruneExpiredSessions();
             await this.pruneExcessSessions();
-            const sessionId = `session_${crypto.randomUUID()}`;
+            const originalIndex = await this.getStoredIndex();
+            const sourceSessionId = String(options.sourceSessionId || '').trim().slice(0, 200);
+            const existing = sourceSessionId ? originalIndex.find(item => item.sourceSessionId === sourceSessionId) : null;
+            const sessionId = existing?.id || `session_${crypto.randomUUID()}`;
+            const storagePrefix = `${sessionId}_generation_${crypto.randomUUID()}`;
             const chunks = this.chunkTranscript(transcriptArray);
-            
-            // Create session metadata
+            const recordedAt = new Date(options.recordedAt || sourceSessionId || Date.now());
+            const timestamp = Number.isFinite(recordedAt.getTime()) ? recordedAt.toISOString() : new Date().toISOString();
             const metadata = {
                 id: sessionId,
+                archiveVersion: 1,
+                sourceSessionId:sourceSessionId || existing?.sourceSessionId || null,
+                storagePrefix,
                 title: meetingTitle || 'Untitled Meeting',
-                timestamp: new Date().toISOString(),
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString(),
+                timestamp,
+                archivedAt:new Date().toISOString(),
+                date: new Date(timestamp).toLocaleDateString(),
+                time: new Date(timestamp).toLocaleTimeString(),
                 captionCount: transcriptArray.length,
                 chunkCount: chunks.length,
                 duration: this.calculateDuration(transcriptArray),
@@ -105,53 +113,23 @@ class SessionManager {
                 preview: transcriptArray.slice(0, 3).map(c => `${c.Name}: ${c.Text.substring(0, 50)}`).join(' | '),
                 size: this.calculateSize(transcriptArray)
             };
-
-            // Evict before staging so a quota-sized save can succeed. Keep the
-            // evicted values in memory until commit so a failed write can roll
-            // back the exact prior history.
-            const staged = Object.fromEntries(chunks.map((chunk, index) => [`${sessionId}_chunk_${index}`, chunk]));
-            if (attendeeReport) staged[`${sessionId}_attendees`] = attendeeReport;
-            const originalIndex = await this.getStoredIndex();
-            let nextIndex = [...originalIndex, metadata].sort((a,b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
-            const oldest = [...originalIndex].sort((a,b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
-            const currentUsage = await this.getStorageUsage();
-            let storedIndexBytes = this.calculateSize(originalIndex);
-            try { storedIndexBytes = await chrome.storage.local.getBytesInUse('session_index'); } catch { /* use JSON estimate */ }
-            let evictedBytes = 0;
-            const estimateUsage = () => Math.max(0, currentUsage - storedIndexBytes - evictedBytes
-                + this.calculateSize(nextIndex) + this.calculateSize(staged));
-            const evicted = [];
-            while ((nextIndex.length > this.MAX_SESSIONS || estimateUsage() > this.STORAGE_QUOTA) && oldest.length) {
-                const session = oldest.shift();
-                const keys = this.sessionKeys(session);
-                const values = await chrome.storage.local.get(keys);
-                let bytes = Number(session.size || 0);
-                try { bytes = await chrome.storage.local.getBytesInUse(keys); } catch { /* use metadata estimate */ }
-                evicted.push({session, keys, values});
-                evictedBytes += bytes;
-                nextIndex = nextIndex.filter(item => item.id !== session.id);
-            }
-            if (nextIndex.length > this.MAX_SESSIONS || estimateUsage() > this.STORAGE_QUOTA) {
-                throw new Error('Transcript does not fit within the local session quota');
-            }
+            const staged = Object.fromEntries(chunks.map((chunk, index) => [`${storagePrefix}_chunk_${index}`, chunk]));
+            if (attendeeReport) staged[`${storagePrefix}_attendees`] = attendeeReport;
+            const nextIndex = [...originalIndex.filter(item => item.id !== sessionId), metadata]
+                .sort((a,b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
             try {
-                for (const item of evicted) await chrome.storage.local.remove(item.keys);
                 await chrome.storage.local.set(staged);
                 await chrome.storage.local.set({session_index:nextIndex});
             } catch (error) {
                 await chrome.storage.local.remove(Object.keys(staged));
-                if (evicted.length) {
-                    try {
-                        for (const item of evicted) await chrome.storage.local.set(item.values);
-                        await chrome.storage.local.set({session_index:originalIndex});
-                    } catch (rollbackError) {
-                        console.error('[SessionManager] Failed to restore evicted sessions after save failure:', rollbackError);
-                    }
-                }
                 throw error;
             }
-
-            console.log(`[SessionManager] Saved session ${sessionId} with ${chunks.length} chunks`);
+            if (existing) {
+                const obsolete = this.sessionKeys(existing);
+                if (obsolete.length) await chrome.storage.local.remove(obsolete);
+            }
+            await this.pruneExcessSessions();
+            console.log(`[SessionManager] Archived session ${sessionId} with ${chunks.length} chunks`);
             return sessionId;
             
         } catch (error) {
@@ -177,16 +155,17 @@ class SessionManager {
             }
 
             // Load all chunks
+            const storagePrefix = metadata.storagePrefix || sessionId;
             const chunkKeys = [];
             for (let i = 0; i < metadata.chunkCount; i++) {
-                chunkKeys.push(`${sessionId}_chunk_${i}`);
+                chunkKeys.push(`${storagePrefix}_chunk_${i}`);
             }
             
             const chunks = await chrome.storage.local.get(chunkKeys);
             const transcriptArray = [];
             
             for (let i = 0; i < metadata.chunkCount; i++) {
-                const chunk = chunks[`${sessionId}_chunk_${i}`];
+                const chunk = chunks[`${storagePrefix}_chunk_${i}`];
                 if (!Array.isArray(chunk)) throw new Error('Incomplete transcript: missing chunk. Remaining data was retained.');
                 transcriptArray.push(...chunk);
             }
@@ -194,12 +173,12 @@ class SessionManager {
             if (transcriptArray.length !== metadata.captionCount) throw new Error('Incomplete transcript: caption count mismatch');
 
             // Load attendee data if exists
-            const attendeeData = await chrome.storage.local.get(`${sessionId}_attendees`);
+            const attendeeData = await chrome.storage.local.get(`${storagePrefix}_attendees`);
             
             return {
                 transcript: transcriptArray,
                 metadata: metadata,
-                attendeeReport: attendeeData[`${sessionId}_attendees`] || null
+                attendeeReport: attendeeData[`${storagePrefix}_attendees`] || null
             };
             
         } catch (error) {
@@ -225,13 +204,7 @@ class SessionManager {
             
             if (!metadata) return;
 
-            // Delete all chunks
-            const keysToDelete = [];
-            for (let i = 0; i < metadata.chunkCount; i++) {
-                keysToDelete.push(`${sessionId}_chunk_${i}`);
-            }
-            keysToDelete.push(`${sessionId}_attendees`);
-            
+            const keysToDelete = this.sessionKeys(metadata);
             await chrome.storage.local.remove(keysToDelete);
             
             // Update index
@@ -243,6 +216,13 @@ class SessionManager {
         } catch (error) {
             throw error;
         }
+    }
+
+    async retryRecovery(sessionId) {
+        if (this.writer) throw new Error('Archive retry must be requested from an extension page');
+        const result = await chrome.runtime.sendMessage({message:'retry_archive', sessionId});
+        if (!result?.ok) throw new Error(result?.error || 'Archive retry failed');
+        return result.sessionId;
     }
 
     // Get list of all sessions
@@ -271,16 +251,6 @@ class SessionManager {
         
         // Add new metadata
         index.push(metadata);
-        
-        // Keep only recent sessions
-        if (index.length > this.MAX_SESSIONS) {
-            // Delete oldest sessions
-            const toDelete = index.slice(0, index.length - this.MAX_SESSIONS);
-            for (const session of toDelete) {
-                await this.deleteSession(session.id);
-            }
-            index = index.slice(-this.MAX_SESSIONS);
-        }
         
         // Sort by timestamp (newest first)
         index.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -312,20 +282,6 @@ class SessionManager {
         return chrome.storage.local.getBytesInUse(null);
     }
 
-    // Clean up old sessions to make room
-    async cleanupOldSessions(requiredSpace) {
-        const index = await this.getStoredIndex();
-        let freedSpace = 0;
-        
-        // Delete oldest sessions first
-        for (const session of [...index].sort((a,b) => Date.parse(a.timestamp)-Date.parse(b.timestamp))) {
-            if (freedSpace >= requiredSpace) break;
-            
-            freedSpace += session.size || 0;
-            await this.deleteSession(session.id);
-        }
-    }
-
     // Get storage statistics
     async getStorageStats() {
         const usage = await this.getStorageUsage();
@@ -334,8 +290,8 @@ class SessionManager {
         return {
             usedBytes: usage,
             usedMB: (usage / (1024 * 1024)).toFixed(2),
-            quotaMB: (this.STORAGE_QUOTA / (1024 * 1024)).toFixed(2),
-            percentUsed: ((usage / this.STORAGE_QUOTA) * 100).toFixed(1),
+            quotaMB: null,
+            percentUsed: null,
             sessionCount: index.length,
             oldestSession: index[index.length - 1]?.date || 'N/A',
             newestSession: index[0]?.date || 'N/A'

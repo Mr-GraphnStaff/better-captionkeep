@@ -9,7 +9,8 @@
   "permissionJustifications": {
     "downloads": "Used to save user-requested or user-configured transcript exports as TXT or Markdown files and to open the browser's default downloads folder when requested. The permission is not used to download remote content.",
     "activeTab": "Used when the user opens the extension popup to identify the active supported meeting tab and communicate with the extension's caption-capture content script. Access is limited to the user-invoked active-tab workflow.",
-    "storage": "Used for extension preferences, capture-recovery checkpoints, pending exports, temporary speaker aliases, and up to ten locally saved transcript sessions. Managed enterprise settings are also read through the browser's managed-storage system. The developer does not operate a transcript-storage service.",
+    "storage": "Used for extension preferences, capture-recovery checkpoints, pending exports, temporary speaker aliases, and the user-controlled local transcript archive. Managed enterprise settings are also read through the browser's managed-storage system. The developer does not operate a transcript-storage service.",
+    "unlimitedStorage": "Allows the local transcript archive to retain more than chrome.storage.local's default 10 MB quota without silently evicting older meetings. Archive data remains on this browser profile until the user deletes it, the extension is removed, or an explicit managed retention policy applies.",
     "sidePanel": "Used to display the live transcript, recovery status, speaker tools, search, Scrubby privacy controls, and export actions alongside the supported meeting page. The side panel is opened only as part of the user's local caption-capture workflow and does not transmit transcript data to a developer-operated service."
   },
   "hostPermissions": [
