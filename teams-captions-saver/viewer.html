@@ -418,12 +418,24 @@
             font-size: 13px;
             color: #6c757d;
         }
+
+        .correction-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .correction-controls select, .dictionary-editor textarea { border: 1px solid var(--ck-border); border-radius: 6px; padding: 7px; background: var(--ck-surface); color: var(--ck-text); }
+        .caption-correction-actions { display: flex; gap: 6px; margin-top: 6px; }
+        .caption-correction-actions button { border: 1px solid var(--ck-border); background: var(--ck-surface-soft); color: var(--ck-text); border-radius: 5px; padding: 3px 7px; cursor: pointer; }
+        .caption.correction-applied { border-left: 3px solid var(--ck-success, #17803d); }
+        .caption.correction-conflict { border-left: 3px solid var(--ck-danger, #b42318); }
+        .correction-note { font-size: 12px; color: var(--ck-text-muted); }
+        .dictionary-editor { width: min(620px, calc(100vw - 48px)); color: var(--ck-text); }
+        .dictionary-editor textarea { display: block; width: 100%; min-height: 180px; box-sizing: border-box; margin: 12px 0; font-family: monospace; }
+        .dictionary-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     </style>
     <link rel="stylesheet" href="theme.css">
     <script src="theme.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="sessionManager.js" defer></script>
+    <script src="correctionManager.js" defer></script>
     <script src="viewer.js" defer></script>
 </head>
 <body>
@@ -442,6 +454,15 @@
                 <input type="search" id="search-box" placeholder="Search transcript..." aria-label="Search transcript">
                 <div id="speaker-filters" class="speaker-filters">
                     <button id="show-all-btn" class="active" aria-label="Show all speakers">Show All</button>
+                </div>
+                <div class="correction-controls" aria-label="Transcript correction tools">
+                    <label for="transcript-version">View</label>
+                    <select id="transcript-version">
+                        <option value="corrected">Corrected transcript</option>
+                        <option value="raw">Original transcript</option>
+                    </select>
+                    <button id="dictionary-btn" class="export-btn" type="button">Local dictionary</button>
+                    <span id="correction-status" class="correction-note" role="status"></span>
                 </div>
                 <div class="export-controls">
                     <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
@@ -479,6 +500,23 @@
             </main>
         </div>
     </div>
+
+    <dialog id="dictionary-dialog" class="dictionary-editor">
+        <form method="dialog">
+            <h2>Local terminology dictionary</h2>
+            <p>One literal replacement per line: <code>heard phrase =&gt; preferred phrase</code>. Saving never rewrites prior transcripts.</p>
+            <textarea id="dictionary-text" maxlength="120000" aria-label="Terminology replacements"></textarea>
+            <label><input id="dictionary-case" type="checkbox"> Case sensitive</label>
+            <label><input id="dictionary-whole-word" type="checkbox" checked> Whole words only</label>
+            <p id="dictionary-status" class="correction-note" role="status"></p>
+            <div class="dictionary-actions">
+                <button id="dictionary-save" type="button">Save dictionary</button>
+                <button id="dictionary-preview" type="button">Preview current transcript</button>
+                <button id="dictionary-apply" type="button">Apply to current transcript</button>
+                <button value="cancel">Close</button>
+            </div>
+        </form>
+    </dialog>
     
     <!-- Session History Modal -->
     <div id="sessionModal" class="modal">

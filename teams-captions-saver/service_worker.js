@@ -115,6 +115,10 @@ async function resolveSavePreferences({ forAutoSave = false } = {}) {
 
 
 const AI_ASSISTANT_TARGETS = {chatgpt:true, claude:true, claude_console:true, copilot:true, gemini:true};
+const TRANSCRIPT_VERSION_NOTICES = new Set([
+    'Transcript version: Corrected derivative. The original provider transcript is retained locally.',
+    'Transcript version: Original provider transcript. Local corrections were not included.'
+]);
 
 async function openAiAssistantTabs(providers, prompt, meetingTitle) {
     if (!Array.isArray(providers) || !providers.length || typeof prompt !== 'string') return;
@@ -265,7 +269,7 @@ async function generateFilename(pattern, meetingTitle, format, attendeeReport, r
     return filename;
 }
 
-async function saveTranscript(meetingTitle, transcriptArray, aliases, format, recordingStartTime, saveOptions = {}, attendeeReport = null) {
+async function saveTranscript(meetingTitle, transcriptArray, aliases, format, recordingStartTime, saveOptions = {}, attendeeReport = null, versionNotice = '') {
     const processedTranscript = applyAliasesToTranscript(transcriptArray, aliases);
     const processedAttendeeReport = applyAliasesToAttendeeReport(attendeeReport, aliases);
 
@@ -299,6 +303,11 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
             extension = 'txt';
             mimeType = 'text/plain';
             break;
+    }
+    if (versionNotice) {
+        content = normalizedFormat === 'md'
+            ? `> ${versionNotice}\n\n${content}`
+            : `${versionNotice}\n\n${content}`;
     }
 
     // Add extension to filename
@@ -499,7 +508,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         message.format,
                         message.recordingStartTime,
                         saveOptions,
-                        output.attendeeReport
+                        output.attendeeReport,
+                        TRANSCRIPT_VERSION_NOTICES.has(message.versionNotice) ? message.versionNotice : ''
                     );
                 }
                 break;

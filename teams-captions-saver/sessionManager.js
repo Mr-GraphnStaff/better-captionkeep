@@ -40,13 +40,18 @@ class SessionManager {
         return chunks;
     }
 
-    sessionKeys(metadata) {
+    sessionKeys(metadata, includeCorrections = true) {
         const keys = [];
         const prefix = metadata?.storagePrefix || metadata?.id;
         for (let index = 0; index < Number(metadata?.chunkCount || 0); index += 1) {
             keys.push(`${prefix}_chunk_${index}`);
         }
         if (prefix) keys.push(`${prefix}_attendees`);
+        const correctionSessionId = includeCorrections && (metadata?.sourceSessionId || metadata?.id);
+        if (correctionSessionId) {
+            const encoded = encodeURIComponent(String(correctionSessionId).trim()).replace(/%/g, '_').slice(0, 240);
+            if (encoded) keys.push(`transcript_corrections_${encoded}`);
+        }
         return keys;
     }
 
@@ -128,7 +133,7 @@ class SessionManager {
                 throw error;
             }
             if (existing) {
-                const obsolete = this.sessionKeys(existing);
+                const obsolete = this.sessionKeys(existing, false);
                 if (obsolete.length) await chrome.storage.local.remove(obsolete);
             }
             await this.pruneExcessSessions();

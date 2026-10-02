@@ -10,9 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionModal = document.getElementById('sessionModal');
     const sessionListModal = document.getElementById('sessionListModal');
     const closeModal = document.querySelector('.close-modal');
+    const transcriptVersion = document.getElementById('transcript-version');
+    const dictionaryBtn = document.getElementById('dictionary-btn');
+    const dictionaryDialog = document.getElementById('dictionary-dialog');
+    const dictionaryText = document.getElementById('dictionary-text');
+    const dictionaryCase = document.getElementById('dictionary-case');
+    const dictionaryWholeWord = document.getElementById('dictionary-whole-word');
+    const dictionaryStatus = document.getElementById('dictionary-status');
+    const correctionStatus = document.getElementById('correction-status');
 
     // --- State ---
     let allCaptions = [];
+    let rawCaptions = [];
+    let correctionSet = {records:{}};
+    let correctionStatuses = {};
+    const correctionManager = new CaptionKeepCorrections.CorrectionManager();
     let historical = false;
     let sourceTabId = null;
     let sourceSessionId = null;
@@ -82,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Live Update Functions ---
     function appendNewCaption(caption) {
         // Add to data array
+        rawCaptions.push(caption);
         allCaptions.push(caption);
         
         // Create HTML for new caption
@@ -128,6 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateExistingCaption(caption) {
+        const rawIndex = rawCaptions.findIndex(c => c.key === caption.key);
+        if (rawIndex !== -1) rawCaptions[rawIndex] = caption;
+        const correctionKey = CaptionKeepCorrections.sourceKey(caption, rawIndex < 0 ? 0 : rawIndex);
+        if (correctionSet.records[correctionKey]) {
+            renderCorrectionView();
+            return;
+        }
         const captionElement = captionsContainer.querySelector(`[data-index="${allCaptions.findIndex(c => c.key === caption.key)}"]`);
         if (captionElement) {
             const textElement = captionElement.querySelector('.text');
@@ -228,8 +248,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
             </svg>`;
         
+        const source = rawCaptions[index] || item;
+        const key = CaptionKeepCorrections.sourceKey(source, index);
+        const status = correctionStatuses[key] || '';
+        const correctionActions = sourceSessionId ? `
+            <div class="caption-correction-actions">
+                <button type="button" class="edit-correction">${status === 'applied' ? 'Edit correction' : 'Correct text'}</button>
+                ${correctionSet.records[key] ? '<button type="button" class="undo-correction">Undo correction</button>' : ''}
+                ${status === 'conflict' ? '<span class="correction-note">Source changed; review required. Original shown.</span>' : ''}
+            </div>` : '';
         return `
-            <div class="caption" data-speaker="${escapeHtml(item.Name)}" data-index="${index}">
+            <div class="caption ${status ? `correction-${status}` : ''}" data-speaker="${escapeHtml(item.Name)}" data-index="${index}">
                 <button class="copy-btn" title="Copy this line" aria-label="Copy this line">
                     ${copyIconSVG}
                     <span class="tooltip-text">Copy</span>
@@ -239,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="time">${escapeHtml(item.Time)}</span>
                 </div>
                 <p class="text">${escapeHtml(item.Text)}</p>
+                ${correctionActions}
             </div>
         `;
     }
@@ -252,6 +282,90 @@ document.addEventListener('DOMContentLoaded', () => {
             renderViewerState('No captions yet', 'New caption lines will appear here when someone speaks.', { mark: '…' });
         }
         updateExportButtonStates();
+    }
+
+    function renderCorrectionView() {
+        if (transcriptVersion.value === 'raw') {
+            correctionStatuses = {};
+            renderCaptions(rawCaptions.map(caption => ({...caption})));
+            correctionStatus.textContent = 'Original provider transcript. Corrections are preserved separately.';
+            return;
+        }
+        const result = CaptionKeepCorrections.applyCorrectionRecords(rawCaptions, correctionSet);
+        correctionStatuses = result.statuses;
+        renderCaptions(result.transcript);
+        correctionStatus.textContent = `${result.appliedCount} correction${result.appliedCount === 1 ? '' : 's'} applied${result.conflictCount ? `; ${result.conflictCount} needs review` : ''}.`;
+    }
+
+    async function loadCorrectionContext(transcript, sessionId) {
+        rawCaptions = (Array.isArray(transcript) ? transcript : []).map(caption => ({...caption}));
+        sourceSessionId = sessionId || sourceSessionId;
+        correctionSet = sourceSessionId ? await correctionManager.getCorrections(sourceSessionId) : {records:{}};
+        renderCorrectionView();
+    }
+
+    async function handleCorrectionClick(event) {
+        const editButton = event.target.closest('.edit-correction');
+        const undoButton = event.target.closest('.undo-correction');
+        if (!editButton && !undoButton) return;
+        const captionElement = event.target.closest('.caption');
+        const index = Number(captionElement?.dataset.index);
+        const rawCaption = rawCaptions[index];
+        if (!rawCaption || !sourceSessionId) return;
+        if (undoButton) {
+            correctionSet = await correctionManager.undoCorrection(sourceSessionId, rawCaption, index);
+        } else {
+            const key = CaptionKeepCorrections.sourceKey(rawCaption, index);
+            const current = correctionSet.records[key]?.replacementText ?? rawCaption.Text;
+            const replacement = prompt('Correct this caption. The original remains preserved locally.', current);
+            if (replacement === null) return;
+            await correctionManager.saveCorrection(sourceSessionId, rawCaption, index, replacement);
+            correctionSet = await correctionManager.getCorrections(sourceSessionId);
+        }
+        transcriptVersion.value = 'corrected';
+        renderCorrectionView();
+    }
+
+    async function openDictionary() {
+        const dictionary = await correctionManager.getDictionary();
+        dictionaryText.value = dictionary.entries.map(entry => `${entry.term} => ${entry.replacement}`).join('\n');
+        dictionaryCase.checked = dictionary.entries.length ? dictionary.entries.every(entry => entry.caseSensitive) : false;
+        dictionaryWholeWord.checked = dictionary.entries.length ? dictionary.entries.every(entry => entry.wholeWord) : true;
+        dictionaryStatus.textContent = '';
+        dictionaryDialog.showModal();
+    }
+
+    function readDictionaryEditor() {
+        return CaptionKeepCorrections.parseDictionaryText(dictionaryText.value, {
+            caseSensitive:dictionaryCase.checked,
+            wholeWord:dictionaryWholeWord.checked
+        });
+    }
+
+    async function saveDictionary() {
+        const dictionary = await correctionManager.saveDictionary(readDictionaryEditor());
+        dictionaryStatus.textContent = `Saved ${dictionary.entries.length} local term${dictionary.entries.length === 1 ? '' : 's'}. Prior transcripts were not changed.`;
+        return dictionary;
+    }
+
+    async function previewDictionary() {
+        const dictionary = {...await correctionManager.getDictionary(), entries:readDictionaryEditor()};
+        const preview = correctionManager.previewDictionary(rawCaptions, dictionary);
+        const examples = preview.changes.slice(0, 5).map(change => {
+            const before = String(rawCaptions[change.index]?.Text || '').slice(0, 80);
+            return `“${before}” → “${change.text.slice(0, 80)}”`;
+        });
+        dictionaryStatus.textContent = `${preview.changes.length} caption${preview.changes.length === 1 ? '' : 's'} would change. Nothing was saved.${examples.length ? ` Preview: ${examples.join(' | ')}` : ''}`;
+    }
+
+    async function applyDictionary() {
+        if (!sourceSessionId) throw new Error('Open a live or archived transcript before applying dictionary terms.');
+        const dictionary = await saveDictionary();
+        const preview = await correctionManager.applyDictionary(sourceSessionId, rawCaptions, dictionary);
+        correctionSet = await correctionManager.getCorrections(sourceSessionId);
+        transcriptVersion.value = 'corrected';
+        renderCorrectionView();
+        dictionaryStatus.textContent = `Applied reversible corrections to ${preview.appliedChanges.length} caption${preview.appliedChanges.length === 1 ? '' : 's'}${preview.skippedManualChanges.length ? `; preserved ${preview.skippedManualChanges.length} manual edit${preview.skippedManualChanges.length === 1 ? '' : 's'}` : ''}.`;
     }
 
     function populateSpeakerFilters(transcriptArray) {
@@ -402,6 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ? CaptionKeepPrivacyScrubber.scrubTranscript(captions, scrubOptions)
             : { transcript: captions, replacements: [] };
     }
+
+    function transcriptVersionNotice() {
+        const hasCorrections = Object.keys(correctionSet.records || {}).length > 0;
+        if (!hasCorrections) return '';
+        return transcriptVersion.value === 'corrected'
+            ? 'Transcript version: Corrected derivative. The original provider transcript is retained locally.'
+            : 'Transcript version: Original provider transcript. Local corrections were not included.';
+    }
     
     async function handleCopyAllClick() {
         await refreshViewerPolicy();
@@ -417,7 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const output = prepareOutput(visibleCaptions);
-        const textToCopy = formatTranscriptForExport(output.transcript);
+        const notice = transcriptVersionNotice();
+        const textToCopy = [notice, formatTranscriptForExport(output.transcript)].filter(Boolean).join('\n\n');
         
         try {
             await navigator.clipboard.writeText(textToCopy);
@@ -445,8 +568,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const {defaultSaveFormat = 'txt'} = await chrome.storage.sync.get('defaultSaveFormat');
             const output = prepareOutput(visibleCaptions);
+            const notice = transcriptVersionNotice();
             const result = await chrome.runtime.sendMessage({message:'download_captions', transcriptArray:output.transcript,
-                format:defaultSaveFormat, meetingTitle:document.querySelector('h1').textContent});
+                format:defaultSaveFormat, meetingTitle:document.querySelector('h1').textContent,
+                versionNotice:notice});
             if (!result?.ok) throw new Error(result?.error || 'Could not prepare export');
             showNotification('Export ready. Choose a destination on the save page.', 'success');
         } catch (error) { showNotification(error.message,'error'); }
@@ -547,11 +672,17 @@ document.addEventListener('DOMContentLoaded', () => {
         searchBox.addEventListener('input', debouncedApplyFilters);
         speakerFiltersContainer.addEventListener('click', handleSpeakerFilterClick);
         captionsContainer.addEventListener('click', handleCopyClick);
+        captionsContainer.addEventListener('click', event => handleCorrectionClick(event).catch(error => showNotification(error.message, 'warning')));
         copyAllBtn.addEventListener('click', handleCopyAllClick);
         saveAllBtn.addEventListener('click', handleSaveAllClick);
         
         // Session history handlers
         historyBtn.addEventListener('click', showSessionHistory);
+        transcriptVersion.addEventListener('change', renderCorrectionView);
+        dictionaryBtn.addEventListener('click', () => openDictionary().catch(error => showNotification(error.message, 'warning')));
+        document.getElementById('dictionary-save').addEventListener('click', () => saveDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
+        document.getElementById('dictionary-preview').addEventListener('click', () => previewDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
+        document.getElementById('dictionary-apply').addEventListener('click', () => applyDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
         closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
@@ -633,21 +764,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Load the transcript
             historical = true;
             sourceTabId = null;
-            allCaptions = sessionData.transcript;
+            sourceSessionId = sessionData.metadata.sourceSessionId || sessionData.metadata.id;
             isLiveStreaming = false; // Historical data, not live
             
             // Update title
             document.querySelector('h1').innerHTML = `${escapeHtml(sessionData.metadata.title)} <span style="font-size: 0.5em; color: var(--ck-text-muted);">(Historical)</span>`;
             
             // Calculate and display analytics
-            const analytics = calculateAnalytics(allCaptions);
+            const analytics = calculateAnalytics(sessionData.transcript);
             if (analytics) {
                 displayAnalytics(analytics);
             }
             
             // Render the transcript
-            renderCaptions(allCaptions);
-            populateSpeakerFilters(allCaptions);
+            await loadCorrectionContext(sessionData.transcript, sourceSessionId);
+            populateSpeakerFilters(sessionData.transcript);
             
             // Clear any live indicators
             const liveIndicator = document.getElementById('live-indicator');
@@ -695,7 +826,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (session) {
                 if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
                 const saved = await new SessionManager().loadSession(session);
-                viewerData = {transcriptArray:saved.transcript, meetingTitle:saved.metadata.title, isHistorical:true};
+                viewerData = {
+                    transcriptArray:saved.transcript,
+                    meetingTitle:saved.metadata.title,
+                    sessionId:saved.metadata.sourceSessionId || saved.metadata.id,
+                    isHistorical:true
+                };
             } else if (payload?.startsWith('viewer_payload_')) {
                 viewerData = (await chrome.storage.local.get(payload))[payload];
                 await chrome.storage.local.remove(payload);
@@ -743,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayAnalytics(analytics);
                 }
                 
-                renderCaptions(transcript);
+                await loadCorrectionContext(transcript, sourceSessionId);
                 populateSpeakerFilters(transcript);
 
                 

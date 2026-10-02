@@ -46,6 +46,64 @@ function harness() {
 test('all shipped scripts parse',()=>{
     for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))) new vm.Script(read(name),{filename:name});
 });
+
+test('local terminology dictionary applies literal longest matches with Unicode word boundaries',()=>{
+    const context=vm.createContext({globalThis:null});context.globalThis=context;
+    vm.runInContext(read('correctionManager.js'),context);
+    const api=context.CaptionKeepCorrections;
+    const entries=api.parseDictionaryText('contoso => Contoso Ltd\ncontoso cloud => Contoso Cloud\na.b => literal', {wholeWord:true});
+    const result=api.applyDictionaryToText('contoso cloud, CONTOSO and a.b; incontoso stays.',{entries});
+    assert.equal(result.text,'Contoso Cloud, Contoso Ltd and literal; incontoso stays.');
+    assert.equal(result.matches.length,3);
+    assert.throws(()=>api.parseDictionaryText('missing separator'),/must use/);
+});
+
+test('corrections preserve raw captions, are reversible, and detect provider revisions',async()=>{
+    const h=harness();
+    vm.runInContext(read('correctionManager.js'),h.context);
+    const {CorrectionManager,applyCorrectionRecords}=h.context.CaptionKeepCorrections;
+    const manager=new CorrectionManager();
+    const raw=[{key:'provider-1',Name:'Ada',Time:'10:00',Text:'ship teh build'}];
+    await manager.saveCorrection('meeting-1',raw[0],0,'ship the build');
+    const stored=await manager.getCorrections('meeting-1');
+    assert.equal(raw[0].Text,'ship teh build');
+    assert.equal(applyCorrectionRecords(raw,stored).transcript[0].Text,'ship the build');
+    const revised=[{...raw[0],Text:'ship teh production build'}];
+    const conflict=applyCorrectionRecords(revised,stored);
+    assert.equal(conflict.transcript[0].Text,revised[0].Text);
+    assert.equal(conflict.conflictCount,1);
+    await manager.undoCorrection('meeting-1',raw[0],0);
+    assert.equal(Object.keys((await manager.getCorrections('meeting-1')).records).length,0);
+});
+
+test('dictionary preview does not rewrite history and quota failure preserves prior corrections',async()=>{
+    const h=harness();
+    vm.runInContext(read('correctionManager.js'),h.context);
+    const manager=new h.context.CaptionKeepCorrections.CorrectionManager();
+    const raw=[{key:'c1',Name:'A',Text:'project orion'}];
+    const dictionary=await manager.saveDictionary([{term:'orion',replacement:'Orion',wholeWord:true}]);
+    const preview=manager.previewDictionary(raw,dictionary);
+    assert.equal(preview.transcript[0].Text,'project Orion');
+    assert.equal(Object.keys((await manager.getCorrections('s1')).records).length,0);
+    await manager.saveCorrection('s1',raw[0],0,'project Orion');
+    h.area.fail=true;
+    await assert.rejects(()=>manager.saveCorrection('s1',raw[0],0,'replacement lost'),/QUOTA_BYTES/);
+    h.area.fail=false;
+    assert.equal((await manager.getCorrections('s1')).records.c1.replacementText,'project Orion');
+});
+
+test('explicit dictionary apply preserves reviewed manual edits',async()=>{
+    const h=harness();vm.runInContext(read('correctionManager.js'),h.context);
+    const manager=new h.context.CaptionKeepCorrections.CorrectionManager();
+    const raw=[{key:'manual',Text:'acme'},{key:'dictionary',Text:'acme'}];
+    await manager.saveCorrection('s2',raw[0],0,'ACME reviewed');
+    const dictionary=await manager.saveDictionary([{term:'acme',replacement:'Acme Corp',wholeWord:true}]);
+    const result=await manager.applyDictionary('s2',raw,dictionary);
+    const stored=await manager.getCorrections('s2');
+    assert.equal(stored.records.manual.replacementText,'ACME reviewed');
+    assert.equal(stored.records.dictionary.replacementText,'Acme Corp');
+    assert.equal(result.skippedManualChanges.length,1);
+});
 test('provider registry resolves adapters without leaking provider selectors',()=>{
     const context=vm.createContext({URL,globalThis:null});
     context.globalThis=context;
@@ -768,6 +826,17 @@ test('legacy completed sessions load without chunk migration or data loss',async
     assert.equal(loaded.transcript[0].Text,'authoritative raw');
     assert.equal(loaded.transcript[0].key,'source-1');
     assert.equal(h.data.session_index[0].storagePrefix,undefined);
+});
+test('session deletion removes its corrections but keeps the shared dictionary',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[{id:'session-delete',sourceSessionId:'capture-delete',storagePrefix:'generation-delete',chunkCount:1}];
+    h.data['generation-delete_chunk_0']=[{key:'c1',Text:'raw'}];
+    h.data['transcript_corrections_capture-delete']={records:{c1:{originalText:'raw',replacementText:'corrected'}}};
+    h.data.terminology_dictionary_v1={entries:[{term:'raw',replacement:'preferred'}]};
+    await h.run('new SessionManager(true)').deleteSession('session-delete');
+    assert.equal(h.data['generation-delete_chunk_0'],undefined);
+    assert.equal(h.data['transcript_corrections_capture-delete'],undefined);
+    assert(h.data.terminology_dictionary_v1);
 });
 test('legacy and document recovery snapshots are discoverable and readable',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.backup_example={transcript:[{Name:'A',Text:'recovered'}],lastBackup:new Date().toISOString()};
