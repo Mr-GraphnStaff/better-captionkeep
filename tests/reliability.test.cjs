@@ -69,18 +69,50 @@ function storedZipEntries(bytes) {
     return entries;
 }
 
+function validateStoredZipDirectory(bytes, crc32) {
+    const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+    let end=-1;
+    for(let offset=bytes.length-22;offset>=0;offset-=1) {
+        if(view.getUint32(offset,true)===0x06054b50) { end=offset; break; }
+    }
+    assert(end>=0,'ZIP end-of-central-directory record is missing');
+    const count=view.getUint16(end+10,true);
+    const centralSize=view.getUint32(end+12,true);
+    const centralOffset=view.getUint32(end+16,true);
+    let cursor=centralOffset;
+    for(let index=0;index<count;index+=1) {
+        assert.equal(view.getUint32(cursor,true),0x02014b50);
+        const expectedCrc=view.getUint32(cursor+16,true);
+        const expectedSize=view.getUint32(cursor+20,true);
+        const nameLength=view.getUint16(cursor+28,true);
+        const extraLength=view.getUint16(cursor+30,true);
+        const commentLength=view.getUint16(cursor+32,true);
+        const localOffset=view.getUint32(cursor+42,true);
+        assert.equal(view.getUint32(localOffset,true),0x04034b50);
+        const localNameLength=view.getUint16(localOffset+26,true);
+        const localExtraLength=view.getUint16(localOffset+28,true);
+        const dataStart=localOffset+30+localNameLength+localExtraLength;
+        const data=bytes.subarray(dataStart,dataStart+expectedSize);
+        assert.equal(crc32(data),expectedCrc);
+        cursor+=46+nameLength+extraLength+commentLength;
+    }
+    assert.equal(cursor,centralOffset+centralSize);
+    assert.equal(cursor,end);
+}
+
 test('DOCX export is valid OOXML with Unicode, escaped text, and source provenance',()=>{
     const context=vm.createContext({TextEncoder,Uint8Array,btoa,globalThis:null});context.globalThis=context;
     vm.runInContext(read('exportProfiles.js'),context);
     const source=[
         {key:'source-α',Time:'10:00',Name:'Zoë & Co',Text:'Café <launch> & résumé'},
-        {key:'source-2',Time:'10:01',Name:'',Text:'Line one\nLine two'},
+        {key:'source-2',Time:'10:01',Name:'',Text:'Line one\nLine two\u0001\u000b\ufffe'},
         {key:'source-3',Time:'',Name:'李',Text:'x'.repeat(20000)}
     ];
     const before=JSON.stringify(source);
     const profile=context.CaptionKeepExportProfiles.createProfile({format:'docx',meetingTitle:'R&D <review>',transcript:source});
     const bytes=Uint8Array.from(atob(profile.content),character=>character.charCodeAt(0));
     const entries=storedZipEntries(bytes);
+    validateStoredZipDirectory(bytes,context.CaptionKeepExportProfiles.crc32);
     assert.deepEqual(Object.keys(entries),['[Content_Types].xml','_rels/.rels','word/document.xml']);
     assert.match(entries['[Content_Types].xml'],/wordprocessingml\.document\.main\+xml/);
     assert.match(entries['_rels/.rels'],/Target="word\/document\.xml"/);
@@ -89,6 +121,8 @@ test('DOCX export is valid OOXML with Unicode, escaped text, and source provenan
     assert(entries['word/document.xml'].includes('Unknown speaker'));
     assert(entries['word/document.xml'].includes('Source caption: source-α'));
     assert(entries['word/document.xml'].includes('<w:br/>'));
+    assert(!/[\u0001\u000b\ufffe]/u.test(entries['word/document.xml']));
+    assert(entries['word/document.xml'].includes('Line two���'));
     assert(entries['word/document.xml'].includes('x'.repeat(20000)));
     assert.equal(profile.mimeType,'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     assert.equal(profile.timingBasis,'source-display-or-observation-time');
