@@ -113,6 +113,9 @@ class SessionManager {
                 preview: transcriptArray.slice(0, 3).map(c => `${c.Name}: ${c.Text.substring(0, 50)}`).join(' | '),
                 size: this.calculateSize(transcriptArray)
             };
+            if (this.isExpired(metadata)) {
+                throw new Error('This recovery snapshot is outside the managed transcript retention period.');
+            }
             const staged = Object.fromEntries(chunks.map((chunk, index) => [`${storagePrefix}_chunk_${index}`, chunk]));
             if (attendeeReport) staged[`${storagePrefix}_attendees`] = attendeeReport;
             const nextIndex = [...originalIndex.filter(item => item.id !== sessionId), metadata]

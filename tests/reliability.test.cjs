@@ -705,6 +705,16 @@ test('managed history options prune expired sessions and lower the session maxim
     await manager.saveSession([{Name:'A',Text:'new',Time:'10:00',capturedAt:'2026-09-26T12:00:00Z'}],'New');
     assert.equal(h.data.session_index.length,5);
 });
+test('managed retention rejects an old retry before publishing archive data',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    const manager=h.run('new SessionManager(true,{sessionRetentionDays:1})');
+    await assert.rejects(
+        manager.saveSession([{Name:'A',Text:'old',Time:'10:00'}],'Old',null,{sourceSessionId:'2020-01-01T00:00:00Z',recordedAt:'2020-01-01T00:00:00Z'}),
+        /outside the managed transcript retention period/
+    );
+    assert.deepEqual(h.data.session_index || [],[]);
+    assert.equal(Object.keys(h.data).some(key=>key.includes('_generation_')),false);
+});
 test('quota rejection preserves existing history',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.session_index=[{id:'keep',chunkCount:1}];h.data.keep_chunk_0=[{Text:'keep'}];h.area.fail=true;
     await assert.rejects(h.run('new SessionManager(true)').saveSession([{Name:'A',Text:'new',Time:'10'}],'New'),/QUOTA/);
@@ -770,8 +780,11 @@ test('archive failure remains visible and recovery retry commits before cleanup'
     const h=harness();h.run(read('service_worker.js'));
     h.data.backup_abc123={
         transcript:[{Name:'A',Text:'retained recovery',Time:'10:00',capturedAt:'2026-09-25T10:00:00Z'}],
-        meetingTitle:'Retry meeting',recordingStartTime:'2026-09-25T10:00:00Z',lastBackup:'2026-09-25T10:01:00Z'
+        meetingTitle:'Retry meeting',recordingStartTime:'2026-09-25T10:00:00Z',lastBackup:'2026-09-25T10:01:00Z',
+        surfaceId:'teams-tab-7',documentSessionId:'abc123',
+        attendeeData:{allAttendees:['Ada'],currentAttendees:[['Ada','Presenter']],attendeeHistory:[{name:'Ada',action:'joined'}]}
     };
+    h.data['active_capture_v2_teams-tab-7']={...h.data.backup_abc123};
     h.area.failNext=values=>Object.keys(values).some(key=>key.includes('_generation_'));
     const failed=await new Promise(resolve=>h.chrome.listener({
         message:'save_session_history',backupKey:'backup_abc123',recordingStartTime:'2026-09-25T10:00:00Z',
@@ -788,8 +801,24 @@ test('archive failure remains visible and recovery retry commits before cleanup'
     assert.equal(retried.ok,true);
     assert.equal(h.data.backup_abc123,undefined);
     assert.equal(h.data.archive_last_error,undefined);
+    assert.equal(h.data['active_capture_v2_teams-tab-7'],undefined);
     assert.equal(h.data.session_index.length,1);
-    assert.equal((await h.run('new SessionManager()').loadSession(h.data.session_index[0].id)).transcript[0].Text,'retained recovery');
+    const loaded=await h.run('new SessionManager()').loadSession(h.data.session_index[0].id);
+    assert.equal(loaded.transcript[0].Text,'retained recovery');
+    assert.equal(loaded.attendeeReport.attendeeList[0],'Ada');
+    assert.equal(loaded.attendeeReport.currentAttendees[0].role,'Presenter');
+});
+test('recovery retry does not clear a newer active capture on the same surface',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    h.data.backup_old={transcript:[{Name:'A',Text:'old recovery',Time:'10:00'}],meetingTitle:'Old',
+        recordingStartTime:'2026-09-25T10:00:00Z',lastBackup:'2026-09-25T10:01:00Z',surfaceId:'teams-tab-7',documentSessionId:'old'};
+    h.data['active_capture_v2_teams-tab-7']={...h.data.backup_old,recordingStartTime:'2026-09-25T11:00:00Z',documentSessionId:'new'};
+    const retried=await new Promise(resolve=>h.chrome.listener(
+        {message:'retry_archive',sessionId:'backup_old'},
+        {id:'test',url:'chrome-extension://test/popup.html'},resolve
+    ));
+    assert.equal(retried.ok,true);
+    assert.equal(h.data['active_capture_v2_teams-tab-7'].documentSessionId,'new');
 });
 test('viewer launch payloads have a bounded lifetime and expired snapshots are removed',async()=>{
     const h=harness();h.run(read('service_worker.js'));

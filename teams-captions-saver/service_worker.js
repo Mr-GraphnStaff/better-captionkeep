@@ -13,6 +13,40 @@ function historyOptions(settings = {}) {
     };
 }
 
+function attendeeReportFromBackup(backup) {
+    if (backup?.attendeeReport) return backup.attendeeReport;
+    const data = backup?.attendeeData;
+    if (!data || typeof data !== 'object') return null;
+    const attendeeList = Array.isArray(data.allAttendees) ? data.allAttendees.map(String) : [];
+    const currentEntries = Array.isArray(data.currentAttendees) ? data.currentAttendees : [];
+    return {
+        meetingStartTime:data.meetingStartTime || null,
+        lastUpdated:data.lastUpdated || null,
+        totalUniqueAttendees:attendeeList.length,
+        currentAttendeeCount:currentEntries.length,
+        attendeeList,
+        currentAttendees:currentEntries.map(entry => ({name:String(entry?.[0] || ''), role:String(entry?.[1] || 'Attendee')})),
+        attendeeHistory:Array.isArray(data.attendeeHistory) ? data.attendeeHistory : []
+    };
+}
+
+async function removeMatchingActiveCheckpoint(backup) {
+    const surfaceId = String(backup?.surfaceId || '').replace(/[^a-z0-9_-]/gi, '_');
+    if (!surfaceId) return false;
+    const providerId = String(backup?.providerId || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const candidates = [`active_capture_v2_${surfaceId}`];
+    if (providerId) candidates.push(`active_capture_v3_${providerId}_${surfaceId}`);
+    const stored = await chrome.storage.local.get(candidates);
+    const matching = candidates.filter(key => {
+        const active = stored[key];
+        if (!active || active.recordingStartTime !== backup.recordingStartTime) return false;
+        if (backup.documentSessionId && active.documentSessionId !== backup.documentSessionId) return false;
+        return !backup.backupKey || !active.backupKey || active.backupKey === backup.backupKey;
+    });
+    if (matching.length) await chrome.storage.local.remove(matching);
+    return matching.length > 0;
+}
+
 async function applyManagedHistoryPolicy() {
     const policy = await readEffectivePolicy();
     const manager = new SessionManager(true, historyOptions(policy.settings));
@@ -421,9 +455,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         const archivedSessionId = await new SessionManager(true, historyOptions(policy.settings)).saveSession(
                             backup.transcript,
                             backup.meetingTitle,
-                            null,
+                            attendeeReportFromBackup(backup),
                             {sourceSessionId:backup.recordingStartTime, recordedAt:backup.recordingStartTime}
                         );
+                        await removeMatchingActiveCheckpoint(backup);
                         await chrome.storage.local.remove([message.sessionId, 'archive_last_error']);
                         return archivedSessionId;
                     });
