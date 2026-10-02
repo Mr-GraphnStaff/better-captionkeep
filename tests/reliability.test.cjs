@@ -683,13 +683,15 @@ test('viewer includes branded header and purposeful empty state',()=>{
 test('viewer archive search is keyboard-accessible, source-linked, and stale-query safe',()=>{
     const html=read('viewer.html');
     const script=read('viewer.js');
-    for(const id of ['archiveSearchForm','archiveSearchQuery','archiveSearchTitle','archiveSearchSpeaker','archiveSearchFrom','archiveSearchTo','archiveSearchOrder','archiveSearchResults']) {
+    for(const id of ['archiveSearchForm','archiveSearchQuery','archiveSearchTitle','archiveSearchSpeaker','archiveSearchFrom','archiveSearchTo','archiveSearchOrder','archiveSearchResults','archiveSearchPrevious','archiveSearchNext']) {
         assert(html.includes(`id="${id}"`));
     }
     assert(script.includes('generation !== archiveSearchGeneration'));
     assert(script.includes('viewer.html?session=${encodeURIComponent(result.sessionId)}&caption=${result.captionIndex}'));
     assert(script.includes('focusCaption(Number(caption))'));
     assert(script.includes('disableSessionHistory'));
+    assert(script.includes('more matches are available'));
+    assert(script.includes("if (historical && /^\\d+$/.test(caption || '')) autoScroll = false"));
 });
 test('local archive retains more than a workday without automatic eviction',async()=>{
     const h=harness();h.run(read('sessionManager.js'));
@@ -813,8 +815,22 @@ test('archive search stays bounded across a thousand retained meetings',async()=
     const started=Date.now();
     const response=await h.run('new SessionManager()').searchSessions('needle',{limit:25});
     assert.equal(response.results.length,25);
-    assert.equal(response.searchedSessions,25);
+    assert.equal(response.hasMore,true);
+    assert(response.searchedSessions>=26);
+    const last=await h.run('new SessionManager()').searchSessions('needle',{limit:25,offset:975});
+    assert.equal(last.results.length,25);
+    assert.equal(last.results[0].sourceKey,'key-24');
+    assert.equal(last.hasMore,false);
     assert(Date.now()-started<1000);
+});
+test('archive speaker filter searches captions beyond truncated metadata speakers',async()=>{
+    const h=harness();h.run(read('sessionManager.js'));
+    h.data.session_index=[{id:'many-speakers',title:'Meeting',timestamp:'2026-09-25T12:00:00Z',chunkCount:1,captionCount:1,
+        speakers:Array.from({length:10},(_,index)=>`Speaker ${index}`)}];
+    h.data['many-speakers_chunk_0']=[{key:'hidden-speaker',Name:'Speaker 11',Text:'discoverable decision',Time:'10:00'}];
+    const response=await h.run('new SessionManager()').searchSessions('decision',{speaker:'Speaker 11'});
+    assert.equal(response.results.length,1);
+    assert.equal(response.results[0].sourceKey,'hidden-speaker');
 });
 test('legacy and document recovery snapshots are discoverable and readable',async()=>{
     const h=harness();h.run(read('sessionManager.js'));h.data.backup_example={transcript:[{Name:'A',Text:'recovered'}],lastBackup:new Date().toISOString()};

@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const archiveSearchForm = document.getElementById('archiveSearchForm');
     const archiveSearchResults = document.getElementById('archiveSearchResults');
     const archiveSearchStatus = document.getElementById('archiveSearchStatus');
+    const archiveSearchPagination = document.getElementById('archiveSearchPagination');
+    const archiveSearchPrevious = document.getElementById('archiveSearchPrevious');
+    const archiveSearchNext = document.getElementById('archiveSearchNext');
     const closeModal = document.querySelector('.close-modal');
 
     // --- State ---
@@ -27,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let enterprisePolicy = {};
     let enterprisePolicyReady = Promise.resolve();
     let archiveSearchGeneration = 0;
+    let archiveSearchOffset = 0;
     
     // Live streaming state
     let isLiveStreaming = false;
@@ -558,6 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
         historyBtn.addEventListener('click', showSessionHistory);
         archiveSearchForm.addEventListener('submit', handleArchiveSearch);
         document.getElementById('clearArchiveSearch').addEventListener('click', clearArchiveSearch);
+        archiveSearchPrevious.addEventListener('click', () => changeArchiveSearchPage(-1));
+        archiveSearchNext.addEventListener('click', () => changeArchiveSearchPage(1));
         closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
@@ -635,12 +641,23 @@ document.addEventListener('DOMContentLoaded', () => {
             dateFrom:from ? `${from}T00:00:00` : '',
             dateTo:through ? `${through}T23:59:59.999` : '',
             order:document.getElementById('archiveSearchOrder').value,
-            limit:100
+            limit:100,
+            offset:archiveSearchOffset
         };
     }
 
     async function handleArchiveSearch(event) {
         event.preventDefault();
+        archiveSearchOffset = 0;
+        await runArchiveSearch();
+    }
+
+    async function changeArchiveSearchPage(direction) {
+        archiveSearchOffset = Math.max(0, archiveSearchOffset + (direction * 100));
+        await runArchiveSearch();
+    }
+
+    async function runArchiveSearch() {
         const generation = ++archiveSearchGeneration;
         const query = document.getElementById('archiveSearchQuery').value.trim();
         if (!query) return;
@@ -673,8 +690,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             archiveSearchResults.hidden = false;
             const skipped = response.skippedSessions.length;
+            archiveSearchPrevious.disabled = archiveSearchOffset === 0;
+            archiveSearchNext.disabled = !response.hasMore;
+            archiveSearchPagination.hidden = archiveSearchOffset === 0 && !response.hasMore;
+            const rangeStart = response.results.length ? archiveSearchOffset + 1 : 0;
+            const rangeEnd = archiveSearchOffset + response.results.length;
             archiveSearchStatus.textContent = response.results.length
-                ? `${response.results.length} result${response.results.length === 1 ? '' : 's'} across ${response.searchedSessions} meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`
+                ? `Showing matches ${rangeStart}-${rangeEnd}${response.hasMore ? '; more matches are available' : ''} across ${response.searchedSessions} meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`
                 : `No matches in ${response.searchedSessions} readable meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`;
         } catch (error) {
             if (generation !== archiveSearchGeneration) return;
@@ -690,6 +712,8 @@ document.addEventListener('DOMContentLoaded', () => {
         archiveSearchStatus.textContent = '';
         archiveSearchResults.replaceChildren();
         archiveSearchResults.hidden = true;
+        archiveSearchPagination.hidden = true;
+        archiveSearchOffset = 0;
     }
     
     window.loadSessionFromHistory = async function(sessionId, captionIndex = null) {
@@ -812,6 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
             historical = !!viewerData?.isHistorical;
             sourceTabId = viewerData?.sourceTabId ?? null;
             sourceSessionId = viewerData?.sessionId ?? null;
+            if (historical && /^\d+$/.test(caption || '')) autoScroll = false;
             if (viewerData?.meetingTitle) document.querySelector('h1').textContent = viewerData.meetingTitle + (historical ? ' (Historical)' : '');
             setupEventListeners();
             // Use viewerData if captionsToView is not available

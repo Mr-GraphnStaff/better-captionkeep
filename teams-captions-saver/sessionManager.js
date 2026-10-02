@@ -266,27 +266,35 @@ class SessionManager {
         const from = options.dateFrom ? Date.parse(options.dateFrom) : Number.NEGATIVE_INFINITY;
         const to = options.dateTo ? Date.parse(options.dateTo) : Number.POSITIVE_INFINITY;
         const newestFirst = options.order !== 'oldest';
-        const limit = Math.min(500, Math.max(1, Number(options.limit) || 100));
+        const limit = Math.min(100, Math.max(1, Number(options.limit) || 100));
+        const offset = Math.min(1000000, Math.max(0, Number(options.offset) || 0));
         const index = (await this.getStoredIndex()).filter(metadata => {
             const timestamp = Date.parse(metadata.timestamp || '');
             if (Number.isFinite(from) && (!Number.isFinite(timestamp) || timestamp < from)) return false;
             if (Number.isFinite(to) && (!Number.isFinite(timestamp) || timestamp > to)) return false;
             if (titleFilter && !this.normalizeSearchValue(metadata.title).includes(titleFilter)) return false;
-            if (speakerFilter && !(metadata.speakers || []).some(speaker => this.normalizeSearchValue(speaker).includes(speakerFilter))) return false;
             return true;
         }).sort((left, right) => (newestFirst ? -1 : 1) * (Date.parse(left.timestamp) - Date.parse(right.timestamp)));
         const results = [];
         const skippedSessions = [];
         let searchedSessions = 0;
-        for (const metadata of index) {
-            if (results.length >= limit) break;
+        let matchingCaptions = 0;
+        let hasMore = false;
+        searchLoop: for (const metadata of index) {
             try {
                 const session = await this.loadSession(metadata.id);
                 searchedSessions += 1;
                 for (const [captionIndex, caption] of session.transcript.entries()) {
                     const text = this.normalizeSearchValue(caption?.Text);
                     const speaker = this.normalizeSearchValue(caption?.Name);
+                    if (speakerFilter && !speaker.includes(speakerFilter)) continue;
                     if (!text.includes(needle) && !speaker.includes(needle)) continue;
+                    matchingCaptions += 1;
+                    if (matchingCaptions <= offset) continue;
+                    if (results.length >= limit) {
+                        hasMore = true;
+                        break searchLoop;
+                    }
                     results.push({
                         sessionId:metadata.id,
                         captionIndex,
@@ -298,13 +306,19 @@ class SessionManager {
                         time:String(caption?.Time || 'time unavailable'),
                         snippet:this.createSearchSnippet(caption?.Text, needle)
                     });
-                    if (results.length >= limit) break;
                 }
             } catch (error) {
                 skippedSessions.push({sessionId:metadata.id, title:metadata.title || 'Untitled Meeting', error:String(error.message || 'Unreadable archive')});
             }
         }
-        return {results, searchedSessions, skippedSessions};
+        return {
+            results,
+            searchedSessions,
+            skippedSessions,
+            offset,
+            hasMore,
+            nextOffset:hasMore ? offset + results.length : null
+        };
     }
 
     // Update session index with new metadata
