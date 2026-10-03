@@ -65,7 +65,7 @@ Run:
 npm run build:intune
 ```
 
-Generated files are written to `dist/intune`:
+Generated files are written to `dist/prod/intune-edge`:
 
 - `edge-extension-settings.json` — importable JSON for Edge `ExtensionSettings` management;
 - `edge-extension-force-install.txt` — the equivalent `ExtensionInstallForcelist` value;
@@ -82,7 +82,7 @@ Run:
 npm run build:intune:local-only
 ```
 
-The bundle in `dist/intune-local-only` is the recommended starting point for a security-sensitive pilot. It:
+The bundle in `dist/prod/intune-local-only` is the recommended starting point for a security-sensitive pilot. It:
 
 - disables AI handoff;
 - disables clipboard release;
@@ -102,7 +102,7 @@ The committed Chrome Store identity is recorded in `deployment/intune/profile.ch
 npm run build:intune:chrome
 ```
 
-The bundle is written to `dist/intune-chrome/` with Chrome-specific `ExtensionSettings`, force-install, detection, and remediation files. It uses Google's official Chrome Web Store update URL and writes managed values only beneath the Chrome policy path.
+The bundle is written to `dist/prod/intune-chrome/` with Chrome-specific `ExtensionSettings`, force-install, detection, and remediation files. It uses Google's official Chrome Web Store update URL and writes managed values only beneath the Chrome policy path.
 
 If an organization intentionally uses a different Chrome Store or private identity, supply that reviewed 32-character ID through `CAPTIONKEEP_CHROME_EXTENSION_ID`. Do not use an unverified ID copied from a test or unpacked installation.
 

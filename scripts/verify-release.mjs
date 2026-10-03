@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
+const prodDir = path.join(distDir, 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^tmp$)/i;
 
 async function filesUnder(root, relative = '') {
@@ -28,8 +29,8 @@ const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
 const forbiddenSource = sourceFiles.filter(file => file.split('/').some(part => forbidden.test(part)));
 if (forbiddenSource.length) throw new Error(`Store source contains forbidden files: ${forbiddenSource.join(', ')}`);
-for (const target of ['chrome', 'edge']) {
-  const root = path.join(distDir, `${target}-unpacked`);
+for (const target of ['dev', 'uat']) {
+  const root = path.join(distDir, target);
   const files = await filesUnder(root);
   const bad = files.filter(file => file.split('/').some(part => forbidden.test(part)));
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
@@ -38,30 +39,27 @@ for (const target of ['chrome', 'edge']) {
   for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
-  const zips = (await readdir(distDir)).filter(name =>
-    name.endsWith(`-${sourceManifest.version}.zip`) && name.includes(`${target}_test`)
-  );
-  if (zips.length !== 1) throw new Error(`Expected one ${target} test ZIP, found ${zips.length}`);
-  const zipPath = path.join(distDir, zips[0]);
-  artifacts.push({ target, path: zips[0], bytes: (await stat(zipPath)).size, sha256: await sha256(zipPath) });
+  const expectedName = target === 'dev' ? 'Better CaptionKeep - Development' : 'Better CaptionKeep - UAT Release Candidate';
+  if (manifest.name !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
+  if (!manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
 }
 
 const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;
-const storeZipPath = path.join(distDir, storeZipName);
+const storeZipPath = path.join(prodDir, storeZipName);
 artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(storeZipPath)).size, sha256: await sha256(storeZipPath) });
 
 const chromeStoreZipName = `better_captionkeep-chrome-${sourceManifest.version}.zip`;
-const chromeStoreZipPath = path.join(distDir, 'chrome-store', chromeStoreZipName);
-artifacts.push({ target: 'chrome-store', path: `chrome-store/${chromeStoreZipName}`, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
+const chromeStoreZipPath = path.join(prodDir, chromeStoreZipName);
+artifacts.push({ target: 'chrome-store', path: chromeStoreZipName, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
 
-const intuneDir = path.join(distDir, 'intune');
+const intuneDir = path.join(prodDir, 'intune-edge');
 for (const name of ['edge-extension-settings.json', 'edge-extension-force-install.txt', 'managed-policy.json', 'detect-managed-policy.ps1', 'remediate-managed-policy.ps1']) {
   const filePath = path.join(intuneDir, name);
-  artifacts.push({ target: 'intune', path: `intune/${name}`, bytes: (await stat(filePath)).size, sha256: await sha256(filePath) });
+  artifacts.push({ target: 'intune', path: `intune-edge/${name}`, bytes: (await stat(filePath)).size, sha256: await sha256(filePath) });
 }
 
 const safeProjectRoot = projectRoot.replaceAll('\\', '/');
 const commit = execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
 const provenance = { product: 'Better CaptionKeep', version: sourceManifest.version, commit, createdAt: new Date().toISOString(), artifacts };
-await writeFile(path.join(distDir, 'release-provenance.json'), `${JSON.stringify(provenance, null, 2)}\n`, 'utf8');
+await writeFile(path.join(prodDir, 'release-provenance.json'), `${JSON.stringify(provenance, null, 2)}\n`, 'utf8');
 console.log(JSON.stringify(provenance, null, 2));

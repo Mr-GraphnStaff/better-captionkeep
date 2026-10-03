@@ -14,6 +14,14 @@ not a claim that every promotion requirement has passed.
 | **UAT / Release Candidate** (`bck-release-candidate`) | The single `release/<version>` branch | Complete candidate build, immutable artifacts, live Chrome/Edge UAT, review, and the unchanged-candidate window | `master` |
 | **Production** (`bck-store-production`) | Protected `master` plus an immutable signed/tagged GitHub release | Approved hashes, provenance, release decision, and explicit Store approval | Chrome Web Store and Edge Add-ons |
 
+The generated workspace mirrors those lanes and has no fourth environment:
+
+- `dist/dev`
+- `dist/uat`
+- `dist/prod`
+
+Do not create timestamped candidates, browser-specific UAT folders, feature-review copies, or nested release snapshots. Rebuild the appropriate fixed lane instead.
+
 Feature work does not move directly to production. Candidate defects return to
 Development through a scoped fix and reset the affected UAT evidence. Production
 never rebuilds source: it promotes the exact reviewed candidate artifacts.

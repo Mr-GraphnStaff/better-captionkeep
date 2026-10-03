@@ -118,7 +118,7 @@ test('extras enforce bounds, reject non-PNG content, deduplicate and keep speech
 });
 
 test('All settings shares popup form, is registered for all browser targets, and preserves narrow hosts', () => {
-    for (const file of ['teams-captions-saver/manifest.json','manifests/manifest.chrome.json','manifests/manifest.edge.json','manifests/manifest.chrome-store.json']) {
+    for (const file of ['teams-captions-saver/manifest.json','manifests/manifest.chrome-store.json']) {
         const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'));
         assert.deepEqual(manifest.options_ui, {page:'settings.html', open_in_tab:true});
         assert(!manifest.host_permissions.includes('<all_urls>'));

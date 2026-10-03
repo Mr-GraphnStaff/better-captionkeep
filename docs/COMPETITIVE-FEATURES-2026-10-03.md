@@ -55,11 +55,10 @@ The previously confirmed build-tool audit findings remain release blockers. Keep
 
 - 173 automated tests passed, zero failures.
 - Extension validation, Store metadata consistency, JavaScript syntax and patch whitespace checks passed.
-- Chrome/Edge unpacked review folders and test ZIPs were built in
-  `P:\Projects\better-captionkeep\dist\feature-review-20261003`.
-- The configured `dist/edge-unpacked` folder was not replaced or reloaded.
-  The review folder does not contain its private dev/UAT Graph overlay; loading
-  from a different folder can change the extension ID and OAuth callback.
+- The temporary Chrome/Edge review folders were reconciled into the source tree
+  and removed. Current release-candidate validation uses only `dist/uat`.
+- The UAT manifest now carries a stable identity key; ad hoc review paths are not
+  supported because they create duplicate extension identities and OAuth callbacks.
 - No live browser/provider/model/cloud upload validation is claimed.
 - Original MIT attribution is retained; unrelated `.gitignore` and `docs/public/`
   edits remain untouched and no commit/PR merge/Store publication was performed.

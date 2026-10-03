@@ -20,7 +20,7 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 - [x] Chrome, Edge, and Chrome Store manifests declare the identity permission and exact Microsoft hosts.
 - [x] Administrator registration, consent, validation, and rollback runbook.
 - [x] Internal Chrome/Edge test builds may use an ignored local Graph configuration overlay generated only after packaging.
-- [x] The service worker accepts that overlay only for exact development test manifests; Store builds continue to require managed organizational policy.
+- [x] The service worker accepts that overlay only for the exact UAT release-candidate manifest; Store builds continue to require managed organizational policy.
 - [x] Complete long-meeting BYOAI handoff preserves the full local evidence set and requires explicit user sharing.
 - [x] Durable local transcript history, bounded paged search, and managed retention preserve recovery and provenance boundaries.
 - [x] Reversible caption corrections and the local terminology dictionary retain the immutable raw transcript separately.

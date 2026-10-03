@@ -18,20 +18,15 @@ Graph discovery across user calendars, and the existing provider quick starts.
 
 ## Project-local builds
 
-- Existing configured Edge QA folder: `dist/edge-unpacked`.
-- Frozen recovered snapshot: `dist/release-5.3-d904259e3a81`.
-- Configured frozen Edge copy:
-  `dist/release-5.3-d904259e3a81/edge-unpacked-qa-configured`.
+The temporary recovery, frozen, and configured Edge folders were reconciled and
+removed after this evidence was recorded. Generated output now has exactly three
+fixed lifecycle locations: `dist/dev`, `dist/uat`, and `dist/prod`.
 
-All 149 files copied into the recovered snapshot matched their original SHA256
-hashes. Every file in the configured Edge snapshot matched the existing live
-Edge QA folder. The live QA folder was not rebuilt, moved, or overwritten.
-
-Keep loading the existing Edge QA path: moving an unpacked extension can change
-its identity and Microsoft OAuth callback. The generic browser-target builder
-recreates its output folders; do not run it over the configured QA folder
-without preserving and reapplying its local-only QA configuration. Do not put
-local credentials, access tokens, or browser storage into commits.
+Load only `dist/uat` for release-candidate testing. Its manifest carries a stable
+unpacked identity key, so rebuilding the same lane does not change its extension ID.
+Rebuilding UAT removes its local-only Graph overlay, which must be reapplied with
+the governed configuration command. Do not put local credentials, access tokens,
+or browser storage into commits.
 
 ## Fresh validation
 

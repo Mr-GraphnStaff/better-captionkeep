@@ -7,8 +7,8 @@
     });
 
     function isDeveloperEdition(manifest = {}) {
-        return /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(manifest.name || ''))
-            && /\bdevelopment\b/i.test(String(manifest.version_name || ''));
+        return ['Better CaptionKeep - Development', 'Better CaptionKeep - UAT Release Candidate']
+            .includes(String(manifest.name || ''));
     }
 
     function developerEntitlement() {

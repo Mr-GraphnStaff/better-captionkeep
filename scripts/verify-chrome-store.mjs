@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile, rename, stat } from 'node:fs/promises';
+import { readdir, readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceManifestPath = path.join(projectRoot, 'teams-captions-saver', 'manifest.json');
-const stagedRoot = path.join(projectRoot, 'dist', 'chrome-store-unpacked');
-const artifactRoot = path.join(projectRoot, 'dist', 'chrome-store');
+const stagedRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store-unpacked');
+const artifactRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store');
+const finalRoot = path.join(projectRoot, 'dist', 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^tmp$)/i;
 
 async function filesUnder(root, relative = '') {
@@ -40,7 +41,7 @@ const zipNames = (await readdir(artifactRoot)).filter(name => name.endsWith('.zi
 if (zipNames.length !== 1) throw new Error(`Expected one Chrome Store ZIP, found ${zipNames.length}.`);
 const originalZipPath = path.join(artifactRoot, zipNames[0]);
 const artifactName = `better_captionkeep-chrome-${storeManifest.version}.zip`;
-const zipPath = path.join(artifactRoot, artifactName);
+const zipPath = path.join(finalRoot, artifactName);
 if (originalZipPath !== zipPath) await rename(originalZipPath, zipPath);
 const hash = createHash('sha256').update(await readFile(zipPath)).digest('hex').toUpperCase();
 console.log(JSON.stringify({
@@ -50,3 +51,5 @@ console.log(JSON.stringify({
   bytes: (await stat(zipPath)).size,
   sha256: hash
 }, null, 2));
+await rm(stagedRoot, { recursive: true, force: true });
+await rm(artifactRoot, { recursive: true, force: true });

@@ -18,7 +18,7 @@ Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft E
 
 Chrome/Edge development test editions resolve Pro access from their test manifest without stored license activation. Organizational restrictions and Microsoft authorization still apply. Consumer Pro activation and commercial feature gating are not declared production-ready. Google Drive/Docs and OneDrive/SharePoint transport adapters have mocked tests; end-user sign-in, provider app configuration, separate consent, preview integration, and live uploads remain unfinished. See [competitive feature tracking](docs/COMPETITIVE-FEATURES-2026-10-03.md).
 
-The viewer also exports SRT/WebVTT when a newly imported official Teams transcript contains real media cue boundaries. Live browser observation times and older imports without preserved boundaries are rejected rather than assigned invented timing. Test builds can be isolated without disturbing the configured QA folder: `node scripts/build-browser-targets.mjs edge --output-root dist/feature-review-20261003`.
+The viewer also exports SRT/WebVTT when a newly imported official Teams transcript contains real media cue boundaries. Live browser observation times and older imports without preserved boundaries are rejected rather than assigned invented timing. Use `npm run build:dev` for development and `npm run build:uat` for the one release candidate; ad hoc output folders are intentionally unsupported.
 
 ## Better CaptionKeep 5.0
 
@@ -79,22 +79,23 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.1 is the latest promoted release line; its evidence record distinguishes per-Store availability. Versions 5.2 and 5.3 remain unreleased development.
 
-### Chrome and Edge 5.3 development sideloads
+### Three lifecycle environments
 
-Run `npm run build:targets` to create four ignored test artifacts:
+Generated output has exactly three stable locations:
 
-- `dist/chrome-unpacked` and `dist/better_captionkeep_-_chrome_test-5.3.0.zip`
-- `dist/edge-unpacked` and `dist/better_captionkeep_-_edge_test-5.3.0.zip`
+- `dist/dev` — current development build.
+- `dist/uat` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
+- `dist/prod` — production Store packages, deployment bundles, hashes, and provenance only.
 
-The unpacked folders each contain the effective browser-labeled `manifest.json`. They use separate extension identities and local storage from the published Edge 4.6 extension, so testing does not update or overwrite the Store installation.
+Run `npm run build:targets` to refresh Dev and UAT without creating browser-specific, timestamped, feature-review, or frozen copies. Dev and UAT have separate stable extension identities and local storage, so a rebuild does not create a new identity and does not overwrite the Store installation.
 
 The Verified Teams Transcript controls in development builds can use an unpacked-only local Graph configuration for controlled testing. It is not a license or Store feature, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
 
-For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select the corresponding folder above. Remove the unpacked test extension when the checkpoint is finished.
+For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `dist/uat`. This is the only supported release-candidate path.
 
 1. Open Microsoft Edge and visit `edge://extensions`.
 2. Enable Developer mode.
-3. Choose **Load unpacked** and select the `teams-captions-saver` directory in this repository. Extract a built ZIP first if testing a package.
+3. Choose **Load unpacked** and select `dist/uat`.
 4. Open Microsoft Teams in Edge and enable live captions during a meeting.
 
 After the project folder move, reload the extension from its new location if needed.
@@ -104,11 +105,13 @@ After the project folder move, reload the extension from its new location if nee
 Use Node.js 20 or newer, then run `npm install`.
 
 - `npm run lint`: validate the extension manifest and assets.
-- `npm run build`: build a ZIP in `dist/`.
-- `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `dist/intune/`.
-- `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `dist/intune-chrome/`.
+- `npm run build`: build the Edge Store ZIP in `dist/prod/`.
+- `npm run build:dev`: refresh only `dist/dev`.
+- `npm run build:uat`: refresh only `dist/uat`.
+- `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `dist/prod/intune-edge/`.
+- `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `dist/prod/intune-chrome/`.
 - `npm run build:intune:local-only`: generate the optional high-security bundle that disables AI handoff.
-- `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store candidate in `dist/chrome-store/`.
+- `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store package in `dist/prod/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication. Zoom development also requires unpacked Chrome and Edge UAT against the Web client.
 
 Release and enterprise references: [standalone product record](docs/PROJECT-EMERGENCE.md), [5.1 release notes](docs/RELEASE-NOTES-5.1.md), [security architecture and threat model](docs/SECURITY-ARCHITECTURE.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [enterprise security review record](docs/ENTERPRISE-SECURITY-REVIEW.md), [5.2 development gate](docs/RELEASE-5.2.md), [5.3 release-candidate gate](docs/RELEASE-5.3.md), [dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the completed [5.1 release record](docs/RELEASE-5.1.md), [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md), and [Chrome publishing pipeline](docs/CHROME-PUBLISH-PIPELINE.md).

@@ -8,12 +8,12 @@ This procedure updates the existing public Chrome item without changing the Micr
 
 1. Verify the intended source commit and clean working tree.
 2. Run `npm ci` and `npm run release:candidate`.
-3. Preserve `dist/release-provenance.json` and the exact ZIP at `dist/chrome-store/better_captionkeep-chrome-5.3.0.zip`.
+3. Preserve `dist/prod/release-provenance.json` and the exact ZIP at `dist/prod/better_captionkeep-chrome-5.3.0.zip`.
 4. Confirm the provenance commit and the ZIP's SHA-256 match the release record.
-5. Load `dist/chrome-store-unpacked/` through `chrome://extensions` and complete the Chrome UAT matrix.
-6. Confirm the installed name is **Better CaptionKeep**, the version is **5.3.0**, and no title contains `Test` or `development`.
+5. Load `dist/uat` through `chrome://extensions` and complete the Chrome UAT matrix.
+6. Confirm the installed name is **Better CaptionKeep - UAT Release Candidate** and the version is **5.3.0**.
 
-Do not upload `dist/chrome-unpacked/` or a ZIP containing `chrome_test`; those artifacts intentionally use the test identity.
+Do not upload anything from `dist/dev` or `dist/uat`; upload only the verified ZIP from `dist/prod`.
 
 ## Required pre-upload evidence
 

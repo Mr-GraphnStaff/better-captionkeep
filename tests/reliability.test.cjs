@@ -235,11 +235,11 @@ function sendWorker(h, message) {
         {id:'test',url:'chrome-extension://test/viewer.html'}, resolve));
 }
 
-test('developer test editions resolve Pro without stored activation; production does not', async () => {
+test('dev and UAT editions resolve Pro without stored activation; production does not', async () => {
     const h = harness();
     h.run(read('entitlement.js'));
     const api = h.context.CaptionKeepEntitlements;
-    h.chrome.runtime.getManifest = () => ({name:'Better CaptionKeep - Edge Test', version_name:'5.3.0 development - Edge test'});
+    h.chrome.runtime.getManifest = () => ({name:'Better CaptionKeep - UAT Release Candidate', version_name:'5.3.0 uat release candidate'});
     assert.equal((await api.resolveStored()).effectiveTier, 'pro');
     assert.equal((await api.resolveStored()).reason, 'developer-edition');
     assert.equal(api.evaluateFeature('anything', await api.resolveStored(), {anything:'pro'}, false).allowed, false);
@@ -1440,23 +1440,15 @@ test('manifest supports both official Teams web hosts',()=>{
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
     assert.deepEqual(manifest.content_scripts[0].js.slice(0,3),['providerRegistry.js','configuration.js','transcriptInsights.js']);
 });
-test('Chrome and Edge test manifests preserve the shared runtime contract',()=>{
+test('Dev and UAT builds derive from one manifest and have stable lifecycle identities',()=>{
     const source=JSON.parse(read('manifest.json'));
-    for(const target of ['chrome','edge']) {
-        const manifest=JSON.parse(readProject(`manifests/manifest.${target}.json`));
-        assert.equal(manifest.manifest_version,3);
-        assert.equal(manifest.version,source.version);
-        assert.deepEqual(manifest.permissions,source.permissions);
-        assert.deepEqual(manifest.host_permissions,source.host_permissions);
-        assert.deepEqual(manifest.background,source.background);
-        assert.deepEqual(manifest.content_scripts,source.content_scripts);
-        assert.deepEqual(manifest.storage,source.storage);
-        assert(manifest.name.toLowerCase().includes(target));
-        const buildLabel=manifest.version_name.toLowerCase();
-        assert(buildLabel.includes(source.version));
-        assert(buildLabel.includes(target));
-        assert(buildLabel.includes('development')||buildLabel.includes('release candidate'));
-    }
+    const builder=readProject('scripts/build-browser-targets.mjs');
+    assert.equal(source.manifest_version,3);
+    assert(builder.includes("['dev', path.join(sourceDir, 'manifest.json')]"));
+    assert(builder.includes("['uat', path.join(sourceDir, 'manifest.json')]"));
+    assert(builder.includes("manifest.name = isUat ? 'Better CaptionKeep - UAT Release Candidate' : 'Better CaptionKeep - Development'"));
+    assert(builder.includes('manifest.key = isUat ? UAT_KEY : DEV_KEY'));
+    assert(!builder.includes('--output-root'));
 });
 test('Chrome Store manifest preserves runtime behavior without test labeling',()=>{
     const source=JSON.parse(read('manifest.json'));
@@ -1600,13 +1592,13 @@ test('configuration import is bounded and managed policy takes precedence',()=>{
     assert.equal(enterprise.settings.maxStoredSessions,5);
     assert.equal(enterprise.settings.sessionRetentionDays,30);
 });
-test('dev UAT Graph overlay extends frozen policy without mutating it',()=>{
+test('UAT Graph overlay extends frozen policy without mutating it',()=>{
     const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
     vm.runInContext(read('configuration.js'),context);
     const config=context.CaptionKeepConfiguration;
     const policy=config.applyPolicy({privacyScrubberEnabled:true},{});
     const local={enableGraphTranscriptImport:true,graphTenantId:'11111111-1111-1111-1111-111111111111',graphClientId:'22222222-2222-2222-2222-222222222222'};
-    const effective=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - Edge Test',version_name:'5.3.0 development'});
+    const effective=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - UAT Release Candidate',version_name:'5.3.0 uat release candidate'});
     assert.equal(effective.settings.enableGraphTranscriptImport,true);
     assert.equal(effective.settings.graphTenantId,local.graphTenantId);
     assert(effective.locked.includes('graphTenantId'));
@@ -1672,7 +1664,7 @@ test('managed release restrictions are enforced across extension action surfaces
     }
 });
 test('all target manifests expose the local Evidence Board through the side panel',()=>{
-    for(const relative of ['teams-captions-saver/manifest.json','manifests/manifest.chrome.json','manifests/manifest.edge.json','manifests/manifest.chrome-store.json']) {
+    for(const relative of ['teams-captions-saver/manifest.json','manifests/manifest.chrome-store.json']) {
         const manifest=JSON.parse(readProject(relative));
         assert(manifest.permissions.includes('sidePanel'));
         assert.equal(manifest.side_panel?.default_path,'sidepanel.html');
@@ -1740,7 +1732,7 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph test builds stay visible without consumer entitlement machinery',()=>{
+test('Graph UAT build stays visible without consumer entitlement machinery',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
@@ -1749,22 +1741,22 @@ test('Graph test builds stay visible without consumer entitlement machinery',()=
     assert(!popup.includes('Signed UAT pass'));
     assert(!worker.includes('requireGraphDevUatAccess'));
     assert(!worker.includes('dev_uat_'));
-    assert(popupScript.includes('const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/'));
+    assert(popupScript.includes("runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
     assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild'));
     assert(popupScript.includes('&& currentEnterprisePolicy.enableGraphTranscriptImport !== true'));
-    assert(buildScript.includes("target !== 'chrome-store'"));
+    assert(buildScript.includes("target === 'dev' || target === 'uat'"));
     assert(buildScript.includes("replace('id=\"graphTranscriptSection\" hidden open', 'id=\"graphTranscriptSection\" open')"));
 });
-test('worker accepts an optional unpacked-only Graph configuration only for test manifests',()=>{
+test('worker accepts an optional unpacked-only Graph configuration only for UAT',()=>{
     const worker=read('service_worker.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
     assert(worker.includes("importScripts('devUatLocalConfig.js')"));
     assert(worker.includes('CaptionKeepConfiguration.applyDevUatGraphOverlay'));
-    assert(read('configuration.js').includes('/^Better CaptionKeep - (Chrome|Edge) Test$/'));
-    assert(read('configuration.js').includes('/\\bdevelopment\\b/i'));
+    assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
+    assert(read('configuration.js').includes('/\\buat release candidate\\b/i'));
     assert(read('configuration.js').includes('localConfig.enableGraphTranscriptImport !== true'));
-    assert(overlayScript.includes("Refusing to configure a non-test build."));
-    assert(overlayScript.includes("dist', `${target}-unpacked`"));
+    assert(overlayScript.includes('canonical UAT release candidate'));
+    assert(overlayScript.includes("dist', 'uat'"));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');

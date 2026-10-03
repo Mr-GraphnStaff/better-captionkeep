@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const defaultProfilePath = path.join(projectRoot, 'deployment', 'intune', 'profile.json');
-const defaultOutputDir = path.join(projectRoot, 'dist', 'intune');
+const defaultOutputDir = path.join(projectRoot, 'dist', 'prod', 'intune-edge');
 
 export const EDGE_STORE_UPDATE_URL = 'https://edge.microsoft.com/extensionwebstorebase/v1/crx';
 export const CHROME_STORE_UPDATE_URL = 'https://clients2.google.com/service/update2/crx';

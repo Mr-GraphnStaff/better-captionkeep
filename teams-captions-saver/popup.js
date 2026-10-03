@@ -64,8 +64,8 @@ let currentEnterprisePolicy = {};
 let graphConnected = false;
 const runtimeManifest = chrome.runtime.getManifest();
 const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
-const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(runtimeManifest.name || ''))
-    && /\bdevelopment\b/i.test(String(runtimeManifest.version_name || ''));
+const isDevUatBuild = runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'
+    && /\buat release candidate\b/i.test(String(runtimeManifest.version_name || ''));
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
