@@ -2,7 +2,7 @@
 
 An optional local Graph configuration overlay exists only in ignored unpacked dev/UAT folders. It is not a Store feature or consumer license, and production packages cannot activate or contain it. Public Pro roadmap language must not imply that this internal testing mechanism is available for purchase.
 
-> Last Updated: 2026-10-01
+> Last Updated: 2026-10-03
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -21,6 +21,8 @@ Capture live captions and privately import verified Microsoft Teams transcripts 
 Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. When an organization enables Verified Teams Transcript, a signed-in user can also select the current or one of five recent Teams meetings and import an authorized official transcript from Microsoft 365.
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
+
+The next development build adds a full All Settings tab with a prominent full-width popup entry, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. These additions require live browser testing before release. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Cloud sign-in and uploads are not yet a released feature.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
@@ -141,7 +143,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.3.0 | 2026-10-01 | Adds administrator-enabled Verified Teams Transcript, current/recent/manual meeting selection, official-source provenance, polished recovery states, three-platform quick-start meeting actions, and refreshed Store artwork. | Candidate — not submitted |
+| 5.3.0 | 2026-10-03 | Consolidates Verified Teams Transcript, archive/search, corrections, Word export, All settings, Print / PDF, local AI templates, reviewed chat/screenshots, imported-cue SRT/VTT, and feature-detected on-device translation. Cloud sign-in remains unfinished; new UI screenshots need refresh. | Candidate — not submitted; development source only, live UAT and audit gates outstanding |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
 | 5.0.0 | 2026-09-20 | Established the independent Teams and Google Meet release. | Published |
 

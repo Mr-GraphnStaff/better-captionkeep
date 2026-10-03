@@ -156,14 +156,14 @@ async function validateManifest(manifest) {
   }
   const googleMeetScripts = (manifest.content_scripts ?? [])
     .find(entry => (entry.matches ?? []).includes('https://meet.google.com/*'))?.js ?? [];
-  const expectedGoogleMeetScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'googleMeetProvider.js', 'googleMeetContentScript.js'];
+  const expectedGoogleMeetScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'googleMeetProvider.js', 'chatCapture.js', 'googleMeetContentScript.js'];
   if (JSON.stringify(googleMeetScripts) !== JSON.stringify(expectedGoogleMeetScripts)) {
     errors.push(`Google Meet content scripts must load in this order: ${expectedGoogleMeetScripts.join(', ')}.`);
   }
   const zoomEntry = (manifest.content_scripts ?? [])
     .find(entry => (entry.matches ?? []).includes('https://app.zoom.us/wc/*'));
   const zoomScripts = zoomEntry?.js ?? [];
-  const expectedZoomScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'zoomProvider.js', 'zoomContentScript.js'];
+  const expectedZoomScripts = ['providerRegistry.js', 'configuration.js', 'captureCoordinator.js', 'transcriptInsights.js', 'zoomProvider.js', 'chatCapture.js', 'zoomContentScript.js'];
   if (JSON.stringify(zoomScripts) !== JSON.stringify(expectedZoomScripts)) {
     errors.push(`Zoom content scripts must load in this order: ${expectedZoomScripts.join(', ')}.`);
   }

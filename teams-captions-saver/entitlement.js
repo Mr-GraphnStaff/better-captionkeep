@@ -5,6 +5,16 @@
     const STATES = Object.freeze({
         FREE:'free', ACTIVE:'active', OFFLINE_GRACE:'offline-grace', EXPIRED:'expired', UNAVAILABLE:'unavailable'
     });
+
+    function isDeveloperEdition(manifest = {}) {
+        return /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(manifest.name || ''))
+            && /\bdevelopment\b/i.test(String(manifest.version_name || ''));
+    }
+
+    function developerEntitlement() {
+        return Object.freeze({state:STATES.ACTIVE, reason:'developer-edition', tier:'pro', effectiveTier:'pro',
+            entitlementId:null, source:'developer-edition'});
+    }
     const DEVELOPMENT_PUBLIC_KEY = Object.freeze({
         key_ops:['verify'], ext:true, kty:'EC',
         x:'1nCyvixz5TVO5nPd04CeMlYid6Shhr1cexT3YGR6f4M',
@@ -72,6 +82,9 @@
     }
 
     async function resolveStored(options = {}) {
+        // Developer/UAT access is a property of the installed test build, never a
+        // consumer preference or a copied license key. Managed policy still wins.
+        if (isDeveloperEdition(chrome.runtime.getManifest())) return developerEntitlement();
         const stored=(await chrome.storage.local.get(STORAGE_KEY))[STORAGE_KEY];
         if (!stored) return result(STATES.FREE, 'no-entitlement');
         if (stored.source === 'development-fixture') {
@@ -103,7 +116,7 @@
     }
 
     root.CaptionKeepEntitlements=Object.freeze({
-        STORAGE_KEY, STATES, DEVELOPMENT_FIXTURE, serializePayload, validateDevelopmentFixture,
+        STORAGE_KEY, STATES, DEVELOPMENT_FIXTURE, isDeveloperEdition, serializePayload, validateDevelopmentFixture,
         resolveStored, installDevelopmentFixture, deactivate, evaluateFeature
     });
     if (typeof module !== 'undefined' && module.exports) module.exports=root.CaptionKeepEntitlements;

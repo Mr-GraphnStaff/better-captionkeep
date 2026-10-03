@@ -1,5 +1,5 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'entitlement.js');
+    'correctionManager.js', 'exportProfiles.js', 'entitlement.js', 'meetingExtras.js');
 try {
     importScripts('devUatLocalConfig.js');
 } catch {
@@ -187,6 +187,7 @@ async function resolveSavePreferences({ forAutoSave = false } = {}) {
 
 const AI_ASSISTANT_TARGETS = {chatgpt:true, claude:true, claude_console:true, copilot:true, gemini:true};
 const TRANSCRIPT_VERSION_NOTICES = new Set([
+    'Transcript version: Machine-translated derivative. Original retained locally; translation may be inaccurate.',
     'Transcript version: Corrected derivative. The original provider transcript is retained locally.',
     'Transcript version: Original provider transcript. Local corrections were not included.'
 ]);
@@ -297,10 +298,7 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
     // Get filename pattern from settings
     const { filenamePattern } = await chrome.storage.sync.get('filenamePattern');
     const requestedFormat = typeof format === 'string' ? format.toLowerCase() : 'txt';
-    if (['srt', 'vtt', 'webvtt'].includes(requestedFormat)) {
-        throw new Error('Subtitle export is unavailable because caption observation times are not verified speech cue boundaries.');
-    }
-    const normalizedFormat = ['md', 'txt', 'docx'].includes(requestedFormat) ? requestedFormat : 'txt';
+    const normalizedFormat = requestedFormat === 'webvtt' ? 'vtt' : ['md', 'txt', 'docx', 'srt', 'vtt'].includes(requestedFormat) ? requestedFormat : 'txt';
     const filename = await generateFilename(filenamePattern, meetingTitle, normalizedFormat, processedAttendeeReport, recordingStartTime);
 
     let normalizedOptions = saveOptions;
@@ -432,14 +430,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
         'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
-        'get_entitlement_state',
+        'get_entitlement_state','get_meeting_extras','save_meeting_extras','delete_meeting_extras',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
         'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
         'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_disconnect',
-        'graph_list_recent_meetings','graph_import_transcript'];
+        'graph_list_recent_meetings','graph_import_transcript','get_meeting_extras','save_meeting_extras','delete_meeting_extras'];
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
@@ -567,6 +565,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
             case 'get_entitlement_state':
                 return CaptionKeepEntitlements.resolveStored();
+            case 'get_meeting_extras':
+            case 'save_meeting_extras':
+            case 'delete_meeting_extras': {
+                const operation = historyQueue.then(async () => {
+                    await correctionAuthority(message.sessionId, message.historical);
+                    const key = CaptionKeepMeetingExtras.storageKey(message.sessionId);
+                    if (message.message === 'delete_meeting_extras') {
+                        await chrome.storage.local.remove(key);
+                        return {};
+                    }
+                    const policy = await readEffectivePolicy(['privacyScrubberEnabled','profanityFilterEnabled','customScrubTerms']);
+                    if (policy.settings.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+                    const previous = (await chrome.storage.local.get(key))[key] || {};
+                    if (message.message === 'get_meeting_extras') {
+                        const extras = CaptionKeepMeetingExtras.normalize(previous);
+                        if (policy.settings.forceScrubbedExport) {
+                            extras.screenshot = '';
+                            for (const item of extras.messages) {
+                                const scrubOptions = {profanityFilterEnabled:!!policy.settings.profanityFilterEnabled, customTerms:policy.settings.customScrubTerms || []};
+                                item.text = CaptionKeepPrivacyScrubber.scrub(item.text, scrubOptions).text;
+                                item.speaker = CaptionKeepPrivacyScrubber.scrub(item.speaker, scrubOptions).text;
+                                item.links = item.links.map(link => CaptionKeepPrivacyScrubber.scrub(link, scrubOptions).text);
+                            }
+                        }
+                        return {extras};
+                    }
+                    const incoming = CaptionKeepMeetingExtras.normalize(message.extras);
+                    if (incoming.screenshot && policy.settings.forceScrubbedExport) throw new Error('Images cannot be automatically masked for managed scrubbed output.');
+                    let extras = incoming;
+                    if (policy.settings.forceScrubbedExport || policy.settings.privacyScrubberEnabled !== false) {
+                        for (const item of extras.messages) {
+                            const scrubOptions = {profanityFilterEnabled:!!policy.settings.profanityFilterEnabled, customTerms:policy.settings.customScrubTerms || []};
+                            item.text = CaptionKeepPrivacyScrubber.scrub(item.text, scrubOptions).text;
+                            item.speaker = CaptionKeepPrivacyScrubber.scrub(item.speaker, scrubOptions).text;
+                            item.links = item.links.map(link => CaptionKeepPrivacyScrubber.scrub(link, scrubOptions).text);
+                        }
+                    }
+                    if (policy.settings.forceScrubbedExport) extras.screenshot = '';
+                    extras = CaptionKeepMeetingExtras.merge(previous, extras);
+                    if (policy.settings.forceScrubbedExport) extras.screenshot = '';
+                    await chrome.storage.local.set({[key]:extras});
+                    return {extras};
+                });
+                historyQueue = operation.catch(() => {});
+                return await operation;
+            }
             case 'get_corrections':
             case 'save_correction':
             case 'undo_correction':

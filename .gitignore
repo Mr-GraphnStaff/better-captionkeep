@@ -17,3 +17,6 @@ npm-debug.log*
 
 # Local browser profiles and generated test packages
 /tmp/
+
+# Local product architecture and red-team planning (not public release material)
+/docs/prv/

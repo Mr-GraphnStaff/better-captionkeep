@@ -235,6 +235,34 @@ function sendWorker(h, message) {
         {id:'test',url:'chrome-extension://test/viewer.html'}, resolve));
 }
 
+test('developer test editions resolve Pro without stored activation; production does not', async () => {
+    const h = harness();
+    h.run(read('entitlement.js'));
+    const api = h.context.CaptionKeepEntitlements;
+    h.chrome.runtime.getManifest = () => ({name:'Better CaptionKeep - Edge Test', version_name:'5.3.0 development - Edge test'});
+    assert.equal((await api.resolveStored()).effectiveTier, 'pro');
+    assert.equal((await api.resolveStored()).reason, 'developer-edition');
+    assert.equal(api.evaluateFeature('anything', await api.resolveStored(), {anything:'pro'}, false).allowed, false);
+    h.chrome.runtime.getManifest = () => ({name:'Better CaptionKeep', version_name:'5.3.0'});
+    assert.equal((await api.resolveStored()).effectiveTier, 'free');
+    assert.equal(api.isDeveloperEdition({name:'Better CaptionKeep', version_name:'development'}), false);
+});
+
+test('meeting extras serialize writes, scrub text, reject missing source and managed screenshots', async () => {
+    const h = harness(); h.run(read('service_worker.js'));
+    const sessionId = '2026-10-03T10:00:00.000Z';
+    h.data.active_capture_v3_teams_test = {recordingStartTime:sessionId, transcript:[{key:'c1', Text:'Synthetic caption'}]};
+    const response = await sendWorker(h, {message:'save_meeting_extras', sessionId, extras:{messages:[{speaker:'A', text:'secret@example.com'}]}});
+    assert.equal(response.ok, true);
+    const key = h.context.CaptionKeepMeetingExtras.storageKey(sessionId);
+    assert(!JSON.stringify(h.data[key]).includes('secret@example.com'));
+    h.managedData.forceScrubbedExport = true;
+    assert.equal((await sendWorker(h, {message:'save_meeting_extras', sessionId, extras:{screenshot:'data:image/png;base64,YQ=='}})).ok, false);
+    assert.equal((await sendWorker(h, {message:'save_meeting_extras', sessionId:'missing', extras:{}})).ok, false);
+    assert.equal((await sendWorker(h, {message:'delete_meeting_extras', sessionId})).ok, true);
+    assert.equal(h.data[key], undefined);
+});
+
 test('service worker serializes corrections from multiple viewer contexts',async()=>{
     const h=harness();h.run(read('service_worker.js'));
     const sessionId='2026-10-02T10:00:00.000Z';
@@ -508,7 +536,7 @@ test('Google Meet manifest scope is exact and isolated from Teams capture',()=>{
     const manifest=JSON.parse(read('manifest.json'));
     assert(manifest.host_permissions.includes('https://meet.google.com/*'));
     const meetEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://meet.google.com/*'));
-    assert.deepEqual(meetEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','googleMeetProvider.js','googleMeetContentScript.js']);
+    assert.deepEqual(meetEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','googleMeetProvider.js','chatCapture.js','googleMeetContentScript.js']);
     assert(!meetEntry.js.includes('content_script.js'));
 });
 test('Google Meet empty caption fixture contains structure but no meeting content',()=>{
@@ -686,7 +714,7 @@ test('Zoom Web manifest scope is exact and reaches the embedded meeting frame',(
     assert(!manifest.host_permissions.includes('https://*.zoom.us/*'));
     const zoomEntry=manifest.content_scripts.find(entry=>entry.matches.includes('https://app.zoom.us/wc/*'));
     assert.equal(zoomEntry.all_frames,true);
-    assert.deepEqual(zoomEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','zoomProvider.js','zoomContentScript.js']);
+    assert.deepEqual(zoomEntry.js,['providerRegistry.js','configuration.js','captureCoordinator.js','transcriptInsights.js','zoomProvider.js','chatCapture.js','zoomContentScript.js']);
     assert(!zoomEntry.js.includes('content_script.js'));
     const contentScript=read('zoomContentScript.js');
     assert(contentScript.includes('if (window.top === window) return;'));

@@ -7,7 +7,14 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(projectRoot, 'teams-captions-saver');
 const manifestsDir = path.join(projectRoot, 'manifests');
-const distDir = path.join(projectRoot, 'dist');
+const canonicalDist = path.join(projectRoot, 'dist');
+const outputFlag = process.argv.indexOf('--output-root');
+const outputRoot = outputFlag >= 0 ? process.argv[outputFlag + 1] : null;
+if (outputFlag >= 0 && !outputRoot) throw new Error('--output-root requires a project-local dist subfolder.');
+const distDir = outputRoot ? path.resolve(projectRoot, outputRoot) : canonicalDist;
+if (outputRoot && !distDir.toLowerCase().startsWith(`${canonicalDist}${path.sep}`.toLowerCase())) {
+  throw new Error('Custom build outputs must stay inside the project dist directory.');
+}
 const defaultTargets = ['chrome', 'edge'];
 const targetManifests = new Map([
   ['chrome', 'manifest.chrome.json'],

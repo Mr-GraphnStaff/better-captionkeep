@@ -518,6 +518,7 @@
             if (!timingLine.includes('-->')) continue;
             const timing = timingLine.split('-->');
             const start = timing[0].trim().split(/\s+/)[0];
+            const end = (timing[1] || '').trim().split(/\s+/)[0];
             const payloadLines = [];
             let cursor = index + 1;
             while (cursor < lines.length) {
@@ -539,6 +540,10 @@
                 Name: name || 'Unknown speaker',
                 Text: text,
                 Time: start,
+                ...(/^(?:(\d{2,}):)?[0-5]\d:[0-5]\d\.\d{3}$/.test(start)
+                    && /^(?:(\d{2,}):)?[0-5]\d:[0-5]\d\.\d{3}$/.test(end)
+                    && timestampOffsetMs(end) > timestampOffsetMs(start)
+                    ? {mediaStartMs:timestampOffsetMs(start), mediaEndMs:timestampOffsetMs(end), timingSource:'official-vtt'} : {}),
                 capturedAt: Number.isFinite(baseTime) ? new Date(baseTime + offset).toISOString() : new Date(offset).toISOString(),
                 key: `graph-${entries.length + 1}`
             });

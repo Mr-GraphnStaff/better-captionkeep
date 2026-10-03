@@ -10,6 +10,75 @@ let originalPrompt = '';
 let unmaskedCopyArmed = false;
 let scrubOptions = {};
 let enterprisePolicy = {};
+let basePrompt = '';
+let handoffReady = false;
+let customTemplates = [];
+const templateSelect = document.getElementById('template-select');
+const templateName = document.getElementById('template-name');
+const templateInstructions = document.getElementById('template-instructions');
+const templateStatus = document.getElementById('template-status');
+const templateApply = document.getElementById('template-apply');
+const templateSave = document.getElementById('template-save');
+const templateDelete = document.getElementById('template-delete');
+
+function selectTemplate() {
+    const template = [...CaptionKeepPromptTemplates.BUILT_INS, ...customTemplates].find(item => item.id === templateSelect.value);
+    templateName.value = template?.name || '';
+    templateInstructions.value = template?.instructions || '';
+    templateDelete.disabled = !handoffReady || !customTemplates.some(item => item.id === templateSelect.value);
+}
+
+function renderTemplates(selected = templateSelect.value) {
+    templateSelect.replaceChildren();
+    for (const template of [...CaptionKeepPromptTemplates.BUILT_INS, ...customTemplates]) {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = template.name;
+        templateSelect.append(option);
+    }
+    if ([...templateSelect.options].some(option => option.value === selected)) templateSelect.value = selected;
+    selectTemplate();
+}
+
+async function allowTemplateAction() {
+    await refreshHandoffPolicy();
+    if (!handoffReady || enterprisePolicy.disableAiHandoff) throw new Error('No authorized AI handoff is available.');
+}
+
+templateSelect.addEventListener('change', selectTemplate);
+templateApply.addEventListener('click', async () => {
+    try {
+        await allowTemplateAction();
+        originalPrompt = CaptionKeepPromptTemplates.apply(basePrompt, templateInstructions.value);
+        renderScrubberMode();
+        templateStatus.textContent = 'Task applied. Review the complete prompt before copying.';
+    } catch (error) { templateStatus.textContent = error.message; }
+});
+templateSave.addEventListener('click', async () => {
+    try {
+        await allowTemplateAction();
+        if (!templateName.value.trim() || !templateInstructions.value.trim()) throw new Error('Enter a name and reusable instructions.');
+        // Never persist the generated prompt or transcript as a template.
+        const existing = customTemplates.find(item => item.id === templateSelect.value);
+        if (!existing && customTemplates.length >= 20) throw new Error('Delete a custom template before adding another (limit 20).');
+        const template = {id:existing?.id || `custom-${crypto.randomUUID()}`, name:templateName.value, instructions:templateInstructions.value};
+        const next = CaptionKeepPromptTemplates.sanitize([...customTemplates.filter(item => item.id !== template.id), template]);
+        await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:next});
+        customTemplates = next;
+        renderTemplates(template.id);
+        templateStatus.textContent = 'Instructions saved locally. Meeting content was not saved as a template.';
+    } catch (error) { templateStatus.textContent = error.message; }
+});
+templateDelete.addEventListener('click', async () => {
+    try {
+        await allowTemplateAction();
+        const next = customTemplates.filter(item => item.id !== templateSelect.value);
+        await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:next});
+        customTemplates = next;
+        renderTemplates();
+        templateStatus.textContent = 'Custom template deleted.';
+    } catch (error) { templateStatus.textContent = error.message; }
+});
 
 async function refreshHandoffPolicy() {
     const userSettings = await chrome.storage.sync.get(['privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms', 'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl']);
@@ -62,7 +131,7 @@ copyButton.onclick = async () => {
     }
     try {
         let output = promptBox.value;
-        if (enterprisePolicy.forceScrubbedExport) {
+        if (scrubberToggle.checked || enterprisePolicy.forceScrubbedExport) {
             const scrubbed = CaptionKeepPrivacyScrubber.scrub(output, scrubOptions);
             output = scrubbed.text;
             promptBox.value = output;
@@ -83,6 +152,11 @@ copyButton.onclick = async () => {
 document.getElementById('discard').onclick = async () => {
     await chrome.storage.local.remove(id);
     originalPrompt = '';
+    basePrompt = '';
+    handoffReady = false;
+    templateApply.disabled = true;
+    templateSave.disabled = true;
+    templateDelete.disabled = true;
     promptBox.value = '';
     scrubberToggle.disabled = true;
     copyButton.disabled = true;
@@ -125,11 +199,18 @@ function renderProvider(providerKey, settings) {
         const data = (await chrome.storage.local.get(id))[id];
         if (!data) throw new Error('This handoff is no longer available');
         originalPrompt = data.prompt;
+        basePrompt = data.prompt;
         const policy = await refreshHandoffPolicy();
         const settings = policy.settings;
         if (settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
         scrubberToggle.checked = settings.privacyScrubberEnabled !== false;
         renderScrubberMode();
+        const storedTemplates = await chrome.storage.local.get(CaptionKeepPromptTemplates.STORAGE_KEY);
+        customTemplates = CaptionKeepPromptTemplates.sanitize(storedTemplates[CaptionKeepPromptTemplates.STORAGE_KEY]);
+        handoffReady = true;
+        templateApply.disabled = false;
+        templateSave.disabled = false;
+        renderTemplates();
         for (const provider of data.providers) renderProvider(provider, settings);
         // Page memory holds the editable prompt; remove the temporary durable copy after loading.
         await chrome.storage.local.remove(id);

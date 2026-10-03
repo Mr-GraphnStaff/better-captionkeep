@@ -63,6 +63,7 @@ let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
 const runtimeManifest = chrome.runtime.getManifest();
+const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
 const isDevUatBuild = /^Better CaptionKeep - (Chrome|Edge) Test$/.test(String(runtimeManifest.name || ''))
     && /\bdevelopment\b/i.test(String(runtimeManifest.version_name || ''));
 
@@ -84,7 +85,9 @@ function escapeHtml(str) {
 }
 
 async function getActiveMeetingTab() {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabs = await chrome.tabs.query(isFullSettingsPage
+        ? {currentWindow:true, url:['https://teams.microsoft.com/*', 'https://teams.cloud.microsoft/*', 'https://meet.google.com/*', 'https://app.zoom.us/wc/*']}
+        : { active: true, currentWindow: true });
     const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com|https:\/\/app\.zoom\.us\/wc)(?:\/|$)/.test(tab.url || ''));
     return meetingTab || null;
 }
@@ -598,6 +601,8 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
+    document.getElementById('meetingExtrasButton').addEventListener('click', () => openMeetingExtras(false));
+    document.getElementById('meetingScreenshotButton').addEventListener('click', () => openMeetingExtras(true));
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
         markSelectedGraphMeeting();
         setGraphBusy(false);
@@ -842,6 +847,35 @@ function setupEventListeners() {
         UI_ELEMENTS.copyOptions.style.display = 'none';
         UI_ELEMENTS.saveOptions.style.display = 'none';
     });
+}
+
+async function openMeetingExtras(withScreenshot) {
+    try {
+        await refreshEnterprisePolicy();
+        if (currentEnterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        if (withScreenshot && (currentEnterprisePolicy.forceScrubbedExport || currentEnterprisePolicy.disableFileExport)) {
+            throw new Error('Screenshots are unavailable under your organization’s export/privacy policy.');
+        }
+        const tab = await getActiveMeetingTab();
+        if (!tab) throw new Error('Open a supported meeting first.');
+        const status = await chrome.tabs.sendMessage(tab.id, {message:'get_status'});
+        const context = await chrome.tabs.sendMessage(tab.id, {message:'get_evidence_context'});
+        if (!status?.isInMeeting || !context?.sessionId) throw new Error('Start capture in the meeting first.');
+        const query = new URLSearchParams({tab:String(tab.id)});
+        if (withScreenshot) {
+            const [active] = await chrome.tabs.query({active:true, currentWindow:true});
+            if (active?.id !== tab.id) throw new Error('Capture screenshots from the extension popup on the active meeting tab.');
+            const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {format:'png'});
+            const [after] = await chrome.tabs.query({active:true, currentWindow:true});
+            if (after?.id !== tab.id || after?.url !== tab.url || after?.pendingUrl) throw new Error('The active tab changed or navigated. Screenshot was discarded.');
+            if (screenshot.length > 6000000) throw new Error('Screenshot is too large. Reduce the browser window and try again.');
+            const key = `extras_preview_${crypto.randomUUID()}`;
+            await chrome.storage.session.set({[key]:{sessionId:context.sessionId, screenshot}});
+            query.set('pending', key);
+            try { await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)}); }
+            catch (error) { await chrome.storage.session.remove(key); throw error; }
+        } else await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)});
+    } catch (error) { UI_ELEMENTS.statusMessage.textContent = error.message; }
 }
 
 function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandler) {
@@ -1143,6 +1177,10 @@ function escapeHtml(text) {
 
 // --- Initialization ---
 async function initializePopup() {
+    if (isFullSettingsPage) {
+        document.querySelector('.settings-header').textContent = 'All settings';
+        document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
+    }
     await loadSettings();
     setupEventListeners();
     await refreshGraphStatus();
@@ -1186,6 +1224,7 @@ async function initializePopup() {
 
 // --- Keyboard Shortcuts ---
 document.addEventListener('keydown', (e) => {
+    if (isFullSettingsPage) return;
     // Ctrl/Cmd + S for save
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();

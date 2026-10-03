@@ -1,6 +1,6 @@
 # Better CaptionKeep Privacy Policy
 
-Effective date: October 1, 2026
+Effective date: October 3, 2026 (development disclosure; not a Store publication)
 
 Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams, Google Meet, and the Zoom Web client in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional Bring Your Own AI (BYOAI) handoff features.
 
@@ -41,6 +41,18 @@ Privacy Scrubber performs deterministic pattern matching entirely inside the ext
 Pattern matching can miss sensitive information and can mask harmless text. It is a disclosure-reduction aid, not a data-loss-prevention system, legal determination, or guarantee of HIPAA, PCI DSS, GDPR, or other compliance. Users must review cleaned output before sharing it.
 
 ## Sharing and limited use
+
+### Development features: chat, screenshots, translation and templates
+
+User-requested meeting-chat snapshots read only recognized loaded meeting panes and may include sender labels, message text, timestamps and shared links. They are not guaranteed complete chat histories. A manual attachment is labeled separately. Reviewed chat and the most recently approved screenshot are stored as supporting evidence separate from spoken captions. Source archive deletion, configured archive retention and Clear All remove associated retained extras. Extras can also be deleted separately. They are not synchronized or uploaded automatically.
+
+Screenshots capture the visible active supported meeting tab only. The preview is held temporarily in browser session storage until the review page consumes it or the browser closes; a screenshot is retained in local storage only after the user approves it. Screenshots may contain personal information or video-call imagery. Images are not automatically masked. Forced scrubbed-export policy blocks new screenshot retention and hides retained screenshots from the extras review page. This is still-image capture, not audio or video recording.
+
+On-device translation processes the selected captions with a browser-provided Translator model when available. Initial language-pack/model downloads may contact the browser vendor; translation does not automatically fall back to a remote service. Translated text is a potentially inaccurate derivative, not a replacement for the source transcript. It remains in page memory unless the user copies or exports it. Administrator AI/export restrictions remain enforced.
+
+Custom AI task templates retain only the instructions explicitly entered in the template editor in local extension storage, not the generated meeting prompt. Users must not paste secrets or meeting content into reusable instructions. Templates are individually deletable, are not synchronized, and are independent of meeting archive deletion. Print / PDF uses the selected, policy-cleaned derivative and the browser's print dialog; users control any copies created outside extension storage.
+
+Google Drive/Docs and Microsoft OneDrive/SharePoint cloud export transports are under development. This build does not expose a completed end-user sign-in/upload workflow or automatically transfer transcript content to these providers. A future enabled workflow requires separate destination authorization, a reviewed preview and an explicit upload action; transcript-import consent alone does not authorize cloud writes.
 
 The developer does not sell user data, use it for advertising, or use it to determine creditworthiness or for lending. The extension uses meeting data only to provide its meeting-caption capture, review, export, and optional summary functions. Transfers occur through user-directed exports, clipboard actions, browser preference synchronization, and enabled AI handoffs as described above.
 

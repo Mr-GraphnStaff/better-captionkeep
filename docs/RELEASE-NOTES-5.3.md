@@ -6,6 +6,8 @@ Better CaptionKeep 5.3 turns an authorized Microsoft Teams transcript into a pri
 
 It also consolidates the complete long-meeting BYOAI handoff, durable local archive and cross-session search, reversible corrections and terminology dictionary, managed DOCX export, enterprise controls, and Intune/entitlement groundwork into this one next-release line.
 
+October 3 source additions include an All settings tab, per-export formats, Print / PDF, local prompt templates, reviewed loaded-chat/shared-link snapshots and screenshot extras, and feature-detected on-device translation with incremental visible-caption support. Developer/UAT editions automatically retain Pro access without consumer license activation; managed policy and provider authorization are still enforced. Cloud transports for Google Docs and Microsoft storage have mocked tests, not completed sign-in or live upload validation. These changes are not promoted until live browser UAT, privacy review and release gates pass.
+
 ## The headline experience
 
 - Open Better CaptionKeep during a Teams meeting and use the meeting already in front of you.

@@ -21,6 +21,7 @@
   "side_panel": {
     "default_path": "sidepanel.html"
   },
+  "options_ui": {"page":"settings.html", "open_in_tab":true},
   "storage": {
     "managed_schema": "managed-schema.json"
   },
@@ -56,6 +57,7 @@
         "configuration.js",
         "transcriptInsights.js",
         "teamsCaptionBuffer.js",
+        "chatCapture.js",
         "content_script.js"
       ]
     },
@@ -69,6 +71,7 @@
         "captureCoordinator.js",
         "transcriptInsights.js",
         "googleMeetProvider.js",
+        "chatCapture.js",
         "googleMeetContentScript.js"
       ]
     },
@@ -83,6 +86,7 @@
         "captureCoordinator.js",
         "transcriptInsights.js",
         "zoomProvider.js",
+        "chatCapture.js",
         "zoomContentScript.js"
       ]
     }

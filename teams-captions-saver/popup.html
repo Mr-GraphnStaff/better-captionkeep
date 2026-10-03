@@ -3,7 +3,36 @@
 <head>
     <title>Better CaptionKeep</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="settingsView.js"></script>
     <style>
+        .settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        /* A first-screen destination, not a link buried in the settings form. */
+        a.all-settings-link {
+            display: flex; align-items: center; gap: 12px; width: 100%;
+            box-sizing: border-box; padding: 14px 16px; min-height: 68px;
+            border: 2px solid #065e68; border-radius: 10px;
+            background: #065e68; color: #fff !important; text-decoration: none;
+        }
+        a.all-settings-link:hover { background: #044952; border-color: #044952; }
+        a.all-settings-link:focus-visible { outline-offset: 4px; }
+        .all-settings-icon { font-size: 1.65rem; }
+        .all-settings-copy { flex: 1; }
+        .all-settings-copy strong { display: block; font-size: 1.05rem; }
+        .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
+        .all-settings-arrow { font-size: 1.5rem; }
+        html[data-view="settings"] body { width: min(100%, 960px); margin: 0 auto; padding: 28px; }
+        html[data-view="settings"] body > :not(.settings-container):not(#graphTranscriptSection):not(.brand):not(.settings-page-intro) { display: none !important; }
+        html[data-view="settings"] .settings-container { margin-top: 0; }
+        html[data-view="settings"] .settings-header { font-size: 28px; }
+        html[data-view="settings"] .settings-intro,
+        html[data-view="settings"] .small-info-text { font-size: 14px; line-height: 1.6; }
+        html[data-view="settings"] .setting-label { font-size: 15px; }
+        html[data-view="settings"] .all-settings-link { display: none; }
+        html[data-view="settings"] details.settings-group > summary { font-size: 18px; }
+        html[data-view="settings"] input[type="text"], html[data-view="settings"] textarea,
+        html[data-view="settings"] select { font-size: 15px; }
+        @media (max-width: 600px) { html[data-view="settings"] body { padding: 16px; } }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f7f8f5;
@@ -481,6 +510,12 @@
     <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature">by Señor Farris</p></div></header>
     <p class="subtitle">Keep the words. Stay in the conversation.</p>
 
+    <a class="all-settings-link" href="settings.html" target="_blank" rel="noopener" aria-describedby="all-settings-description">
+        <span class="all-settings-icon" aria-hidden="true">⚙</span>
+        <span class="all-settings-copy"><strong>All Settings</strong><small id="all-settings-description">Open every setting in a full browser tab</small></span>
+        <span class="all-settings-arrow" aria-hidden="true">↗</span>
+    </a>
+
     <nav class="platform-launchers" aria-label="Start a meeting">
         <div class="platform-card">
             <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
@@ -532,6 +567,10 @@
          <button id="viewButton" disabled>View Transcript</button>
          <button id="evidenceBoardButton">Open Evidence Board</button>
     </div>
+    <div class="button-container">
+        <button id="meetingExtrasButton" type="button">Chat &amp; links</button>
+        <button id="meetingScreenshotButton" type="button">Screenshot</button>
+    </div>
     
     <!-- Session History -->
     <div id="sessionHistory" class="button-container" style="margin-top: 10px; display: none;">
@@ -576,7 +615,7 @@
     </details>
 
     <div class="settings-container">
-        <h3 class="settings-header">Settings</h3>
+        <div class="settings-heading"><h3 class="settings-header">Settings</h3></div>
         <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
 
         <details class="settings-group">

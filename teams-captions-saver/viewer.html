@@ -137,6 +137,19 @@
             box-shadow: 0 8px 16px color-mix(in srgb, var(--ck-bg) 80%, transparent);
         }
         
+        #print-output { display: none; }
+        @media print {
+            body > * { display: none !important; }
+            body > #print-output { display: block !important; }
+            body { background: white !important; color: black !important; padding: 0; }
+            #print-output { font: 11pt/1.5 system-ui, sans-serif; }
+            #print-output h1 { font-size: 20pt; }
+            .print-caption { break-inside: avoid; margin: 14pt 0; }
+            .print-caption p { margin: 3pt 0; }
+            .print-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+            .print-caption small { color: #555; overflow-wrap: anywhere; }
+        }
+
         .export-controls {
             display: flex;
             gap: 8px;
@@ -448,6 +461,8 @@
     <script src="privacyScrubber.js" defer></script>
     <script src="sessionManager.js" defer></script>
     <script src="correctionManager.js" defer></script>
+    <script src="exportProfiles.js" defer></script>
+    <script src="translation.js" defer></script>
     <script src="viewer.js" defer></script>
 </head>
 <body>
@@ -497,6 +512,18 @@
                         </svg>
                         Copy All
                     </button>
+                    <label for="viewer-export-format">File type</label>
+                    <select id="viewer-export-format" aria-label="File type for this export">
+                        <option value="default">Use saved preference</option>
+                        <option value="txt">TXT</option>
+                        <option value="md">Markdown</option>
+                        <option value="docx">Word (DOCX)</option>
+                        <option value="srt">SRT (imported media cues only)</option>
+                        <option value="vtt">WebVTT (imported media cues only)</option>
+                    </select>
+                    <button id="print-pdf-btn" class="export-btn" type="button" title="Print visible captions or choose Save as PDF in the browser dialog">Print / PDF</button>
+                    <button id="meeting-extras-btn" class="export-btn" type="button">Chat &amp; screenshot</button>
+                    <button id="translate-btn" class="export-btn" type="button">Translate</button>
                     <button id="save-all-btn" class="export-btn" title="Save visible transcript as file">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
@@ -523,6 +550,18 @@
             </main>
         </div>
     </div>
+
+    <dialog id="translation-dialog" class="dictionary-editor">
+        <h2>Translate on this device</h2>
+        <p>Translation is a separate, potentially imperfect derivative. It never changes the original transcript. Initial language-pack downloads need network access; no automatic cloud fallback is used.</p>
+        <label>Source language code <input id="translation-source" value="en" maxlength="20" aria-label="Source language code"></label>
+        <label>Target language code <input id="translation-target" value="es" maxlength="20" aria-label="Target language code"></label>
+        <p>Examples: en English, es Spanish, fr French, de German, ja Japanese.</p>
+        <label><input id="translation-live" type="checkbox"> Keep translating new visible captions while this panel is open</label>
+        <div class="dictionary-actions"><button id="translation-start" type="button" disabled>Start translation</button><button id="translation-copy" type="button" disabled>Copy translation</button><button id="translation-save" type="button" disabled>Save translation TXT</button><button id="translation-close" type="button">Close</button></div>
+        <p id="translation-status" role="status" aria-live="polite"></p>
+        <textarea id="translation-output" readonly aria-label="Machine-translated derivative"></textarea>
+    </dialog>
 
     <dialog id="dictionary-dialog" class="dictionary-editor">
         <form method="dialog">

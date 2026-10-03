@@ -46,6 +46,12 @@
         return sections.join('\n').trim();
     }
 
+    // Only the explicitly selected, policy-cleaned derivative reaches print output.
+    function formatAsPrintHtml({meetingTitle, transcript = [], versionNotice = ''} = {}) {
+        const lines = transcript.map((entry, index) => `<section class="print-caption"><p><strong>${xmlEscape(normalizedSpeaker(entry))}</strong> <span>(${xmlEscape(entry?.Time || 'time unavailable')})</span></p><p class="print-text">${xmlEscape(entry?.Text || '')}</p><small>Source caption: ${xmlEscape(sourceId(entry, index))}</small></section>`);
+        return `<h1>${xmlEscape(meetingTitle || 'Meeting transcript')}</h1><p>${xmlEscape(versionNotice)}</p><p>${xmlEscape(TIMING_WARNING)}</p><p>${transcript.length} selected captions</p>${lines.join('')}`;
+    }
+
     function paragraph(text, {bold = false, style = ''} = {}) {
         const parts = String(text ?? '').split(/\r?\n/);
         const runs = parts.map((part, index) => `${index ? '<w:r><w:br/></w:r>' : ''}<w:r>${bold ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${xmlEscape(part)}</w:t></w:r>`).join('');
@@ -148,11 +154,38 @@
         return btoa(binary);
     }
 
+    function subtitleTime(milliseconds, separator) {
+        const total = Math.floor(milliseconds);
+        const hours = Math.floor(total / 3600000);
+        const minutes = Math.floor(total / 60000) % 60;
+        const seconds = Math.floor(total / 1000) % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${separator}${String(total % 1000).padStart(3, '0')}`;
+    }
+
+    function subtitleProfile(transcript, format, options) {
+        if (!transcript.length || transcript.some(entry => entry?.timingSource !== 'official-vtt'
+            || !Number.isSafeInteger(entry.mediaStartMs) || !Number.isSafeInteger(entry.mediaEndMs)
+            || entry.mediaStartMs < 0 || entry.mediaEndMs <= entry.mediaStartMs)) {
+            throw new Error('Subtitle export is unavailable because caption observation times are not verified speech cue boundaries. Import a Teams transcript with actual media cues first.');
+        }
+        const separator = format === 'srt' ? ',' : '.';
+        const cues = transcript.map((entry, index) => {
+            // Prevent transcript text from injecting another cue or active markup.
+            const text = xmlEscape(`${normalizedSpeaker(entry)}: ${String(entry.Text || '')}`).replace(/--&gt;/g, '→').replace(/\r?\n\s*\r?\n/g, '\n');
+            return `${format === 'srt' ? `${index + 1}\n` : ''}${subtitleTime(entry.mediaStartMs, separator)} --> ${subtitleTime(entry.mediaEndMs, separator)}\n${text}`;
+        });
+        return {format, extension:format, mimeType:format === 'vtt' ? 'text/vtt' : 'application/x-subrip', contentEncoding:'utf8',
+            content:`${format === 'vtt' ? 'WEBVTT\n\n' : ''}${cues.join('\n\n')}\n`, subsetCount:transcript.length,
+            sourceIds:transcript.map(sourceId), timingBasis:'source-media-cues',
+            warnings:['Uses original imported media cue boundaries, not live-caption observation times.'],
+            previewText:[options.versionNotice, 'Subtitle derivative using imported media cue boundaries.', formatAsText(transcript, null, {includeSourceIds:true})].filter(Boolean).join('\n\n')};
+    }
+
     function createProfile(options = {}) {
         const transcript = Array.isArray(options.transcript) ? options.transcript : [];
         const requestedFormat = String(options.format || '').toLowerCase();
         if (['srt','vtt','webvtt'].includes(requestedFormat)) {
-            throw new Error('Subtitle export is unavailable because caption observation times are not verified speech cue boundaries.');
+            return subtitleProfile(transcript, requestedFormat === 'webvtt' ? 'vtt' : requestedFormat, options);
         }
         const format = ['txt','md','docx'].includes(requestedFormat) ? requestedFormat : 'txt';
         const common = {
@@ -175,7 +208,7 @@
     }
 
     root.CaptionKeepExportProfiles = Object.freeze({
-        DOCX_MIME, TIMING_WARNING, xmlEscape, sourceId, formatAsText, formatAsMarkdown,
+        DOCX_MIME, TIMING_WARNING, xmlEscape, sourceId, formatAsText, formatAsMarkdown, formatAsPrintHtml,
         crc32, zip, buildDocx, bytesToBase64, createProfile
     });
     if (typeof module !== 'undefined' && module.exports) module.exports = root.CaptionKeepExportProfiles;

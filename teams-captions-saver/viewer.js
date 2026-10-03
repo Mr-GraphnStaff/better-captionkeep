@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakerFiltersContainer = document.getElementById('speaker-filters');
     const copyAllBtn = document.getElementById('copy-all-btn');
     const saveAllBtn = document.getElementById('save-all-btn');
+    const printPdfBtn = document.getElementById('print-pdf-btn');
+    const exportFormat = document.getElementById('viewer-export-format');
     const historyBtn = document.getElementById('history-btn');
     const scrubOutputToggle = document.getElementById('scrub-output-toggle');
     const sessionModal = document.getElementById('sessionModal');
@@ -24,6 +26,132 @@ document.addEventListener('DOMContentLoaded', () => {
     const dictionaryWholeWord = document.getElementById('dictionary-whole-word');
     const dictionaryStatus = document.getElementById('dictionary-status');
     const correctionStatus = document.getElementById('correction-status');
+    const translationDialog = document.getElementById('translation-dialog');
+    const translationStatus = document.getElementById('translation-status');
+    const translationStart = document.getElementById('translation-start');
+    let translationOptions = null;
+    let translator = null;
+    let translatedCaptions = [];
+    let translationCache = new Map();
+    let translationTimer = null;
+    let translationAbort = null;
+    let translationBusy = false;
+    let languageCheck = 0;
+
+    async function checkTranslationPair() {
+        const generation = ++languageCheck;
+        translationOptions = null;
+        translationStart.disabled = true;
+        if (translationBusy || translator) stopTranslation();
+        if (!globalThis.Translator) {
+            translationStatus.textContent = 'On-device translation is unavailable in this browser. Use the reviewed Translate AI template instead; nothing is sent automatically.';
+            return;
+        }
+        try {
+            const options = {sourceLanguage:document.getElementById('translation-source').value.trim(), targetLanguage:document.getElementById('translation-target').value.trim()};
+            const available = await globalThis.Translator.availability(options);
+            if (generation !== languageCheck) return;
+            translationOptions = options;
+            translationStart.disabled = available === 'unavailable';
+            translationStatus.textContent = available === 'unavailable' ? 'This language pair is unavailable on this device.' : available === 'available' ? 'Language pair ready. Press Start.' : 'Press Start to download or load the language pack.';
+        } catch (error) { if (generation === languageCheck) translationStatus.textContent = error.message; }
+    }
+
+    function stopTranslation() {
+        translationAbort?.abort();
+        if (translationTimer) clearTimeout(translationTimer);
+        translationTimer = null;
+        translator?.destroy();
+        translator = null;
+        translationBusy = false;
+    }
+
+    async function translateVisibleCaptions() {
+        if (!translator || translationBusy || !translationDialog.open) return;
+        const currentTranslator = translator;
+        const signal = translationAbort.signal;
+        translationBusy = true;
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableAiHandoff) throw new Error('AI processing is disabled by your organization.');
+            const selected = prepareOutput(getVisibleCaptions()).transcript;
+            const result = await CaptionKeepTranslation.translateTranscript(currentTranslator, selected, {
+                cache:translationCache, signal,
+                onProgress: (done, total) => { if (!signal.aborted) translationStatus.textContent = `Translated ${done} of ${total} visible captions.`; }
+            });
+            if (signal.aborted || currentTranslator !== translator) return;
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableAiHandoff) throw new Error('AI processing is disabled by your organization.');
+            translatedCaptions = result;
+            document.getElementById('translation-output').value = `${CaptionKeepTranslation.NOTICE}\n\n${CaptionKeepExportProfiles.formatAsText(result, null, {includeSourceIds:true})}`;
+            document.getElementById('translation-copy').disabled = !result.length || !!enterprisePolicy.disableClipboard;
+            document.getElementById('translation-save').disabled = !result.length || !!enterprisePolicy.disableFileExport;
+        } catch (error) {
+            if (!signal.aborted) { translationStatus.textContent = error.message; stopTranslation(); }
+        } finally {
+            if (currentTranslator === translator) translationBusy = false;
+            if (translator && translationDialog.open && document.getElementById('translation-live').checked) {
+                translationTimer = setTimeout(translateVisibleCaptions, 1500);
+            }
+        }
+    }
+
+    document.getElementById('translate-btn').addEventListener('click', async () => {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableAiHandoff) { showNotification('AI processing is disabled by your organization.', 'warning'); return; }
+        translationDialog.showModal();
+        void checkTranslationPair();
+    });
+    for (const id of ['translation-source','translation-target']) document.getElementById(id).addEventListener('change', checkTranslationPair);
+    translationStart.addEventListener('click', async () => {
+        if (!translationOptions || !globalThis.Translator || translationBusy) return;
+        stopTranslation();
+        translationStart.disabled = true;
+        translationAbort = new AbortController();
+        translationCache = new Map();
+        translatedCaptions = [];
+        document.getElementById('translation-output').value = '';
+        document.getElementById('translation-copy').disabled = true;
+        document.getElementById('translation-save').disabled = true;
+        const signal = translationAbort.signal;
+        try {
+            // Create immediately on the click; no policy/storage await consumes activation.
+            const created = await globalThis.Translator.create({...translationOptions,
+                monitor(monitor) { monitor.addEventListener('downloadprogress', event => { translationStatus.textContent = `Language pack: ${Math.round(event.loaded * 100)}%`; }); }
+            });
+            if (signal.aborted) { created.destroy(); return; }
+            translator = created;
+            await translateVisibleCaptions();
+        } catch (error) { translationStatus.textContent = error.message; }
+        finally { translationStart.disabled = false; }
+    });
+    document.getElementById('translation-live').addEventListener('change', () => {
+        if (translationTimer) clearTimeout(translationTimer);
+        translationTimer = null;
+        if (document.getElementById('translation-live').checked) void translateVisibleCaptions();
+    });
+    document.getElementById('translation-close').addEventListener('click', () => translationDialog.close());
+    translationDialog.addEventListener('close', stopTranslation);
+    window.addEventListener('pagehide', stopTranslation);
+    document.getElementById('translation-copy').addEventListener('click', async () => {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableClipboard || enterprisePolicy.disableAiHandoff) throw new Error('Translation copy is disabled by your organization.');
+            const text = CaptionKeepExportProfiles.formatAsText(prepareOutput(translatedCaptions).transcript, null, {includeSourceIds:true});
+            await navigator.clipboard.writeText(`${CaptionKeepTranslation.NOTICE}\n\n${text}`);
+            translationStatus.textContent = 'Translated derivative copied.';
+        } catch (error) { translationStatus.textContent = error.message; }
+    });
+    document.getElementById('translation-save').addEventListener('click', async () => {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableFileExport || enterprisePolicy.disableAiHandoff) throw new Error('Translation export is disabled by your organization.');
+            const result = await chrome.runtime.sendMessage({message:'download_captions', format:'txt',
+                transcriptArray:prepareOutput(translatedCaptions).transcript, meetingTitle:'Translated meeting transcript', versionNotice:CaptionKeepTranslation.NOTICE});
+            if (!result?.ok) throw new Error(result?.error || 'Export failed.');
+            translationStatus.textContent = 'Translated derivative ready on the save page.';
+        } catch (error) { translationStatus.textContent = error.message; }
+    });
 
     // --- State ---
     let allCaptions = [];
@@ -427,6 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         copyAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableClipboard;
         saveAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
+        printPdfBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
         
         // Update titles with count
         copyAllBtn.title = hasVisibleCaptions 
@@ -580,11 +709,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const output = prepareOutput(visibleCaptions);
             const notice = transcriptVersionNotice();
             const result = await chrome.runtime.sendMessage({message:'download_captions', transcriptArray:output.transcript,
-                format:defaultSaveFormat, meetingTitle:document.querySelector('h1').textContent,
+                format:exportFormat.value === 'default' ? defaultSaveFormat : exportFormat.value, meetingTitle:document.querySelector('h1').textContent,
                 versionNotice:notice});
             if (!result?.ok) throw new Error(result?.error || 'Could not prepare export');
             showNotification('Export ready. Choose a destination on the save page.', 'success');
         } catch (error) { showNotification(error.message,'error'); }
+    }
+
+    async function handlePrintPdfClick() {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableFileExport) {
+                showNotification('File export is disabled by your organization.', 'warning');
+                return;
+            }
+            const selected = getVisibleCaptions();
+            if (!selected.length) {
+                showNotification('No visible captions to print', 'warning');
+                return;
+            }
+            const output = prepareOutput(selected);
+            const title = prepareOutput([{Text:document.querySelector('h1').textContent}]).transcript[0].Text;
+            const printOutput = document.createElement('article');
+            printOutput.id = 'print-output';
+            printOutput.innerHTML = CaptionKeepExportProfiles.formatAsPrintHtml({
+                meetingTitle:title, transcript:output.transcript, versionNotice:transcriptVersionNotice()
+            });
+            document.getElementById('print-output')?.remove();
+            document.body.append(printOutput);
+            try {
+                window.print();
+            } finally {
+                printOutput.remove();
+            }
+            showNotification('Print dialog closed. Choose Save as PDF there to create a PDF.', 'success');
+        } catch (error) { showNotification(`Could not prepare print output: ${error.message}`, 'error'); }
     }
 
     async function refreshViewerPolicy() {
@@ -685,6 +844,17 @@ document.addEventListener('DOMContentLoaded', () => {
         captionsContainer.addEventListener('click', event => handleCorrectionClick(event).catch(error => showNotification(error.message, 'warning')));
         copyAllBtn.addEventListener('click', handleCopyAllClick);
         saveAllBtn.addEventListener('click', handleSaveAllClick);
+        printPdfBtn.addEventListener('click', handlePrintPdfClick);
+        document.getElementById('meeting-extras-btn').addEventListener('click', async () => {
+            try {
+                await refreshViewerPolicy();
+                if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+                if (!sourceSessionId) throw new Error('Meeting identity is unavailable.');
+                const query = new URLSearchParams({session:sourceSessionId, historical:String(historical)});
+                if (!historical && Number.isInteger(sourceTabId)) query.set('tab', String(sourceTabId));
+                await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)});
+            } catch (error) { showNotification(error.message, 'error'); }
+        });
         
         // Session history handlers
         historyBtn.addEventListener('click', showSessionHistory);
@@ -1298,6 +1468,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Keyboard Shortcuts ---
     document.addEventListener('keydown', (e) => {
+        const modifier = e.ctrlKey || e.metaKey;
+        const key = e.key.toLowerCase();
+        if (modifier && key === 'p') {
+            e.preventDefault();
+            void handlePrintPdfClick();
+            return;
+        }
+        const editing = e.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+        if (modifier && e.shiftKey && !editing && ['c', 's'].includes(key)) {
+            e.preventDefault();
+            if (key === 'c') void handleCopyAllClick();
+            else void handleSaveAllClick();
+            return;
+        }
         // Ctrl/Cmd + F for search focus
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();

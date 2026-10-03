@@ -43,6 +43,7 @@
     <script src="configuration.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
+    <script src="promptTemplates.js" defer></script>
     <script src="handoff.js" defer></script>
 </head>
 <body>
@@ -66,6 +67,22 @@
             <span class="slider"></span>
         </label>
     </section>
+    <details id="template-tools">
+        <summary>Meeting prompt templates</summary>
+        <p>Reuse instructions without saving meeting content. Templates stay on this device. Applying one rebuilds the preview; copy any manual edits first.</p>
+        <label for="template-select">Choose a task</label>
+        <select id="template-select"></select>
+        <label for="template-name">Template name</label>
+        <input id="template-name" maxlength="80" placeholder="My meeting task">
+        <label for="template-instructions">Instructions only — do not paste a transcript or secrets</label>
+        <textarea id="template-instructions" maxlength="4000" style="min-height:100px" aria-label="Reusable instructions"></textarea>
+        <div class="actions">
+            <button id="template-apply" type="button" disabled>Apply to preview</button>
+            <button id="template-save" type="button" disabled>Save custom template</button>
+            <button id="template-delete" type="button" disabled>Delete custom template</button>
+        </div>
+        <p id="template-status" role="status" aria-live="polite"></p>
+    </details>
     <textarea id="prompt" aria-label="Editable cleaned meeting prompt"></textarea>
     <div class="actions">
         <button class="primary" id="copy">Copy prompt</button>
