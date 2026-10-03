@@ -192,7 +192,7 @@ test('subtitle exports preserve imported boundaries and reject invented observat
     const srt = profiles.createProfile({format:'srt', transcript});
     assert(srt.content.startsWith('1\n00:00:01,234 --> 00:00:05,678'));
     assert(!srt.content.includes('<script>'));
-    assert.equal((srt.content.match(/-->/g) || []).length, 1);
+    assert.equal(srt.content.split('-->').length - 1, 1);
     assert.equal(srt.timingBasis, 'source-media-cues');
     assert(profiles.createProfile({format:'vtt', transcript}).content.startsWith('WEBVTT\n\n00:00:01.234'));
     assert.throws(() => profiles.createProfile({format:'srt', transcript:[{Text:'Observed', capturedAt:'2026-10-03', Time:'10:00'}]}), /actual media cues/);
