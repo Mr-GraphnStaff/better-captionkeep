@@ -18,7 +18,7 @@ Capture live captions and privately import verified Microsoft Teams transcripts 
 
 **Detailed Description**
 
-Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. When an organization enables Verified Teams Transcript, a signed-in user can also select the current meeting or choose one of five recent Teams meetings to retrieve its authorized official transcript from Microsoft 365 directly into the standard transcript viewer.
+Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. In Teams, it can request captions, the participant roster, and Microsoft 365 transcription while clearly distinguishing the local browser copy from the official tenant-retained transcript. When an organization enables Verified Teams Transcript, a signed-in user can select the current meeting or choose one of five recent Teams meetings to retrieve its authorized official transcript directly into the standard transcript viewer.
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 

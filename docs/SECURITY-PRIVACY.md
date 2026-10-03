@@ -15,6 +15,7 @@ Better CaptionKeep is a Manifest V3 browser extension. It has no developer-opera
 7. The Evidence Board stores user-created caption markers and notes locally. It preserves a source caption ID and never rewrites the raw transcript.
 8. Evidence sharing is user-directed: email opens a draft with no recipients, while Markdown and provenance JSON require explicit save actions.
 9. When managed Verified Teams Transcript is enabled, recent-meeting discovery reads a bounded basic calendar view and returns at most five already-started Teams meetings. Calendar results remain in popup memory only. An explicit import stores the official raw transcript, normalized captions, and provenance together under the same local deletion and retention controls.
+10. Teams already processes meeting media and generates the captions shown to participants. Better CaptionKeep reads displayed captions and keeps its captured copy locally; it does not upload that local copy. When automatic Teams transcription succeeds, Microsoft separately notifies participants and retains an official transcript under the organization’s Microsoft 365 controls. The popup distinguishes these two artifacts and warns when official transcription cannot be verified.
 
 ## Permissions
 

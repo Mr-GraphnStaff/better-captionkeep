@@ -1722,6 +1722,22 @@ test('Graph pilot can capture the active Teams meeting link without new permissi
     assert(popup.includes('id="graphUseCurrentMeeting"'));
     assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
 });
+test('Teams automation requests tenant transcription and distinguishes it from local capture',()=>{
+    const content=read('content_script.js');
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
+    assert(content.includes('async function ensureTeamsTranscription'));
+    assert(content.includes('async function inspectTranscriptionMenu'));
+    assert(content.includes('/^start transcription$/i'));
+    assert(content.includes('/^stop transcription$/i'));
+    assert(content.includes('transcriptionState,'));
+    assert(content.includes('autoOpenAttendees !== false'));
+    assert(popup.includes('Local CaptionKeep copy:'));
+    assert(popup.includes('Official tenant copy:'));
+    assert(popup.includes('id="autoOpenAttendeesToggle" checked'));
+    assert(popupScript.includes("transcriptionState === 'running'"));
+    assert(popupScript.includes('CAUTION:'));
+});
 test('Verified Teams Transcript offers current, recent-five, and manual meeting selection',()=>{
     const popup=read('popup.html');
     const popupScript=read('popup.js');

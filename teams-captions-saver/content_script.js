@@ -26,6 +26,7 @@ const SELECTORS = {
     MORE_BUTTON_EXPANDED: "button[data-tid='more-button'][aria-expanded='true'], button[id='callingButtons-showMoreBtn'][aria-expanded='true']",
     LANGUAGE_SPEECH_BUTTON: "div[id='LanguageSpeechMenuControl-id']",
     TURN_ON_CAPTIONS_BUTTON: "div[id='closed-captions-button']",
+    TRANSCRIPTION_CONTROLS: "button, [role='button'], [role='menuitem'], [role='menuitemcheckbox']",
     // Attendee tracking selectors
     ATTENDEE_TREE: "[role='tree'][aria-label='Attendees']",
     ATTENDEE_ITEM: "[data-tid^='participantsInCall-']",
@@ -49,6 +50,10 @@ let stateCheckRunning = false;
 let attendeeStartTimer = null;
 let captureState = 'idle';
 let checkpointError = '';
+let transcriptionState = 'unchecked';
+let transcriptionDetail = 'Teams transcription has not been checked.';
+let transcriptionCheckInProgress = false;
+let transcriptionLastAttempt = 0;
 let ACTIVE_CAPTURE_KEY = '';
 let captureSurfaceId = '';
 let documentSessionId = crypto.randomUUID();
@@ -529,7 +534,7 @@ async function startAttendeeTracking() {
         attendeeStartTimer = null;
         if (!attendeesAllowed || !isUserInMeeting()) return;
         // Only auto-open participant panel if setting is enabled
-        if (autoOpenAttendees) {
+        if (autoOpenAttendees !== false) {
             await tryOpenParticipantPanel();
         }
         
@@ -702,6 +707,9 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
 
     if (!nowInMeeting) {
         wasInMeeting = false;
+        transcriptionState = 'unchecked';
+        transcriptionDetail = 'Teams transcription has not been checked.';
+        transcriptionLastAttempt = 0;
         stopCaptureSession();
         stopAttendeeTracking();
         return;
@@ -710,6 +718,9 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         console.log("Meeting transition detected: Out -> In. Resetting auto-save state.");
         autoSaveTriggered = false;
         lastMeetingId = null;
+        transcriptionState = 'unchecked';
+        transcriptionDetail = 'Teams transcription has not been checked.';
+        transcriptionLastAttempt = 0;
         // Never carry a cached join link into a later meeting in the same Teams SPA tab.
         lastKnownTeamsJoinUrl = '';
         findCurrentTeamsJoinUrl();
@@ -719,7 +730,7 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
     }
 
     wasInMeeting = true;
-    
+    await ensureTeamsTranscription(!previouslyInMeeting);
     handleCaptionsStateChange();
 }, 'Meeting state change handler');
 
@@ -938,6 +949,101 @@ async function saveToSessionHistory() {
 }
 
 // --- Automated Features ---
+function teamsControlLabel(element) {
+    return [element?.getAttribute?.('aria-label'), element?.getAttribute?.('title'), element?.textContent]
+        .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function findTeamsControl(patterns) {
+    return Array.from(document.querySelectorAll(SELECTORS.TRANSCRIPTION_CONTROLS)).find(element => {
+        if (element.disabled || element.getAttribute?.('aria-disabled') === 'true') return false;
+        if (element.hidden || element.getAttribute?.('aria-hidden') === 'true') return false;
+        if (typeof element.getClientRects === 'function' && element.getClientRects().length === 0) return false;
+        const label = teamsControlLabel(element);
+        return patterns.some(pattern => pattern.test(label));
+    }) || null;
+}
+
+function setTranscriptionState(state, detail) {
+    transcriptionState = state;
+    transcriptionDetail = detail;
+    console.log(`[Teams Caption Saver] ${detail}`);
+}
+
+async function openMoreMenu() {
+    if (document.querySelector(SELECTORS.MORE_BUTTON_EXPANDED)) return true;
+    const moreButton = document.querySelector(SELECTORS.MORE_BUTTON);
+    if (!moreButton) return false;
+    moreButton.click();
+    await delay(TIMING.BUTTON_CLICK_DELAY);
+    return true;
+}
+
+function closeMoreMenu() {
+    document.querySelector(SELECTORS.MORE_BUTTON_EXPANDED)?.click();
+}
+
+async function inspectTranscriptionMenu() {
+    if (!await openMoreMenu()) {
+        return {state:'unavailable', detail:'Teams transcription could not be checked because the More menu was unavailable.'};
+    }
+    let stopControl = findTeamsControl([/^stop transcription$/i, /stop transcription/i]);
+    if (stopControl) {
+        closeMoreMenu();
+        return {state:'running', detail:'Teams transcription is running and Microsoft 365 will retain the official tenant transcript.'};
+    }
+
+    let startControl = findTeamsControl([/^start transcription$/i, /start transcription/i]);
+    if (!startControl) {
+        const submenu = findTeamsControl([/^record and transcribe$/i, /record and transcribe/i, /^transcription$/i]);
+        if (submenu) {
+            submenu.click();
+            await delay(TIMING.BUTTON_CLICK_DELAY);
+            stopControl = findTeamsControl([/^stop transcription$/i, /stop transcription/i]);
+            if (stopControl) {
+                closeMoreMenu();
+                return {state:'running', detail:'Teams transcription is running and Microsoft 365 will retain the official tenant transcript.'};
+            }
+            startControl = findTeamsControl([/^start transcription$/i, /start transcription/i]);
+        }
+    }
+    if (!startControl) {
+        closeMoreMenu();
+        return {state:'unavailable', detail:'Local captions are available, but Teams transcription could not be started. Your role or tenant policy may not permit an official tenant transcript.'};
+    }
+
+    startControl.click();
+    await delay(TIMING.BUTTON_CLICK_DELAY);
+    const confirmControl = findTeamsControl([/^confirm$/i, /^start transcription$/i]);
+    if (confirmControl && confirmControl !== startControl) {
+        confirmControl.click();
+        await delay(TIMING.BUTTON_CLICK_DELAY);
+    }
+    return {state:'requested', detail:'Teams transcription was requested. Microsoft should notify participants and retain the official transcript in the tenant.'};
+}
+
+async function ensureTeamsTranscription(force = false) {
+    if (!isUserInMeeting() || transcriptionCheckInProgress) return;
+    const { autoEnableCaptions } = await chrome.storage.sync.get('autoEnableCaptions');
+    if (autoEnableCaptions === false) {
+        setTranscriptionState('disabled', 'Automatic Teams transcription is disabled with caption automation. Only the local CaptionKeep copy is expected.');
+        return;
+    }
+    const now = Date.now();
+    if (!force && now - transcriptionLastAttempt < 60000) return;
+    transcriptionCheckInProgress = true;
+    transcriptionLastAttempt = now;
+    setTranscriptionState('checking', 'Checking whether Teams transcription is running…');
+    try {
+        const result = await inspectTranscriptionMenu();
+        setTranscriptionState(result.state, result.detail);
+    } catch (error) {
+        setTranscriptionState('unavailable', `Teams transcription could not be verified: ${error.message}`);
+    } finally {
+        transcriptionCheckInProgress = false;
+    }
+}
+
 async function attemptAutoEnableCaptions() {
     // Prevent multiple simultaneous auto-enable attempts
     if (autoEnableInProgress) {
@@ -1162,7 +1268,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                     captionCount: transcriptArray.length,
                     lastCaptionAt: transcriptArray.at(-1)?.capturedAt || '',
                     isInMeeting: isUserInMeeting(),
-                    attendeeCount: attendeeReport ? attendeeReport.totalUniqueAttendees : 0
+                    attendeeCount: attendeeReport ? attendeeReport.totalUniqueAttendees : 0,
+                    transcriptionState,
+                    transcriptionDetail
                 });
             })();
             return true; // Will respond asynchronously

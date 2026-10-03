@@ -586,7 +586,7 @@
         <summary>Verified Teams transcripts</summary>
         <div class="graph-hero">
             <strong>Official words. Verifiable source.</strong>
-            <p class="small-info-text">Bring an authorized Teams transcript directly from Microsoft 365 into your private local history. Better CaptionKeep never receives it.</p>
+            <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
         </div>
         <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
         <div class="graph-actions">
@@ -680,7 +680,7 @@
                 <label for="trackCaptionsToggle" class="setting-label">Track Live Captions</label>
                 <label class="toggle-switch"><input type="checkbox" id="trackCaptionsToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Capture and save meeting captions when available.</p>
+            <p class="small-info-text"><strong>Local CaptionKeep copy:</strong> Teams produces the displayed captions; Better CaptionKeep reads them and stores its copy in this browser. Better CaptionKeep does not upload that local copy.</p>
             <div class="setting-item">
                 <label for="trackAttendeesToggle" class="setting-label">Track Meeting Attendees</label>
                 <label class="toggle-switch"><input type="checkbox" id="trackAttendeesToggle"><span class="slider"></span></label>
@@ -689,13 +689,13 @@
             
             <p class="settings-subheader">Automation Settings</p>
             <div class="setting-item">
-                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Live Captions</label>
+                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Captions and Teams Transcription</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Automatically enable captions when joining a supported Teams, Zoom Web, or Google Meet meeting. Browser controls may still ask you to confirm the caption language, and a later manual shutoff is respected.</p>
+            <p class="small-info-text"><strong>Official tenant copy:</strong> In Teams, Better CaptionKeep also requests transcription. Microsoft notifies participants and stores the official transcript under your organization’s Microsoft 365 controls. Your Teams role or policy can block it; check the capture status for a caution. Other platforms enable captions only.</p>
             <div class="setting-item">
                 <label for="autoOpenAttendeesToggle" class="setting-label">Auto-open Attendee Panel</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle"><span class="slider"></span></label>
+                <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle" checked><span class="slider"></span></label>
             </div>
             <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
         </details>

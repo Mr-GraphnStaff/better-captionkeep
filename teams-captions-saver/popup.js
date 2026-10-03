@@ -115,7 +115,7 @@ async function getScrubOptions() {
 }
 
 // --- UI Update Functions ---
-async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError }) {
+async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError, transcriptionState, transcriptionDetail }) {
     const { statusMessage } = UI_ELEMENTS;
     const { trackCaptions, trackAttendees } = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees']);
     
@@ -133,6 +133,11 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
                 status += `, ${attendeeCount} attendees`;
             }
             status += ')';
+            if (transcriptionState === 'running') {
+                status += ' Official Microsoft 365 transcription is running.';
+            } else {
+                status += ` CAUTION: ${transcriptionDetail || 'Teams transcription is not verified; an official tenant transcript is not guaranteed.'}`;
+            }
             statusMessage.textContent = status;
             statusMessage.style.color = captionCount > 0 ? 'var(--ck-success)' : 'var(--ck-warning)';
         } else if (trackCaptions === false && trackAttendees !== false && attendeeCount > 0) {
@@ -542,7 +547,7 @@ async function loadSettings() {
     UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
     UI_ELEMENTS.trackAttendeesToggle.disabled = locked.has('trackAttendees');
     if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-        UI_ELEMENTS.autoOpenAttendeesToggle.checked = !!settings.autoOpenAttendees;
+        UI_ELEMENTS.autoOpenAttendeesToggle.checked = settings.autoOpenAttendees !== false;
         UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked || locked.has('autoOpenAttendees');
     }
     if (UI_ELEMENTS.autoAISummaryToggle) {
