@@ -37,18 +37,18 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 - [x] Store packages contain no local dev/UAT overlay or configured Microsoft identifier.
 - [ ] A second reviewer approves authentication, storage, provenance, managed-policy, and permission changes.
 
-### Consolidated integration evidence - 2026-10-02
+### Candidate automation evidence - 2026-10-03
 
-The reconciled source passes 151 of 151 automated tests, extension validation, and the canonical Chrome metadata/dossier check. This includes the existing Graph authentication, calendar, official-transcript, source-provenance, and dev-overlay coverage plus a combined service-worker/import/archive regression and the new archive, search, correction, DOCX, entitlement, policy, and recovery coverage. Package builds and exact-commit CI must be regenerated after the integration commit. The strict high-severity dependency audit remains a visible blocker; no audit suppression, forced downgrade, or vendored crypto change is authorized.
+Candidate commit `4d98c5863f16f38d0d45a0c156fb39bea9f9fb31` passes 178 of 178 automated tests, extension validation, the dependency audit with zero findings, and the canonical Chrome metadata/dossier check. GitHub validation and CodeQL passed. Azure lifecycle runs 545 and 546 passed the Development and UAT / Release Candidate stages against the candidate branch and pull-request merge ref. The complete evidence handoff, prompt templates, archive/search, correction, DOCX, settings, export, translation, Graph, entitlement, policy, and recovery coverage are integrated in the single `release/5.3` line.
 
 | Target | SHA-256 |
 | --- | --- |
-| Prior isolated 5.3 Chrome unpacked-test ZIP | `E3E2A3D8C42C842743A0BCA5B4D81C0FD49630A641CA26D046937C6A381CF57B` |
-| Prior isolated 5.3 Edge unpacked-test ZIP | `999769A97718A3A213818D4B7D331F50A0BBB862F8BE3370A5110398B43AE8D8` |
-| Prior isolated 5.3 Edge Store ZIP | `C42E21BA528ED4A7B63256119F461D1B3BAA463DAEFB8156FD47C6163006A363` |
-| Prior isolated 5.3 Chrome Store ZIP | `AE88929CD94B01BB9E575DC36B95749DF4FCF0ED9C7C60F95EDEC8EB860E241C` |
+| Candidate Chrome unpacked-test ZIP | `2BD88A15DF9A5885F19CA73CABABBA19FDAF03CFD7FCA911EB73829419E88B32` |
+| Candidate Edge unpacked-test ZIP | `A972A710B3BD0AA3BFE472D4777CFDD608BF606775E2C5887DAFA24019A6C814` |
+| Candidate Edge Store ZIP | `50C3D64B1B7A1A23EA6305CDD9404510D139340EDD7A0D416894C84039DE74C8` |
+| Candidate Chrome Store ZIP | `AA7501CE29B5FEF4005DAB96DF5200713DA8B88DD493FAD1248B0B97B3ACC348` |
 
-Those hashes describe the earlier isolated Graph candidate and are retained only as lineage evidence. New consolidated hashes belong in the frozen 5.3 snapshot after the integration commit; generated artifacts remain outside Git.
+These locally generated hashes record the automated candidate evidence. The UAT / Release Candidate lane will freeze and retain its final pipeline artifacts after the remaining browser and review gates identify the exact unchanged candidate; generated artifacts remain outside Git.
 
 ## Tenant and browser gate
 
