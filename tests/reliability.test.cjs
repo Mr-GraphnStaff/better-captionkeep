@@ -1592,7 +1592,7 @@ test('configuration import is bounded and managed policy takes precedence',()=>{
     assert.equal(enterprise.settings.maxStoredSessions,5);
     assert.equal(enterprise.settings.sessionRetentionDays,30);
 });
-test('UAT Graph overlay extends frozen policy without mutating it',()=>{
+test('Dev and UAT Graph overlays extend frozen policy without mutating it',()=>{
     const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
     vm.runInContext(read('configuration.js'),context);
     const config=context.CaptionKeepConfiguration;
@@ -1604,6 +1604,9 @@ test('UAT Graph overlay extends frozen policy without mutating it',()=>{
     assert(effective.locked.includes('graphTenantId'));
     assert.equal(policy.settings.enableGraphTranscriptImport,undefined);
     assert.equal(Object.isFrozen(effective.settings),true);
+    const development=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - Development',version_name:'5.3.0 development'});
+    assert.equal(development.settings.enableGraphTranscriptImport,true);
+    assert.equal(development.settings.graphClientId,local.graphClientId);
     const production=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
     assert.equal(production,policy);
 });
@@ -1729,10 +1732,14 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popup.includes('Import verified transcript'));
     assert(popupScript.includes("message:'graph_list_recent_meetings'"));
     assert(popupScript.includes('meetings.slice(0, 5)'));
+    assert(popupScript.includes('async function importGraphTranscript(joinUrl)'));
+    assert(popupScript.includes('await importGraphTranscript(meeting.joinUrl)'));
+    assert(popupScript.includes("message:'graph_import_transcript', joinUrl:normalizedJoinUrl"));
+    assert(popup.includes('choose one to open its transcript'));
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph UAT build stays visible without consumer entitlement machinery',()=>{
+test('Graph Dev and UAT builds stay visible without consumer entitlement machinery',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
@@ -1741,13 +1748,14 @@ test('Graph UAT build stays visible without consumer entitlement machinery',()=>
     assert(!popup.includes('Signed UAT pass'));
     assert(!worker.includes('requireGraphDevUatAccess'));
     assert(!worker.includes('dev_uat_'));
+    assert(popupScript.includes("runtimeManifest.name === 'Better CaptionKeep - Development'"));
     assert(popupScript.includes("runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
     assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild'));
     assert(popupScript.includes('&& currentEnterprisePolicy.enableGraphTranscriptImport !== true'));
     assert(buildScript.includes("target === 'dev' || target === 'uat'"));
     assert(buildScript.includes("replace('id=\"graphTranscriptSection\" hidden open', 'id=\"graphTranscriptSection\" open')"));
 });
-test('worker accepts an optional unpacked-only Graph configuration only for UAT',()=>{
+test('worker accepts an optional unpacked-only Graph configuration only for Dev and UAT',()=>{
     const worker=read('service_worker.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
     assert(worker.includes("importScripts('devUatLocalConfig.js')"));
@@ -1755,8 +1763,9 @@ test('worker accepts an optional unpacked-only Graph configuration only for UAT'
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
     assert(read('configuration.js').includes('/\\buat release candidate\\b/i'));
     assert(read('configuration.js').includes('localConfig.enableGraphTranscriptImport !== true'));
-    assert(overlayScript.includes('canonical UAT release candidate'));
-    assert(overlayScript.includes("dist', 'uat'"));
+    assert(overlayScript.includes("['dev', 'uat'].includes(target)"));
+    assert(overlayScript.includes("path.join(projectRoot, 'dist', target)"));
+    assert(overlayScript.includes('without changing a production package'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');

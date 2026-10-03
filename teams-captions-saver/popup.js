@@ -64,8 +64,11 @@ let currentEnterprisePolicy = {};
 let graphConnected = false;
 const runtimeManifest = chrome.runtime.getManifest();
 const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
-const isDevUatBuild = runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'
-    && /\buat release candidate\b/i.test(String(runtimeManifest.version_name || ''));
+const runtimeVersionName = String(runtimeManifest.version_name || '');
+const isDevUatBuild = (runtimeManifest.name === 'Better CaptionKeep - Development'
+        && /\bdevelopment\b/i.test(runtimeVersionName))
+    || (runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'
+        && /\buat release candidate\b/i.test(runtimeVersionName));
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -227,6 +230,24 @@ function selectGraphMeeting(meeting, message) {
     setGraphBusy(false);
 }
 
+async function importGraphTranscript(joinUrl) {
+    const normalizedJoinUrl = String(joinUrl || '').trim();
+    if (!normalizedJoinUrl) return null;
+    setGraphBusy(true);
+    UI_ELEMENTS.graphImportStatus.textContent = 'Requesting the official transcript from Microsoft Graph…';
+    try {
+        const result = await sendGraphMessage({message:'graph_import_transcript', joinUrl:normalizedJoinUrl});
+        UI_ELEMENTS.graphImportStatus.textContent = `Imported ${result.captionCount} transcript lines as a separate Microsoft Graph source.`;
+        return result;
+    } catch (error) {
+        UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
+        if (['SIGN_IN_REQUIRED', 'invalid_grant'].includes(error.code)) await refreshGraphStatus();
+        return null;
+    } finally {
+        setGraphBusy(false);
+    }
+}
+
 function renderRecentGraphMeetings(meetings) {
     const container = UI_ELEMENTS.graphRecentMeetings;
     if (!container) return;
@@ -252,10 +273,10 @@ function renderRecentGraphMeetings(meetings) {
         meta.className = 'graph-meeting-meta';
         meta.textContent = `${formatGraphMeetingTime(meeting.startDateTime)} · ${meeting.state === 'in-progress' ? 'In progress' : 'Ended'}`;
         button.append(title, meta);
-        button.addEventListener('click', () => selectGraphMeeting(
-            meeting,
-            `${meeting.subject || 'Meeting'} selected. Import when Teams has finished producing the transcript.`
-        ));
+        button.addEventListener('click', async () => {
+            selectGraphMeeting(meeting, `Retrieving ${meeting.subject || 'meeting'} from Microsoft 365…`);
+            await importGraphTranscript(meeting.joinUrl);
+        });
         container.appendChild(button);
     }
     markSelectedGraphMeeting();
@@ -281,7 +302,7 @@ async function refreshRecentGraphMeetings(silent = false) {
                 ? ` Checked ${discovery.eventCount} events across ${discovery.calendarCount || 1} Microsoft 365 calendar${discovery.calendarCount === 1 ? '' : 's'}; ${discovery.teamsEventCount || 0} had a usable Teams join link.${limited}${unavailable} This is separate from local Previous Sessions.`
                 : '';
             UI_ELEMENTS.graphImportStatus.textContent = count
-                ? `Found ${count} recent Teams meeting${count === 1 ? '' : 's'}.${diagnostic} Choose a meeting, then import its verified transcript.`
+                ? `Found ${count} recent Teams meeting${count === 1 ? '' : 's'}.${diagnostic} Choose a meeting to retrieve and open its verified transcript.`
                 : `No recent Teams meeting was found.${diagnostic} Use the current meeting or paste its link.`;
         }
     } catch (error) {
@@ -637,17 +658,7 @@ function setupEventListeners() {
     });
     UI_ELEMENTS.graphImportButton?.addEventListener('click', async () => {
         const joinUrl = UI_ELEMENTS.graphJoinUrl.value.trim();
-        if (!joinUrl) return;
-        setGraphBusy(true);
-        UI_ELEMENTS.graphImportStatus.textContent = 'Requesting the official transcript from Microsoft Graph…';
-        try {
-            const result = await sendGraphMessage({message:'graph_import_transcript', joinUrl});
-            UI_ELEMENTS.graphImportStatus.textContent = `Imported ${result.captionCount} transcript lines as a separate Microsoft Graph source.`;
-        } catch (error) {
-            UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
-            if (['SIGN_IN_REQUIRED', 'invalid_grant'].includes(error.code)) await refreshGraphStatus();
-        }
-        setGraphBusy(false);
+        await importGraphTranscript(joinUrl);
     });
     document.getElementById('exportSettings').addEventListener('click', () => chrome.tabs.create({url:chrome.runtime.getURL('export.html')}));
     UI_ELEMENTS.openLastTranscriptFolder?.addEventListener('click', async () => {
