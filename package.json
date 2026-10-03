@@ -7,24 +7,23 @@
     "test": "node --test tests/*.test.cjs",
     "lint": "node scripts/check-extension.mjs",
     "security:audit": "npm audit --audit-level=high",
-    "build": "web-ext build --source-dir teams-captions-saver --artifacts-dir dist --overwrite-dest",
-    "build:targets": "node scripts/build-browser-targets.mjs && web-ext build --source-dir dist/chrome-unpacked --artifacts-dir dist --overwrite-dest && web-ext build --source-dir dist/edge-unpacked --artifacts-dir dist --overwrite-dest",
-    "build:chrome-test": "node scripts/build-browser-targets.mjs chrome && web-ext build --source-dir dist/chrome-unpacked --artifacts-dir dist --overwrite-dest",
-    "build:chrome-store": "node scripts/build-browser-targets.mjs chrome-store && web-ext build --source-dir dist/chrome-store-unpacked --artifacts-dir dist/chrome-store --overwrite-dest && node scripts/verify-chrome-store.mjs",
-    "build:edge-test": "node scripts/build-browser-targets.mjs edge && web-ext build --source-dir dist/edge-unpacked --artifacts-dir dist --overwrite-dest",
+    "build": "node scripts/package-extension.mjs teams-captions-saver dist",
+    "build:targets": "node scripts/build-browser-targets.mjs && node scripts/package-extension.mjs dist/chrome-unpacked dist && node scripts/package-extension.mjs dist/edge-unpacked dist",
+    "build:chrome-test": "node scripts/build-browser-targets.mjs chrome && node scripts/package-extension.mjs dist/chrome-unpacked dist",
+    "build:chrome-store": "node scripts/build-browser-targets.mjs chrome-store && node scripts/package-extension.mjs dist/chrome-store-unpacked dist/chrome-store && node scripts/verify-chrome-store.mjs",
+    "build:edge-test": "node scripts/build-browser-targets.mjs edge && node scripts/package-extension.mjs dist/edge-unpacked dist",
     "build:intune": "node scripts/build-intune-bundle.mjs",
     "build:intune:chrome": "node scripts/build-intune-bundle.mjs deployment/intune/profile.chrome.json dist/intune-chrome chrome",
     "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json dist/intune-local-only",
     "store:metadata:check": "node scripts/check-store-metadata.mjs",
     "release:candidate": "npm test && npm run lint && npm run security:audit && npm run store:metadata:check && npm run build && npm run build:targets && npm run build:chrome-store && npm run build:intune && node scripts/verify-release.mjs",
     "publish:edge": "node scripts/edge-publish.mjs",
-    "publish:chrome": "node scripts/chrome-publish.mjs",
-    "start": "web-ext run --source-dir teams-captions-saver --target=chromium"
-  },
-  "devDependencies": {
-    "web-ext": "^10.6.0"
+    "publish:chrome": "node scripts/chrome-publish.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "archiver": "^8.0.0"
   }
 }

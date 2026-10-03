@@ -1,0 +1,80 @@
+name: lifecycle-$(Date:yyyyMMdd).$(Rev:r)
+
+trigger:
+  branches:
+    include:
+      - master
+      - release/*
+      - feature/*
+      - fix/*
+      - codex/*
+
+pr:
+  branches:
+    include:
+      - master
+      - release/*
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Development
+    displayName: Development validation
+    jobs:
+      - deployment: ValidateDevelopment
+        displayName: Test the development change
+        environment: bck-development
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: 20.x
+                  displayName: Use Node.js 20
+                - bash: npm ci
+                  displayName: Install locked dependencies
+                - bash: npm test
+                  displayName: Run automated tests
+                - bash: npm run lint
+                  displayName: Validate extension source
+                - bash: npm run security:audit
+                  displayName: Enforce dependency security gate
+                - bash: npm run store:metadata:check
+                  displayName: Validate Store metadata contract
+
+  - stage: ReleaseCandidate
+    displayName: UAT and release-candidate gate
+    dependsOn: Development
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
+    jobs:
+      - deployment: BuildReleaseCandidate
+        displayName: Build the exact release candidate
+        environment: bck-release-candidate
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: 20.x
+                  displayName: Use Node.js 20
+                - bash: npm ci
+                  displayName: Install locked dependencies
+                - bash: npm run release:candidate
+                  displayName: Run the complete candidate gate
+                - task: PublishPipelineArtifact@1
+                  displayName: Preserve candidate evidence
+                  inputs:
+                    targetPath: $(Build.SourcesDirectory)/dist
+                    artifact: release-candidate-$(Build.SourceVersion)
+                    publishLocation: pipeline
+
+# Production promotion remains in azure-pipelines.yml. It consumes immutable
+# GitHub release assets and uses the approval-protected bck-store-production
+# environment for irreversible Store submission or publication.

@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3 Release Candidate Gate
 
-Status: **consolidated unreleased development candidate; automated integration is passing, while dependency audit, new calendar consent, cross-browser UAT, and release gates remain open**. This record does not authorize Store submission, production consent, or tenant-wide deployment.
+Status: **next release candidate in the UAT / Release Candidate lane; dependency validation is cleared, while new calendar consent, cross-browser UAT, independent review, and promotion gates remain open**. This record does not authorize Store submission, production consent, or tenant-wide deployment.
 
 Version 5.3 is the single next-release line. It combines the existing **Verified Teams Transcript** QA candidate with the enterprise-security controls, complete BYOAI handoff, durable local archive and search, reversible transcript corrections and terminology dictionary, DOCX export, and same-artifact entitlement/Intune groundwork previously developed on the parallel 5.2 line. No promoted Store artifact or installed QA extension is changed by this source reconciliation.
 
@@ -31,7 +31,7 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 
 - [x] Unit and reliability tests pass on the exact commit.
 - [x] Syntax, manifest, host, package, and Store-metadata checks pass.
-- [ ] Dependency audit is blocked by `node-forge` GHSA-86w9-cpqp-85rv through `web-ext` / `@devicefarmer/adbkit`; the offered force fix is a breaking tooling downgrade and is not accepted.
+- [x] Dependency audit passes after replacing the vulnerable `web-ext` packaging chain with the narrowly scoped `archiver` build dependency; no advisory suppression or forced downgrade is used.
 - [x] Chrome and Edge unpacked and ZIP artifacts build successfully.
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
 - [x] Store packages contain no local dev/UAT overlay or configured Microsoft identifier.

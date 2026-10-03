@@ -4,6 +4,14 @@ Describe the user-visible change and link the issue it addresses.
 
 Closes #
 
+## Lifecycle lane
+
+- [ ] Development: topic branch into `release/<version>`
+- [ ] UAT / Release Candidate: `release/<version>` into `master`
+- [ ] Production hotfix: scoped exception from the exact production baseline
+
+Azure Boards work item:
+
 ## Validation
 
 - [ ] `npm ci`

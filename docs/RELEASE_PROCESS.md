@@ -2,6 +2,22 @@
 
 This process keeps the Microsoft Edge Add-ons production package separate from unfinished development.
 
+## Three lifecycle environments
+
+Better CaptionKeep has exactly three promotion lanes. A version may be the next
+release candidate while still having open gates; the lane describes its purpose,
+not a claim that every promotion requirement has passed.
+
+| Environment | Source | Required evidence | Promotion target |
+| --- | --- | --- | --- |
+| **Development** (`bck-development`) | Topic branches and pull requests | Automated tests, extension validation, dependency audit, and metadata contract | `release/<version>` |
+| **UAT / Release Candidate** (`bck-release-candidate`) | The single `release/<version>` branch | Complete candidate build, immutable artifacts, live Chrome/Edge UAT, review, and the unchanged-candidate window | `master` |
+| **Production** (`bck-store-production`) | Protected `master` plus an immutable signed/tagged GitHub release | Approved hashes, provenance, release decision, and explicit Store approval | Chrome Web Store and Edge Add-ons |
+
+Feature work does not move directly to production. Candidate defects return to
+Development through a scoped fix and reset the affected UAT evidence. Production
+never rebuilds source: it promotes the exact reviewed candidate artifacts.
+
 ## Launch-mode acceleration
 
 During the early contender phase, the two-week train is a planning ceiling rather than a mandatory wait. A coherent, high-value release may enter its candidate gate as soon as its scope is complete. The next scoped branch may continue while the frozen candidate completes browser validation or Store review, provided the candidate commit and package remain unchanged.
@@ -56,9 +72,9 @@ candidate completed the full window with no unresolved release-blocking defect.
 
 ## Branch roles
 
-- `master`: protected production baseline; no direct development.
-- `release/<version>`: temporary integration and release-candidate branch.
-- Topic branches: individual fixes, features, documentation, or maintenance changes.
+- `master`: protected Production baseline; no direct development.
+- `release/<version>`: the UAT / Release Candidate lane and the single integration branch for that version.
+- Topic branches: the Development lane for individual fixes, features, documentation, or maintenance changes.
 
 Contributors submit pull requests from topic branches. Work for an upcoming version normally merges into its release branch. The release branch reaches `master` only after the complete release gate passes.
 
