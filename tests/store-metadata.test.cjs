@@ -88,7 +88,7 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
   });
   assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace(
-      'Production GitHub release published; Chrome and Edge Store submissions not started',
+      'GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved',
       'Published'
     )),
     /Store-submission boundary/

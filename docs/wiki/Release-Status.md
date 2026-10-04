@@ -1,13 +1,21 @@
 # Release Status
 
-## 5.3.0
+Last verified: **October 4, 2026**.
 
-- The immutable GitHub tag and release exist publicly.
-- The GitHub release is not proof of public Chrome Web Store or Microsoft Edge Add-ons availability.
-- Production-lane regressions discovered after UAT are being corrected through [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67) and Azure Boards Bug 295.
-- Store submission must use a newly accepted, verified artifact. Existing public release assets are not silently replaced.
+| Channel | Version | Status |
+| --- | --- | --- |
+| Chrome Web Store | 5.1.0 | Public and installable |
+| Microsoft Edge Add-ons | 5.1.0 | Public and installable |
+| GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
+| Corrected 5.3 patch | Not tagged | PR #67; live production validation required |
 
-## Store terminology
+## Why `v5.3.0` is not the current authority
+
+The immutable release was published from commit `c17aed7e7805f18bafe982e7558e8b5a0a6aeed2`. Subsequent testing found production-lane identity, local configuration, and Microsoft 365 visibility defects. The corrected code is in [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67), not in the tag or published ZIPs.
+
+The original tag, hashes, provenance, and ZIPs remain unchanged for auditability. They must not be silently replaced or submitted to a Store. A new patch release requires renewed automated validation and live UAT.
+
+## Release terminology
 
 - **Frozen:** source commit and package hashes are fixed.
 - **Uploaded:** package exists as an unpublished Store draft.
@@ -16,4 +24,4 @@
 - **Public:** the Store listing serves the version.
 - **Upgrade verified:** an existing installation received and ran the public version.
 
-The current authoritative release evidence is maintained in the repository's [release records](https://github.com/Mr-GraphnStaff/better-captionkeep/tree/master/docs).
+See the repository's [5.3 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.md).

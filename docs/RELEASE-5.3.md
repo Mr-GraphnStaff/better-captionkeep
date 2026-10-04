@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3 Release Record
 
-Status: **production source and the immutable GitHub `v5.3.0` release were published on October 3, 2026, after product-owner UAT acceptance**. Chrome Web Store and Edge Add-ons submission remain separate controlled actions and have not been performed by this release record. Tenant-wide deployment still requires the adopting organization's approval.
+Status: **withdrawn from further promotion on October 4, 2026**. The immutable GitHub `v5.3.0` tag and release remain as historical evidence, but production-lane identity, local configuration, and Microsoft 365 visibility defects were discovered after publication. Do not use the `v5.3.0` ZIPs for Store submission, new unpacked installation, or tenant rollout. Recovery is tracked in [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67); a new patch tag and artifacts require renewed live acceptance.
 
 Version 5.3 is the single next-release line. It combines the existing **Verified Teams Transcript** QA candidate with the enterprise-security controls, complete BYOAI handoff, durable local archive and search, reversible transcript corrections and terminology dictionary, DOCX export, universal feature access, and Intune groundwork previously developed on the parallel 5.2 line. No promoted Store artifact is changed by this source reconciliation.
 
@@ -36,7 +36,8 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 - [x] Chrome and Edge unpacked and ZIP artifacts build successfully.
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
 - [x] Store packages contain only the inert local-configuration placeholder and no configured Microsoft identifier.
-- [x] Product owner completed live UAT and approved production promotion.
+- [x] Product owner completed the original live UAT and approved the October 3 promotion.
+- [ ] Revalidate the corrected production lane after the post-release defects and create a new patch release; the original acceptance does not carry forward automatically.
 
 ### Production automation evidence - 2026-10-03
 
@@ -47,7 +48,7 @@ Release source commit `c17aed7e7805f18bafe982e7558e8b5a0a6aeed2` is tagged `v5.3
 | Published Edge Store ZIP | `EF51B9509FFC437C38BC601B96C5A6F1EC4A6EAFE2AAE5D61594BF63ECBC4069` |
 | Published Chrome Store ZIP | `BE10ECB91DF0BFF2AE7DE455BF6A1D591099AA768D9031F5B72D5538B139F105` |
 
-These hashes are recorded in the published `v5.3.0` release and verified by its checksum manifest and provenance record.
+These hashes are recorded in the published `v5.3.0` release and verified by its checksum manifest and provenance record. Hash integrity proves which bytes were published; it does not make the now-superseded runtime behavior suitable for promotion.
 
 ## Tenant and browser gate
 
@@ -63,6 +64,6 @@ These hashes are recorded in the published `v5.3.0` release and verified by its 
 
 ## Promotion decision
 
-The product owner accepted the rebuilt universal-access candidate after live UAT and authorized production promotion on October 3, 2026. PR #61 merged the reviewed release line into protected `master`; tag `v5.3.0` freezes the tested extension source. The published GitHub release is the production artifact authority.
+The product owner accepted the original universal-access candidate and authorized production promotion on October 3, 2026. PR #61 merged that line into protected `master`; tag `v5.3.0` freezes exactly what was tested and published. Post-release defects invalidate it as the current production artifact authority. The tag and assets remain unchanged for auditability while the corrected candidate moves through Development, UAT, and Production again.
 
 No Chrome Web Store upload, Edge Add-ons upload, Store submission, or tenant-wide rollout is authorized merely by this GitHub release. Those actions retain their separate approval gates.

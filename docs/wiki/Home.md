@@ -1,25 +1,36 @@
-# Better CaptionKeep Wiki
+# Better CaptionKeep
 
-Better CaptionKeep captures captions visible in your browser and keeps the resulting transcript local. It supports Microsoft Teams, Google Meet, and the Zoom Web client. It can also import an official Teams transcript directly from Microsoft 365 when that connection is configured.
+Better CaptionKeep turns captions already displayed in Microsoft Teams, Google Meet, and Zoom Web into a private, searchable transcript. It does not record microphone audio or video, run a meeting bot, sell data, or send transcripts to a developer-operated service.
+
+## Install the public version
+
+- [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml)
+- [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/better-captionkeep/edefcbdhahfolgkoamkbknjppojpaffk)
+
+Both Stores were verified serving **5.1.0 on October 4, 2026**. Do not install the GitHub `v5.3.0` ZIP: that release is retained for audit but was withdrawn from further promotion after post-release defects were found.
 
 ## Start here
 
-- [Install and test](Install-and-Test.md)
-- [Connect Microsoft 365](Microsoft-365-Connection.md)
-- [Understand the three release lanes](Three-Lane-Release-Workflow.md)
-- [Privacy and data boundaries](Privacy-and-Data-Boundaries.md)
-- [Troubleshooting](Troubleshooting.md)
-- [Current release status](Release-Status.md)
+1. [Install Better CaptionKeep](Installation)
+2. [Capture your first meeting](Getting-Started)
+3. [Review, save, and export](Review-Save-and-Export)
+4. [Understand privacy and data boundaries](Privacy-and-Data-Boundaries)
 
-## Two different Teams transcript sources
+## What is available now
 
-Better CaptionKeep can work with two separate sources:
+The public 5.1.0 Store version supports live-caption capture in Teams, Google Meet, and Zoom Web, local transcript history, search, TXT and Markdown export, Privacy Scrubber, recovery, and the Evidence Board.
 
-1. **Local caption capture** records the live captions visible in your browser. The local copy does not leave your browser unless you explicitly export or share it.
-2. **Official Microsoft 365 transcript import** retrieves a transcript retained by your tenant after Teams transcription ran. Microsoft 365 retains that official copy; Better CaptionKeep imports a separate local copy for review and export.
+The next 5.3 patch candidate adds Word/PDF workflows, expanded settings, enterprise controls, and optional administrator-enabled Microsoft 365 transcript import. Those capabilities are not represented as publicly available until a corrected patch release passes UAT and reaches each Store.
 
-A Teams calendar meeting does not by itself create an official transcript. Someone must start Teams transcription, even when live captions are already visible.
+![Better CaptionKeep supports Microsoft Teams, Google Meet, and Zoom Web](https://raw.githubusercontent.com/Mr-GraphnStaff/better-captionkeep/master/store-assets/5.3/04-three-meeting-platforms.png)
 
-## Source of truth
+*5.3 recovery-candidate artwork using synthetic content. It is a preview, not proof of Store availability.*
 
-The public repository is [Mr-GraphnStaff/better-captionkeep](https://github.com/Mr-GraphnStaff/better-captionkeep). Security, privacy, deployment, and release evidence remain version-controlled under its `docs` directory. This wiki is the plain-language entry point, not a substitute for those reviewed records.
+## Need help?
+
+- [Troubleshooting](Troubleshooting)
+- [Support and bug reports](Support)
+- [Current release status](Release-Status)
+- [Administrator deployment](Administrator-Deployment)
+
+The [public repository](https://github.com/Mr-GraphnStaff/better-captionkeep) contains source, privacy documentation, security architecture, release evidence, and the preserved MIT attribution.

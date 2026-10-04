@@ -6,7 +6,9 @@
 
 [Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft Edge, including the Teams PWA. The next development track adds evidence-gated Zoom Web capture. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+
+> **Current install status — October 4, 2026:** Chrome Web Store and Microsoft Edge Add-ons are serving `5.1.0`. The public GitHub `v5.3.0` release is frozen historical evidence, but post-release production defects mean its ZIPs are not approved for Store submission or new unpacked installation. Recovery continues in [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67); a newly tagged patch release must pass live validation before promotion.
 
 ### October 3 development additions — not a promoted release
 
@@ -34,9 +36,9 @@ The 5.1 release line adds governed Zoom Web support and hardens the shared captu
 
 The unreleased 5.2 development line adds a security-architect review package, enforceable managed controls for export, clipboard, attendee capture, evidence email, and local retention, plus a hardened Windows enterprise deployment profile. It also adds CodeQL analysis, pinned GitHub Actions, a runtime SBOM, and build provenance attestation. These changes are source candidates only until the 5.2 gate, managed-policy UAT, review, and Store promotion are complete; they are not present in the immutable 5.1.0 Store packages.
 
-## Better CaptionKeep 5.3 development
+## Better CaptionKeep 5.3 recovery
 
-The polished 5.3 candidate introduces **Verified Teams Transcript**: an optional, tenant-administrator-enabled Microsoft Graph experience that automatically recognizes the active Teams meeting, shows up to five recent eligible Teams meetings from the signed-in user's calendar, and retrieves a chosen meeting directly into the standard transcript viewer and private local history. Users can still paste a link when a meeting is not listed. The connector uses delegated Microsoft Entra authentication with PKCE, the least-privileged basic-calendar scope, no embedded client secret, no meeting bot, and no developer-operated transcript service. Recent calendar results stay transient. Tokens remain in browser session storage, while an imported raw source, readable captions, attribution state, and hashed provenance remain together but separate from live capture. The feature is hidden unless managed policy supplies the approved tenant and app registration. It is not included in any promoted Store package until its gate and live Chrome/Edge UAT pass. See the [5.3 release notes](docs/RELEASE-NOTES-5.3.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md), and [5.3 development gate](docs/RELEASE-5.3.md).
+The 5.3 line introduces **Verified Teams Transcript**: an optional, tenant-administrator-enabled Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. The original `v5.3.0` GitHub artifact was published before production unpacked identity and local-configuration defects were found. It is retained for audit history, not approved for Store submission. See the [5.3 release record](docs/RELEASE-5.3.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
 
 ## Zoom Web development
 
@@ -44,11 +46,11 @@ The Zoom discovery branch captures displayed subtitle-overlay text from the exac
 
 ## Interface previews
 
-Screenshots below show the current packaged HTML and styling rendered in Microsoft Edge, with extension scripts disabled and no meeting connected. They illustrate the interface, not a live capture test. The banner above is approved mascot concept artwork.
+These synthetic 5.3 product previews replace the obsolete popup and empty-viewer images previously shown here. They contain no customer meeting, tenant, transcript, or account data. They describe the recovery candidate and must not be confused with proof of Store availability.
 
-| Capture and settings | Transcript viewer |
+| Supported meetings | Private review and export |
 | --- | --- |
-| <img src="branding/screenshots/popup.png" alt="Better CaptionKeep popup and settings preview" width="320"> | <img src="branding/screenshots/viewer.png" alt="Better CaptionKeep transcript viewer empty-state preview" width="600"> |
+| <img src="store-assets/5.3/04-three-meeting-platforms.png" alt="Better CaptionKeep support for Microsoft Teams, Google Meet, and Zoom Web" width="600"> | <img src="store-assets/5.3/03-private-review-and-export.png" alt="Better CaptionKeep private transcript review and export" width="600"> |
 
 ## What it does
 
@@ -78,7 +80,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.1 is the latest promoted release line; its evidence record distinguishes per-Store availability. Versions 5.2 and 5.3 remain unreleased development.
+Version 5.1.0 is the currently verified public Store version in both Chrome and Edge. GitHub `v5.3.0` exists but is not approved for installation or Store submission after post-release defects were found. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 

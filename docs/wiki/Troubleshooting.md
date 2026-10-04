@@ -1,36 +1,39 @@
 # Troubleshooting
 
-## Manifest file is missing or unreadable
+## Captions are not being captured
 
-Choose the lane folder itself, not a parent folder or ZIP. The selected folder must contain `manifest.json` at its root:
+Confirm that captions are visibly displayed in the supported meeting page. Better CaptionKeep does not transcribe audio itself. Reopen the extension and check capture health. If the count does not increase during a synthetic test, record the browser, extension version, provider, and sanitized error details.
 
-- `dist/dev`
-- `dist/uat`
-- `dist/prod`
+## The transcript did not save
 
-## An unknown error occurred when fetching the script
+Open **History** and check for the completed session or a recovery entry. Confirm the configured save behavior and browser download permissions. Do not clear extension storage until you have checked recovery.
 
-Reload the current build, open **Errors**, select **Clear all**, and reload again. If the error returns, record the exact lane and service-worker error. Current builds include the required inert local-configuration script in every lane; a repeated fetch error indicates mixed or stale build files.
+## Zoom captions have no speaker names
+
+The Zoom Web subtitle overlay may not expose speaker attribution. Better CaptionKeep uses **Unknown speaker** rather than inventing a name.
 
 ## Microsoft 365 controls are missing
 
-Confirm that the selected unpacked lane was configured after its most recent rebuild. Rebuilding replaces local configured identifiers with the safe inert placeholder. Dev, UAT, and Prod support the same configured connector behavior.
+The public 5.1.0 Store build does not contain Verified Teams Transcript. In a controlled 5.3 test, the connector also remains unavailable until the organization supplies an approved configuration.
 
-## AADSTS50011 redirect URI mismatch
+## AADSTS50011 redirect mismatch
 
-The extension is sending a redirect URI that is not registered for the Entra application.
+The extension is sending a redirect that the Entra app does not contain. An administrator must compare the exact URI shown under **Administrator connection details** with the application registration. Do not add a wildcard or repeatedly add path-generated identities; governed unpacked lanes and Store installations have stable IDs.
 
-1. Open **Administrator connection details** in Better CaptionKeep.
-2. Copy the exact runtime redirect URI.
-3. Add that exact URI to the Entra app registration as a web redirect URI.
-4. Save the registration, disconnect, and retry sign-in.
+## A recent Teams meeting has no official transcript
 
-Each unpacked lane has its own extension identity. Registering the UAT redirect does not automatically register Dev or Prod.
+Teams transcription must have been started separately from live captions. Microsoft may also need processing time after the meeting ends. A calendar invitation by itself is not sufficient.
 
-## A recent meeting has no official transcript
+## Manifest missing or unreadable during controlled testing
 
-An official transcript exists only when Teams transcription ran. Live captions and a calendar meeting are not sufficient. Microsoft may also need processing time after the meeting ends.
+Select `dist/dev`, `dist/uat`, or `dist/prod` itself—not the parent `dist` directory and not a ZIP. The selected folder must contain `manifest.json` at its root.
 
-## The meeting imports but the viewer does not open
+## Unknown script-fetch error during controlled testing
 
-Treat that as a product defect. Record which meeting card was selected, whether the import confirmation appeared, and whether the session exists in local history. Do not include transcript content or participant names in a public issue.
+Reload the current canonical lane, clear historical errors, and reload again. If the error returns, treat the build as mixed or stale and report it; do not work around it by creating another folder.
+
+## Imported meeting does not open in the viewer
+
+Treat that as a product defect. Record which meeting card position was selected, whether import confirmation appeared, and whether the session exists in local History. Do not post meeting names, transcript text, or participant data publicly.
+
+Still stuck? See [Support and bug reports](Support).

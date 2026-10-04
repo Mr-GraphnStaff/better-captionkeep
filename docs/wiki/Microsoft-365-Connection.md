@@ -1,40 +1,34 @@
 # Connect Microsoft 365
 
-The Microsoft 365 connector retrieves an official Teams transcript directly from Microsoft Graph into the browser's private local history. Better CaptionKeep's developer does not receive the transcript.
+> **Availability:** Verified Teams Transcript is part of the corrected 5.3 candidate and is not available in the public 5.1.0 Store build as of October 4, 2026.
+
+The connector retrieves an official Teams transcript directly from Microsoft Graph into the browser's private local history. Better CaptionKeep's developer does not receive the transcript.
 
 ## Before the meeting
 
-Live captions and Teams transcription are different controls:
+Teams has two different controls:
 
-- **Live captions** provide the browser-visible words that Better CaptionKeep can capture locally.
-- **Teams transcription** creates the official tenant transcript that Microsoft 365 can later return.
+- **Live captions** display words in the meeting and allow Better CaptionKeep to create a local browser transcript.
+- **Start transcription** tells Microsoft 365 to retain an official transcript in the organization's tenant.
 
-Turn on both when you want both sources. A calendar invitation or live captions alone does not guarantee that Microsoft will retain an official transcript.
+A calendar invitation or live captions alone does not create the official Microsoft 365 transcript. Turn on transcription separately when organizational policy and meeting roles permit it.
 
 ## Connect and import
 
 1. Open Better CaptionKeep.
 2. Open **Verified Teams transcripts**.
 3. Select **Connect Microsoft 365** and complete Microsoft sign-in.
-4. Select **Refresh** to list the five recent eligible Teams meetings.
-5. Choose a meeting.
+4. Select **Refresh** to list up to five recent eligible Teams meetings.
+5. Choose a meeting, or use the current-meeting/manual-link fallback.
 6. Select **Import verified transcript**.
-7. Better CaptionKeep opens the imported transcript in the normal transcript viewer with the same review and export functions.
+7. Better CaptionKeep opens the imported transcript in the normal viewer with the same local review and export functions.
 
-Microsoft may need time after the meeting ends to finish producing the official transcript. Refresh and retry when Teams still reports that the transcript is unavailable.
+Microsoft may need time after a meeting ends to finish producing the transcript. Refresh and retry if Teams still reports it unavailable.
 
-## Local unpacked configuration
+## Administrator requirements
 
-Dev, UAT, and Prod use the same connector behavior. Each unpacked lane has a separate browser-extension identity and therefore a separate redirect URI:
+The organization must configure the approved Entra application, delegated Graph permissions, tenant consent, Teams transcript API access, and the exact browser redirect URI. Wildcard redirects do not work.
 
-```text
-https://<extension-id>.chromiumapp.org/microsoft
-```
+Store installations keep Store-assigned identities. The three governed unpacked test lanes also have fixed identities, so their redirects are registered once and remain stable across rebuilds.
 
-The exact URI shown under **Administrator connection details** must be registered in the Entra application. Wildcards do not work.
-
-Each governed lane has a fixed identity, so its redirect is registered once and remains unchanged across rebuilds and upgrades. Store installations retain their Store-assigned identities. If a lane's extension ID changes, stop and rebuild the canonical lane rather than adding a new redirect for an ad hoc copy.
-
-Configured tenant and client identifiers are written only into the selected ignored local lane. Version-controlled source and Store ZIPs contain an inert placeholder instead of those configured values.
-
-For the administrator procedure, see the repository's [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md).
+See [Administrator deployment](Administrator-Deployment) and the full [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md).
