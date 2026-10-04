@@ -1,5 +1,5 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'entitlement.js', 'meetingExtras.js');
+    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js');
 try {
     importScripts('devUatLocalConfig.js');
 } catch {
@@ -423,6 +423,8 @@ function calculateDuration(transcriptArray) {
 
 chrome.runtime.onInstalled.addListener(() => {
     updateBadge(false);
+    // Remove metadata from the retired tier experiment; feature access is universal.
+    chrome.storage.local.remove('entitlement_v1').catch(() => {});
     cleanupViewerPayloads().catch(() => {});
     queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
 });
@@ -449,7 +451,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
         'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
-        'get_entitlement_state','get_meeting_extras','save_meeting_extras','delete_meeting_extras',
+        'get_meeting_extras','save_meeting_extras','delete_meeting_extras',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
         'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
     if (!handled.has(message?.message)) return false;
@@ -582,8 +584,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'reset_aliases':
                 await chrome.storage.session.remove('speakerAliases');
                 break;
-            case 'get_entitlement_state':
-                return CaptionKeepEntitlements.resolveStored();
             case 'get_meeting_extras':
             case 'save_meeting_extras':
             case 'delete_meeting_extras': {

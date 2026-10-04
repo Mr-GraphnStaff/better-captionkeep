@@ -2,7 +2,7 @@
 
 Status: **next release candidate in the UAT / Release Candidate lane; dependency validation is cleared, while new calendar consent, cross-browser UAT, independent review, and promotion gates remain open**. This record does not authorize Store submission, production consent, or tenant-wide deployment.
 
-Version 5.3 is the single next-release line. It combines the existing **Verified Teams Transcript** QA candidate with the enterprise-security controls, complete BYOAI handoff, durable local archive and search, reversible transcript corrections and terminology dictionary, DOCX export, and same-artifact entitlement/Intune groundwork previously developed on the parallel 5.2 line. No promoted Store artifact or installed QA extension is changed by this source reconciliation.
+Version 5.3 is the single next-release line. It combines the existing **Verified Teams Transcript** QA candidate with the enterprise-security controls, complete BYOAI handoff, durable local archive and search, reversible transcript corrections and terminology dictionary, DOCX export, universal feature access, and Intune groundwork previously developed on the parallel 5.2 line. No promoted Store artifact is changed by this source reconciliation.
 
 ## Implemented scope
 
@@ -25,7 +25,8 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 - [x] Durable local transcript history, bounded paged search, and managed retention preserve recovery and provenance boundaries.
 - [x] Reversible caption corrections and the local terminology dictionary retain the immutable raw transcript separately.
 - [x] DOCX export uses the shared Scrubby and managed-export boundary; SRT/VTT remain excluded without trustworthy cue timing.
-- [x] Same-artifact local entitlement and Intune groundwork preserve user data and defer to managed policy.
+- [x] Every shipped feature is available to every user; no commercial entitlement or feature-tier gate ships.
+- [x] Intune groundwork preserves user data and defers to managed security and privacy policy.
 
 ## Automated gate
 
@@ -39,7 +40,7 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 
 ### Candidate automation evidence - 2026-10-03
 
-Candidate commit `4d98c5863f16f38d0d45a0c156fb39bea9f9fb31` passes 178 of 178 automated tests, extension validation, the dependency audit with zero findings, and the canonical Chrome metadata/dossier check. GitHub validation and CodeQL passed. Azure lifecycle runs 545 and 546 passed the Development and UAT / Release Candidate stages against the candidate branch and pull-request merge ref. The complete evidence handoff, prompt templates, archive/search, correction, DOCX, settings, export, translation, Graph, entitlement, policy, and recovery coverage are integrated in the single `release/5.3` line.
+Candidate commit `4d98c5863f16f38d0d45a0c156fb39bea9f9fb31` passed 178 of 178 automated tests, extension validation, the dependency audit with zero findings, and the canonical Chrome metadata/dossier check. GitHub validation and CodeQL passed. Azure lifecycle runs 545 and 546 passed the Development and UAT / Release Candidate stages against that earlier candidate. The later universal-access decision removes the entitlement machinery and requires a fresh Dev and UAT evidence set before production promotion.
 
 | Target | SHA-256 |
 | --- | --- |

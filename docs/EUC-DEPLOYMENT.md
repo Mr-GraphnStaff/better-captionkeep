@@ -13,7 +13,7 @@ This is the implementation runbook. Read the [security architecture](SECURITY-AR
 - Treat forced installation as an administrative security decision: users cannot disable or remove a force-installed extension, and Edge site-level extension toggles do not stop policy-installed extensions.
 - Do not claim Store availability, successful installation, policy enforcement, or rollback until each is verified on a managed pilot device.
 - Do not unpack, modify, or re-sign a Store package under the Store identity.
-- Deploy one Store artifact for Free and any future Pro entitlement; activation must never require a second extension, product fork, native companion, or fabricated MSI.
+- Deploy one Store artifact containing every shipped feature; Better CaptionKeep has no paid tier, activation requirement, second extension, product fork, native companion, or fabricated MSI.
 
 ## Install, update, detection, and removal mechanics
 
@@ -25,7 +25,7 @@ This is the implementation runbook. Read the [security architecture](SECURITY-AR
 | Roll back policy | Reassign the previously reviewed extension and managed-setting profile. Package downgrade is not assumed to be supported by either Store. | Same; validate the exact Store/browser behavior in a pilot. |
 | Uninstall | Remove the force-install assignment in a pilot first, then verify browser removal and separately handle exported files. | Remove the managed force-install assignment and verify on a pilot device. |
 
-The entitlement groundwork does not change these mechanics. Free, active, grace, expired, and unavailable states occur inside the same installation. No production activation backend, organization entitlement policy, tenant assignment, or endpoint installation is included in this repository prototype. See [same-install entitlement groundwork](ENTITLEMENT-GROUNDWORK.md).
+Universal feature access does not change these mechanics. Organizational policy can restrict capabilities for security, privacy, retention, and compliance, but it is not a commercial entitlement system. See [universal feature access](FEATURE-ACCESS.md).
 
 ## Responsibilities
 

@@ -34,6 +34,6 @@ Zoom Web currently exposes overlay text without reliable speaker attribution, so
 - Removes attendee-name lists from normal diagnostic logging.
 - Adds dependency auditing to the release gate, CodeQL, full-SHA workflow action pinning, a runtime CycloneDX SBOM, and GitHub artifact attestations.
 
-## Pro boundary
+## Feature access
 
-Pro is not part of 5.1. A future Pro release may add organization-governed AI services and workflow controls. The immutable raw transcript remains authoritative, and any normalization, summary, or AI output must stay a separately recorded derivative.
+Better CaptionKeep has no Free/Pro split. Every shipped feature is available to every user. Organization-governed services and workflow controls may still require administrator policy or provider authorization. The immutable raw transcript remains authoritative, and any normalization, summary, or AI output must stay a separately recorded derivative.
