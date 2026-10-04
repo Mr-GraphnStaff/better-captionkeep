@@ -102,3 +102,59 @@ test('Chrome preflight proves credentials and item identity without uploading', 
     },
   ]);
 });
+
+test('Chrome submits an existing verified draft when fetchStatus omits completed upload state', async () => {
+  const { main } = await import('../scripts/chrome-publish.mjs');
+  const requests = [];
+  const fetchImpl = async (url, options = {}) => {
+    requests.push({
+      url: String(url),
+      method: options.method || 'GET',
+      body: typeof options.body === 'string' ? JSON.parse(options.body) : null,
+    });
+    if (String(url).includes('oauth2.googleapis.com/token')) {
+      return new Response(JSON.stringify({ access_token: 'access-token' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (String(url).endsWith(':fetchStatus')) {
+      return new Response(JSON.stringify({
+        itemId: 'nabjdlnkkaonnbnimnmnhjcbigceebml',
+        publishedItemRevisionStatus: {
+          state: 'PUBLISHED',
+          distributionChannels: [{ crxVersion: '5.1.0' }],
+        },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({ state: 'PENDING_REVIEW' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  await main({
+    env: {
+      CHROME_ACTION: 'submit-existing-auto',
+      CHROME_CLIENT_ID: 'client-id',
+      CHROME_CLIENT_SECRET: 'client-secret',
+      CHROME_REFRESH_TOKEN: 'refresh-token',
+      CHROME_PUBLISHER_ID: 'publisher-id',
+      CHROME_EXTENSION_ID: 'nabjdlnkkaonnbnimnmnhjcbigceebml',
+    },
+    fetchImpl,
+  });
+
+  assert.deepEqual(requests.at(-1), {
+    url: 'https://chromewebstore.googleapis.com/v2/publishers/publisher-id/items/nabjdlnkkaonnbnimnmnhjcbigceebml:publish',
+    method: 'POST',
+    body: {
+      publishType: 'DEFAULT_PUBLISH',
+      skipReview: false,
+      blockOnWarnings: true,
+    },
+  });
+});
