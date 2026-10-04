@@ -1,9 +1,14 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
     'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js');
-try {
-    importScripts('devUatLocalConfig.js');
-} catch {
-    // Optional file generated only into an authorized unpacked dev/UAT folder.
+const runtimeManifest = chrome.runtime.getManifest();
+const acceptsLocalGraphOverlay = runtimeManifest.name === 'Better CaptionKeep - Development'
+    || runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate';
+if (acceptsLocalGraphOverlay) {
+    try {
+        importScripts('devUatLocalConfig.js');
+    } catch {
+        // Optional file generated only into an authorized unpacked dev/UAT folder.
+    }
 }
 let historyQueue = Promise.resolve();
 

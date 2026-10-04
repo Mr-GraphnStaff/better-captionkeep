@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root,file),'utf8');
 const readProject = file => fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const clone = data => JSON.parse(JSON.stringify(data));
 function harness() {
-    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[];
+    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[]; const importedScripts=[];
     const area = {
         async get(keys) { if (keys===null) return clone(data); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in data)out[k]=clone(data[k]); return out; },
         async set(values) {
@@ -45,8 +45,8 @@ function harness() {
     const context=vm.createContext({chrome,document,crypto:webcrypto,Blob,URL,TextEncoder,Uint8Array,btoa,atob,console:{log(){},warn(){},error(){}},
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
-        importScripts(...names){for(const name of names) vm.runInContext(read(name),context);}});
-    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
+        importScripts(...names){for(const name of names) { importedScripts.push(name); vm.runInContext(read(name),context); }}});
+    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,importedScripts,run:code=>vm.runInContext(code,context)};
 }
 
 test('all shipped scripts parse',()=>{
@@ -1417,6 +1417,7 @@ test('Dev, UAT, and production roots are directly loadable lifecycle builds',()=
     assert(builder.includes("target === 'prod'"));
     assert(builder.includes("manifest.name = isUat ? 'Better CaptionKeep - UAT Release Candidate' : 'Better CaptionKeep - Development'"));
     assert(builder.includes('manifest.key = isUat ? UAT_KEY : DEV_KEY'));
+    assert(builder.includes("writeFile(path.join(targetDir, 'devUatLocalConfig.js'), EMPTY_DEV_UAT_GRAPH_OVERLAY"));
     assert(!builder.includes('--output-root'));
 });
 test('Chrome Store manifest preserves runtime behavior without test labeling',()=>{
@@ -1743,6 +1744,9 @@ test('Graph Dev and UAT builds stay visible without commercial feature gates',()
 test('worker accepts an optional unpacked-only Graph configuration only for Dev and UAT',()=>{
     const worker=read('service_worker.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
+    assert(worker.includes("runtimeManifest.name === 'Better CaptionKeep - Development'"));
+    assert(worker.includes("runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
+    assert(worker.includes('if (acceptsLocalGraphOverlay)'));
     assert(worker.includes("importScripts('devUatLocalConfig.js')"));
     assert(worker.includes('CaptionKeepConfiguration.applyDevUatGraphOverlay'));
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
@@ -1751,6 +1755,16 @@ test('worker accepts an optional unpacked-only Graph configuration only for Dev 
     assert(overlayScript.includes("['dev', 'uat'].includes(target)"));
     assert(overlayScript.includes("path.join(projectRoot, 'dist', target)"));
     assert(overlayScript.includes('without changing a production package'));
+});
+test('production service worker never fetches the unpacked-only Graph overlay',()=>{
+    const production=harness();
+    production.run(read('service_worker.js'));
+    assert(!production.importedScripts.includes('devUatLocalConfig.js'));
+
+    const development=harness();
+    development.chrome.runtime.getManifest=()=>({name:'Better CaptionKeep - Development',version:'5.3.0',version_name:'5.3.0 development'});
+    development.run(read('service_worker.js'));
+    assert(development.importedScripts.includes('devUatLocalConfig.js'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');
