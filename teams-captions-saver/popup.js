@@ -207,8 +207,8 @@ function graphErrorMessage(error) {
         TRANSCRIPT_NOT_FOUND: 'Teams has not finished producing an official transcript for this meeting.',
         JOIN_URL_INVALID: 'Choose a recent Teams meeting or paste its complete Teams join link.',
         AUTH_CANCELLED: 'Microsoft 365 sign-in was cancelled.',
-        GRAPH_NOT_ENABLED: 'The local dev/UAT Graph configuration is unavailable. Rebuild the authorized unpacked test overlay.',
-        GRAPH_CONFIG_INVALID: 'The local dev/UAT Graph configuration is incomplete.'
+        GRAPH_NOT_ENABLED: 'The Microsoft 365 connection is not configured for this installation.',
+        GRAPH_CONFIG_INVALID: 'The Microsoft 365 connection configuration is incomplete.'
     };
     return messages[error?.code] || error?.message || 'Microsoft 365 could not complete the request.';
 }

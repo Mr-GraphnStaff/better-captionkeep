@@ -1,13 +1,13 @@
-# Dev/UAT Graph Configuration
+# Local Unpacked Microsoft 365 Configuration
 
-Better CaptionKeep's single UAT release candidate can use a local Microsoft Graph configuration overlay for controlled validation in Chrome and Edge. This is not a license, consumer activation system, or Store feature.
+Better CaptionKeep's Dev, UAT, and Prod unpacked lanes can use the same local Microsoft Graph configuration for controlled validation in Chrome and Edge. This is not a license or consumer activation system.
 
 ## Boundary
 
-- The overlay is generated only into `dist/uat` after the normal UAT build.
+- The configured overlay is generated only into the selected `dist/dev`, `dist/uat`, or `dist/prod` folder after its normal build.
 - The source tree and every Store ZIP remain free of configured tenant IDs, client IDs, tokens, secrets, and test accounts.
-- The service worker accepts the overlay only when the manifest name is exactly `Better CaptionKeep - UAT Release Candidate` and `version_name` contains `uat release candidate`.
-- Production and Store builds continue to require managed organizational policy.
+- The service worker accepts the overlay only for the three canonical lifecycle manifest identities.
+- Store packages carry an inert placeholder. Managed organizational policy remains the deployment mechanism for signed Store installations.
 - Microsoft sign-in still uses delegated authorization-code flow with PKCE. No client secret is used.
 
 ## Build a configured unpacked test folder
@@ -17,15 +17,15 @@ Set these process environment variables without saving them in the repository:
 - `BCK_DEV_UAT_GRAPH_TENANT_ID`
 - `BCK_DEV_UAT_GRAPH_CLIENT_ID`
 
-Then build and configure the one UAT target:
+Then build and configure the selected target. For UAT:
 
 ```powershell
 npm.cmd run build:uat
 node scripts/configure-dev-uat-unpacked.mjs uat
 ```
 
-Load `dist/uat` in Chrome or Edge. Rebuilding UAT intentionally removes the overlay; run the configuration command again afterward. Dev stays in `dist/dev`; the directly loadable production build and its release artifacts stay in `dist/prod`.
+Use `dev`, `uat`, or `prod` as the final command argument, then load that same folder in Chrome or Edge. Rebuilding a lane intentionally replaces its configured overlay with the inert placeholder; run the configuration command again afterward.
 
-A normal Dev/UAT build writes an inert `devUatLocalConfig.js` placeholder so Chromium never reports a failed optional-script fetch. The configuration command replaces that placeholder only in the selected authorized unpacked lane. Production neither contains nor requests this file.
+A normal build contains an inert `unpackedLocalConfig.js` placeholder so Chromium never reports a failed script fetch. The configuration command replaces that placeholder only in the selected authorized unpacked lane. Dev, UAT, and Prod therefore expose the same configured Microsoft 365 behavior during local validation.
 
-Do not copy `devUatLocalConfig.js` into source, commit it, or add it to a release ZIP. The release checks must continue to prove that Store artifacts contain no configured Microsoft identifiers.
+Do not copy a configured `unpackedLocalConfig.js` into source or commit it. The release checks must continue to prove that Store artifacts contain no configured Microsoft identifiers.

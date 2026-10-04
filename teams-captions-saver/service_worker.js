@@ -1,23 +1,13 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js');
-const runtimeManifest = chrome.runtime.getManifest();
-const acceptsLocalGraphOverlay = runtimeManifest.name === 'Better CaptionKeep - Development'
-    || runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate';
-if (acceptsLocalGraphOverlay) {
-    try {
-        importScripts('devUatLocalConfig.js');
-    } catch {
-        // Optional file generated only into an authorized unpacked dev/UAT folder.
-    }
-}
+    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'unpackedLocalConfig.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
     const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
-    return CaptionKeepConfiguration.applyDevUatGraphOverlay(
+    return CaptionKeepConfiguration.applyLocalGraphOverlay(
         policy,
-        globalThis.CaptionKeepDevUatLocalConfig,
+        globalThis.CaptionKeepUnpackedLocalConfig,
         chrome.runtime.getManifest()
     );
 }

@@ -90,7 +90,7 @@ Generated output has exactly three stable locations:
 
 Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev and UAT have separate stable extension identities and local storage, so a rebuild does not create a new identity and does not overwrite the Store installation.
 
-The Verified Teams Transcript controls in development builds can use an unpacked-only local Graph configuration for controlled testing. It is not a license or Store feature, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
+The Verified Teams Transcript controls use the same unpacked-only local Graph configuration in Dev, UAT, and Prod for controlled testing. It is not a license or feature gate, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [local Graph runbook](docs/DEV-UAT-GRAPH.md).
 
 For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `dist/uat`. This is the only supported release-candidate path.
 

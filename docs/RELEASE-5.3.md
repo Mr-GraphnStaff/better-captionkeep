@@ -35,7 +35,7 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 - [x] Dependency audit passes after replacing the vulnerable `web-ext` packaging chain with the narrowly scoped `archiver` build dependency; no advisory suppression or forced downgrade is used.
 - [x] Chrome and Edge unpacked and ZIP artifacts build successfully.
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
-- [x] Store packages contain no local dev/UAT overlay or configured Microsoft identifier.
+- [x] Store packages contain only the inert local-configuration placeholder and no configured Microsoft identifier.
 - [x] Product owner completed live UAT and approved production promotion.
 
 ### Production automation evidence - 2026-10-03
