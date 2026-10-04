@@ -33,6 +33,7 @@ The `_metadata/verified_contents.json` file observed in the signed Edge CRX is S
 - Managed tenant/client settings retain precedence over packaged defaults.
 - Regression tests cover public Store configuration and multi-tenant token validation.
 - Mandatory site access is again limited to the supported meeting origins; Microsoft identity and Graph access is requested at the user-initiated connection boundary.
+- Permission approval resumes Microsoft sign-in from the service worker, so the browser closing the small popup does not require a second **Connect Microsoft 365** click.
 - Active local capture is presented as working even when Teams role or organization policy makes an official Microsoft 365 transcript unavailable; the popup no longer labels that expected policy outcome as a capture failure.
 
 This record does not authorize publishing, changing the Entra sign-in audience, or promoting the build to UAT.

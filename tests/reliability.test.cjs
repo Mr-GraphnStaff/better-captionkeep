@@ -1409,7 +1409,13 @@ test('manifest supports both official Teams web hosts',()=>{
     }
     const popupScript=read('popup.js');
     assert(popupScript.includes('requestMicrosoft365HostAccess'));
-    assert(popupScript.includes("chrome.permissions.request({origins: [...MICROSOFT_365_HOST_ACCESS]})"));
+    assert(popupScript.includes('chrome.permissions.request(request)'));
+    assert(popupScript.includes('MICROSOFT_365_HOST_ACCESS'));
+    assert(popupScript.includes('graphConnectPending'));
+    const worker=read('service_worker.js');
+    assert(worker.includes('resumePendingMicrosoft365Connect'));
+    assert(worker.includes('chrome.permissions?.onAdded?.addListener'));
+    assert(worker.includes('GRAPH_CONNECT_PENDING_MAX_AGE_MS'));
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
     assert.deepEqual(manifest.content_scripts[0].js.slice(0,3),['providerRegistry.js','configuration.js','transcriptInsights.js']);
 });

@@ -85,8 +85,17 @@ function safeExecute(fn, context = '', fallback = null) {
 }
 
 async function requestMicrosoft365HostAccess() {
-    if (!chrome.permissions?.request) return true;
-    return chrome.permissions.request({origins: [...MICROSOFT_365_HOST_ACCESS]});
+    if (!chrome.permissions?.request || !chrome.permissions?.contains) {
+        return {granted: true, continuesInWorker: false};
+    }
+    const request = {origins: [...MICROSOFT_365_HOST_ACCESS]};
+    if (await chrome.permissions.contains(request)) {
+        return {granted: true, continuesInWorker: false};
+    }
+    await chrome.storage.session.set({graphConnectPending: {createdAt: Date.now()}});
+    const granted = await chrome.permissions.request(request);
+    if (!granted) await chrome.storage.session.remove('graphConnectPending');
+    return {granted, continuesInWorker: granted};
 }
 
 // --- Utility Functions ---
@@ -664,9 +673,14 @@ function setupEventListeners() {
         setGraphBusy(true);
         UI_ELEMENTS.graphConnectionStatus.textContent = 'Requesting Microsoft 365 access…';
         try {
-            if (!await requestMicrosoft365HostAccess()) {
+            const access = await requestMicrosoft365HostAccess();
+            if (!access.granted) {
                 UI_ELEMENTS.graphConnectionStatus.textContent = 'Microsoft 365 access was not granted. Local caption capture still works.';
                 setGraphBusy(false);
+                return;
+            }
+            if (access.continuesInWorker) {
+                UI_ELEMENTS.graphConnectionStatus.textContent = 'Access approved. Opening Microsoft sign-in…';
                 return;
             }
             UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
