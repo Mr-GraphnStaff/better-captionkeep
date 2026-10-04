@@ -87,6 +87,8 @@
                     return Object.freeze({status: 'empty'});
                 }
                 await options.sendMessage({message: 'open_ai_assistants', prompt, providers,
+                    transcript, sessionId, providerLabel:cleanInline(context.providerLabel, 'meeting platform'),
+                    warnings:Array.isArray(context.warnings) ? context.warnings : [],
                     meetingTitle: cleanInline(context.meetingTitle, 'Meeting')});
                 if (sessionId) sessionStates.set(sessionId, 'prepared');
                 return Object.freeze({status: 'prepared', evidenceCount: transcript.length, providers: [...providers]});

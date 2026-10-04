@@ -11,3 +11,7 @@ Do not include real transcripts, attendee information, Partner Center metadata, 
 ## Supported versions
 
 Security fixes target the currently published version and the active release branch. Older versions may be asked to upgrade rather than receive a backport.
+
+## Architecture and enterprise deployment
+
+The [security architecture](docs/SECURITY-ARCHITECTURE.md) documents data flows, trust boundaries, managed controls, threat analysis, residual risks, and enterprise approval gates. The [Intune and EUC runbook](docs/EUC-DEPLOYMENT.md) covers controlled Windows deployment and rollback.

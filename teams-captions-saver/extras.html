@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Better CaptionKeep — Meeting extras</title>
+    <link rel="stylesheet" href="theme.css">
+    <style>body {max-width:900px;margin:24px auto;padding:20px;font:16px/1.6 system-ui;color:var(--ck-text);background:var(--ck-bg)} textarea {width:100%;box-sizing:border-box;min-height:200px} img {max-width:100%;border:1px solid var(--ck-border)} button {padding:10px;margin:6px} #status {min-height:24px}</style>
+    <script src="configuration.js" defer></script><script src="privacyScrubber.js" defer></script>
+    <script src="meetingExtras.js" defer></script><script src="extras.js" defer></script>
+</head><body>
+    <h1>Meeting extras</h1><p id="meeting"></p>
+    <p>Chat and screenshots are separate supporting evidence—not spoken transcript. Only loaded chat messages can be captured. Nothing is sent to a service.</p>
+    <button id="capture-chat" disabled>Capture loaded meeting chat</button>
+    <button id="load-extras" disabled>Reload saved extras</button>
+    <h2>Chat and shared links</h2><p>Review the text below. You can also paste chat manually; pasted text is labeled as a manual attachment.</p>
+    <textarea id="chat" aria-label="Reviewed chat text"></textarea>
+    <h2>Screenshot preview</h2><p>Images are not automatically masked. Inspect the screenshot before keeping it. Capture is blocked when managed policy requires scrubbed exports.</p>
+    <img id="screenshot" alt="Captured meeting screenshot for review" hidden>
+    <label><input id="image-confirm" type="checkbox"> I reviewed the image and approve retaining it locally.</label>
+    <div><button id="save" disabled>Keep reviewed extras locally</button><button id="discard">Discard screenshot preview</button><button id="export" disabled>Export chat TXT</button><button id="delete" disabled>Delete saved extras</button></div>
+    <p id="status" role="status" aria-live="polite">Loading meeting context…</p>
+</body></html>

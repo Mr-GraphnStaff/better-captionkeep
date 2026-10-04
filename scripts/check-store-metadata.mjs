@@ -1,6 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
+const EXPECTED_GRAPH_SCOPES = [
+  'openid',
+  'profile',
+  'offline_access',
+  'Calendars.ReadBasic',
+  'OnlineMeetings.Read',
+  'OnlineMeetingTranscript.Read.All',
+];
+
 function sorted(values) {
   return [...values].sort((left, right) => left.localeCompare(right));
 }
@@ -45,6 +54,13 @@ export function validateChromeStoreMetadata(manifest, metadata) {
   );
 
   const declaredHosts = new Set(manifest.host_permissions || []);
+  if (declaredHosts.has('https://graph.microsoft.com/*')) {
+    const disclosedScopes = Object.keys(metadata.oauthScopeJustifications || {});
+    requireSameSet(EXPECTED_GRAPH_SCOPES, disclosedScopes, 'Microsoft delegated-scope disclosures');
+    for (const scope of EXPECTED_GRAPH_SCOPES) {
+      requireText(metadata.oauthScopeJustifications[scope], `${scope} justification`);
+    }
+  }
   for (const contentScript of manifest.content_scripts || []) {
     for (const match of contentScript.matches || []) {
       const covered = [...declaredHosts].some(host => {
@@ -86,13 +102,50 @@ export function validateChromeStoreMetadata(manifest, metadata) {
   };
 }
 
+export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
+  requireText(dossier, 'CHROMEWEBSTORE.md');
+  const requiredValues = [
+    manifest.name,
+    manifest.version,
+    manifest.description,
+    metadata.singlePurpose,
+    metadata.privacyPolicyUrl,
+    ...(manifest.permissions || []).map(permission => `\`${permission}\``),
+    ...(manifest.host_permissions || []).map(host => `\`${host}\``),
+    ...Object.keys(metadata.oauthScopeJustifications || {}).map(scope => `\`${scope}\``),
+  ];
+  for (const value of requiredValues) {
+    if (!dossier.includes(value)) {
+      throw new Error(`CHROMEWEBSTORE.md is missing current Store value: ${value}`);
+    }
+  }
+  for (const asset of [
+    'teams-captions-saver/icons/scribble-128.png',
+    'store-assets/5.3/01-verified-teams-transcript.png',
+    'store-assets/5.3/02-local-evidence-board.png',
+    'store-assets/5.3/03-private-review-and-export.png',
+    'store-assets/5.3/04-three-meeting-platforms.png',
+    'store-assets/5.3/05-enterprise-controls.png',
+    'store-assets/5.3/small-promotional-tile.png',
+    'store-assets/5.3/large-promotional-tile.png',
+  ]) {
+    if (!dossier.includes(asset)) throw new Error(`CHROMEWEBSTORE.md is missing Store asset: ${asset}`);
+  }
+  if (!dossier.includes('Candidate — not submitted')) {
+    throw new Error('CHROMEWEBSTORE.md must preserve the 5.3 candidate publication boundary');
+  }
+  return {version:manifest.version, synchronized:true};
+}
+
 export async function main() {
   const manifest = JSON.parse(await readFile(new URL('../manifests/manifest.chrome-store.json', import.meta.url)));
   const metadata = JSON.parse(await readFile(new URL('../store-metadata/chrome.json', import.meta.url)));
+  const dossier = await readFile(new URL('../CHROMEWEBSTORE.md', import.meta.url), 'utf8');
   const result = validateChromeStoreMetadata(manifest, metadata);
+  validateChromeWebStoreDossier(manifest, metadata, dossier);
   console.log(
     `Chrome Store metadata matches ${result.version}: ${result.permissions} permissions, ` +
-    `${result.hostPermissions} hosts, ${result.providers} providers.`,
+    `${result.hostPermissions} hosts, ${result.providers} providers; publication dossier synchronized.`,
   );
 }
 

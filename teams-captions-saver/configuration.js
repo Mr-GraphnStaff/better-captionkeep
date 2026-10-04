@@ -14,13 +14,17 @@
     const POLICY_KEYS = Object.freeze([
         'forcePrivacyScrubber', 'disableAiHandoff', 'allowedAiProviders',
         'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl',
-        'forceProfanityFilter', 'customScrubTerms'
+        'forceProfanityFilter', 'customScrubTerms', 'forceScrubbedExport',
+        'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
+        'disableAttendeeCapture', 'disableSessionHistory', 'maxStoredSessions',
+        'sessionRetentionDays', 'enableGraphTranscriptImport', 'graphTenantId',
+        'graphClientId'
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
     const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled']);
     const ENUMS = Object.freeze({
-        defaultSaveFormat: new Set(['txt', 'md']),
+        defaultSaveFormat: new Set(['txt', 'md', 'docx']),
         saveAsType: new Set(['prompt', 'downloads', 'custom']),
         timestampFormat: new Set(['12hr', '24hr', 'relative']),
         uiTheme: new Set(['captionkeep', 'light', 'midnight', 'system'])
@@ -73,13 +77,49 @@
             settings.privacyScrubberEnabled = true;
             locked.add('privacyScrubberEnabled');
         }
+        if (managed.forceScrubbedExport === true) {
+            settings.forceScrubbedExport = true;
+            settings.privacyScrubberEnabled = true;
+            locked.add('privacyScrubberEnabled');
+            locked.add('forceScrubbedExport');
+        }
         if (managed.forceProfanityFilter === true) {
             settings.profanityFilterEnabled = true;
             locked.add('profanityFilterEnabled');
         }
         if (managed.disableAiHandoff === true) {
+            settings.disableAiHandoff = true;
             settings.autoAISummary = false;
             locked.add('autoAISummary');
+            locked.add('disableAiHandoff');
+        }
+        if (managed.disableAttendeeCapture === true) {
+            settings.trackAttendees = false;
+            settings.autoOpenAttendees = false;
+            locked.add('trackAttendees');
+            locked.add('autoOpenAttendees');
+        }
+        for (const key of ['disableClipboard', 'disableFileExport', 'disableEvidenceEmail', 'disableSessionHistory']) {
+            if (managed[key] === true) {
+                settings[key] = true;
+                locked.add(key);
+            }
+        }
+        for (const [key, minimum, maximum] of [['maxStoredSessions', 1, 10000], ['sessionRetentionDays', 1, 365]]) {
+            if (Number.isInteger(managed[key]) && managed[key] >= minimum && managed[key] <= maximum) {
+                settings[key] = managed[key];
+                locked.add(key);
+            }
+        }
+        if (managed.enableGraphTranscriptImport === true) {
+            settings.enableGraphTranscriptImport = true;
+            locked.add('enableGraphTranscriptImport');
+            for (const key of ['graphTenantId', 'graphClientId']) {
+                if (typeof managed[key] === 'string' && managed[key].trim()) {
+                    settings[key] = managed[key].trim();
+                    locked.add(key);
+                }
+            }
         }
         if (Array.isArray(managed.allowedAiProviders)) {
             const allowed = new Set(managed.allowedAiProviders.filter(provider => ALLOWED_PROVIDERS.has(provider)));
@@ -99,6 +139,27 @@
         return Object.freeze({ settings: Object.freeze(settings), locked: Object.freeze([...locked]) });
     }
 
+    function applyDevUatGraphOverlay(policy, localConfig = {}, manifest = {}) {
+        const versionName = String(manifest.version_name || '');
+        const isDevUatBuild = (manifest.name === 'Better CaptionKeep - Development'
+                && /\bdevelopment\b/i.test(versionName))
+            || (manifest.name === 'Better CaptionKeep - UAT Release Candidate'
+                && /\buat release candidate\b/i.test(versionName));
+        if (!isDevUatBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
+        const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
+        const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
+        graphKeys.forEach(key => locked.add(key));
+        return Object.freeze({
+            settings: Object.freeze({
+                ...policy.settings,
+                enableGraphTranscriptImport: true,
+                graphTenantId: localConfig.graphTenantId,
+                graphClientId: localConfig.graphClientId
+            }),
+            locked: Object.freeze([...locked])
+        });
+    }
+
     function createExport(settings) {
         return JSON.stringify({ product: 'Better CaptionKeep', version: EXPORT_VERSION, settings: sanitize(settings) }, null, 2);
     }
@@ -111,5 +172,5 @@
         return sanitize(parsed.settings);
     }
 
-    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, createExport, parseImport });
+    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyDevUatGraphOverlay, createExport, parseImport });
 })();

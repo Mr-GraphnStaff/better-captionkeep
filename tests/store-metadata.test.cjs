@@ -1,5 +1,13 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
+
+function pngDimensions(relativePath) {
+  const data = fs.readFileSync(path.join(__dirname, '..', relativePath));
+  assert.equal(data.subarray(1, 4).toString(), 'PNG');
+  return [data.readUInt32BE(16), data.readUInt32BE(20)];
+}
 
 function fixture() {
   return {
@@ -57,4 +65,43 @@ test('Chrome Store metadata contract rejects host and version drift', async () =
   const second = fixture();
   second.manifest.host_permissions.push('https://app.zoom.us/*');
   assert.throws(() => validateChromeStoreMetadata(second.manifest, second.metadata), /host-permission disclosures drifted/i);
+});
+
+test('Chrome Store metadata contract requires every Microsoft delegated scope', async () => {
+  const { validateChromeStoreMetadata } = await import('../scripts/check-store-metadata.mjs');
+  const { manifest, metadata } = fixture();
+  manifest.host_permissions.push('https://graph.microsoft.com/*');
+  metadata.hostPermissions.push('https://graph.microsoft.com/*');
+  assert.throws(
+    () => validateChromeStoreMetadata(manifest, metadata),
+    /delegated-scope disclosures drifted/i,
+  );
+});
+
+test('Chrome Store publication dossier stays synchronized with manifest and disclosure metadata', async () => {
+  const { validateChromeWebStoreDossier } = await import('../scripts/check-store-metadata.mjs');
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifests', 'manifest.chrome-store.json')));
+  const metadata = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-metadata', 'chrome.json')));
+  const dossier = fs.readFileSync(path.join(__dirname, '..', 'CHROMEWEBSTORE.md'), 'utf8');
+  assert.deepEqual(validateChromeWebStoreDossier(manifest, metadata, dossier), {
+    version:'5.3.0', synchronized:true
+  });
+  assert.throws(
+    () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace('`identity`', '`removed-identity`')),
+    /missing current Store value: `identity`/
+  );
+});
+
+test('5.3 Store artwork has the exact Chrome listing dimensions', () => {
+  for (const screenshot of [
+    '01-verified-teams-transcript.png',
+    '02-local-evidence-board.png',
+    '03-private-review-and-export.png',
+    '04-three-meeting-platforms.png',
+    '05-enterprise-controls.png',
+  ]) {
+    assert.deepEqual(pngDimensions(`store-assets/5.3/${screenshot}`), [1280, 800]);
+  }
+  assert.deepEqual(pngDimensions('store-assets/5.3/small-promotional-tile.png'), [440, 280]);
+  assert.deepEqual(pngDimensions('store-assets/5.3/large-promotional-tile.png'), [1400, 560]);
 });

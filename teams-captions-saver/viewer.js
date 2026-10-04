@@ -5,14 +5,160 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakerFiltersContainer = document.getElementById('speaker-filters');
     const copyAllBtn = document.getElementById('copy-all-btn');
     const saveAllBtn = document.getElementById('save-all-btn');
+    const printPdfBtn = document.getElementById('print-pdf-btn');
+    const exportFormat = document.getElementById('viewer-export-format');
     const historyBtn = document.getElementById('history-btn');
     const scrubOutputToggle = document.getElementById('scrub-output-toggle');
     const sessionModal = document.getElementById('sessionModal');
     const sessionListModal = document.getElementById('sessionListModal');
+    const archiveSearchForm = document.getElementById('archiveSearchForm');
+    const archiveSearchResults = document.getElementById('archiveSearchResults');
+    const archiveSearchStatus = document.getElementById('archiveSearchStatus');
+    const archiveSearchPagination = document.getElementById('archiveSearchPagination');
+    const archiveSearchPrevious = document.getElementById('archiveSearchPrevious');
+    const archiveSearchNext = document.getElementById('archiveSearchNext');
     const closeModal = document.querySelector('.close-modal');
+    const transcriptVersion = document.getElementById('transcript-version');
+    const dictionaryBtn = document.getElementById('dictionary-btn');
+    const dictionaryDialog = document.getElementById('dictionary-dialog');
+    const dictionaryText = document.getElementById('dictionary-text');
+    const dictionaryCase = document.getElementById('dictionary-case');
+    const dictionaryWholeWord = document.getElementById('dictionary-whole-word');
+    const dictionaryStatus = document.getElementById('dictionary-status');
+    const correctionStatus = document.getElementById('correction-status');
+    const translationDialog = document.getElementById('translation-dialog');
+    const translationStatus = document.getElementById('translation-status');
+    const translationStart = document.getElementById('translation-start');
+    let translationOptions = null;
+    let translator = null;
+    let translatedCaptions = [];
+    let translationCache = new Map();
+    let translationTimer = null;
+    let translationAbort = null;
+    let translationBusy = false;
+    let languageCheck = 0;
+
+    async function checkTranslationPair() {
+        const generation = ++languageCheck;
+        translationOptions = null;
+        translationStart.disabled = true;
+        if (translationBusy || translator) stopTranslation();
+        if (!globalThis.Translator) {
+            translationStatus.textContent = 'On-device translation is unavailable in this browser. Use the reviewed Translate AI template instead; nothing is sent automatically.';
+            return;
+        }
+        try {
+            const options = {sourceLanguage:document.getElementById('translation-source').value.trim(), targetLanguage:document.getElementById('translation-target').value.trim()};
+            const available = await globalThis.Translator.availability(options);
+            if (generation !== languageCheck) return;
+            translationOptions = options;
+            translationStart.disabled = available === 'unavailable';
+            translationStatus.textContent = available === 'unavailable' ? 'This language pair is unavailable on this device.' : available === 'available' ? 'Language pair ready. Press Start.' : 'Press Start to download or load the language pack.';
+        } catch (error) { if (generation === languageCheck) translationStatus.textContent = error.message; }
+    }
+
+    function stopTranslation() {
+        translationAbort?.abort();
+        if (translationTimer) clearTimeout(translationTimer);
+        translationTimer = null;
+        translator?.destroy();
+        translator = null;
+        translationBusy = false;
+    }
+
+    async function translateVisibleCaptions() {
+        if (!translator || translationBusy || !translationDialog.open) return;
+        const currentTranslator = translator;
+        const signal = translationAbort.signal;
+        translationBusy = true;
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableAiHandoff) throw new Error('AI processing is disabled by your organization.');
+            const selected = prepareOutput(getVisibleCaptions()).transcript;
+            const result = await CaptionKeepTranslation.translateTranscript(currentTranslator, selected, {
+                cache:translationCache, signal,
+                onProgress: (done, total) => { if (!signal.aborted) translationStatus.textContent = `Translated ${done} of ${total} visible captions.`; }
+            });
+            if (signal.aborted || currentTranslator !== translator) return;
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableAiHandoff) throw new Error('AI processing is disabled by your organization.');
+            translatedCaptions = result;
+            document.getElementById('translation-output').value = `${CaptionKeepTranslation.NOTICE}\n\n${CaptionKeepExportProfiles.formatAsText(result, null, {includeSourceIds:true})}`;
+            document.getElementById('translation-copy').disabled = !result.length || !!enterprisePolicy.disableClipboard;
+            document.getElementById('translation-save').disabled = !result.length || !!enterprisePolicy.disableFileExport;
+        } catch (error) {
+            if (!signal.aborted) { translationStatus.textContent = error.message; stopTranslation(); }
+        } finally {
+            if (currentTranslator === translator) translationBusy = false;
+            if (translator && translationDialog.open && document.getElementById('translation-live').checked) {
+                translationTimer = setTimeout(translateVisibleCaptions, 1500);
+            }
+        }
+    }
+
+    document.getElementById('translate-btn').addEventListener('click', async () => {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableAiHandoff) { showNotification('AI processing is disabled by your organization.', 'warning'); return; }
+        translationDialog.showModal();
+        void checkTranslationPair();
+    });
+    for (const id of ['translation-source','translation-target']) document.getElementById(id).addEventListener('change', checkTranslationPair);
+    translationStart.addEventListener('click', async () => {
+        if (!translationOptions || !globalThis.Translator || translationBusy) return;
+        stopTranslation();
+        translationStart.disabled = true;
+        translationAbort = new AbortController();
+        translationCache = new Map();
+        translatedCaptions = [];
+        document.getElementById('translation-output').value = '';
+        document.getElementById('translation-copy').disabled = true;
+        document.getElementById('translation-save').disabled = true;
+        const signal = translationAbort.signal;
+        try {
+            // Create immediately on the click; no policy/storage await consumes activation.
+            const created = await globalThis.Translator.create({...translationOptions,
+                monitor(monitor) { monitor.addEventListener('downloadprogress', event => { translationStatus.textContent = `Language pack: ${Math.round(event.loaded * 100)}%`; }); }
+            });
+            if (signal.aborted) { created.destroy(); return; }
+            translator = created;
+            await translateVisibleCaptions();
+        } catch (error) { translationStatus.textContent = error.message; }
+        finally { translationStart.disabled = false; }
+    });
+    document.getElementById('translation-live').addEventListener('change', () => {
+        if (translationTimer) clearTimeout(translationTimer);
+        translationTimer = null;
+        if (document.getElementById('translation-live').checked) void translateVisibleCaptions();
+    });
+    document.getElementById('translation-close').addEventListener('click', () => translationDialog.close());
+    translationDialog.addEventListener('close', stopTranslation);
+    window.addEventListener('pagehide', stopTranslation);
+    document.getElementById('translation-copy').addEventListener('click', async () => {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableClipboard || enterprisePolicy.disableAiHandoff) throw new Error('Translation copy is disabled by your organization.');
+            const text = CaptionKeepExportProfiles.formatAsText(prepareOutput(translatedCaptions).transcript, null, {includeSourceIds:true});
+            await navigator.clipboard.writeText(`${CaptionKeepTranslation.NOTICE}\n\n${text}`);
+            translationStatus.textContent = 'Translated derivative copied.';
+        } catch (error) { translationStatus.textContent = error.message; }
+    });
+    document.getElementById('translation-save').addEventListener('click', async () => {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableFileExport || enterprisePolicy.disableAiHandoff) throw new Error('Translation export is disabled by your organization.');
+            const result = await chrome.runtime.sendMessage({message:'download_captions', format:'txt',
+                transcriptArray:prepareOutput(translatedCaptions).transcript, meetingTitle:'Translated meeting transcript', versionNotice:CaptionKeepTranslation.NOTICE});
+            if (!result?.ok) throw new Error(result?.error || 'Export failed.');
+            translationStatus.textContent = 'Translated derivative ready on the save page.';
+        } catch (error) { translationStatus.textContent = error.message; }
+    });
 
     // --- State ---
     let allCaptions = [];
+    let rawCaptions = [];
+    let correctionSet = {records:{}};
+    let correctionStatuses = {};
+    const correctionManager = new CaptionKeepCorrections.CorrectionManager();
     let historical = false;
     let sourceTabId = null;
     let sourceSessionId = null;
@@ -20,7 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let meetingStartTime = null;
     let meetingEndTime = null;
     const SEARCH_DEBOUNCE_DELAY = 300;
+    const COPY_FEEDBACK_DURATION_MS = 1500;
+    const ERROR_FEEDBACK_DURATION_MS = 3000;
     let scrubOptions = {};
+    let enterprisePolicy = {};
+    let enterprisePolicyReady = Promise.resolve();
+    let archiveSearchGeneration = 0;
+    let archiveSearchOffset = 0;
     
     // Live streaming state
     let isLiveStreaming = false;
@@ -80,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Live Update Functions ---
     function appendNewCaption(caption) {
         // Add to data array
+        rawCaptions.push(caption);
         allCaptions.push(caption);
         
         // Create HTML for new caption
@@ -126,6 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateExistingCaption(caption) {
+        const rawIndex = rawCaptions.findIndex(c => c.key === caption.key);
+        if (rawIndex !== -1) rawCaptions[rawIndex] = caption;
+        const correctionKey = CaptionKeepCorrections.sourceKey(caption, rawIndex < 0 ? 0 : rawIndex);
+        if (correctionSet.records[correctionKey]) {
+            renderCorrectionView();
+            return;
+        }
         const captionElement = captionsContainer.querySelector(`[data-index="${allCaptions.findIndex(c => c.key === caption.key)}"]`);
         if (captionElement) {
             const textElement = captionElement.querySelector('.text');
@@ -226,8 +386,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
             </svg>`;
         
+        const source = rawCaptions[index] || item;
+        const key = CaptionKeepCorrections.sourceKey(source, index);
+        const status = correctionStatuses[key] || '';
+        const correctionActions = sourceSessionId ? `
+            <div class="caption-correction-actions">
+                <button type="button" class="edit-correction">${status === 'applied' ? 'Edit correction' : 'Correct text'}</button>
+                ${correctionSet.records[key] ? '<button type="button" class="undo-correction">Undo correction</button>' : ''}
+                ${status === 'conflict' ? '<span class="correction-note">Source changed; review required. Original shown.</span>' : ''}
+            </div>` : '';
         return `
-            <div class="caption" data-speaker="${escapeHtml(item.Name)}" data-index="${index}">
+            <div class="caption ${status ? `correction-${status}` : ''}" data-speaker="${escapeHtml(item.Name)}" data-index="${index}">
                 <button class="copy-btn" title="Copy this line" aria-label="Copy this line">
                     ${copyIconSVG}
                     <span class="tooltip-text">Copy</span>
@@ -237,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="time">${escapeHtml(item.Time)}</span>
                 </div>
                 <p class="text">${escapeHtml(item.Text)}</p>
+                ${correctionActions}
             </div>
         `;
     }
@@ -250,6 +420,90 @@ document.addEventListener('DOMContentLoaded', () => {
             renderViewerState('No captions yet', 'New caption lines will appear here when someone speaks.', { mark: '…' });
         }
         updateExportButtonStates();
+    }
+
+    function renderCorrectionView() {
+        if (transcriptVersion.value === 'raw') {
+            correctionStatuses = {};
+            renderCaptions(rawCaptions.map(caption => ({...caption})));
+            correctionStatus.textContent = 'Original provider transcript. Corrections are preserved separately.';
+            return;
+        }
+        const result = CaptionKeepCorrections.applyCorrectionRecords(rawCaptions, correctionSet);
+        correctionStatuses = result.statuses;
+        renderCaptions(result.transcript);
+        correctionStatus.textContent = `${result.appliedCount} correction${result.appliedCount === 1 ? '' : 's'} applied${result.conflictCount ? `; ${result.conflictCount} needs review` : ''}.`;
+    }
+
+    async function loadCorrectionContext(transcript, sessionId) {
+        rawCaptions = (Array.isArray(transcript) ? transcript : []).map(caption => ({...caption}));
+        sourceSessionId = sessionId || sourceSessionId;
+        correctionSet = sourceSessionId ? await correctionManager.getCorrections(sourceSessionId, {historical}) : {records:{}};
+        renderCorrectionView();
+    }
+
+    async function handleCorrectionClick(event) {
+        const editButton = event.target.closest('.edit-correction');
+        const undoButton = event.target.closest('.undo-correction');
+        if (!editButton && !undoButton) return;
+        const captionElement = event.target.closest('.caption');
+        const index = Number(captionElement?.dataset.index);
+        const rawCaption = rawCaptions[index];
+        if (!rawCaption || !sourceSessionId) return;
+        if (undoButton) {
+            correctionSet = await correctionManager.undoCorrection(sourceSessionId, rawCaption, index, {historical});
+        } else {
+            const key = CaptionKeepCorrections.sourceKey(rawCaption, index);
+            const current = correctionSet.records[key]?.replacementText ?? rawCaption.Text;
+            const replacement = prompt('Correct this caption. The original remains preserved locally.', current);
+            if (replacement === null) return;
+            await correctionManager.saveCorrection(sourceSessionId, rawCaption, index, replacement, 'manual', null, {historical});
+            correctionSet = await correctionManager.getCorrections(sourceSessionId, {historical});
+        }
+        transcriptVersion.value = 'corrected';
+        renderCorrectionView();
+    }
+
+    async function openDictionary() {
+        const dictionary = await correctionManager.getDictionary();
+        dictionaryText.value = dictionary.entries.map(entry => `${entry.term} => ${entry.replacement}`).join('\n');
+        dictionaryCase.checked = dictionary.entries.length ? dictionary.entries.every(entry => entry.caseSensitive) : false;
+        dictionaryWholeWord.checked = dictionary.entries.length ? dictionary.entries.every(entry => entry.wholeWord) : true;
+        dictionaryStatus.textContent = '';
+        dictionaryDialog.showModal();
+    }
+
+    function readDictionaryEditor() {
+        return CaptionKeepCorrections.parseDictionaryText(dictionaryText.value, {
+            caseSensitive:dictionaryCase.checked,
+            wholeWord:dictionaryWholeWord.checked
+        });
+    }
+
+    async function saveDictionary() {
+        const dictionary = await correctionManager.saveDictionary(readDictionaryEditor());
+        dictionaryStatus.textContent = `Saved ${dictionary.entries.length} local term${dictionary.entries.length === 1 ? '' : 's'}. Prior transcripts were not changed.`;
+        return dictionary;
+    }
+
+    async function previewDictionary() {
+        const dictionary = {...await correctionManager.getDictionary(), entries:readDictionaryEditor()};
+        const preview = correctionManager.previewDictionary(rawCaptions, dictionary);
+        const examples = preview.changes.slice(0, 5).map(change => {
+            const before = String(rawCaptions[change.index]?.Text || '').slice(0, 80);
+            return `“${before}” → “${change.text.slice(0, 80)}”`;
+        });
+        dictionaryStatus.textContent = `${preview.changes.length} caption${preview.changes.length === 1 ? '' : 's'} would change. Nothing was saved.${examples.length ? ` Preview: ${examples.join(' | ')}` : ''}`;
+    }
+
+    async function applyDictionary() {
+        if (!sourceSessionId) throw new Error('Open a live or archived transcript before applying dictionary terms.');
+        const dictionary = await saveDictionary();
+        const preview = await correctionManager.applyDictionary(sourceSessionId, rawCaptions, dictionary, {historical});
+        correctionSet = await correctionManager.getCorrections(sourceSessionId, {historical});
+        transcriptVersion.value = 'corrected';
+        renderCorrectionView();
+        dictionaryStatus.textContent = `Applied reversible corrections to ${preview.appliedChanges.length} caption${preview.appliedChanges.length === 1 ? '' : 's'}${preview.skippedManualChanges.length ? `; preserved ${preview.skippedManualChanges.length} manual edit${preview.skippedManualChanges.length === 1 ? '' : 's'}` : ''}.`;
     }
 
     function populateSpeakerFilters(transcriptArray) {
@@ -299,8 +553,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const visibleCount = getVisibleCaptions().length;
         const hasVisibleCaptions = visibleCount > 0;
         
-        copyAllBtn.disabled = !hasVisibleCaptions;
-        saveAllBtn.disabled = !hasVisibleCaptions;
+        copyAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableClipboard;
+        saveAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
+        printPdfBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
         
         // Update titles with count
         copyAllBtn.title = hasVisibleCaptions 
@@ -327,8 +582,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleCopyClick(e) {
+        await refreshViewerPolicy();
         const copyButton = e.target.closest('.copy-btn');
         if (!copyButton) return;
+        if (enterprisePolicy.disableClipboard) {
+            showNotification('Clipboard copy is disabled by your organization.', 'warning');
+            return;
+        }
 
         const captionDiv = copyButton.closest('.caption');
         const index = parseInt(captionDiv.dataset.index, 10);
@@ -336,7 +596,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!captionData) return;
 
-        const textToCopy = `[${captionData.Time}] ${captionData.Name}: ${captionData.Text}`;
+        const originalText = `[${captionData.Time}] ${captionData.Name}: ${captionData.Text}`;
+        const textToCopy = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(originalText, scrubOptions).text
+            : originalText;
         try {
             await navigator.clipboard.writeText(textToCopy);
             copyButton.classList.add('copied');
@@ -345,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 copyButton.classList.remove('copied');
                 copyButton.querySelector('.tooltip-text').textContent = 'Copy';
-            }, 1500); // TODO: Extract to TIMING constant
+            }, COPY_FEEDBACK_DURATION_MS);
         } catch (err) {
             console.error('Failed to copy text: ', err);
             copyButton.querySelector('.tooltip-text').textContent = 'Copy failed';
@@ -354,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 10px; border-radius: 4px; z-index: 1000;';
             errorMsg.textContent = 'Failed to copy text to clipboard';
             document.body.appendChild(errorMsg);
-            setTimeout(() => document.body.removeChild(errorMsg), 3000);
+            setTimeout(() => document.body.removeChild(errorMsg), ERROR_FEEDBACK_DURATION_MS);
         }
     }
     
@@ -388,12 +651,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function prepareOutput(captions) {
-        return scrubOutputToggle?.checked
+        return scrubOutputToggle?.checked || enterprisePolicy.forceScrubbedExport
             ? CaptionKeepPrivacyScrubber.scrubTranscript(captions, scrubOptions)
             : { transcript: captions, replacements: [] };
     }
+
+    function transcriptVersionNotice() {
+        const hasCorrections = Object.keys(correctionSet.records || {}).length > 0;
+        if (!hasCorrections) return '';
+        return transcriptVersion.value === 'corrected'
+            ? 'Transcript version: Corrected derivative. The original provider transcript is retained locally.'
+            : 'Transcript version: Original provider transcript. Local corrections were not included.';
+    }
     
     async function handleCopyAllClick() {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableClipboard) {
+            showNotification('Clipboard copy is disabled by your organization.', 'warning');
+            return;
+        }
         const visibleCaptions = getVisibleCaptions();
         
         if (visibleCaptions.length === 0) {
@@ -402,7 +678,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const output = prepareOutput(visibleCaptions);
-        const textToCopy = formatTranscriptForExport(output.transcript);
+        const notice = transcriptVersionNotice();
+        const textToCopy = [notice, formatTranscriptForExport(output.transcript)].filter(Boolean).join('\n\n');
         
         try {
             await navigator.clipboard.writeText(textToCopy);
@@ -415,6 +692,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleSaveAllClick() {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableFileExport) {
+            showNotification('File export is disabled by your organization.', 'warning');
+            return;
+        }
         const visibleCaptions = getVisibleCaptions();
         
         if (visibleCaptions.length === 0) {
@@ -425,20 +707,57 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const {defaultSaveFormat = 'txt'} = await chrome.storage.sync.get('defaultSaveFormat');
             const output = prepareOutput(visibleCaptions);
+            const notice = transcriptVersionNotice();
             const result = await chrome.runtime.sendMessage({message:'download_captions', transcriptArray:output.transcript,
-                format:defaultSaveFormat, meetingTitle:document.querySelector('h1').textContent});
+                format:exportFormat.value === 'default' ? defaultSaveFormat : exportFormat.value, meetingTitle:document.querySelector('h1').textContent,
+                versionNotice:notice});
             if (!result?.ok) throw new Error(result?.error || 'Could not prepare export');
             showNotification('Export ready. Choose a destination on the save page.', 'success');
         } catch (error) { showNotification(error.message,'error'); }
     }
 
-    (async () => {
+    async function handlePrintPdfClick() {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableFileExport) {
+                showNotification('File export is disabled by your organization.', 'warning');
+                return;
+            }
+            const selected = getVisibleCaptions();
+            if (!selected.length) {
+                showNotification('No visible captions to print', 'warning');
+                return;
+            }
+            const output = prepareOutput(selected);
+            const title = prepareOutput([{Text:document.querySelector('h1').textContent}]).transcript[0].Text;
+            const printOutput = document.createElement('article');
+            printOutput.id = 'print-output';
+            printOutput.innerHTML = CaptionKeepExportProfiles.formatAsPrintHtml({
+                meetingTitle:title, transcript:output.transcript, versionNotice:transcriptVersionNotice()
+            });
+            document.getElementById('print-output')?.remove();
+            document.body.append(printOutput);
+            try {
+                window.print();
+            } finally {
+                printOutput.remove();
+            }
+            showNotification('Print dialog closed. Choose Save as PDF there to create a PDF.', 'success');
+        } catch (error) { showNotification(`Could not prepare print output: ${error.message}`, 'error'); }
+    }
+
+    async function refreshViewerPolicy() {
         const user = await chrome.storage.sync.get(['privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms']);
         const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+        enterprisePolicy = policy.settings;
         scrubOutputToggle.checked = policy.settings.privacyScrubberEnabled !== false;
         scrubOutputToggle.disabled = policy.locked.includes('privacyScrubberEnabled');
         scrubOptions = { profanityFilterEnabled: !!policy.settings.profanityFilterEnabled, customTerms: policy.settings.customScrubTerms || [] };
-    })();
+        historyBtn.hidden = !!enterprisePolicy.disableSessionHistory;
+        updateExportButtonStates();
+        return enterprisePolicy;
+    }
+    enterprisePolicyReady = refreshViewerPolicy();
 
 
     function showButtonSuccess(button, successText, originalText) {
@@ -522,11 +841,32 @@ document.addEventListener('DOMContentLoaded', () => {
         searchBox.addEventListener('input', debouncedApplyFilters);
         speakerFiltersContainer.addEventListener('click', handleSpeakerFilterClick);
         captionsContainer.addEventListener('click', handleCopyClick);
+        captionsContainer.addEventListener('click', event => handleCorrectionClick(event).catch(error => showNotification(error.message, 'warning')));
         copyAllBtn.addEventListener('click', handleCopyAllClick);
         saveAllBtn.addEventListener('click', handleSaveAllClick);
+        printPdfBtn.addEventListener('click', handlePrintPdfClick);
+        document.getElementById('meeting-extras-btn').addEventListener('click', async () => {
+            try {
+                await refreshViewerPolicy();
+                if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+                if (!sourceSessionId) throw new Error('Meeting identity is unavailable.');
+                const query = new URLSearchParams({session:sourceSessionId, historical:String(historical)});
+                if (!historical && Number.isInteger(sourceTabId)) query.set('tab', String(sourceTabId));
+                await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)});
+            } catch (error) { showNotification(error.message, 'error'); }
+        });
         
         // Session history handlers
         historyBtn.addEventListener('click', showSessionHistory);
+        transcriptVersion.addEventListener('change', renderCorrectionView);
+        dictionaryBtn.addEventListener('click', () => openDictionary().catch(error => showNotification(error.message, 'warning')));
+        document.getElementById('dictionary-save').addEventListener('click', () => saveDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
+        document.getElementById('dictionary-preview').addEventListener('click', () => previewDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
+        document.getElementById('dictionary-apply').addEventListener('click', () => applyDictionary().catch(error => { dictionaryStatus.textContent = error.message; }));
+        archiveSearchForm.addEventListener('submit', handleArchiveSearch);
+        document.getElementById('clearArchiveSearch').addEventListener('click', clearArchiveSearch);
+        archiveSearchPrevious.addEventListener('click', () => changeArchiveSearchPage(-1));
+        archiveSearchNext.addEventListener('click', () => changeArchiveSearchPage(1));
         closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
@@ -537,6 +877,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Session History Functions ---
     async function showSessionHistory() {
+        await refreshViewerPolicy();
+        if (enterprisePolicy.disableSessionHistory) {
+            showNotification('Session history is disabled by your organization.', 'warning');
+            return;
+        }
         sessionModal.style.display = 'block';
         await loadSessionHistory();
     }
@@ -589,11 +934,102 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionListModal.innerHTML = '<div style="text-align: center; color: var(--ck-danger); padding: 20px;">Error loading sessions</div>';
         }
     }
-    
-    window.loadSessionFromHistory = async function(sessionId) {
+
+    function archiveSearchOptions() {
+        const from = document.getElementById('archiveSearchFrom').value;
+        const through = document.getElementById('archiveSearchTo').value;
+        return {
+            title:document.getElementById('archiveSearchTitle').value,
+            speaker:document.getElementById('archiveSearchSpeaker').value,
+            dateFrom:from ? `${from}T00:00:00` : '',
+            dateTo:through ? `${through}T23:59:59.999` : '',
+            order:document.getElementById('archiveSearchOrder').value,
+            limit:100,
+            offset:archiveSearchOffset
+        };
+    }
+
+    async function handleArchiveSearch(event) {
+        event.preventDefault();
+        archiveSearchOffset = 0;
+        await runArchiveSearch();
+    }
+
+    async function changeArchiveSearchPage(direction) {
+        archiveSearchOffset = Math.max(0, archiveSearchOffset + (direction * 100));
+        await runArchiveSearch();
+    }
+
+    async function runArchiveSearch() {
+        const generation = ++archiveSearchGeneration;
+        const query = document.getElementById('archiveSearchQuery').value.trim();
+        if (!query) return;
+        archiveSearchStatus.textContent = 'Searching this browser\'s retained archive…';
+        archiveSearchResults.hidden = true;
         try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableSessionHistory) throw new Error('Transcript archive is disabled by your organization.');
+            const response = await new SessionManager().searchSessions(query, archiveSearchOptions());
+            if (generation !== archiveSearchGeneration) return;
+            archiveSearchResults.replaceChildren();
+            for (const result of response.results) {
+                const link = document.createElement('a');
+                link.className = 'archive-result';
+                link.href = `viewer.html?session=${encodeURIComponent(result.sessionId)}&caption=${result.captionIndex}`;
+                link.addEventListener('click', event => {
+                    event.preventDefault();
+                    window.loadSessionFromHistory(result.sessionId, result.captionIndex);
+                });
+                const heading = document.createElement('strong');
+                heading.textContent = result.title;
+                const meta = document.createElement('div');
+                meta.className = 'session-meta';
+                meta.textContent = `${result.date} · ${result.time} · ${result.speaker} · ${result.sourceKey}`;
+                const snippet = document.createElement('p');
+                snippet.className = 'archive-snippet';
+                snippet.textContent = result.snippet;
+                link.append(heading, meta, snippet);
+                archiveSearchResults.append(link);
+            }
+            archiveSearchResults.hidden = false;
+            const skipped = response.skippedSessions.length;
+            archiveSearchPrevious.disabled = archiveSearchOffset === 0;
+            archiveSearchNext.disabled = !response.hasMore;
+            archiveSearchPagination.hidden = archiveSearchOffset === 0 && !response.hasMore;
+            const rangeStart = response.results.length ? archiveSearchOffset + 1 : 0;
+            const rangeEnd = archiveSearchOffset + response.results.length;
+            archiveSearchStatus.textContent = response.results.length
+                ? `Showing matches ${rangeStart}-${rangeEnd}${response.hasMore ? '; more matches are available' : ''} across ${response.searchedSessions} meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`
+                : `No matches in ${response.searchedSessions} readable meeting${response.searchedSessions === 1 ? '' : 's'}${skipped ? `; ${skipped} unreadable meeting${skipped === 1 ? '' : 's'} skipped` : ''}.`;
+        } catch (error) {
+            if (generation !== archiveSearchGeneration) return;
+            archiveSearchStatus.textContent = error.message;
+            archiveSearchResults.hidden = false;
+            archiveSearchResults.textContent = 'Search could not be completed. Your archive was not changed.';
+        }
+    }
+
+    function clearArchiveSearch() {
+        archiveSearchGeneration += 1;
+        archiveSearchForm.reset();
+        archiveSearchStatus.textContent = '';
+        archiveSearchResults.replaceChildren();
+        archiveSearchResults.hidden = true;
+        archiveSearchPagination.hidden = true;
+        archiveSearchOffset = 0;
+    }
+    
+    window.loadSessionFromHistory = async function(sessionId, captionIndex = null) {
+        try {
+            await refreshViewerPolicy();
+            if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
             const sessionManager = new SessionManager();
             const sessionData = await sessionManager.loadSession(sessionId);
+            const next = new URL(location.href);
+            next.search = '';
+            next.searchParams.set('session', sessionId);
+            if (captionIndex !== null && Number.isInteger(Number(captionIndex))) next.searchParams.set('caption', String(captionIndex));
+            history.replaceState(null, '', next);
             
             // Close modal
             sessionModal.style.display = 'none';
@@ -601,21 +1037,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Load the transcript
             historical = true;
             sourceTabId = null;
-            allCaptions = sessionData.transcript;
+            sourceSessionId = sessionData.metadata.sourceSessionId || sessionData.metadata.id;
             isLiveStreaming = false; // Historical data, not live
             
             // Update title
             document.querySelector('h1').innerHTML = `${escapeHtml(sessionData.metadata.title)} <span style="font-size: 0.5em; color: var(--ck-text-muted);">(Historical)</span>`;
             
             // Calculate and display analytics
-            const analytics = calculateAnalytics(allCaptions);
+            const analytics = calculateAnalytics(sessionData.transcript);
             if (analytics) {
                 displayAnalytics(analytics);
             }
             
             // Render the transcript
-            renderCaptions(allCaptions);
-            populateSpeakerFilters(allCaptions);
+            await loadCorrectionContext(sessionData.transcript, sourceSessionId);
+            populateSpeakerFilters(sessionData.transcript);
+            if (captionIndex !== null && Number.isInteger(Number(captionIndex))) focusCaption(Number(captionIndex));
             
             // Clear any live indicators
             const liveIndicator = document.getElementById('live-indicator');
@@ -627,6 +1064,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('[Session History] Failed to load session:', error);
             alert('Failed to load session');
         }
+    }
+
+    function focusCaption(captionIndex) {
+        const caption = captionsContainer.querySelector(`[data-index="${captionIndex}"]`);
+        if (!caption) return;
+        caption.tabIndex = -1;
+        caption.focus({preventScroll:true});
+        caption.scrollIntoView({behavior:'smooth', block:'center'});
     }
     
     function getTimeAgo(date) {
@@ -651,17 +1096,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function initialize() {
         try {
+            await enterprisePolicyReady;
             // Check if we have captions passed via storage (from popup)
             const params = new URL(location.href).searchParams;
             const payload = params.get('payload');
             const session = params.get('session');
+            const caption = params.get('caption');
             const liveTab = params.get('liveTab');
             const liveSession = params.get('liveSession');
             const result = {};
             let viewerData;
             if (session) {
+                if (enterprisePolicy.disableSessionHistory) throw new Error('Session history is disabled by your organization.');
                 const saved = await new SessionManager().loadSession(session);
-                viewerData = {transcriptArray:saved.transcript, meetingTitle:saved.metadata.title, isHistorical:true};
+                viewerData = {
+                    transcriptArray:saved.transcript,
+                    meetingTitle:saved.metadata.title,
+                    source:saved.metadata.source || null,
+                    sessionId:saved.metadata.sourceSessionId || saved.metadata.id,
+                    isHistorical:true
+                };
             } else if (payload?.startsWith('viewer_payload_')) {
                 viewerData = (await chrome.storage.local.get(payload))[payload];
                 await chrome.storage.local.remove(payload);
@@ -691,7 +1145,27 @@ document.addEventListener('DOMContentLoaded', () => {
             historical = !!viewerData?.isHistorical;
             sourceTabId = viewerData?.sourceTabId ?? null;
             sourceSessionId = viewerData?.sessionId ?? null;
+            if (historical && /^\d+$/.test(caption || '')) autoScroll = false;
             if (viewerData?.meetingTitle) document.querySelector('h1').textContent = viewerData.meetingTitle + (historical ? ' (Historical)' : '');
+            const sourceLabel = document.getElementById('viewer-source');
+            if (sourceLabel && viewerData?.source?.type === 'microsoft-graph') {
+                sourceLabel.hidden = false;
+                const attribution = viewerData.source.speakerAttribution === 'included'
+                    ? 'speaker attribution included'
+                    : 'speaker attribution unavailable by tenant policy';
+                sourceLabel.textContent = `Official Microsoft Teams transcript imported through Microsoft Graph · ${attribution}`;
+                const provenance = document.getElementById('viewer-provenance');
+                const formatSourceTime = value => {
+                    const parsed = new Date(value || '');
+                    return Number.isNaN(parsed.getTime()) ? 'Not reported' : parsed.toLocaleString();
+                };
+                document.getElementById('source-provider').textContent = viewerData.source.provider || 'Microsoft Teams';
+                document.getElementById('source-created').textContent = formatSourceTime(viewerData.source.createdDateTime);
+                document.getElementById('source-imported').textContent = formatSourceTime(viewerData.source.importedAt);
+                document.getElementById('source-attribution').textContent = attribution;
+                document.getElementById('source-fingerprint').textContent = viewerData.source.sourceSha256 || 'Not reported';
+                provenance.hidden = false;
+            }
             setupEventListeners();
             // Use viewerData if captionsToView is not available
             if (!transcript && viewerData && viewerData.transcriptArray) {
@@ -709,8 +1183,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayAnalytics(analytics);
                 }
                 
-                renderCaptions(transcript);
+                await loadCorrectionContext(transcript, sourceSessionId);
                 populateSpeakerFilters(transcript);
+                if (historical && /^\d+$/.test(caption || '')) focusCaption(Number(caption));
 
                 
                 // Setup live streaming after initial load
@@ -749,6 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('meeting-ended-message')) return;
         
         // Check if auto-save is enabled
+        await refreshViewerPolicy();
         const { autoSaveOnEnd } = await chrome.storage.sync.get('autoSaveOnEnd');
         
         const endedMessage = document.createElement('div');
@@ -764,7 +1240,9 @@ document.addEventListener('DOMContentLoaded', () => {
             font-size: 16px;
         `;
         
-        let subtext = autoSaveOnEnd ? 'Your transcript save has started.' : 'The transcript is ready to save.';
+        let subtext = enterprisePolicy.disableFileExport
+            ? 'File export is disabled by your organization.'
+            : autoSaveOnEnd ? 'Your transcript save has started.' : 'The transcript is ready to save.';
             
         endedMessage.innerHTML = `<strong>Meeting Ended</strong><br><span style="font-size: 14px;">${subtext}</span>`;
         
@@ -990,6 +1468,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Keyboard Shortcuts ---
     document.addEventListener('keydown', (e) => {
+        const modifier = e.ctrlKey || e.metaKey;
+        const key = e.key.toLowerCase();
+        if (modifier && key === 'p') {
+            e.preventDefault();
+            void handlePrintPdfClick();
+            return;
+        }
+        const editing = e.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+        if (modifier && e.shiftKey && !editing && ['c', 's'].includes(key)) {
+            e.preventDefault();
+            if (key === 'c') void handleCopyAllClick();
+            else void handleSaveAllClick();
+            return;
+        }
         // Ctrl/Cmd + F for search focus
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();

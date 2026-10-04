@@ -26,6 +26,7 @@ const SELECTORS = {
     MORE_BUTTON_EXPANDED: "button[data-tid='more-button'][aria-expanded='true'], button[id='callingButtons-showMoreBtn'][aria-expanded='true']",
     LANGUAGE_SPEECH_BUTTON: "div[id='LanguageSpeechMenuControl-id']",
     TURN_ON_CAPTIONS_BUTTON: "div[id='closed-captions-button']",
+    TRANSCRIPTION_CONTROLS: "button, [role='button'], [role='menuitem'], [role='menuitemcheckbox']",
     // Attendee tracking selectors
     ATTENDEE_TREE: "[role='tree'][aria-label='Attendees']",
     ATTENDEE_ITEM: "[data-tid^='participantsInCall-']",
@@ -49,6 +50,10 @@ let stateCheckRunning = false;
 let attendeeStartTimer = null;
 let captureState = 'idle';
 let checkpointError = '';
+let transcriptionState = 'unchecked';
+let transcriptionDetail = 'Teams transcription has not been checked.';
+let transcriptionCheckInProgress = false;
+let transcriptionLastAttempt = 0;
 let ACTIVE_CAPTURE_KEY = '';
 let captureSurfaceId = '';
 let documentSessionId = crypto.randomUUID();
@@ -99,6 +104,18 @@ let attendeeData = {
     }
 })();
 
+async function readEffectiveCaptureSettings() {
+    const user = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees', 'autoOpenAttendees']);
+    return CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged()).settings;
+}
+
+async function refreshManagedAttendeeState() {
+    const settings = await readEffectiveCaptureSettings();
+    attendeesAllowed = settings.trackAttendees !== false;
+    if (!attendeesAllowed) stopAttendeeTracking();
+    else if (isUserInMeeting()) startAttendeeTracking();
+}
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync' && changes.trackCaptions) {
         trackingAllowed = changes.trackCaptions.newValue !== false;
@@ -119,9 +136,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
         }
     }
     if (areaName === 'sync' && changes.trackAttendees) {
-        attendeesAllowed = changes.trackAttendees.newValue !== false;
-        if (!attendeesAllowed) stopAttendeeTracking();
-        else if (isUserInMeeting()) startAttendeeTracking();
+        void refreshManagedAttendeeState();
+    }
+    if (areaName === 'managed') {
+        void refreshManagedAttendeeState();
     }
     if (areaName === 'sync' && changes.timestampFormat) {
         timestampPreference = changes.timestampFormat.newValue || '12hr';
@@ -390,7 +408,7 @@ function updateAttendeesFromTranscript() {
                 time: currentTime
             });
             
-            console.log(`Speaker detected from transcript: ${name}`);
+            console.log('[Teams Caption Saver] New transcript speaker observation recorded.');
         }
     });
     
@@ -439,7 +457,7 @@ function updateAttendeeList() {
                         time: currentTime
                     });
                     
-                    console.log(`New attendee detected: ${name} (${role})`);
+                    console.log('[Teams Caption Saver] New attendee observation recorded.');
                 }
             }
         });
@@ -452,7 +470,7 @@ function updateAttendeeList() {
                     action: 'left',
                     time: currentTime
                 });
-                console.log(`Attendee left: ${name}`);
+                console.log('[Teams Caption Saver] Attendee departure observation recorded.');
             }
         });
         
@@ -492,7 +510,7 @@ async function tryOpenParticipantPanel() {
 
 async function startAttendeeTracking() {
     // Check if attendee tracking is enabled
-    const { trackAttendees, autoOpenAttendees } = await chrome.storage.sync.get(['trackAttendees', 'autoOpenAttendees']);
+    const { trackAttendees, autoOpenAttendees } = await readEffectiveCaptureSettings();
     if (trackAttendees === false) {
         console.log("Attendee tracking is disabled in settings");
         return;
@@ -516,7 +534,7 @@ async function startAttendeeTracking() {
         attendeeStartTimer = null;
         if (!attendeesAllowed || !isUserInMeeting()) return;
         // Only auto-open participant panel if setting is enabled
-        if (autoOpenAttendees) {
+        if (autoOpenAttendees !== false) {
             await tryOpenParticipantPanel();
         }
         
@@ -540,7 +558,7 @@ function stopAttendeeTracking() {
 
 async function getAttendeeReport() {
     // Check if attendee tracking is enabled
-    const { trackAttendees } = await chrome.storage.sync.get('trackAttendees');
+    const { trackAttendees } = await readEffectiveCaptureSettings();
     if (trackAttendees === false) {
         return null; // Return null if tracking is disabled
     }
@@ -559,8 +577,7 @@ async function getAttendeeReport() {
     };
     
     console.log("[Teams Caption Saver] Attendee report generated:", {
-        totalAttendees: report.totalUniqueAttendees,
-        attendees: report.attendeeList
+        totalAttendees: report.totalUniqueAttendees
     });
     
     return report;
@@ -569,6 +586,7 @@ async function getAttendeeReport() {
 // --- Event-Driven Meeting Detection ---
 let meetingStateDebounceTimer = null;
 let captionsStateDebounceTimer = null;
+let lastKnownTeamsJoinUrl = '';
 
 function setupMeetingObserver() {
     if (meetingObserver) return;
@@ -579,6 +597,9 @@ function setupMeetingObserver() {
             clearTimeout(meetingStateDebounceTimer);
         }
         meetingStateDebounceTimer = setTimeout(() => {
+            // Meeting info is temporary UI. Remember its join link while the
+            // panel is open so the popup can retrieve it after the panel closes.
+            findCurrentTeamsJoinUrl();
             handleMeetingStateChange();
         }, 1000);
     });
@@ -653,7 +674,8 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
 
         try {
             const { autoSaveOnEnd } = await chrome.storage.sync.get('autoSaveOnEnd');
-            if (autoSaveOnEnd && transcriptArray.length > 0) {
+            const effective = await readEffectiveCaptureSettings();
+            if (autoSaveOnEnd && transcriptArray.length > 0 && !effective.disableFileExport) {
                 console.log("Auto-save is ON and transcript has data. Triggering save.");
                 
                 // Mark auto-save as triggered before sending message
@@ -685,6 +707,9 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
 
     if (!nowInMeeting) {
         wasInMeeting = false;
+        transcriptionState = 'unchecked';
+        transcriptionDetail = 'Teams transcription has not been checked.';
+        transcriptionLastAttempt = 0;
         stopCaptureSession();
         stopAttendeeTracking();
         return;
@@ -693,13 +718,19 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         console.log("Meeting transition detected: Out -> In. Resetting auto-save state.");
         autoSaveTriggered = false;
         lastMeetingId = null;
+        transcriptionState = 'unchecked';
+        transcriptionDetail = 'Teams transcription has not been checked.';
+        transcriptionLastAttempt = 0;
+        // Never carry a cached join link into a later meeting in the same Teams SPA tab.
+        lastKnownTeamsJoinUrl = '';
+        findCurrentTeamsJoinUrl();
         aiSummaryFeature.reset();
         // Start attendee tracking when entering meeting
         startAttendeeTracking();
     }
 
     wasInMeeting = true;
-    
+    await ensureTeamsTranscription(!previouslyInMeeting);
     handleCaptionsStateChange();
 }, 'Meeting state change handler');
 
@@ -792,7 +823,7 @@ async function startCaptureSession() {
     capturing = true;
     captureState = 'capturing';
 
-    console.log(`Capture started. Title: "${meetingTitleOnStart}", Time: ${recordingStartTime.toLocaleString()}`);
+    console.log('[Teams Caption Saver] Capture started.');
     
     // Start periodic backup
     startPeriodicBackup();
@@ -918,6 +949,101 @@ async function saveToSessionHistory() {
 }
 
 // --- Automated Features ---
+function teamsControlLabel(element) {
+    return [element?.getAttribute?.('aria-label'), element?.getAttribute?.('title'), element?.textContent]
+        .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function findTeamsControl(patterns) {
+    return Array.from(document.querySelectorAll(SELECTORS.TRANSCRIPTION_CONTROLS)).find(element => {
+        if (element.disabled || element.getAttribute?.('aria-disabled') === 'true') return false;
+        if (element.hidden || element.getAttribute?.('aria-hidden') === 'true') return false;
+        if (typeof element.getClientRects === 'function' && element.getClientRects().length === 0) return false;
+        const label = teamsControlLabel(element);
+        return patterns.some(pattern => pattern.test(label));
+    }) || null;
+}
+
+function setTranscriptionState(state, detail) {
+    transcriptionState = state;
+    transcriptionDetail = detail;
+    console.log(`[Teams Caption Saver] ${detail}`);
+}
+
+async function openMoreMenu() {
+    if (document.querySelector(SELECTORS.MORE_BUTTON_EXPANDED)) return true;
+    const moreButton = document.querySelector(SELECTORS.MORE_BUTTON);
+    if (!moreButton) return false;
+    moreButton.click();
+    await delay(TIMING.BUTTON_CLICK_DELAY);
+    return true;
+}
+
+function closeMoreMenu() {
+    document.querySelector(SELECTORS.MORE_BUTTON_EXPANDED)?.click();
+}
+
+async function inspectTranscriptionMenu() {
+    if (!await openMoreMenu()) {
+        return {state:'unavailable', detail:'Teams transcription could not be checked because the More menu was unavailable.'};
+    }
+    let stopControl = findTeamsControl([/^stop transcription$/i, /stop transcription/i]);
+    if (stopControl) {
+        closeMoreMenu();
+        return {state:'running', detail:'Teams transcription is running and Microsoft 365 will retain the official tenant transcript.'};
+    }
+
+    let startControl = findTeamsControl([/^start transcription$/i, /start transcription/i]);
+    if (!startControl) {
+        const submenu = findTeamsControl([/^record and transcribe$/i, /record and transcribe/i, /^transcription$/i]);
+        if (submenu) {
+            submenu.click();
+            await delay(TIMING.BUTTON_CLICK_DELAY);
+            stopControl = findTeamsControl([/^stop transcription$/i, /stop transcription/i]);
+            if (stopControl) {
+                closeMoreMenu();
+                return {state:'running', detail:'Teams transcription is running and Microsoft 365 will retain the official tenant transcript.'};
+            }
+            startControl = findTeamsControl([/^start transcription$/i, /start transcription/i]);
+        }
+    }
+    if (!startControl) {
+        closeMoreMenu();
+        return {state:'unavailable', detail:'Local captions are available, but Teams transcription could not be started. Your role or tenant policy may not permit an official tenant transcript.'};
+    }
+
+    startControl.click();
+    await delay(TIMING.BUTTON_CLICK_DELAY);
+    const confirmControl = findTeamsControl([/^confirm$/i, /^start transcription$/i]);
+    if (confirmControl && confirmControl !== startControl) {
+        confirmControl.click();
+        await delay(TIMING.BUTTON_CLICK_DELAY);
+    }
+    return {state:'requested', detail:'Teams transcription was requested. Microsoft should notify participants and retain the official transcript in the tenant.'};
+}
+
+async function ensureTeamsTranscription(force = false) {
+    if (!isUserInMeeting() || transcriptionCheckInProgress) return;
+    const { autoEnableCaptions } = await chrome.storage.sync.get('autoEnableCaptions');
+    if (autoEnableCaptions === false) {
+        setTranscriptionState('disabled', 'Automatic Teams transcription is disabled with caption automation. Only the local CaptionKeep copy is expected.');
+        return;
+    }
+    const now = Date.now();
+    if (!force && now - transcriptionLastAttempt < 60000) return;
+    transcriptionCheckInProgress = true;
+    transcriptionLastAttempt = now;
+    setTranscriptionState('checking', 'Checking whether Teams transcription is running…');
+    try {
+        const result = await inspectTranscriptionMenu();
+        setTranscriptionState(result.state, result.detail);
+    } catch (error) {
+        setTranscriptionState('unavailable', `Teams transcription could not be verified: ${error.message}`);
+    } finally {
+        transcriptionCheckInProgress = false;
+    }
+}
+
 async function attemptAutoEnableCaptions() {
     // Prevent multiple simultaneous auto-enable attempts
     if (autoEnableInProgress) {
@@ -1080,7 +1206,7 @@ function cleanupObservers() {
 window.addEventListener('beforeunload', cleanupObservers);
 
 // Initialize the system
-chrome.storage.sync.get(['trackCaptions', 'trackAttendees']).then(async settings => {
+readEffectiveCaptureSettings().then(async settings => {
     const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'teams'}).catch(() => null);
     captureSurfaceId = String(surface?.surfaceId || '');
     ACTIVE_CAPTURE_KEY = captureSurfaceId ? `active_capture_v2_${captureSurfaceId.replace(/[^a-z0-9_-]/gi, '_')}` : '';
@@ -1091,6 +1217,37 @@ chrome.storage.sync.get(['trackCaptions', 'trackAttendees']).then(async settings
 });
 
 // --- Message Handling ---
+function supportedTeamsJoinUrl(value) {
+    try {
+        const url = new URL(String(value || ''));
+        const host = url.hostname.toLowerCase();
+        const path = url.pathname;
+        const supportedHost = host === 'teams.microsoft.com' || host === 'teams.cloud.microsoft';
+        const supportedPath = path.startsWith('/l/meetup-join/') || /^\/meet\/\d+\/?$/.test(path);
+        if (!supportedHost || url.protocol !== 'https:' || !supportedPath) return '';
+        url.hash = '';
+        return url.toString();
+    } catch {
+        return '';
+    }
+}
+
+function findCurrentTeamsJoinUrl() {
+    const pageUrl = supportedTeamsJoinUrl(window.location.href);
+    if (pageUrl) {
+        lastKnownTeamsJoinUrl = pageUrl;
+        return pageUrl;
+    }
+    for (const link of document.querySelectorAll('a[href]')) {
+        const joinUrl = supportedTeamsJoinUrl(link.href || link.getAttribute('href'));
+        if (joinUrl) {
+            lastKnownTeamsJoinUrl = joinUrl;
+            return joinUrl;
+        }
+    }
+    return lastKnownTeamsJoinUrl;
+}
+
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     switch (request.message) {
         case 'viewer_ready':
@@ -1111,10 +1268,16 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                     captionCount: transcriptArray.length,
                     lastCaptionAt: transcriptArray.at(-1)?.capturedAt || '',
                     isInMeeting: isUserInMeeting(),
-                    attendeeCount: attendeeReport ? attendeeReport.totalUniqueAttendees : 0
+                    attendeeCount: attendeeReport ? attendeeReport.totalUniqueAttendees : 0,
+                    transcriptionState,
+                    transcriptionDetail
                 });
             })();
             return true; // Will respond asynchronously
+
+        case 'get_teams_meeting_join_url':
+            sendResponse({ joinUrl: findCurrentTeamsJoinUrl() });
+            break;
 
         case 'return_transcript':
             flushPendingCaptions();
@@ -1123,8 +1286,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                     const attendeeReport = await getAttendeeReport();
                     console.log("[Teams Caption Saver] Sending transcript with attendee report:", {
                         transcriptCount: transcriptArray.length,
-                        attendeeCount: attendeeReport ? attendeeReport.totalUniqueAttendees : 0,
-                        attendees: attendeeReport ? attendeeReport.attendeeList : []
+                        attendeeCount: attendeeReport ? attendeeReport.totalUniqueAttendees : 0
                     });
                     chrome.runtime.sendMessage({
                         message: "download_captions",

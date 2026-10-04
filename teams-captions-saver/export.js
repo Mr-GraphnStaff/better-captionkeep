@@ -4,7 +4,35 @@ const jobId = new URL(location.href).searchParams.get('job');
 let currentJob;
 let directory;
 let busy = false;
+let fileExportDisabled = true;
 const supportsDirectoryPicker = typeof window.showDirectoryPicker === 'function';
+
+function hasJobContent(job = currentJob) {
+    return typeof job?.content === 'string' && job.content.length > 0;
+}
+
+function decodeJobContent(job = currentJob) {
+    if (!hasJobContent(job)) return null;
+    if (job.contentEncoding !== 'base64') return job.content;
+    const binary = atob(job.content);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+}
+
+async function refreshFileExportPolicy({discardPending = false} = {}) {
+    const policy = CaptionKeepConfiguration.applyPolicy({}, await CaptionKeepConfiguration.readManaged());
+    fileExportDisabled = !!policy.settings.disableFileExport;
+    if (fileExportDisabled && discardPending) {
+        const stored = await chrome.storage.local.get(null);
+        const pending = Object.keys(stored).filter(key => key.startsWith('export_'));
+        if (pending.length) await chrome.storage.local.remove(pending);
+        currentJob = null;
+        statusElement.textContent = 'File export is disabled by your organization. Pending exports were discarded.';
+    }
+    refreshButtons();
+    return !fileExportDisabled;
+}
 
 function folderStore(mode, operation) {
     return new Promise((resolve, reject) => {
@@ -23,17 +51,18 @@ function folderStore(mode, operation) {
 }
 
 function refreshButtons() {
-    document.getElementById('save-as').disabled = busy || !currentJob?.content;
-    document.getElementById('save-folder').disabled = busy || !directory || !currentJob?.content;
-    document.getElementById('choose-folder').disabled = busy;
-    document.getElementById('forget-folder').disabled = busy || !directory;
+    document.getElementById('save-as').disabled = fileExportDisabled || busy || !hasJobContent();
+    document.getElementById('save-folder').disabled = fileExportDisabled || busy || !directory || !hasJobContent();
+    document.getElementById('choose-folder').disabled = fileExportDisabled || busy;
+    document.getElementById('forget-folder').disabled = fileExportDisabled || busy || !directory;
     document.getElementById('folder').textContent = directory
         ? `Automatic-save folder: ${directory.name}`
         : 'Automatic saves use browser Downloads.';
 }
 
 async function saveToFolder(interactive = true) {
-    if (busy || !currentJob?.content || !directory) return false;
+    if (!await refreshFileExportPolicy({discardPending:true})) return false;
+    if (busy || !hasJobContent() || !directory) return false;
     busy = true; refreshButtons();
     try {
         let permission = await directory.queryPermission({mode:'readwrite'});
@@ -43,7 +72,7 @@ async function saveToFolder(interactive = true) {
         const name = currentJob.filename.replace(/(\.[^.]+)$/, `-${crypto.randomUUID()}$1`);
         const handle = await directory.getFileHandle(name, {create:true});
         const writable = await handle.createWritable();
-        try { await writable.write(currentJob.content); await writable.close(); }
+        try { await writable.write(decodeJobContent()); await writable.close(); }
         catch (error) { await writable.abort().catch(() => {}); throw error; }
         await chrome.storage.local.remove(jobId);
         currentJob = null;
@@ -72,9 +101,12 @@ function closeCurrentTabSoon() {
 }
 
 async function downloadWithBrowser(promptForLocation = true, closeWhenDone = false) {
-    if (busy || !currentJob?.content) return false;
+    if (!await refreshFileExportPolicy({discardPending:true})) return false;
+    if (busy || !hasJobContent()) return false;
     busy = true; refreshButtons();
-    const url = URL.createObjectURL(new Blob([currentJob.content], {type:currentJob.mimeType + ';charset=utf-8'}));
+    const content = decodeJobContent();
+    const mimeType = currentJob.contentEncoding === 'base64' ? currentJob.mimeType : currentJob.mimeType + ';charset=utf-8';
+    const url = URL.createObjectURL(new Blob([content], {type:mimeType}));
     try {
         const downloadId = await chrome.downloads.download({
             url,
@@ -136,6 +168,7 @@ async function loadPending() {
 document.getElementById('save-as').onclick = () => downloadWithBrowser(true);
 document.getElementById('save-folder').onclick = () => saveToFolder();
 document.getElementById('choose-folder').onclick = async () => {
+    if (!await refreshFileExportPolicy({discardPending:true})) return;
     if (!supportsDirectoryPicker) {
         document.getElementById('manual-folder').focus();
         statusElement.textContent = 'Direct folder selection is unavailable in this browser profile. Choose a Downloads subfolder below or use Save As for each export.';
@@ -156,6 +189,7 @@ document.getElementById('forget-folder').onclick = async () => {
 
 (async () => {
     try {
+        if (!await refreshFileExportPolicy({discardPending:true})) return;
         directory = await folderStore('readonly',store => store.get('exportFolder'));
         const settings = await chrome.storage.sync.get(['saveAsType']);
         currentJob = jobId ? (await chrome.storage.local.get(jobId))[jobId] : null;
@@ -164,7 +198,12 @@ document.getElementById('forget-folder').onclick = async () => {
             document.getElementById('actions').hidden = false;
             document.getElementById('preview-section').hidden = false;
             document.getElementById('filename').textContent = currentJob.filename;
-            document.getElementById('preview').value = currentJob.content;
+            document.getElementById('preview').value = currentJob.previewText || currentJob.content;
+            const profile = currentJob.profile;
+            if (profile) {
+                document.getElementById('profile').hidden = false;
+                document.getElementById('profile').textContent = `${profile.format.toUpperCase()} · ${profile.subsetCount} caption${profile.subsetCount === 1 ? '' : 's'} · ${profile.warnings.join(' ')}`;
+            }
         }
         await loadPending(); refreshButtons();
         if (!supportsDirectoryPicker) {

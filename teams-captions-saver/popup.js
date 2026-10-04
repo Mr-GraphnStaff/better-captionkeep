@@ -44,11 +44,31 @@ const UI_ELEMENTS = {
     // Session History Elements
     sessionHistory: document.getElementById('sessionHistory'),
     historyButton: document.getElementById('historyButton'),
-    sessionList: document.getElementById('sessionList')
+    sessionList: document.getElementById('sessionList'),
+    graphTranscriptSection: document.getElementById('graphTranscriptSection'),
+    graphConnectionStatus: document.getElementById('graphConnectionStatus'),
+    graphRedirectUri: document.getElementById('graphRedirectUri'),
+    graphConnectButton: document.getElementById('graphConnectButton'),
+    graphDisconnectButton: document.getElementById('graphDisconnectButton'),
+    graphJoinUrl: document.getElementById('graphJoinUrl'),
+    graphUseCurrentMeeting: document.getElementById('graphUseCurrentMeeting'),
+    graphRefreshMeetings: document.getElementById('graphRefreshMeetings'),
+    graphRecentMeetings: document.getElementById('graphRecentMeetings'),
+    graphImportButton: document.getElementById('graphImportButton'),
+    graphImportStatus: document.getElementById('graphImportStatus')
 };
 
 
 let currentDefaultFormat = 'txt';
+let currentEnterprisePolicy = {};
+let graphConnected = false;
+const runtimeManifest = chrome.runtime.getManifest();
+const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
+const runtimeVersionName = String(runtimeManifest.version_name || '');
+const isDevUatBuild = (runtimeManifest.name === 'Better CaptionKeep - Development'
+        && /\bdevelopment\b/i.test(runtimeVersionName))
+    || (runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'
+        && /\buat release candidate\b/i.test(runtimeVersionName));
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -68,7 +88,9 @@ function escapeHtml(str) {
 }
 
 async function getActiveMeetingTab() {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabs = await chrome.tabs.query(isFullSettingsPage
+        ? {currentWindow:true, url:['https://teams.microsoft.com/*', 'https://teams.cloud.microsoft/*', 'https://meet.google.com/*', 'https://app.zoom.us/wc/*']}
+        : { active: true, currentWindow: true });
     const meetingTab = tabs.find(tab => /^(?:https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)|https:\/\/meet\.google\.com|https:\/\/app\.zoom\.us\/wc)(?:\/|$)/.test(tab.url || ''));
     return meetingTab || null;
 }
@@ -93,7 +115,7 @@ async function getScrubOptions() {
 }
 
 // --- UI Update Functions ---
-async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError }) {
+async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError, transcriptionState, transcriptionDetail }) {
     const { statusMessage } = UI_ELEMENTS;
     const { trackCaptions, trackAttendees } = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees']);
     
@@ -111,6 +133,11 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
                 status += `, ${attendeeCount} attendees`;
             }
             status += ')';
+            if (transcriptionState === 'running') {
+                status += ' Official Microsoft 365 transcription is running.';
+            } else {
+                status += ` CAUTION: ${transcriptionDetail || 'Teams transcription is not verified; an official tenant transcript is not guaranteed.'}`;
+            }
             statusMessage.textContent = status;
             statusMessage.style.color = captionCount > 0 ? 'var(--ck-success)' : 'var(--ck-warning)';
         } else if (trackCaptions === false && trackAttendees !== false && attendeeCount > 0) {
@@ -143,16 +170,212 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
 }
 
 function updateButtonStates(hasData) {
-    const buttons = [
-        UI_ELEMENTS.copyButton, UI_ELEMENTS.copyDropdownButton,
-        UI_ELEMENTS.saveButton, UI_ELEMENTS.saveDropdownButton,
-        UI_ELEMENTS.viewButton
-    ];
-    buttons.forEach(btn => btn.disabled = !hasData);
+    UI_ELEMENTS.copyButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
+    UI_ELEMENTS.copyDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
+    UI_ELEMENTS.saveButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
+    UI_ELEMENTS.saveDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
+    UI_ELEMENTS.viewButton.disabled = !hasData;
+}
+
+async function refreshEnterprisePolicy() {
+    const user = await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS);
+    const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+    currentEnterprisePolicy = policy.settings;
+    return currentEnterprisePolicy;
+}
+
+function setGraphBusy(busy) {
+    if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected;
+    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
+        button.disabled = busy || !graphConnected;
+    });
+    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+}
+
+function graphErrorMessage(error) {
+    const messages = {
+        SIGN_IN_REQUIRED: 'Your Microsoft 365 session ended. Connect again to continue.',
+        invalid_grant: 'Microsoft 365 access expired or was revoked. Connect again to continue.',
+        Authorization_RequestDenied: 'Your organization denied access to this meeting.',
+        ErrorAccessDenied: 'Your organization did not grant access to the required calendar or transcript data.',
+        GraphAccessToTranscriptsDisabled: 'Your Teams administrator has disabled transcript access through Microsoft Graph.',
+        MEETING_NOT_FOUND: 'Microsoft 365 could not find that meeting for this account.',
+        TRANSCRIPT_NOT_FOUND: 'Teams has not finished producing an official transcript for this meeting.',
+        JOIN_URL_INVALID: 'Choose a recent Teams meeting or paste its complete Teams join link.',
+        AUTH_CANCELLED: 'Microsoft 365 sign-in was cancelled.',
+        GRAPH_NOT_ENABLED: 'The local dev/UAT Graph configuration is unavailable. Rebuild the authorized unpacked test overlay.',
+        GRAPH_CONFIG_INVALID: 'The local dev/UAT Graph configuration is incomplete.'
+    };
+    return messages[error?.code] || error?.message || 'Microsoft 365 could not complete the request.';
+}
+
+function formatGraphMeetingTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Time unavailable';
+    return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    }).format(date);
+}
+
+function markSelectedGraphMeeting() {
+    const selected = UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('.graph-meeting-card').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.joinUrl === selected));
+    });
+}
+
+function selectGraphMeeting(meeting, message) {
+    UI_ELEMENTS.graphJoinUrl.value = String(meeting?.joinUrl || '');
+    markSelectedGraphMeeting();
+    UI_ELEMENTS.graphImportStatus.textContent = message;
+    setGraphBusy(false);
+}
+
+async function importGraphTranscript(joinUrl) {
+    const normalizedJoinUrl = String(joinUrl || '').trim();
+    if (!normalizedJoinUrl) return null;
+    setGraphBusy(true);
+    UI_ELEMENTS.graphImportStatus.textContent = 'Requesting the official transcript from Microsoft Graph…';
+    try {
+        const result = await sendGraphMessage({message:'graph_import_transcript', joinUrl:normalizedJoinUrl});
+        UI_ELEMENTS.graphImportStatus.textContent = `Imported ${result.captionCount} transcript lines as a separate Microsoft Graph source.`;
+        return result;
+    } catch (error) {
+        UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
+        if (['SIGN_IN_REQUIRED', 'invalid_grant'].includes(error.code)) await refreshGraphStatus();
+        return null;
+    } finally {
+        setGraphBusy(false);
+    }
+}
+
+function renderRecentGraphMeetings(meetings) {
+    const container = UI_ELEMENTS.graphRecentMeetings;
+    if (!container) return;
+    container.replaceChildren();
+    if (!Array.isArray(meetings) || meetings.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'small-info-text';
+        empty.textContent = 'No recent Teams meetings were found in the last 30 days. You can still use the current meeting or paste a link.';
+        container.appendChild(empty);
+        return;
+    }
+    for (const meeting of meetings.slice(0, 5)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'graph-meeting-card';
+        button.dataset.joinUrl = meeting.joinUrl;
+        button.setAttribute('role', 'listitem');
+        button.setAttribute('aria-pressed', 'false');
+        const title = document.createElement('span');
+        title.className = 'graph-meeting-title';
+        title.textContent = meeting.subject || 'Teams meeting';
+        const meta = document.createElement('span');
+        meta.className = 'graph-meeting-meta';
+        meta.textContent = `${formatGraphMeetingTime(meeting.startDateTime)} · ${meeting.state === 'in-progress' ? 'In progress' : 'Ended'}`;
+        button.append(title, meta);
+        button.addEventListener('click', async () => {
+            selectGraphMeeting(meeting, `Retrieving ${meeting.subject || 'meeting'} from Microsoft 365…`);
+            await importGraphTranscript(meeting.joinUrl);
+        });
+        container.appendChild(button);
+    }
+    markSelectedGraphMeeting();
+}
+
+async function refreshRecentGraphMeetings(silent = false) {
+    if (!graphConnected || !UI_ELEMENTS.graphRecentMeetings) return;
+    setGraphBusy(true);
+    if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Finding your recent Teams meetings…';
+    try {
+        const result = await sendGraphMessage({message:'graph_list_recent_meetings'});
+        renderRecentGraphMeetings(result.meetings);
+        if (!silent) {
+            const count = Array.isArray(result.meetings) ? result.meetings.length : 0;
+            const discovery = result.discovery || {};
+            const limited = discovery.calendarEnumerationLimited
+                ? ' Microsoft 365 limited discovery to the default calendar.'
+                : '';
+            const unavailable = discovery.calendarErrorCount
+                ? ` ${discovery.calendarErrorCount} calendar${discovery.calendarErrorCount === 1 ? ' was' : 's were'} unavailable to the signed-in account.`
+                : '';
+            const diagnostic = Number.isFinite(discovery.eventCount)
+                ? ` Checked ${discovery.eventCount} events across ${discovery.calendarCount || 1} Microsoft 365 calendar${discovery.calendarCount === 1 ? '' : 's'}; ${discovery.teamsEventCount || 0} had a usable Teams join link.${limited}${unavailable} This is separate from local Previous Sessions.`
+                : '';
+            UI_ELEMENTS.graphImportStatus.textContent = count
+                ? `Found ${count} recent Teams meeting${count === 1 ? '' : 's'}.${diagnostic} Choose a meeting to retrieve and open its verified transcript.`
+                : `No recent Teams meeting was found.${diagnostic} Use the current meeting or paste its link.`;
+        }
+    } catch (error) {
+        renderRecentGraphMeetings([]);
+        UI_ELEMENTS.graphImportStatus.textContent = graphErrorMessage(error);
+        if (['SIGN_IN_REQUIRED', 'invalid_grant'].includes(error.code)) graphConnected = false;
+    }
+    setGraphBusy(false);
+}
+
+async function sendGraphMessage(message) {
+    const response = await chrome.runtime.sendMessage(message);
+    if (!response?.ok) {
+        const error = new Error(response?.error || 'The Microsoft Graph operation failed.');
+        error.code = response?.code;
+        throw error;
+    }
+    return response;
+}
+
+function applyGraphVisibility() {
+    if (!UI_ELEMENTS.graphTranscriptSection) return;
+    UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild
+        && currentEnterprisePolicy.enableGraphTranscriptImport !== true;
+}
+
+async function refreshGraphStatus() {
+    if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    try {
+        const status = await sendGraphMessage({message:'graph_get_status'});
+        graphConnected = !!status.connected;
+        UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
+            ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
+            : (status.configured ? 'Administrator configuration detected. Connect Microsoft 365 to begin.' : 'The managed Graph configuration is incomplete.');
+        UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
+    } catch (error) {
+        graphConnected = false;
+        UI_ELEMENTS.graphConnectionStatus.textContent = `Connection status unavailable: ${error.message}`;
+    }
+    setGraphBusy(false);
+}
+
+async function populateCurrentTeamsMeeting(tab = null, silent = false) {
+    if (!UI_ELEMENTS.graphJoinUrl || UI_ELEMENTS.graphTranscriptSection?.hidden) return false;
+    const meetingTab = tab || await getActiveMeetingTab();
+    if (!meetingTab || !/^https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)(?:\/|$)/.test(meetingTab.url || '')) {
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Open the active Teams meeting, then try again.';
+        return false;
+    }
+    try {
+        const response = await chrome.tabs.sendMessage(meetingTab.id, {message:'get_teams_meeting_join_url'});
+        if (!response?.joinUrl) {
+            if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Open Meeting info in Teams, then choose Use current Teams meeting again.';
+            return false;
+        }
+        selectGraphMeeting(
+            {joinUrl:response.joinUrl},
+            'Current Teams meeting selected. Import after Teams publishes its official transcript.'
+        );
+        return true;
+    } catch {
+        if (!silent) UI_ELEMENTS.graphImportStatus.textContent = 'Refresh the Teams meeting tab, then try again.';
+        return false;
+    }
 }
 
 function updateSaveButtonText(format) {
-    UI_ELEMENTS.saveButton.textContent = `Save ${format.toUpperCase()}`;
+    UI_ELEMENTS.saveButton.textContent = `${currentEnterprisePolicy.forceScrubbedExport ? 'Save Cleaned' : 'Save'} ${format.toUpperCase()}`;
 }
 
 function updateSaveBehaviorHint(type) {
@@ -315,14 +538,17 @@ async function loadSettings() {
     const policy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
     const settings = policy.settings;
     const locked = new Set(policy.locked);
+    currentEnterprisePolicy = settings;
+    applyGraphVisibility();
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
     UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
+    UI_ELEMENTS.trackAttendeesToggle.disabled = locked.has('trackAttendees');
     if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-        UI_ELEMENTS.autoOpenAttendeesToggle.checked = !!settings.autoOpenAttendees;
-        UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked;
+        UI_ELEMENTS.autoOpenAttendeesToggle.checked = settings.autoOpenAttendees !== false;
+        UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked || locked.has('autoOpenAttendees');
     }
     if (UI_ELEMENTS.autoAISummaryToggle) {
         UI_ELEMENTS.autoAISummaryToggle.checked = !!settings.autoAISummary;
@@ -332,6 +558,22 @@ async function loadSettings() {
         UI_ELEMENTS.privacyScrubberToggle.checked = settings.privacyScrubberEnabled !== false;
         UI_ELEMENTS.privacyScrubberToggle.disabled = locked.has('privacyScrubberEnabled');
     }
+    if (settings.forceScrubbedExport) {
+        UI_ELEMENTS.copyButton.textContent = 'Copy Cleaned Transcript';
+    } else {
+        UI_ELEMENTS.copyButton.textContent = 'Copy Transcript';
+    }
+    UI_ELEMENTS.copyOptions.querySelectorAll('[data-copy-type="standard"]').forEach(option => { option.hidden = !!settings.forceScrubbedExport; });
+    UI_ELEMENTS.saveOptions.querySelectorAll('[data-format]:not([data-cleaned="true"])').forEach(option => { option.hidden = !!settings.forceScrubbedExport; });
+    UI_ELEMENTS.copyButton.title = settings.disableClipboard ? 'Clipboard copy is disabled by your organization.' : '';
+    UI_ELEMENTS.copyDropdownButton.title = settings.disableClipboard ? 'Clipboard copy is disabled by your organization.' : '';
+    UI_ELEMENTS.saveButton.title = settings.disableFileExport ? 'File export is disabled by your organization.' : '';
+    UI_ELEMENTS.saveDropdownButton.title = settings.disableFileExport ? 'File export is disabled by your organization.' : '';
+    if (settings.disableFileExport) {
+        UI_ELEMENTS.autoSaveOnEndToggle.checked = false;
+    }
+    UI_ELEMENTS.autoSaveOnEndToggle.disabled = !!settings.disableFileExport;
+    if (UI_ELEMENTS.sessionHistory) UI_ELEMENTS.sessionHistory.hidden = !!settings.disableSessionHistory;
     if (UI_ELEMENTS.profanityFilterToggle) {
         UI_ELEMENTS.profanityFilterToggle.checked = !!settings.profanityFilterEnabled;
         UI_ELEMENTS.profanityFilterToggle.disabled = locked.has('profanityFilterEnabled');
@@ -360,7 +602,7 @@ async function loadSettings() {
     }
     UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions !== false ? 'none' : 'block';
 
-    const allowedFormats = ['txt', 'md'];
+    const allowedFormats = ['txt', 'md', 'docx'];
     currentDefaultFormat = settings.defaultSaveFormat || 'txt';
     if (!allowedFormats.includes(currentDefaultFormat)) {
         currentDefaultFormat = 'txt';
@@ -385,6 +627,44 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
+    document.getElementById('meetingExtrasButton').addEventListener('click', () => openMeetingExtras(false));
+    document.getElementById('meetingScreenshotButton').addEventListener('click', () => openMeetingExtras(true));
+    UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
+        markSelectedGraphMeeting();
+        setGraphBusy(false);
+    });
+    UI_ELEMENTS.graphUseCurrentMeeting?.addEventListener('click', () => populateCurrentTeamsMeeting());
+    UI_ELEMENTS.graphRefreshMeetings?.addEventListener('click', () => refreshRecentGraphMeetings());
+    UI_ELEMENTS.graphConnectButton?.addEventListener('click', async () => {
+        setGraphBusy(true);
+        UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
+        try {
+            await sendGraphMessage({message:'graph_connect'});
+            await refreshGraphStatus();
+            await refreshRecentGraphMeetings();
+        } catch (error) {
+            graphConnected = false;
+            UI_ELEMENTS.graphConnectionStatus.textContent = graphErrorMessage(error);
+            setGraphBusy(false);
+        }
+    });
+    UI_ELEMENTS.graphDisconnectButton?.addEventListener('click', async () => {
+        setGraphBusy(true);
+        try {
+            await sendGraphMessage({message:'graph_disconnect'});
+            graphConnected = false;
+            UI_ELEMENTS.graphConnectionStatus.textContent = 'Disconnected. Tenant consent was not changed.';
+            UI_ELEMENTS.graphJoinUrl.value = '';
+            renderRecentGraphMeetings([]);
+        } catch (error) {
+            UI_ELEMENTS.graphConnectionStatus.textContent = `Could not disconnect: ${graphErrorMessage(error)}`;
+        }
+        setGraphBusy(false);
+    });
+    UI_ELEMENTS.graphImportButton?.addEventListener('click', async () => {
+        const joinUrl = UI_ELEMENTS.graphJoinUrl.value.trim();
+        await importGraphTranscript(joinUrl);
+    });
     document.getElementById('exportSettings').addEventListener('click', () => chrome.tabs.create({url:chrome.runtime.getURL('export.html')}));
     UI_ELEMENTS.openLastTranscriptFolder?.addEventListener('click', async () => {
         try {
@@ -561,6 +841,8 @@ function setupEventListeners() {
     });
 
     UI_ELEMENTS.saveButton.addEventListener('click', async () => {
+        await refreshEnterprisePolicy();
+        if (currentEnterprisePolicy.disableFileExport) return;
         const tab = await getActiveMeetingTab();
         if (tab) {
             chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format: currentDefaultFormat });
@@ -583,6 +865,35 @@ function setupEventListeners() {
     });
 }
 
+async function openMeetingExtras(withScreenshot) {
+    try {
+        await refreshEnterprisePolicy();
+        if (currentEnterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        if (withScreenshot && (currentEnterprisePolicy.forceScrubbedExport || currentEnterprisePolicy.disableFileExport)) {
+            throw new Error('Screenshots are unavailable under your organization’s export/privacy policy.');
+        }
+        const tab = await getActiveMeetingTab();
+        if (!tab) throw new Error('Open a supported meeting first.');
+        const status = await chrome.tabs.sendMessage(tab.id, {message:'get_status'});
+        const context = await chrome.tabs.sendMessage(tab.id, {message:'get_evidence_context'});
+        if (!status?.isInMeeting || !context?.sessionId) throw new Error('Start capture in the meeting first.');
+        const query = new URLSearchParams({tab:String(tab.id)});
+        if (withScreenshot) {
+            const [active] = await chrome.tabs.query({active:true, currentWindow:true});
+            if (active?.id !== tab.id) throw new Error('Capture screenshots from the extension popup on the active meeting tab.');
+            const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {format:'png'});
+            const [after] = await chrome.tabs.query({active:true, currentWindow:true});
+            if (after?.id !== tab.id || after?.url !== tab.url || after?.pendingUrl) throw new Error('The active tab changed or navigated. Screenshot was discarded.');
+            if (screenshot.length > 6000000) throw new Error('Screenshot is too large. Reduce the browser window and try again.');
+            const key = `extras_preview_${crypto.randomUUID()}`;
+            await chrome.storage.session.set({[key]:{sessionId:context.sessionId, screenshot}});
+            query.set('pending', key);
+            try { await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)}); }
+            catch (error) { await chrome.storage.session.remove(key); throw error; }
+        } else await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)});
+    } catch (error) { UI_ELEMENTS.statusMessage.textContent = error.message; }
+}
+
 function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandler) {
     if (mainButton) {
         mainButton.addEventListener('click', () => optionsContainer.firstElementChild.click());
@@ -601,6 +912,11 @@ function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandl
 
 async function handleCopy(target) {
     if (!target.dataset.copyType) return;
+    await refreshEnterprisePolicy();
+    if (currentEnterprisePolicy.disableClipboard) {
+        UI_ELEMENTS.statusMessage.textContent = 'Clipboard copy is disabled by your organization.';
+        return;
+    }
 
     const tab = await getActiveMeetingTab();
     if (!tab) return;
@@ -611,7 +927,7 @@ async function handleCopy(target) {
         if (response?.transcriptArray) {
             const { speakerAliases = {} } = await chrome.storage.session.get('speakerAliases');
             const formattedText = await formatTranscript(response.transcriptArray, speakerAliases);
-            const output = target.dataset.copyType === 'cleaned'
+            const output = target.dataset.copyType === 'cleaned' || currentEnterprisePolicy.forceScrubbedExport
                 ? CaptionKeepPrivacyScrubber.scrub(formattedText, await getScrubOptions())
                 : { text: formattedText, replacements: [] };
             await navigator.clipboard.writeText(output.text);
@@ -629,11 +945,16 @@ async function handleCopy(target) {
 async function handleSave(target) {
     const format = target.dataset.format;
     if (!format) return;
+    await refreshEnterprisePolicy();
+    if (currentEnterprisePolicy.disableFileExport) {
+        UI_ELEMENTS.statusMessage.textContent = 'File export is disabled by your organization.';
+        return;
+    }
     
     const tab = await getActiveMeetingTab();
     if (tab) {
         UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
-        if (target.dataset.cleaned !== 'true') {
+        if (target.dataset.cleaned !== 'true' && !currentEnterprisePolicy.forceScrubbedExport) {
             chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format });
             return;
         }
@@ -693,13 +1014,16 @@ async function loadSessionList() {
         const sessionManager = new SessionManager();
         const sessions = await sessionManager.getSessionIndex();
         const stats = await sessionManager.getStorageStats();
+        const {archive_last_error: archiveError} = await chrome.storage.local.get('archive_last_error');
         
         if (!sessions || sessions.length === 0) {
             UI_ELEMENTS.sessionList.innerHTML = '<div style="text-align: center; color: var(--ck-text-muted);">No saved sessions</div>';
             return;
         }
         
-        let html = '';
+        let html = archiveError?.retryable
+            ? `<div class="error-message">A completed transcript could not be archived. Its recovery snapshot was retained; use Retry archive below.</div>`
+            : '';
         for (const session of sessions) {
             const timeAgo = getTimeAgo(new Date(session.timestamp));
             html += `
@@ -715,6 +1039,7 @@ async function loadSessionList() {
                     <div class="session-actions">
                         <button class="session-btn view-btn" data-id="${session.id}">View</button>
                         <button class="session-btn export-btn" data-id="${session.id}">Export</button>
+                        ${session.id.startsWith('backup_') ? `<button class="session-btn retry-btn" data-id="${session.id}">Retry archive</button>` : ''}
                         <button class="session-btn delete" data-id="${session.id}">Delete</button>
                     </div>
                 </div>
@@ -724,7 +1049,7 @@ async function loadSessionList() {
         // Add storage info
         html += `
             <div class="storage-info">
-                Storage: ${stats.usedMB}MB / ${stats.quotaMB}MB (${stats.percentUsed}%)
+                Local archive: ${stats.usedMB} MB used. Capacity is managed by this browser profile.
                 <button id="clearAllSessions" style="margin-left: 10px; font-size: 11px; color: var(--ck-danger); background: none; border: none; cursor: pointer; text-decoration: underline;">Clear All</button>
             </div>
         `;
@@ -738,6 +1063,19 @@ async function loadSessionList() {
         
         document.querySelectorAll('.export-btn').forEach(btn => {
             btn.addEventListener('click', (e) => exportSession(e.target.dataset.id));
+        });
+        document.querySelectorAll('.retry-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const button = e.currentTarget;
+                button.disabled = true;
+                try {
+                    await new SessionManager().retryRecovery(button.dataset.id);
+                    await loadSessionList();
+                } catch (error) {
+                    alert(error.message);
+                    button.disabled = false;
+                }
+            });
         });
         
         document.querySelectorAll('.session-btn.delete').forEach(btn => {
@@ -855,8 +1193,13 @@ function escapeHtml(text) {
 
 // --- Initialization ---
 async function initializePopup() {
+    if (isFullSettingsPage) {
+        document.querySelector('.settings-header').textContent = 'All settings';
+        document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
+    }
     await loadSettings();
     setupEventListeners();
+    await refreshGraphStatus();
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();
@@ -865,6 +1208,9 @@ async function initializePopup() {
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
         return;
     }
+
+    await populateCurrentTeamsMeeting(tab, true);
+    if (graphConnected) await refreshRecentGraphMeetings(true);
 
     try {
         const status = await chrome.tabs.sendMessage(tab.id, { message: "get_status" });
@@ -894,6 +1240,7 @@ async function initializePopup() {
 
 // --- Keyboard Shortcuts ---
 document.addEventListener('keydown', (e) => {
+    if (isFullSettingsPage) return;
     // Ctrl/Cmd + S for save
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
@@ -920,3 +1267,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', initializePopup);
+
+chrome.storage.onChanged.addListener((_changes, areaName) => {
+    if (areaName === 'managed') void loadSettings().catch(error => {
+        UI_ELEMENTS.statusMessage.textContent = `Could not refresh managed settings: ${error.message}`;
+    });
+});

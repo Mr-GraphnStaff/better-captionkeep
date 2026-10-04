@@ -58,6 +58,12 @@
         .viewer-brand img { width: 68px; height: 68px; flex: 0 0 auto; border-radius: 17px; box-shadow: var(--ck-shadow); }
         .viewer-eyebrow { margin: 0 0 5px; color: var(--ck-primary); font-size: 12px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
         .viewer-subtitle { margin: 0; color: var(--ck-text-muted); font-size: 14px; }
+        .viewer-source { margin: 7px 0 0; color: var(--ck-primary); font-size: 12px; font-weight: 700; }
+        .viewer-provenance { margin-top: 10px; max-width: 720px; padding: 9px 11px; border: 1px solid var(--ck-border); border-radius: 8px; background: var(--ck-surface-soft); }
+        .viewer-provenance summary { cursor: pointer; color: var(--ck-text); font-size: 12px; font-weight: 700; }
+        .viewer-provenance dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 9px 0 0; font-size: 11px; }
+        .viewer-provenance dt { color: var(--ck-text-muted); }
+        .viewer-provenance dd { margin: 0; overflow-wrap: anywhere; color: var(--ck-text); }
         .viewer-body { padding: 0 30px 30px; }
         
         /* Live Indicator Styles */
@@ -131,6 +137,19 @@
             box-shadow: 0 8px 16px color-mix(in srgb, var(--ck-bg) 80%, transparent);
         }
         
+        #print-output { display: none; }
+        @media print {
+            body > * { display: none !important; }
+            body > #print-output { display: block !important; }
+            body { background: white !important; color: black !important; padding: 0; }
+            #print-output { font: 11pt/1.5 system-ui, sans-serif; }
+            #print-output h1 { font-size: 20pt; }
+            .print-caption { break-inside: avoid; margin: 14pt 0; }
+            .print-caption p { margin: 3pt 0; }
+            .print-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+            .print-caption small { color: #555; overflow-wrap: anywhere; }
+        }
+
         .export-controls {
             display: flex;
             gap: 8px;
@@ -418,12 +437,32 @@
             font-size: 13px;
             color: #6c757d;
         }
+        .correction-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .correction-controls select, .dictionary-editor textarea { border: 1px solid var(--ck-border); border-radius: 6px; padding: 7px; background: var(--ck-surface); color: var(--ck-text); }
+        .caption-correction-actions { display: flex; gap: 6px; margin-top: 6px; }
+        .caption-correction-actions button { border: 1px solid var(--ck-border); background: var(--ck-surface-soft); color: var(--ck-text); border-radius: 5px; padding: 3px 7px; cursor: pointer; }
+        .caption.correction-applied { border-left: 3px solid var(--ck-success, #17803d); }
+        .caption.correction-conflict { border-left: 3px solid var(--ck-danger, #b42318); }
+        .correction-note { font-size: 12px; color: var(--ck-text-muted); }
+        .dictionary-editor { width: min(620px, calc(100vw - 48px)); color: var(--ck-text); }
+        .dictionary-editor textarea { display: block; width: 100%; min-height: 180px; box-sizing: border-box; margin: 12px 0; font-family: monospace; }
+        .dictionary-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .archive-search { display: grid; gap: 10px; margin-bottom: 18px; padding: 14px; border: 1px solid var(--ck-border); border-radius: 8px; }
+        .archive-search-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
+        .archive-search label { display: grid; gap: 4px; font-size: 12px; color: var(--ck-text-muted); }
+        .archive-search input, .archive-search select { box-sizing: border-box; width: 100%; min-height: 38px; padding: 7px; border: 1px solid var(--ck-border); border-radius: 6px; color: var(--ck-text); background: var(--ck-surface); }
+        .archive-result { display: block; padding: 12px; margin-bottom: 8px; border: 1px solid var(--ck-border); border-radius: 6px; color: var(--ck-text); background: var(--ck-surface); text-decoration: none; }
+        .archive-result:hover, .archive-result:focus-visible { border-color: var(--ck-primary); }
+        .archive-snippet { margin: 6px 0 0; color: var(--ck-text-muted); }
     </style>
     <link rel="stylesheet" href="theme.css">
     <script src="theme.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="sessionManager.js" defer></script>
+    <script src="correctionManager.js" defer></script>
+    <script src="exportProfiles.js" defer></script>
+    <script src="translation.js" defer></script>
     <script src="viewer.js" defer></script>
 </head>
 <body>
@@ -435,6 +474,17 @@
                     <p class="viewer-eyebrow">Better CaptionKeep · by Señor Farris</p>
                     <h1>Teams Transcript</h1>
                     <p class="viewer-subtitle">Keep the words. Stay in the conversation.</p>
+                    <p class="viewer-source" id="viewer-source" hidden></p>
+                    <details class="viewer-provenance" id="viewer-provenance" hidden>
+                        <summary>Verified source details</summary>
+                        <dl>
+                            <dt>Provider</dt><dd id="source-provider">Microsoft Teams</dd>
+                            <dt>Transcript created</dt><dd id="source-created">Not reported</dd>
+                            <dt>Imported</dt><dd id="source-imported">Not reported</dd>
+                            <dt>Attribution</dt><dd id="source-attribution">Not reported</dd>
+                            <dt>Source fingerprint</dt><dd id="source-fingerprint">Not reported</dd>
+                        </dl>
+                    </details>
                 </div>
             </div>
         </header>
@@ -442,6 +492,15 @@
                 <input type="search" id="search-box" placeholder="Search transcript..." aria-label="Search transcript">
                 <div id="speaker-filters" class="speaker-filters">
                     <button id="show-all-btn" class="active" aria-label="Show all speakers">Show All</button>
+                </div>
+                <div class="correction-controls" aria-label="Transcript correction tools">
+                    <label for="transcript-version">View</label>
+                    <select id="transcript-version">
+                        <option value="corrected">Corrected transcript</option>
+                        <option value="raw">Original transcript</option>
+                    </select>
+                    <button id="dictionary-btn" class="export-btn" type="button">Local dictionary</button>
+                    <span id="correction-status" class="correction-note" role="status"></span>
                 </div>
                 <div class="export-controls">
                     <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
@@ -453,6 +512,18 @@
                         </svg>
                         Copy All
                     </button>
+                    <label for="viewer-export-format">File type</label>
+                    <select id="viewer-export-format" aria-label="File type for this export">
+                        <option value="default">Use saved preference</option>
+                        <option value="txt">TXT</option>
+                        <option value="md">Markdown</option>
+                        <option value="docx">Word (DOCX)</option>
+                        <option value="srt">SRT (imported media cues only)</option>
+                        <option value="vtt">WebVTT (imported media cues only)</option>
+                    </select>
+                    <button id="print-pdf-btn" class="export-btn" type="button" title="Print visible captions or choose Save as PDF in the browser dialog">Print / PDF</button>
+                    <button id="meeting-extras-btn" class="export-btn" type="button">Chat &amp; screenshot</button>
+                    <button id="translate-btn" class="export-btn" type="button">Translate</button>
                     <button id="save-all-btn" class="export-btn" title="Save visible transcript as file">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
@@ -479,13 +550,63 @@
             </main>
         </div>
     </div>
+
+    <dialog id="translation-dialog" class="dictionary-editor">
+        <h2>Translate on this device</h2>
+        <p>Translation is a separate, potentially imperfect derivative. It never changes the original transcript. Initial language-pack downloads need network access; no automatic cloud fallback is used.</p>
+        <label>Source language code <input id="translation-source" value="en" maxlength="20" aria-label="Source language code"></label>
+        <label>Target language code <input id="translation-target" value="es" maxlength="20" aria-label="Target language code"></label>
+        <p>Examples: en English, es Spanish, fr French, de German, ja Japanese.</p>
+        <label><input id="translation-live" type="checkbox"> Keep translating new visible captions while this panel is open</label>
+        <div class="dictionary-actions"><button id="translation-start" type="button" disabled>Start translation</button><button id="translation-copy" type="button" disabled>Copy translation</button><button id="translation-save" type="button" disabled>Save translation TXT</button><button id="translation-close" type="button">Close</button></div>
+        <p id="translation-status" role="status" aria-live="polite"></p>
+        <textarea id="translation-output" readonly aria-label="Machine-translated derivative"></textarea>
+    </dialog>
+
+    <dialog id="dictionary-dialog" class="dictionary-editor">
+        <form method="dialog">
+            <h2>Local terminology dictionary</h2>
+            <p>One literal replacement per line: <code>heard phrase =&gt; preferred phrase</code>. Saving never rewrites prior transcripts.</p>
+            <textarea id="dictionary-text" maxlength="120000" aria-label="Terminology replacements"></textarea>
+            <label><input id="dictionary-case" type="checkbox"> Case sensitive</label>
+            <label><input id="dictionary-whole-word" type="checkbox" checked> Whole words only</label>
+            <p id="dictionary-status" class="correction-note" role="status"></p>
+            <div class="dictionary-actions">
+                <button id="dictionary-save" type="button">Save dictionary</button>
+                <button id="dictionary-preview" type="button">Preview current transcript</button>
+                <button id="dictionary-apply" type="button">Apply to current transcript</button>
+                <button value="cancel">Close</button>
+            </div>
+        </form>
+    </dialog>
     
     <!-- Session History Modal -->
     <div id="sessionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Previous Sessions</h2>
+                <h2>Local transcript archive</h2>
                 <span class="close-modal">&times;</span>
+            </div>
+            <form id="archiveSearchForm" class="archive-search">
+                <label>Keyword or phrase
+                    <input id="archiveSearchQuery" type="search" maxlength="200" autocomplete="off" placeholder="Search archived captions" required>
+                </label>
+                <div class="archive-search-grid">
+                    <label>Meeting title <input id="archiveSearchTitle" type="search" maxlength="200"></label>
+                    <label>Speaker <input id="archiveSearchSpeaker" type="search" maxlength="200"></label>
+                    <label>From <input id="archiveSearchFrom" type="date"></label>
+                    <label>Through <input id="archiveSearchTo" type="date"></label>
+                    <label>Order
+                        <select id="archiveSearchOrder"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
+                    </label>
+                </div>
+                <div><button type="submit">Search archive</button> <button type="button" id="clearArchiveSearch">Clear</button></div>
+                <p id="archiveSearchStatus" role="status" aria-live="polite"></p>
+            </form>
+            <div id="archiveSearchResults" hidden></div>
+            <div id="archiveSearchPagination" hidden>
+                <button type="button" id="archiveSearchPrevious">Previous results</button>
+                <button type="button" id="archiveSearchNext">Next results</button>
             </div>
             <div id="sessionListModal">
                 <div style="text-align: center; color: #999;">Loading sessions...</div>

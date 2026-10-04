@@ -6,6 +6,12 @@
   "managedPolicy": {
     "forcePrivacyScrubber": true,
     "forceProfanityFilter": false,
-    "disableAiHandoff": true
+    "forceScrubbedExport": true,
+    "disableAiHandoff": true,
+    "disableClipboard": true,
+    "disableEvidenceEmail": true,
+    "disableAttendeeCapture": true,
+    "maxStoredSessions": 5,
+    "sessionRetentionDays": 30
   }
 }

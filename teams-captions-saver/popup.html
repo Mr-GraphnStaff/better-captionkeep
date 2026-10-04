@@ -3,7 +3,36 @@
 <head>
     <title>Better CaptionKeep</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="settingsView.js"></script>
     <style>
+        .settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        /* A first-screen destination, not a link buried in the settings form. */
+        a.all-settings-link {
+            display: flex; align-items: center; gap: 12px; width: 100%;
+            box-sizing: border-box; padding: 14px 16px; min-height: 68px;
+            border: 2px solid #065e68; border-radius: 10px;
+            background: #065e68; color: #fff !important; text-decoration: none;
+        }
+        a.all-settings-link:hover { background: #044952; border-color: #044952; }
+        a.all-settings-link:focus-visible { outline-offset: 4px; }
+        .all-settings-icon { font-size: 1.65rem; }
+        .all-settings-copy { flex: 1; }
+        .all-settings-copy strong { display: block; font-size: 1.05rem; }
+        .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
+        .all-settings-arrow { font-size: 1.5rem; }
+        html[data-view="settings"] body { width: min(100%, 960px); margin: 0 auto; padding: 28px; }
+        html[data-view="settings"] body > :not(.settings-container):not(#graphTranscriptSection):not(.brand):not(.settings-page-intro) { display: none !important; }
+        html[data-view="settings"] .settings-container { margin-top: 0; }
+        html[data-view="settings"] .settings-header { font-size: 28px; }
+        html[data-view="settings"] .settings-intro,
+        html[data-view="settings"] .small-info-text { font-size: 14px; line-height: 1.6; }
+        html[data-view="settings"] .setting-label { font-size: 15px; }
+        html[data-view="settings"] .all-settings-link { display: none; }
+        html[data-view="settings"] details.settings-group > summary { font-size: 18px; }
+        html[data-view="settings"] input[type="text"], html[data-view="settings"] textarea,
+        html[data-view="settings"] select { font-size: 15px; }
+        @media (max-width: 600px) { html[data-view="settings"] body { padding: 16px; } }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f7f8f5;
@@ -57,6 +86,12 @@
             width: 100%;
         }
 
+        .platform-card {
+            min-width: 0;
+            display: grid;
+            gap: 5px;
+        }
+
         .platform-launcher {
             min-width: 0;
             min-height: 42px;
@@ -106,6 +141,27 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .platform-start {
+            display: block;
+            min-width: 0;
+            padding: 5px 3px;
+            border: 1px solid color-mix(in srgb, var(--ck-primary) 55%, var(--ck-border));
+            border-radius: 7px;
+            background: var(--ck-surface-soft);
+            color: var(--ck-primary);
+            font-size: 10px;
+            font-weight: 750;
+            line-height: 1.2;
+            text-align: center;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .platform-start:hover {
+            border-color: var(--ck-primary);
+            background: var(--ck-surface);
         }
 
         kbd {
@@ -247,6 +303,26 @@
         }
         details.settings-group[open] > summary { border-bottom: 1px solid var(--ck-border); margin-bottom: 8px; }
         .settings-intro { margin: 3px 0 8px; color: var(--ck-text-muted); font-size: 12px; }
+        .graph-actions { display: flex; gap: 8px; margin: 8px 0; }
+        .graph-actions button { flex: 1; border-radius: 6px; background: var(--ck-primary); }
+        #graphDisconnectButton { background: #5f6b73; }
+        #graphJoinUrl { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
+        #graphRedirectUri { overflow-wrap: anywhere; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+        .graph-hero { margin: 8px 0; padding: 10px; border: 1px solid var(--ck-border); border-radius: 8px; background: var(--ck-surface); }
+        .graph-hero strong { display: block; margin-bottom: 3px; color: var(--ck-text); }
+        .graph-recent-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+        .graph-recent-header .setting-label { margin: 0; }
+        #graphRefreshMeetings { padding: 5px 8px; font-size: 11px; color: var(--ck-text); background: var(--ck-surface); border: 1px solid var(--ck-border); }
+        .graph-meeting-list { display: grid; gap: 6px; margin: 7px 0 9px; }
+        .graph-meeting-card { width: 100%; padding: 8px; text-align: left; white-space: normal; color: var(--ck-text); background: var(--ck-surface); border: 1px solid var(--ck-border); border-radius: 7px; }
+        .graph-meeting-card:hover { border-color: var(--ck-primary); background: var(--ck-surface-soft); }
+        .graph-meeting-card[aria-pressed="true"] { border-color: var(--ck-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ck-primary) 22%, transparent); }
+        .graph-meeting-title { display: block; overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+        .graph-meeting-meta { display: block; margin-top: 2px; color: var(--ck-text-muted); font-size: 10px; font-weight: 500; }
+        .graph-manual { margin: 8px 0; }
+        .graph-manual summary { cursor: pointer; color: var(--ck-text-muted); font-size: 11px; font-weight: 650; }
+        .graph-manual .setting-label { display: block; margin-top: 8px; }
+        #graphImportButton { width: 100%; background: var(--ck-primary); }
         .setting-item {
             width: 100%;
             display: flex;
@@ -434,16 +510,31 @@
     <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature">by Señor Farris</p></div></header>
     <p class="subtitle">Keep the words. Stay in the conversation.</p>
 
-    <nav class="platform-launchers" aria-label="Open a meeting app">
-        <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
-            <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
-        </a>
-        <a class="platform-launcher" href="https://app.zoom.us/wc" target="_blank" rel="noopener" aria-label="Open Zoom Web">
-            <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
-        </a>
-        <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
-            <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
-        </a>
+    <a class="all-settings-link" href="settings.html" target="_blank" rel="noopener" aria-describedby="all-settings-description">
+        <span class="all-settings-icon" aria-hidden="true">⚙</span>
+        <span class="all-settings-copy"><strong>All Settings</strong><small id="all-settings-description">Open every setting in a full browser tab</small></span>
+        <span class="all-settings-arrow" aria-hidden="true">↗</span>
+    </a>
+
+    <nav class="platform-launchers" aria-label="Start a meeting">
+        <div class="platform-card">
+            <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
+                <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
+            </a>
+            <a class="platform-start" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams to Meet now">Meet now</a>
+        </div>
+        <div class="platform-card">
+            <a class="platform-launcher" href="https://app.zoom.us/wc" target="_blank" rel="noopener" aria-label="Open Zoom Web">
+                <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
+            </a>
+            <a class="platform-start" href="https://zoom.new" target="_blank" rel="noopener" aria-label="Start a new Zoom meeting">New meeting</a>
+        </div>
+        <div class="platform-card">
+            <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
+                <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
+            </a>
+            <a class="platform-start" href="https://meet.new" target="_blank" rel="noopener" aria-label="Start a new Google Meet meeting">Start meeting</a>
+        </div>
     </nav>
 
     <p id="manual-start-info" class="info-text">If captions do not start automatically, turn on CC in the meeting to begin capturing.</p>
@@ -465,14 +556,20 @@
             <div id="saveOptions" class="split-button-options">
                 <a href="#" data-format="txt">Save TXT (.txt)</a>
                 <a href="#" data-format="md">Save Markdown (.md)</a>
+                <a href="#" data-format="docx">Save Word document (.docx)</a>
                 <a href="#" data-format="txt" data-cleaned="true">Save Cleaned TXT (.txt)</a>
                 <a href="#" data-format="md" data-cleaned="true">Save Cleaned Markdown (.md)</a>
+                <a href="#" data-format="docx" data-cleaned="true">Save Cleaned Word document (.docx)</a>
             </div>
         </div>
     </div>
     <div class="button-container">
          <button id="viewButton" disabled>View Transcript</button>
          <button id="evidenceBoardButton">Open Evidence Board</button>
+    </div>
+    <div class="button-container">
+        <button id="meetingExtrasButton" type="button">Chat &amp; links</button>
+        <button id="meetingScreenshotButton" type="button">Screenshot</button>
     </div>
     
     <!-- Session History -->
@@ -485,8 +582,40 @@
         <div style="text-align: center; color: #999;">Loading sessions...</div>
     </div>
 
+    <details class="settings-group" id="graphTranscriptSection" hidden open>
+        <summary>Verified Teams transcripts</summary>
+        <div class="graph-hero">
+            <strong>Official words. Verifiable source.</strong>
+            <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
+        </div>
+        <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+        <div class="graph-actions">
+            <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
+            <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
+        </div>
+        <button id="graphUseCurrentMeeting" type="button">Use this Teams meeting</button>
+        <div class="graph-recent-header">
+            <span class="setting-label">Your five recent Teams meetings — choose one to open its transcript</span>
+            <button id="graphRefreshMeetings" type="button" disabled>Refresh</button>
+        </div>
+        <div id="graphRecentMeetings" class="graph-meeting-list" role="list" aria-label="Recent Teams meetings">
+            <p class="small-info-text">Connect Microsoft 365 to find recent meetings.</p>
+        </div>
+        <details class="graph-manual">
+            <summary>Can’t find the meeting? Paste its link</summary>
+            <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
+            <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
+        </details>
+        <details class="graph-manual">
+            <summary>Administrator connection details</summary>
+            <p class="small-info-text" id="graphRedirectUri"></p>
+        </details>
+        <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
+        <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting to retrieve and open its transcript. Teams must have finished producing it.</p>
+    </details>
+
     <div class="settings-container">
-        <h3 class="settings-header">Settings</h3>
+        <div class="settings-heading"><h3 class="settings-header">Settings</h3></div>
         <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
 
         <details class="settings-group">
@@ -533,6 +662,7 @@
                 <select id="defaultSaveFormat">
                     <option value="txt">TXT</option>
                     <option value="md">Markdown</option>
+                    <option value="docx">Word document (DOCX)</option>
                 </select>
             </div>
             <div class="setting-item">
@@ -550,7 +680,7 @@
                 <label for="trackCaptionsToggle" class="setting-label">Track Live Captions</label>
                 <label class="toggle-switch"><input type="checkbox" id="trackCaptionsToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Capture and save meeting captions when available.</p>
+            <p class="small-info-text"><strong>Local CaptionKeep copy:</strong> Teams produces the displayed captions; Better CaptionKeep reads them and stores its copy in this browser. Better CaptionKeep does not upload that local copy.</p>
             <div class="setting-item">
                 <label for="trackAttendeesToggle" class="setting-label">Track Meeting Attendees</label>
                 <label class="toggle-switch"><input type="checkbox" id="trackAttendeesToggle"><span class="slider"></span></label>
@@ -559,13 +689,13 @@
             
             <p class="settings-subheader">Automation Settings</p>
             <div class="setting-item">
-                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Live Captions</label>
+                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Captions and Teams Transcription</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle" checked><span class="slider"></span></label>
             </div>
-            <p class="small-info-text">Automatically enable captions when joining a supported Teams, Zoom Web, or Google Meet meeting. Browser controls may still ask you to confirm the caption language, and a later manual shutoff is respected.</p>
+            <p class="small-info-text"><strong>Official tenant copy:</strong> In Teams, Better CaptionKeep also requests transcription. Microsoft notifies participants and stores the official transcript under your organization’s Microsoft 365 controls. Your Teams role or policy can block it; check the capture status for a caution. Other platforms enable captions only.</p>
             <div class="setting-item">
                 <label for="autoOpenAttendeesToggle" class="setting-label">Auto-open Attendee Panel</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle"><span class="slider"></span></label>
+                <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle" checked><span class="slider"></span></label>
             </div>
             <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
         </details>

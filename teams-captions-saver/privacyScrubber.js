@@ -107,14 +107,55 @@
         return Object.freeze({text: context.apply(input), replacements: Object.freeze(context.replacements)});
     }
 
-    function scrubTranscript(transcript, options = {}) {
-        if (!Array.isArray(transcript)) return Object.freeze({ transcript: [], replacements: Object.freeze([]) });
+    function scrubObject(value, options = {}) {
         const context = createScrubContext(options);
-        function scrubAttendeeValue(value) {
+        function clean(item) {
+            if (typeof item === 'string') return context.apply(item);
+            if (Array.isArray(item)) return item.map(clean);
+            if (item && typeof item === 'object') {
+                return Object.fromEntries(Object.entries(item).map(([key, entry]) => [key, clean(entry)]));
+            }
+            return item;
+        }
+        return Object.freeze({value: clean(value), replacements: Object.freeze(context.replacements)});
+    }
+
+    function scrubEvidenceBundle(bundle, options = {}) {
+        if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
+            return Object.freeze({value: bundle, replacements: Object.freeze([])});
+        }
+        const context = createScrubContext(options);
+        const cleanFields = (value, fields) => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+            const cleaned = {...value};
+            for (const field of fields) {
+                if (typeof cleaned[field] === 'string') cleaned[field] = context.apply(cleaned[field]);
+            }
+            return cleaned;
+        };
+        return Object.freeze({
+            value: {
+                ...bundle,
+                source: cleanFields(bundle.source, ['meetingTitle', 'providerLabel']),
+                captions: Array.isArray(bundle.captions)
+                    ? bundle.captions.map(caption => cleanFields(caption, ['speaker', 'text']))
+                    : bundle.captions,
+                markers: Array.isArray(bundle.markers)
+                    ? bundle.markers.map(marker => cleanFields(marker, ['speaker', 'markedText', 'finalText', 'note']))
+                    : bundle.markers
+            },
+            replacements: Object.freeze(context.replacements)
+        });
+    }
+
+    function scrubReleaseBundle(meetingTitle, transcript, attendeeReport = null, options = {}) {
+        const context = createScrubContext(options);
+        if (!Array.isArray(transcript)) return Object.freeze({ meetingTitle: context.apply(meetingTitle), transcript: [], attendeeReport: null, replacements: Object.freeze(context.replacements) });
+        function scrubValue(value) {
             if (typeof value === 'string') return context.apply(value);
-            if (Array.isArray(value)) return value.map(scrubAttendeeValue);
+            if (Array.isArray(value)) return value.map(scrubValue);
             if (value && typeof value === 'object') {
-                return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scrubAttendeeValue(item)]));
+                return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scrubValue(item)]));
             }
             return value;
         }
@@ -125,12 +166,55 @@
                 if (typeof next[field] === 'string') next[field] = context.apply(next[field]);
             }
             for (const field of ['attendees', 'attendeeList', 'currentAttendees', 'attendeeHistory']) {
-                if (Object.hasOwn(next, field)) next[field] = scrubAttendeeValue(next[field]);
+                if (Object.hasOwn(next, field)) next[field] = scrubValue(next[field]);
             }
             return next;
         });
-        return Object.freeze({transcript: cleaned, replacements: Object.freeze(context.replacements)});
+        return Object.freeze({
+            meetingTitle: context.apply(meetingTitle),
+            transcript: cleaned,
+            attendeeReport: attendeeReport && typeof attendeeReport === 'object' ? scrubValue(attendeeReport) : null,
+            replacements: Object.freeze(context.replacements)
+        });
     }
 
-    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubTranscript });
+    function scrubBundle(transcript, attendeeReport = null, options = {}) {
+        const result = scrubReleaseBundle('', transcript, attendeeReport, options);
+        return Object.freeze({
+            transcript: result.transcript,
+            attendeeReport: result.attendeeReport,
+            replacements: result.replacements
+        });
+    }
+
+    function scrubTranscript(transcript, options = {}) {
+        const result = scrubBundle(transcript, null, options);
+        return Object.freeze({transcript: result.transcript, replacements: result.replacements});
+    }
+
+    function scrubHandoff(transcript, metadata = {}, options = {}) {
+        const context = createScrubContext(options);
+        const cleanedTranscript = (Array.isArray(transcript) ? transcript : []).map(record => {
+            if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+            const next = {...record};
+            for (const field of ['Name', 'Text']) {
+                if (typeof next[field] === 'string') next[field] = context.apply(next[field]);
+            }
+            return next;
+        });
+        const cleanedMetadata = {...metadata};
+        for (const field of ['meetingTitle', 'providerLabel']) {
+            if (typeof cleanedMetadata[field] === 'string') cleanedMetadata[field] = context.apply(cleanedMetadata[field]);
+        }
+        if (Array.isArray(cleanedMetadata.warnings)) {
+            cleanedMetadata.warnings = cleanedMetadata.warnings.map(warning => context.apply(String(warning || '')));
+        }
+        return Object.freeze({
+            transcript:cleanedTranscript,
+            metadata:Object.freeze(cleanedMetadata),
+            replacements:Object.freeze(context.replacements)
+        });
+    }
+
+    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubReleaseBundle, scrubEvidenceBundle, scrubHandoff, scrubObject, scrubTranscript });
 })();
