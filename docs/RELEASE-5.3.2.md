@@ -4,6 +4,8 @@ Status: **submitted to both Stores — not public until Store review and upgrade
 
 ## Incident
 
+The complete root-cause analysis and corrective action plan are recorded in the [Edge 5.3.1 after-action report](INCIDENT-2026-10-04-EDGE-5.3.1.md).
+
 Microsoft Edge Add-ons began serving 5.3.1 on October 4, 2026. The Store-installed extension identity and signed CRX were valid, but the packaged runtime Graph configuration was inert. Microsoft 365 controls were therefore hidden for ordinary Store users unless a managed browser policy supplied `enableGraphTranscriptImport`, `graphTenantId`, and `graphClientId`.
 
 The 5.3.1 update also changed Microsoft identity and Graph origins from absent in 5.1 to mandatory host permissions. Edge could therefore restrict or disable the updated extension pending approval of the expanded site access, presenting **allow only when clicked** and preventing the expected background meeting workflow. The recovery keeps supported meeting origins required and requests Microsoft identity and Graph access only from the user gesture on **Connect Microsoft 365**.
