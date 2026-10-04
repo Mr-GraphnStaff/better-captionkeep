@@ -13,10 +13,11 @@ const uatDir = path.join(canonicalDist, 'uat');
 const prodDir = path.join(canonicalDist, 'prod');
 const DEV_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAos0GuSScxwgzbTlJj4+zX7kkKq13nZpSIHP3FBm73Mjgjj1wYlmyAyb+bPi2sV9H3VPRGpja2Nn/4ACJ5YemK0rEvyqLEDbRl4cbIT4P+9B2LFnKMHMLTGba9pVI6t6nGG50CDhVLdHQj1Bn2hygi9EAmygFTK4BXap8qtPmd//vXlOUY2Emt1Qb1IusZY3q7WXxn5Zklx5S8gDcDPbi4XLmB9qmDuKA7lGsQYannLOQTKS/H6WpJvNMYR/abTmfxmhiEYD53ZwCTTaYJ7t747dm2M15T7hNTsvLLiEQV+3iY+6mKGFbBKHeUTqL/LjDIDpj3VAt+jQhTO8Fd24epQIDAQAB';
 const UAT_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmSxpyAJ/mAN0vL+TWksWy3QEdjWiO7F440uqHoPX7tYFX0kVNMMp9Xgl6juMKX47ANPBZjwWhSRc8uZlaneF/lYooxKV3vee/uH5YaBLzQ60ejLr1XZb4jOsOhM3Xz+aaKDPfSDx4epZHZKGZ92XgSNjEuafdkT/4TMCqyYjQm/eeqCjLBA4ktHTXG5R313nrEh+DzEqX+tXArlDYmXPnxDsycqVjZmqfXTfMBzsmaDFgmu7zbp04wZToHIGKg4u/KPYrhe3cmn5Na29V/rbl1LoRl0r/fskAa6aP6srVQeSUd8K9c6OoSNyElhWv0HsWAut9QCVaEa5PjiqQUy0ZwIDAQAB';
-const defaultTargets = ['dev', 'uat'];
+const defaultTargets = ['dev', 'uat', 'prod'];
 const targetManifests = new Map([
   ['dev', path.join(sourceDir, 'manifest.json')],
   ['uat', path.join(sourceDir, 'manifest.json')],
+  ['prod', path.join(manifestsDir, 'manifest.chrome-store.json')],
   ['chrome-store', path.join(manifestsDir, 'manifest.chrome-store.json')]
 ]);
 
@@ -33,7 +34,9 @@ async function stageTarget(target) {
     ? devDir
     : target === 'uat'
       ? uatDir
-      : path.join(prodDir, 'chrome-store-unpacked');
+      : target === 'prod'
+        ? prodDir
+        : path.join(prodDir, 'chrome-store-unpacked');
   const manifestPath = targetManifests.get(target);
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 

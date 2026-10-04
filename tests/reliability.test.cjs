@@ -1406,12 +1406,15 @@ test('manifest supports both official Teams web hosts',()=>{
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
     assert.deepEqual(manifest.content_scripts[0].js.slice(0,3),['providerRegistry.js','configuration.js','transcriptInsights.js']);
 });
-test('Dev and UAT builds derive from one manifest and have stable lifecycle identities',()=>{
+test('Dev, UAT, and production roots are directly loadable lifecycle builds',()=>{
     const source=JSON.parse(read('manifest.json'));
     const builder=readProject('scripts/build-browser-targets.mjs');
     assert.equal(source.manifest_version,3);
     assert(builder.includes("['dev', path.join(sourceDir, 'manifest.json')]"));
     assert(builder.includes("['uat', path.join(sourceDir, 'manifest.json')]"));
+    assert(builder.includes("['prod', path.join(manifestsDir, 'manifest.chrome-store.json')]"));
+    assert(builder.includes("const defaultTargets = ['dev', 'uat', 'prod']"));
+    assert(builder.includes("target === 'prod'"));
     assert(builder.includes("manifest.name = isUat ? 'Better CaptionKeep - UAT Release Candidate' : 'Better CaptionKeep - Development'"));
     assert(builder.includes('manifest.key = isUat ? UAT_KEY : DEV_KEY'));
     assert(!builder.includes('--output-root'));
