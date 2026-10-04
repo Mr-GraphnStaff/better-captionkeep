@@ -12,6 +12,7 @@
     "build:targets": "node scripts/build-browser-targets.mjs",
     "build:dev": "node scripts/build-browser-targets.mjs dev",
     "build:uat": "node scripts/build-browser-targets.mjs uat",
+    "build:prod": "node scripts/build-browser-targets.mjs prod",
     "build:chrome-test": "npm run build:uat",
     "build:edge-test": "npm run build:uat",
     "build:chrome-store": "node scripts/build-browser-targets.mjs chrome-store && node scripts/package-extension.mjs dist/prod/chrome-store-unpacked dist/prod/chrome-store && node scripts/verify-chrome-store.mjs",

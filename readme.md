@@ -86,13 +86,15 @@ Generated output has exactly three stable locations:
 
 - `dist/dev` — current development build.
 - `dist/uat` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
-- `dist/prod` — production Store packages, deployment bundles, hashes, and provenance only.
+- `dist/prod` — directly loadable production build plus Store packages, deployment bundles, hashes, and provenance.
 
-Run `npm run build:targets` to refresh Dev and UAT without creating browser-specific, timestamped, feature-review, or frozen copies. Dev and UAT have separate stable extension identities and local storage, so a rebuild does not create a new identity and does not overwrite the Store installation.
+Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev and UAT have separate stable extension identities and local storage, so a rebuild does not create a new identity and does not overwrite the Store installation.
 
 The Verified Teams Transcript controls in development builds can use an unpacked-only local Graph configuration for controlled testing. It is not a license or Store feature, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
 
 For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `dist/uat`. This is the only supported release-candidate path.
+
+To inspect the promoted production build locally, choose **Load unpacked** and select `dist/prod`. The production root has its own `manifest.json`; ZIPs and deployment evidence in that same lane are ignored by Chromium when it loads the extension.
 
 1. Open Microsoft Edge and visit `edge://extensions`.
 2. Enable Developer mode.
@@ -109,6 +111,7 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build`: build the Edge Store ZIP in `dist/prod/`.
 - `npm run build:dev`: refresh only `dist/dev`.
 - `npm run build:uat`: refresh only `dist/uat`.
+- `npm run build:prod`: refresh only the directly loadable `dist/prod` root (and clear older production artifacts).
 - `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `dist/prod/intune-edge/`.
 - `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `dist/prod/intune-chrome/`.
 - `npm run build:intune:local-only`: generate the optional high-security bundle that disables AI handoff.

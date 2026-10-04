@@ -29,7 +29,7 @@ const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
 const forbiddenSource = sourceFiles.filter(file => file.split('/').some(part => forbidden.test(part)));
 if (forbiddenSource.length) throw new Error(`Store source contains forbidden files: ${forbiddenSource.join(', ')}`);
-for (const target of ['dev', 'uat']) {
+for (const target of ['dev', 'uat', 'prod']) {
   const root = path.join(distDir, target);
   const files = await filesUnder(root);
   const bad = files.filter(file => file.split('/').some(part => forbidden.test(part)));
@@ -39,9 +39,16 @@ for (const target of ['dev', 'uat']) {
   for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
-  const expectedName = target === 'dev' ? 'Better CaptionKeep - Development' : 'Better CaptionKeep - UAT Release Candidate';
+  const expectedName = target === 'dev'
+    ? 'Better CaptionKeep - Development'
+    : target === 'uat'
+      ? 'Better CaptionKeep - UAT Release Candidate'
+      : 'Better CaptionKeep';
   if (manifest.name !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
-  if (!manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
+  if (target !== 'prod' && !manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
+  if (target === 'prod' && /test|development|release candidate/i.test(`${manifest.name} ${manifest.version_name ?? ''} ${manifest.action?.default_title ?? ''}`)) {
+    throw new Error('prod manifest contains non-production lifecycle labeling');
+  }
 }
 
 const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;

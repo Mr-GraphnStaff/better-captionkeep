@@ -20,6 +20,8 @@ The generated workspace mirrors those lanes and has no fourth environment:
 - `dist/uat`
 - `dist/prod`
 
+Each lane root is directly loadable through the browser's **Load unpacked** control and must contain one root `manifest.json`. The production lane may also contain its verified ZIPs, deployment bundles, checksums, and provenance; those are release evidence, not additional environments.
+
 Do not create timestamped candidates, browser-specific UAT folders, feature-review copies, or nested release snapshots. Rebuild the appropriate fixed lane instead.
 
 Feature work does not move directly to production. Candidate defects return to

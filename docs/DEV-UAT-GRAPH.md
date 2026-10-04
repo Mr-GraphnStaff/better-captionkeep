@@ -24,6 +24,6 @@ npm.cmd run build:uat
 node scripts/configure-dev-uat-unpacked.mjs uat
 ```
 
-Load `dist/uat` in Chrome or Edge. Rebuilding UAT intentionally removes the overlay; run the configuration command again afterward. Dev stays in `dist/dev`, and production artifacts stay in `dist/prod`.
+Load `dist/uat` in Chrome or Edge. Rebuilding UAT intentionally removes the overlay; run the configuration command again afterward. Dev stays in `dist/dev`; the directly loadable production build and its release artifacts stay in `dist/prod`.
 
 Do not copy `devUatLocalConfig.js` into source, commit it, or add it to a release ZIP. The release checks must continue to prove that Store artifacts contain no configured Microsoft identifiers.
