@@ -18,6 +18,7 @@ Better CaptionKeep uses one lifecycle with three lanes. UAT is the proposed Prod
 ## Production
 
 - Production promotes the accepted behavior; it does not become a different feature edition.
+- The local Prod lane has a fixed unpacked identity; Store builds keep their separate Store-assigned identities.
 - `master`, the release tag, GitHub release artifacts, Azure Boards state, and pipeline evidence must agree.
 - Browser Store submission is a separate controlled step.
 

@@ -32,6 +32,8 @@ Do not load a ZIP file. Choose the lane folder itself; it must contain `manifest
 
 Use the circular **Reload** control on the extension card. The Errors page retains historical errors until you select **Clear all**; clearing an old entry does not hide a current error because a current error returns after the next reload.
 
+The three lane folders have fixed extension identities. A normal rebuild or upgrade does not require removing and re-adding the extension or changing its Microsoft redirect URI.
+
 ## Minimum smoke test
 
 1. Open the extension and confirm its expected lane name.

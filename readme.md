@@ -88,7 +88,7 @@ Generated output has exactly three stable locations:
 - `dist/uat` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
 - `dist/prod` — directly loadable production build plus Store packages, deployment bundles, hashes, and provenance.
 
-Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev and UAT have separate stable extension identities and local storage, so a rebuild does not create a new identity and does not overwrite the Store installation.
+Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev, UAT, and local Prod each have a separate stable extension identity and local storage. Rebuilding or upgrading a lane does not change its Microsoft redirect URI and does not overwrite a Store installation. Store installations retain the stable identity assigned by their Store.
 
 The Verified Teams Transcript controls use the same unpacked-only local Graph configuration in Dev, UAT, and Prod for controlled testing. It is not a license or feature gate, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [local Graph runbook](docs/DEV-UAT-GRAPH.md).
 

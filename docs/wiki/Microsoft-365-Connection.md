@@ -33,6 +33,8 @@ https://<extension-id>.chromiumapp.org/microsoft
 
 The exact URI shown under **Administrator connection details** must be registered in the Entra application. Wildcards do not work.
 
+Each governed lane has a fixed identity, so its redirect is registered once and remains unchanged across rebuilds and upgrades. Store installations retain their Store-assigned identities. If a lane's extension ID changes, stop and rebuild the canonical lane rather than adding a new redirect for an ad hoc copy.
+
 Configured tenant and client identifiers are written only into the selected ignored local lane. Version-controlled source and Store ZIPs contain an inert placeholder instead of those configured values.
 
 For the administrator procedure, see the repository's [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md).

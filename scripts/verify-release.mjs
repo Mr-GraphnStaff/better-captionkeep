@@ -8,6 +8,18 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const distDir = path.join(projectRoot, 'dist');
 const prodDir = path.join(distDir, 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^tmp$)/i;
+const expectedLifecycleIds = new Map([
+  ['dev', 'pjpibiimicedkckleehljlklmblkacph'],
+  ['uat', 'ecpjboeanaehianibdbgijldbikdgkhm'],
+  ['prod', 'nffdfdkkbbbmngcibbeindpjlfkcnikg']
+]);
+
+function extensionIdFromKey(key) {
+  const digest = createHash('sha256').update(Buffer.from(key, 'base64')).digest().subarray(0, 16);
+  return [...digest]
+    .map(byte => String.fromCharCode(97 + (byte >> 4), 97 + (byte & 15)))
+    .join('');
+}
 
 async function filesUnder(root, relative = '') {
   const entries = await readdir(path.join(root, relative), { withFileTypes: true });
@@ -45,10 +57,22 @@ for (const target of ['dev', 'uat', 'prod']) {
       ? 'Better CaptionKeep - UAT Release Candidate'
       : 'Better CaptionKeep';
   if (manifest.name !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
-  if (target !== 'prod' && !manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
+  if (!manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
+  const extensionId = extensionIdFromKey(manifest.key);
+  if (extensionId !== expectedLifecycleIds.get(target)) {
+    throw new Error(`${target} unpacked identity drifted: expected ${expectedLifecycleIds.get(target)}, received ${extensionId}`);
+  }
   if (target === 'prod' && /test|development|release candidate/i.test(`${manifest.name} ${manifest.version_name ?? ''} ${manifest.action?.default_title ?? ''}`)) {
     throw new Error('prod manifest contains non-production lifecycle labeling');
   }
+}
+
+const lifecycleKeys = await Promise.all(['dev', 'uat', 'prod'].map(async target => {
+  const manifest = JSON.parse(await readFile(path.join(distDir, target, 'manifest.json'), 'utf8'));
+  return manifest.key;
+}));
+if (new Set(lifecycleKeys).size !== lifecycleKeys.length) {
+  throw new Error('Dev, UAT, and Prod must have separate stable unpacked identity keys');
 }
 
 const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;

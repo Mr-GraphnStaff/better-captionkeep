@@ -1417,6 +1417,12 @@ test('Dev, UAT, and production roots are directly loadable lifecycle builds',()=
     assert(builder.includes("target === 'prod'"));
     assert(builder.includes("manifest.name = isUat ? 'Better CaptionKeep - UAT Release Candidate' : 'Better CaptionKeep - Development'"));
     assert(builder.includes('manifest.key = isUat ? UAT_KEY : DEV_KEY'));
+    assert(builder.includes('const PROD_KEY ='));
+    assert(builder.includes('manifest.key = PROD_KEY'));
+    const verifier=readProject('scripts/verify-release.mjs');
+    for(const id of ['pjpibiimicedkckleehljlklmblkacph','ecpjboeanaehianibdbgijldbikdgkhm','nffdfdkkbbbmngcibbeindpjlfkcnikg']) {
+        assert(verifier.includes(id));
+    }
     assert.equal(fs.existsSync(path.join(root,'unpackedLocalConfig.js')),true);
     assert(!builder.includes('--output-root'));
 });
