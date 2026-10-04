@@ -1,6 +1,6 @@
 # Connect Microsoft 365
 
-> **Availability warning — October 4, 2026:** Edge 5.3.1 is public but incorrectly hides this connection for ordinary Store users. Chrome continues to serve 5.1.0. Version 5.3.2 is the recovery candidate.
+> **Availability — October 4, 2026:** Edge now publicly serves 5.3.2 with the customer-owned Microsoft 365 setup. Chrome continues to serve 5.1.0 while 5.3.2 remains in review. Existing Edge upgrade verification is still open.
 
 The connector retrieves an official Teams transcript directly from Microsoft Graph into the browser's private local history. Better CaptionKeep's developer does not receive the transcript.
 

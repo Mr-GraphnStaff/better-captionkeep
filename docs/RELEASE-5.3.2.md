@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3.2 Recovery Record
 
-Status: **submitted to both Stores — not public until Store review and upgrade verification complete.**
+Status: **public in Microsoft Edge Add-ons; Chrome review and installed-upgrade verification remain open.**
 
 ## Incident
 
@@ -57,6 +57,7 @@ The `_metadata/verified_contents.json` file observed in the signed Edge CRX is S
 - Azure Store run 619 verified the same frozen `v5.3.2` assets, uploaded both drafts, passed the protected production approval, and submitted both existing Store products.
 - Chrome accepted 5.3.2 for review as `PENDING_REVIEW` with automatic publication after approval.
 - Microsoft completed the Edge submission operation as `Succeeded` and accepted 5.3.2 for certification.
+- At 17:25 UTC on October 4, 2026, Microsoft's public Edge update service returned the signed production CRX for extension `edefcbdhahfolgkoamkbknjppojpaffk`; its root `manifest.json` reports version `5.3.2` and the expected Microsoft Edge Add-ons update URL.
 - The private release VM was deallocated after the pipeline completed.
 
-These acknowledgements prove submission, not public availability. Azure Boards bug #297 remains Active until Edge serves 5.3.2 and the upgrade path is verified. Chrome and Edge public status must be verified independently before this record changes to public.
+Edge public availability is now independently verified. Chrome still publicly serves 5.1.0, and an existing Edge installation has not yet been observed upgrading from 5.3.1 to 5.3.2. Azure Boards bug #297 therefore remains Active until Chrome serves 5.3.2 and installed-upgrade verification passes.

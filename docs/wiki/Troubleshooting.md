@@ -14,7 +14,7 @@ The Zoom Web subtitle overlay may not expose speaker attribution. Better Caption
 
 ## Microsoft 365 controls are missing
 
-Chrome 5.1.0 does not contain Verified Teams Transcript. Edge 5.3.1 has a known defect that hides it. In 5.3.2 and later, the section stays visible but Connect remains disabled until the organization supplies valid tenant and client IDs locally or through managed policy.
+Chrome 5.1.0 does not contain Verified Teams Transcript. Edge now publicly serves 5.3.2, where the section stays visible but Connect remains disabled until the organization supplies valid tenant and client IDs locally or through managed policy. If Edge still shows 5.3.1, run its extension update check or wait for the Store rollout, then confirm the installed version before troubleshooting configuration.
 
 ## AADSTS50011 redirect mismatch
 

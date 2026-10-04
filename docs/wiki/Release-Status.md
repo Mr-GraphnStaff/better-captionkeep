@@ -5,7 +5,7 @@ Last verified: **October 4, 2026**.
 | Channel | Version | Status |
 | --- | --- | --- |
 | Chrome Web Store | 5.1.0 public; 5.3.2 pending review | Azure run 619 submitted the verified package with automatic publication after approval. It is not public yet. |
-| Microsoft Edge Add-ons | 5.3.1 public; 5.3.2 in certification | Microsoft accepted the verified update for certification. The public 5.3.1 Microsoft 365 defect remains active until 5.3.2 is served and upgrade-tested. |
+| Microsoft Edge Add-ons | 5.3.2 public; installed upgrade pending | Microsoft's public update service served the signed 5.3.2 CRX at 17:25 UTC on October 4. The upgrade from an existing 5.3.1 installation still requires verification. |
 | Frozen production release | 5.3.2 | GitHub release, hashes, SBOM, provenance, Store packages, PR checks, protected approval, and both Store submissions are complete. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
@@ -33,7 +33,7 @@ The canonical [after-action report and corrective action plan](https://github.co
 
 Azure Boards bug **#297** tracks the critical recovery. The earlier live tenant proof covered optional-permission approval, Microsoft sign-in, recent-meeting discovery, verified transcript import/viewer, live capture, and export. The final architecture requires a customer-owned single-tenant registration and stores its public tenant/client identifiers locally or through managed policy. Public resolution now requires Store approval, public availability, and upgrade verification.
 
-Azure run **619** completed the protected workflow on October 4, 2026. Chrome returned `PENDING_REVIEW`; Edge returned a successful certification submission. Those are submission states, not claims that either Store is already serving 5.3.2. The release VM was deallocated after the run.
+Azure run **619** completed the protected workflow on October 4, 2026. Chrome returned `PENDING_REVIEW`; Edge returned a successful certification submission. At 17:25 UTC, Microsoft's public update service independently served the signed production CRX for extension `edefcbdhahfolgkoamkbknjppojpaffk`, and its manifest reported version 5.3.2. Chrome still publicly serves 5.1.0. The release VM remains deallocated.
 
 ## Release terminology
 

@@ -7,7 +7,7 @@ Better CaptionKeep turns captions already displayed in Microsoft Teams, Google M
 - [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml)
 - [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/better-captionkeep/edefcbdhahfolgkoamkbknjppojpaffk)
 
-On October 4, 2026, Chrome was verified serving **5.1.0**. Edge was serving **5.3.1**, whose Microsoft 365 connection is defective; local-caption capture remains available. Do not install the GitHub `v5.3.0` ZIP: it is retained only for audit.
+On October 4, 2026, Chrome was verified serving **5.1.0**, with 5.3.2 still in review. Edge now publicly serves **5.3.2**; verification of the existing-install upgrade remains open. Do not install the GitHub `v5.3.0` ZIP: it is retained only for audit.
 
 ## Start here
 
@@ -20,7 +20,7 @@ On October 4, 2026, Chrome was verified serving **5.1.0**. Edge was serving **5.
 
 The supported public baseline provides live-caption capture in Teams, Google Meet, and Zoom Web, local transcript history, search, TXT and Markdown export, Privacy Scrubber, recovery, and the Evidence Board.
 
-The 5.3.2 recovery candidate adds Word/PDF workflows, expanded settings, enterprise controls, and optional Microsoft 365 import using a customer-owned single-tenant Entra registration. Those capabilities are not represented as publicly available until the corrected release reaches each Store.
+Edge 5.3.2 adds Word/PDF workflows, expanded settings, enterprise controls, and optional Microsoft 365 import using a customer-owned single-tenant Entra registration. Chrome remains on 5.1.0 until its 5.3.2 review completes.
 
 ![Better CaptionKeep supports Microsoft Teams, Google Meet, and Zoom Web](https://raw.githubusercontent.com/Mr-GraphnStaff/better-captionkeep/master/store-assets/5.3/04-three-meeting-platforms.png)
 

@@ -7,7 +7,7 @@
 **Incident tracking:** [Azure Boards bug #297](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/297)<br>
 **Corrective program:** [Azure Boards Feature #298](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/298), with CAP-08 through CAP-16 tracked as Tasks #299–#307<br>
 **Recovery release:** 5.3.2  
-**Status:** Recovery submitted to Chrome and Edge; incident remains open until both Stores serve 5.3.2 and installed upgrades are verified
+**Status:** Edge recovery public; incident remains open until Chrome serves 5.3.2 and installed upgrades are verified
 
 ## Executive summary
 
@@ -58,6 +58,7 @@ Times below are Central Time and use Git and pipeline records. The exact minute 
 | 9:32 AM | PR #70 merged the customer-owned Entra recovery; immutable 5.3.2 release artifacts were generated and verified. |
 | 9:40 AM | PR #71 corrected the Chrome publisher's handling of a terminal `CANCELLED` submission state. |
 | Later that morning | Azure Store run 619 verified the frozen 5.3.2 assets, passed the protected approval, submitted Chrome 5.3.2 for review, and submitted Edge 5.3.2 for certification. The release VM was then deallocated. |
+| 12:25 PM Central | Microsoft's public Edge update service served the signed 5.3.2 CRX for the production extension identity. Chrome remained on 5.1.0, and installed-upgrade verification remained open. |
 
 ## Root-cause analysis
 
