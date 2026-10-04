@@ -10,6 +10,8 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or 
 
 > **Current install status — October 4, 2026:** Microsoft Edge Add-ons now publicly serves `5.3.2`; the signed public CRX manifest was independently retrieved from Microsoft's update service at 17:25 UTC. Existing-install upgrade verification is still outstanding. Chrome continues to serve `5.1.0`, while `5.3.2` remains in review with automatic publication after approval. Azure Boards bug #297 stays active until both Stores serve 5.3.2 and the installed upgrade path passes.
 
+> **Development status:** Work on `5.4` began October 4, 2026 under the governed launch-mode rule. It does not alter the frozen 5.3.2 submission. The committed scope is Canadian French and Spanish localization and translation readiness, managed language deployment, active-meeting reliability, production-defect remediation, and permanent release safeguards. See the [5.4 development record](docs/RELEASE-5.4.md).
+
 ### Current 5.3.2 candidate capabilities
 
 **All Settings** is a prominent full-width control beneath the popup header. It opens every setting in a full browser tab; it is also available through the browser's extension Options action. The transcript viewer has per-export file types, Print / PDF (choose Save as PDF in the browser dialog), and keyboard shortcuts. The AI handoff offers reusable local task templates without retaining transcripts as templates.
@@ -32,7 +34,7 @@ The 5.3 line introduces **Verified Teams Transcript**: a delegated Microsoft Gra
 
 ## Release lineage
 
-Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, and [5.3.2](docs/RELEASE-5.3.2.md) is the current Store-recovery candidate. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) is the frozen Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is now in Development. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Interface previews
 
