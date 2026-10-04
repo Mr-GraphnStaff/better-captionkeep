@@ -1744,10 +1744,15 @@ test('Graph controls stay available in every configured lane without commercial 
 });
 test('worker accepts the same authorized unpacked Graph configuration in Dev, UAT, and Prod',()=>{
     const worker=read('service_worker.js');
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
     assert(worker.includes("'unpackedLocalConfig.js'"));
     assert(worker.includes('CaptionKeepConfiguration.applyLocalGraphOverlay'));
     assert(worker.includes('globalThis.CaptionKeepUnpackedLocalConfig'));
+    assert(popup.includes('<script src="unpackedLocalConfig.js" defer></script>'));
+    assert(popupScript.includes('CaptionKeepConfiguration.applyLocalGraphOverlay'));
+    assert(popupScript.includes('globalThis.CaptionKeepUnpackedLocalConfig'));
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep'"));
     assert(read('configuration.js').includes('/\\buat release candidate\\b/i'));

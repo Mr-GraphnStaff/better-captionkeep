@@ -179,7 +179,12 @@ function updateButtonStates(hasData) {
 
 async function refreshEnterprisePolicy() {
     const user = await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS);
-    const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+    const managedPolicy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+    const policy = CaptionKeepConfiguration.applyLocalGraphOverlay(
+        managedPolicy,
+        globalThis.CaptionKeepUnpackedLocalConfig,
+        runtimeManifest
+    );
     currentEnterprisePolicy = policy.settings;
     return currentEnterprisePolicy;
 }
@@ -535,7 +540,12 @@ async function loadSettings() {
         'filenamePattern',
         'uiTheme'
     ]);
-    const policy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
+    const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
+    const policy = CaptionKeepConfiguration.applyLocalGraphOverlay(
+        managedPolicy,
+        globalThis.CaptionKeepUnpackedLocalConfig,
+        runtimeManifest
+    );
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
