@@ -225,8 +225,14 @@ export async function main(options = {}) {
 
   assertNoActiveSubmission(initialStatus);
   if (action.startsWith('submit-existing-')) {
-    if (normalizeUploadState(initialStatus.lastAsyncUploadState) !== 'SUCCEEDED') {
-      throw new Error('Chrome has no successfully uploaded draft to submit');
+    const uploadState = normalizeUploadState(initialStatus.lastAsyncUploadState);
+    if (uploadState && uploadState !== 'SUCCEEDED') {
+      throw new Error(`Chrome draft is not ready to submit; last upload state is ${uploadState}`);
+    }
+    if (!uploadState) {
+      console.log(
+        'Chrome status did not retain the completed upload state; submitting the previously verified draft',
+      );
     }
     const publishType = publishTypeForAction(action);
     console.log(
