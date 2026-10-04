@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3.1 Release Record
 
-Status: **release candidate**. Version 5.3.1 replaces the withdrawn 5.3.0 promotion candidate; it is not public in either Store until the governed release pipeline reaches the corresponding Store state.
+Status: **Store promotion in progress**. Version 5.3.1 replaces the withdrawn 5.3.0 promotion candidate. Microsoft accepted it for Edge certification; Chrome has the verified draft but still requires Developer Dashboard metadata completion before submission.
 
 ## Purpose
 
@@ -42,3 +42,12 @@ This release updates the existing public products:
 - Edge Product ID: `0e48419c-ed3f-4a9c-808b-5578a195c81b`
 
 The existing Edge 5.1.0 draft is a submission attached to the same product. The Azure pipeline replaces its package with the verified 5.3.1 artifact; it does not create another extension.
+
+## Promotion record
+
+- GitHub release `v5.3.1` was published from merge commit `945cbb34df94e41e17189ba2389b8dbc9955c951` after release verification.
+- Azure run 589 uploaded both verified Store packages as drafts without submitting them.
+- Azure run 590 passed the `bck-store-production` approval. Edge submission succeeded and Microsoft accepted 5.3.1 for certification.
+- Chrome submission in run 590 exposed an incorrect local guard when Google omitted the completed upload state. [PR #68](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/68) fixed the helper and added regression coverage without changing the Store package.
+- Chrome-only retry run 594 reached Google successfully but returned `INVALID_ITEM_METADATA`. The Chrome 5.3.1 package remains an uploaded draft until the Developer Dashboard listing and privacy metadata are completed and the governed submission is retried.
+- Public Store listings continue to serve 5.1.0 until their respective reviews and publication steps finish.
