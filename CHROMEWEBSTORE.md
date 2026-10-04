@@ -4,6 +4,11 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Last Updated: 2026-10-04
 
+> Development metadata version: **5.4.0**. This value initializes the
+> `release/5.4` validation contract; it is not evidence that 5.4.0 was uploaded,
+> submitted, approved, or published. The public and pending Store versions
+> remain recorded in the repository and Wiki release-status pages.
+
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
 ## Store Listing

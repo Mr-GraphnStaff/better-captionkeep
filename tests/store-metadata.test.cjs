@@ -87,7 +87,7 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
   const metadata = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-metadata', 'chrome.json')));
   const dossier = fs.readFileSync(path.join(__dirname, '..', 'CHROMEWEBSTORE.md'), 'utf8');
   assert.deepEqual(validateChromeWebStoreDossier(manifest, metadata, dossier), {
-    version:'5.3.2', synchronized:true
+    version:'5.4.0', synchronized:true
   });
   assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace(
