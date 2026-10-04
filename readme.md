@@ -10,7 +10,7 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or 
 
 > **Current install status — October 4, 2026:** Microsoft Edge Add-ons is still serving `5.3.1`, whose Microsoft 365 connection is defective. Chrome still serves `5.1.0`; its defective `5.3.1` review was cancelled. The governed 5.3.2 packages were submitted through Azure run 619: Chrome reports `PENDING_REVIEW` with automatic publication after approval, and Microsoft accepted Edge 5.3.2 for certification. Neither submission is described as public until its Store serves 5.3.2.
 
-### October 3 development additions — not a promoted release
+### Current 5.3.2 candidate capabilities
 
 **All Settings** is a prominent full-width control beneath the popup header. It opens every setting in a full browser tab; it is also available through the browser's extension Options action. The transcript viewer has per-export file types, Print / PDF (choose Save as PDF in the browser dialog), and keyboard shortcuts. The AI handoff offers reusable local task templates without retaining transcripts as templates.
 
@@ -22,27 +22,17 @@ Better CaptionKeep is one product: every shipped feature is available to every u
 
 The viewer also exports SRT/WebVTT when a newly imported official Teams transcript contains real media cue boundaries. Live browser observation times and older imports without preserved boundaries are rejected rather than assigned invented timing. Use `npm run build:dev` for development and `npm run build:uat` for the one release candidate; ad hoc output folders are intentionally unsupported.
 
-## Better CaptionKeep 5.0
+## Current product
 
-Better CaptionKeep began as a fork of Live-Captions-Saver. Version 5.0 moves decisively beyond that starting point: a privacy-first, enterprise-ready caption workspace designed to support Microsoft Teams, Zoom, and Google Meet through a shared provider architecture.
+Better CaptionKeep is a free, local-first transcript and meeting-evidence workspace for Microsoft Teams, Google Meet, and Zoom Web. It captures captions already displayed to the participant rather than recording microphone, tab, or system audio. Browser-local history, search, exports, Privacy Scrubber, Evidence Board, on-device translation where the browser supports it, and review-first AI handoff are available without an account, subscription, or publisher-operated transcript service.
 
-Version 5.0 combines multi-platform capture with local transcript history, local PII/PHI/PCI-like pattern masking through **Scrubby**, profanity and custom-term filtering, managed enterprise configuration, accessible themes, and reviewable Bring Your Own AI (**BYOAI**) handoffs that do not place transcript text in provider URLs. Teams remains the foundation and Google Meet is a supported live-capture provider. Zoom Web is the next development track; it is not part of the already-published 5.0.0 Store artifact. This is an independent evolution of the original MIT-licensed project, not an upstream endorsement or a claim of regulatory compliance.
-
-## Better CaptionKeep 5.1
-
-The 5.1 release line adds governed Zoom Web support and hardens the shared capture path: Teams interim captions are stabilized before commit, recovery checkpoints are bound to the originating browser tab, Google Meet recognizes same-URL post-call state, live-view payloads expire and refresh from the active session, Scrubby preserves transcript structure, session-history writes are quota-safe, and Store publishing validates immutable release assets before upload. The release record preserves the distinction between completed Store promotion and live-UAT items that were not completed before the product owner's early-promotion decision.
-
-## Better CaptionKeep 5.2 development
-
-The unreleased 5.2 development line adds a security-architect review package, enforceable managed controls for export, clipboard, attendee capture, evidence email, and local retention, plus a hardened Windows enterprise deployment profile. It also adds CodeQL analysis, pinned GitHub Actions, a runtime SBOM, and build provenance attestation. These changes are source candidates only until the 5.2 gate, managed-policy UAT, review, and Store promotion are complete; they are not present in the immutable 5.1.0 Store packages.
-
-## Better CaptionKeep 5.3.2 recovery
+Zoom Web has been a governed supported provider since the 5.1 line. Its tested subtitle overlay does not reliably expose speaker identity, so Better CaptionKeep records `Unknown speaker` instead of inventing attribution. Native Zoom desktop-client and system-audio capture are not supported.
 
 The 5.3 line introduces **Verified Teams Transcript**: a delegated Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. Live Edge validation exposed that `5.3.1` hid Microsoft 365 in the Store build even though local Dev/UAT overlays passed. Version `5.3.2` is the controlled recovery: every organization supplies its own single-tenant Entra tenant ID and client ID through local setup or managed policy; Store packages contain no shared tenant identity. The Microsoft 365 setup remains visible, validates configuration before sign-in, and rejects tokens issued by any other tenant. See the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [customer Entra registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
 
-## Zoom Web development
+## Release lineage
 
-The Zoom discovery branch captures displayed subtitle-overlay text from the exact `app.zoom.us` Web client. It does not capture audio or video, use a meeting bot, connect to Zoom RTMS, support the native desktop client, or grant wildcard access to Zoom vanity domains. The tested overlay does not expose speaker attribution, so its records are explicitly labeled `Unknown speaker`. See the [Zoom Web evidence record](docs/ZOOM-WEB-CHALLENGES.md) and [5.1 release record](docs/RELEASE-5.1.md).
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, and [5.3.2](docs/RELEASE-5.3.2.md) is the current Store-recovery candidate. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Interface previews
 
@@ -54,7 +44,7 @@ These synthetic 5.3 product previews replace the obsolete popup and empty-viewer
 
 ## What it does
 
-- Capture displayed Teams and Google Meet captions and available speaker information; development builds also capture the tested Zoom Web subtitle overlay with explicit `Unknown speaker` attribution.
+- Capture displayed Teams, Google Meet, and Zoom Web captions and available speaker information; Zoom Web uses explicit `Unknown speaker` attribution when its subtitle overlay does not expose a name.
 - Export TXT or Markdown with a choice of save location.
 - Automatically archive completed meetings locally, reopen them after browser restart, and use speaker aliases. Search the full retained archive by keyword or phrase with meeting-title, speaker, date, and ordering filters, then jump to the matching source caption. The archive does not silently evict older meetings; explicit user deletion and managed retention remain available.
 - Optionally include attendee information or hand a transcript to an AI provider.
