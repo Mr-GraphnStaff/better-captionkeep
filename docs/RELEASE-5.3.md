@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3 Release Record
 
-Status: **withdrawn from further promotion on October 4, 2026**. The immutable GitHub `v5.3.0` tag and release remain as historical evidence, but production-lane identity, local configuration, and Microsoft 365 visibility defects were discovered after publication. Do not use the `v5.3.0` ZIPs for Store submission, new unpacked installation, or tenant rollout. Recovery is tracked in [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67); a new patch tag and artifacts require renewed live acceptance.
+Status: **withdrawn from further promotion on October 4, 2026**. The immutable GitHub `v5.3.0` tag and release remain as historical evidence, but production-lane identity, local configuration, and Microsoft 365 visibility defects were discovered after publication. Do not use the `v5.3.0` ZIPs for Store submission, new unpacked installation, or tenant rollout. Recovery is tracked in [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67) and the [5.3.1 release record](RELEASE-5.3.1.md).
 
 Version 5.3 is the single next-release line. It combines the existing **Verified Teams Transcript** QA candidate with the enterprise-security controls, complete BYOAI handoff, durable local archive and search, reversible transcript corrections and terminology dictionary, DOCX export, universal feature access, and Intune groundwork previously developed on the parallel 5.2 line. No promoted Store artifact is changed by this source reconciliation.
 

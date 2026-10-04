@@ -1,8 +1,8 @@
 # Chrome Web Store Listing — Better CaptionKeep
 
-An optional local Graph configuration overlay exists only in ignored unpacked dev/UAT folders. Production packages cannot activate or contain it. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
+An optional local Graph configuration overlay exists only in ignored unpacked Dev, UAT, and local Prod folders. Store packages cannot activate or contain it. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-03
+> Last Updated: 2026-10-04
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -24,7 +24,7 @@ Every feature included in Better CaptionKeep is available to every user. There i
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-The next development build adds a full All Settings tab with a prominent full-width popup entry, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. These additions require live browser testing before release. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Cloud sign-in and uploads are not yet a released feature.
+Version 5.3.1 adds a full All Settings tab with a prominent full-width popup entry, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Cloud sign-in and uploads are not included in this release.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
@@ -145,6 +145,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
+| 5.3.1 | 2026-10-04 | Corrects production-lane identity and Microsoft 365 configuration visibility while retaining the reviewed 5.3 feature set and universal access to every shipped feature. | Release candidate; exact Store packages require governed pipeline promotion |
 | 5.3.0 | 2026-10-03 | Consolidates Verified Teams Transcript, archive/search, corrections, Word export, All settings, Print / PDF, local AI templates, reviewed chat/screenshots, imported-cue SRT/VTT, feature-detected on-device translation, and universal access to every shipped feature. | GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
 | 5.0.0 | 2026-09-20 | Established the independent Teams and Google Meet release. | Published |
