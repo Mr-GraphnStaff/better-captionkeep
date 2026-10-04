@@ -4,7 +4,7 @@ Last verified: **October 4, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.1.0 public; 5.3.1 draft | The verified package is uploaded. Google rejected submission until the Developer Dashboard listing and privacy metadata are completed for the new permissions and Microsoft hosts. |
+| Chrome Web Store | 5.1.0 public; 5.3.1 submitted | Google accepted 5.3.1 for review after the required `identity` and `unlimitedStorage` Privacy justifications were saved. |
 | Microsoft Edge Add-ons | 5.1.0 public; 5.3.1 submitted | Microsoft accepted 5.3.1 for certification in Azure run 590. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
@@ -20,7 +20,8 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 - Azure run 589 uploaded the verified `v5.3.1` packages as drafts to the existing Chrome and Edge products.
 - Azure run 590 passed the protected production approval and Microsoft accepted the Edge package for certification.
 - [PR #68](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/68) corrected the Chrome pipeline's handling of Google's short-lived upload-status field; 180 automated tests passed.
-- Chrome retry run 594 reached Google's publish endpoint and returned `INVALID_ITEM_METADATA`. The package remains a draft. Dashboard listing and privacy fields must be completed before another submission attempt.
+- Chrome retry run 594 identified the two missing Dashboard Privacy justifications. After they were saved, the product owner submitted the existing verified 5.3.1 draft and Google accepted it for review.
+- Redundant Chrome run 597 was canceled during cleanup without changing the submitted package.
 - The private release VM was deallocated after the Store operations.
 
 ## Release terminology
