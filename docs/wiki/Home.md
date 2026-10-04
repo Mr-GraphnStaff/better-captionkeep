@@ -7,7 +7,7 @@ Better CaptionKeep turns captions already displayed in Microsoft Teams, Google M
 - [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml)
 - [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/better-captionkeep/edefcbdhahfolgkoamkbknjppojpaffk)
 
-Both Stores were verified serving **5.1.0 on October 4, 2026**. Do not install the GitHub `v5.3.0` ZIP: that release is retained for audit but was withdrawn from further promotion after post-release defects were found.
+On October 4, 2026, Chrome was verified serving **5.1.0**. Edge was serving **5.3.1**, whose Microsoft 365 connection is defective; local-caption capture remains available. Do not install the GitHub `v5.3.0` ZIP: it is retained only for audit.
 
 ## Start here
 
@@ -18,9 +18,9 @@ Both Stores were verified serving **5.1.0 on October 4, 2026**. Do not install t
 
 ## What is available now
 
-The public 5.1.0 Store version supports live-caption capture in Teams, Google Meet, and Zoom Web, local transcript history, search, TXT and Markdown export, Privacy Scrubber, recovery, and the Evidence Board.
+The supported public baseline provides live-caption capture in Teams, Google Meet, and Zoom Web, local transcript history, search, TXT and Markdown export, Privacy Scrubber, recovery, and the Evidence Board.
 
-The next 5.3 patch candidate adds Word/PDF workflows, expanded settings, enterprise controls, and optional administrator-enabled Microsoft 365 transcript import. Those capabilities are not represented as publicly available until a corrected patch release passes UAT and reaches each Store.
+The 5.3.2 recovery candidate adds Word/PDF workflows, expanded settings, enterprise controls, and optional Microsoft 365 import using a customer-owned single-tenant Entra registration. Those capabilities are not represented as publicly available until the corrected release reaches each Store.
 
 ![Better CaptionKeep supports Microsoft Teams, Google Meet, and Zoom Web](https://raw.githubusercontent.com/Mr-GraphnStaff/better-captionkeep/master/store-assets/5.3/04-three-meeting-platforms.png)
 

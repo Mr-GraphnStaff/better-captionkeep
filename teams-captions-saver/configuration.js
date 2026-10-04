@@ -10,6 +10,9 @@
         'claudeWorkspaceUrl', 'claudeConsoleUrl', 'timestampFormat',
         'filenamePattern', 'uiTheme'
     ]);
+    const GRAPH_USER_KEYS = Object.freeze([
+        'enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'
+    ]);
 
     const POLICY_KEYS = Object.freeze([
         'forcePrivacyScrubber', 'disableAiHandoff', 'allowedAiProviders',
@@ -22,6 +25,7 @@
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
+    const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled']);
     const ENUMS = Object.freeze({
         defaultSaveFormat: new Set(['txt', 'md', 'docx']),
@@ -61,6 +65,20 @@
         return output;
     }
 
+    function sanitizeGraphUserConfig(settings = {}) {
+        const tenantId = String(settings.graphTenantId || '').trim().toLowerCase();
+        const clientId = String(settings.graphClientId || '').trim().toLowerCase();
+        if (settings.enableGraphTranscriptImport !== true || !GUID_PATTERN.test(tenantId) || !GUID_PATTERN.test(clientId)) {
+            return {};
+        }
+        return { enableGraphTranscriptImport: true, graphTenantId: tenantId, graphClientId: clientId };
+    }
+
+    async function readGraphUserConfig() {
+        if (!chrome.storage?.local) return {};
+        return sanitizeGraphUserConfig(await chrome.storage.local.get(GRAPH_USER_KEYS));
+    }
+
     async function readManaged() {
         if (!chrome.storage?.managed) return {};
         try {
@@ -72,6 +90,8 @@
 
     function applyPolicy(userSettings = {}, managed = {}) {
         const settings = { ...userSettings };
+        for (const key of GRAPH_USER_KEYS) delete settings[key];
+        Object.assign(settings, sanitizeGraphUserConfig(userSettings));
         const locked = new Set();
         if (managed.forcePrivacyScrubber === true) {
             settings.privacyScrubberEnabled = true;
@@ -112,14 +132,16 @@
             }
         }
         if (typeof managed.enableGraphTranscriptImport === 'boolean') {
+            for (const key of GRAPH_USER_KEYS) {
+                delete settings[key];
+                locked.add(key);
+            }
             settings.enableGraphTranscriptImport = managed.enableGraphTranscriptImport;
-            locked.add('enableGraphTranscriptImport');
             if (managed.enableGraphTranscriptImport) {
-                for (const key of ['graphTenantId', 'graphClientId']) {
-                    if (typeof managed[key] === 'string' && managed[key].trim()) {
-                        settings[key] = managed[key].trim();
-                        locked.add(key);
-                    }
+                const managedGraph = sanitizeGraphUserConfig(managed);
+                if (managedGraph.enableGraphTranscriptImport) {
+                    settings.graphTenantId = managedGraph.graphTenantId;
+                    settings.graphClientId = managedGraph.graphClientId;
                 }
             }
         }
@@ -143,17 +165,17 @@
 
     function applyGraphRuntimeConfig(policy, runtimeConfig = {}, manifest = {}) {
         const versionName = String(manifest.version_name || '');
-        const isCanonicalBuild = manifest.name === 'Better CaptionKeep'
-            || (manifest.name === 'Better CaptionKeep - Development'
+        const isCanonicalBuild = (manifest.name === 'Better CaptionKeep - Development'
                 && /\bdevelopment\b/i.test(versionName))
             || (manifest.name === 'Better CaptionKeep - UAT Release Candidate'
                 && /\buat release candidate\b/i.test(versionName));
-        if (!isCanonicalBuild || runtimeConfig.enableGraphTranscriptImport !== true) return policy;
+        const sanitizedRuntimeConfig = sanitizeGraphUserConfig(runtimeConfig);
+        if (!isCanonicalBuild || sanitizedRuntimeConfig.enableGraphTranscriptImport !== true) return policy;
         const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
         const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
         const settings = { ...policy.settings };
         for (const key of graphKeys) {
-            if (!locked.has(key)) settings[key] = runtimeConfig[key];
+            if (!locked.has(key)) settings[key] = sanitizedRuntimeConfig[key];
             locked.add(key);
         }
         return Object.freeze({
@@ -174,5 +196,9 @@
         return sanitize(parsed.settings);
     }
 
-    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyGraphRuntimeConfig, createExport, parseImport });
+    globalThis.CaptionKeepConfiguration = Object.freeze({
+        USER_KEYS, GRAPH_USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize,
+        sanitizeGraphUserConfig, readGraphUserConfig, readManaged, applyPolicy,
+        applyGraphRuntimeConfig, createExport, parseImport
+    });
 })();

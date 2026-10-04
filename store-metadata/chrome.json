@@ -1,6 +1,6 @@
 {
   "manifestVersion": "5.3.2",
-  "singlePurpose": "Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and lets a signed-in organizational user select a recent Teams meeting and privately import its authorized official transcript from Microsoft 365 when their tenant permits the delegated access. Transcript data stays in the user's browser unless the user explicitly exports or copies it.",
+  "singlePurpose": "Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports or copies it.",
   "providers": [
     "Microsoft Teams",
     "Google Meet",
@@ -12,7 +12,7 @@
     "storage": "Used for extension preferences, capture-recovery checkpoints, pending exports, temporary speaker aliases, and the user-controlled local transcript archive. Managed enterprise settings are also read through the browser's managed-storage system. The developer does not operate a transcript-storage service.",
     "unlimitedStorage": "Allows the local transcript archive to retain more than chrome.storage.local's default 10 MB quota without silently evicting older meetings. Archive data remains on this browser profile until the user deletes it, the extension is removed, or an explicit managed retention policy applies.",
     "sidePanel": "Used to display the live transcript, recovery status, speaker tools, search, Scrubby privacy controls, and export actions alongside the supported meeting page. The side panel is opened only as part of the user's local caption-capture workflow and does not transmit transcript data to a developer-operated service.",
-    "identity": "Used when the user chooses Connect Microsoft 365. It opens an interactive multi-tenant Microsoft Entra authorization-code flow with PKCE so an organizational user can find recent Teams meetings and explicitly import an authorized official transcript when their tenant permits the delegated scopes. Tokens stay in browser session storage, and no client secret is embedded in the extension."
+    "identity": "Used when the user chooses Connect Microsoft 365 after entering an organization-owned tenant ID and client ID. It opens an interactive tenant-specific Microsoft Entra authorization-code flow with PKCE so the user can find recent Teams meetings and explicitly import an authorized official transcript. Tokens stay in browser session storage; no shared application identity or client secret is embedded."
   },
   "oauthScopeJustifications": {
     "openid": "Confirms the identity returned by Microsoft during the interactive organizational sign-in flow.",

@@ -38,14 +38,11 @@ async function sha256(file) {
 
 const sourceManifest = JSON.parse(await readFile(path.join(projectRoot, 'teams-captions-saver', 'manifest.json'), 'utf8'));
 const storeGraphConfig = await readFile(path.join(projectRoot, 'teams-captions-saver', 'graphRuntimeConfig.js'), 'utf8');
-for (const required of [
-  'enableGraphTranscriptImport: true',
-  "graphTenantId: 'organizations'",
-  "graphClientId: 'a88e99c2-2dce-45e2-9839-fa63372c18c5'"
-]) {
-  if (!storeGraphConfig.includes(required)) {
-    throw new Error(`Store Microsoft 365 configuration is missing ${required}`);
-  }
+if (!storeGraphConfig.includes('Object.freeze({})')) {
+  throw new Error('Store Microsoft 365 runtime configuration must be inert.');
+}
+if (/graphTenantId\s*:|graphClientId\s*:|enableGraphTranscriptImport\s*:\s*true/.test(storeGraphConfig)) {
+  throw new Error('Store Microsoft 365 runtime configuration contains an organization identity.');
 }
 const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));

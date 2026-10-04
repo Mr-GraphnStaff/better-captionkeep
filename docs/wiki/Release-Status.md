@@ -4,9 +4,9 @@ Last verified: **October 4, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.1.0 public; 5.3.1 submitted | The 5.3.1 submission is not an acceptable production target because its Store Graph configuration is inert. Replace it with a validated hotfix before approval if the Dashboard permits. |
+| Chrome Web Store | 5.1.0 public; 5.3.1 draft | The defective 5.3.1 review was cancelled. Replace the draft with validated 5.3.2 through the governed pipeline. |
 | Microsoft Edge Add-ons | 5.3.1 public | Microsoft 365 is hidden for ordinary Store users because the packaged Graph configuration is inert. Treat this as an active production defect. |
-| UAT release candidate | 5.3.2 | Dev and UAT passed on commit `c385d3b`; Entra multi-tenant conversion and exact delegated permissions are verified. Production remains blocked on Microsoft publisher verification and the governed release workflow. |
+| UAT release candidate | 5.3.2 | Customer-owned single-tenant setup, exact-tenant validation, managed precedence, and Store identity exclusion are implemented. Exact package validation and governed promotion are in progress. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -21,7 +21,7 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 - Azure run 589 uploaded the verified `v5.3.1` packages as drafts to the existing Chrome and Edge products.
 - Azure run 590 passed the protected production approval and Microsoft accepted the Edge package for certification.
 - [PR #68](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/68) corrected the Chrome pipeline's handling of Google's short-lived upload-status field; 180 automated tests passed.
-- Chrome retry run 594 identified the two missing Dashboard Privacy justifications. After they were saved, the product owner submitted the existing verified 5.3.1 draft and Google accepted it for review.
+- Chrome retry run 594 identified the two missing Dashboard Privacy justifications. After they were saved, the product owner submitted 5.3.1; that review was later cancelled when the Microsoft 365 defect was confirmed, leaving Chrome 5.1.0 public.
 - Redundant Chrome run 597 was canceled during cleanup without changing the submitted package.
 - The private release VM was deallocated after the Store operations.
 
@@ -29,7 +29,7 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 
 Edge began serving 5.3.1 on October 4, 2026. The Store identity and signed CRX are valid, but the package hides Microsoft 365 unless managed policy supplies the Graph configuration. Dev and UAT had been tested with a local overlay, which was not Store-equivalent evidence.
 
-Azure Boards bug **#297** tracks the critical recovery. Dev and UAT now pass, including clean optional-permission approval, Microsoft sign-in, recent-meeting discovery, verified transcript import/viewer, live capture, and export. The existing Entra registration accepts organizational tenants and declares the exact delegated permissions. Store publication remains blocked on publisher verification, a frozen GitHub release, and the protected Azure production approval.
+Azure Boards bug **#297** tracks the critical recovery. The earlier live tenant proof covered optional-permission approval, Microsoft sign-in, recent-meeting discovery, verified transcript import/viewer, live capture, and export. The final architecture requires a customer-owned single-tenant registration and stores its public tenant/client identifiers locally or through managed policy. Store publication requires a frozen GitHub release and the protected Azure production workflow.
 
 ## Release terminology
 

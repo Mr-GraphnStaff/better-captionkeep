@@ -583,7 +583,7 @@
         <div style="text-align: center; color: #999;">Loading sessions...</div>
     </div>
 
-    <details class="settings-group" id="graphTranscriptSection" hidden open>
+    <details class="settings-group" id="graphTranscriptSection" open>
         <summary>Verified Teams transcripts</summary>
         <div class="graph-hero">
             <strong>Official words. Verifiable source.</strong>
@@ -609,7 +609,21 @@
         </details>
         <details class="graph-manual">
             <summary>Administrator connection details</summary>
+            <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
+            <div class="setting-item">
+                <label for="graphTenantId" class="setting-label">Directory (tenant) ID</label>
+                <input id="graphTenantId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+            </div>
+            <div class="setting-item">
+                <label for="graphClientId" class="setting-label">Application (client) ID</label>
+                <input id="graphClientId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+            </div>
             <p class="small-info-text" id="graphRedirectUri"></p>
+            <div class="graph-actions">
+                <button id="graphSaveSetup" type="button">Save Microsoft 365 setup</button>
+                <button id="graphClearSetup" type="button">Clear setup</button>
+            </div>
+            <p class="small-info-text" id="graphSetupStatus" role="status" aria-live="polite"></p>
         </details>
         <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
         <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting to retrieve and open its transcript. Teams must have finished producing it.</p>

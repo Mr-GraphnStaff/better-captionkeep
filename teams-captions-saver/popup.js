@@ -48,6 +48,11 @@ const UI_ELEMENTS = {
     graphTranscriptSection: document.getElementById('graphTranscriptSection'),
     graphConnectionStatus: document.getElementById('graphConnectionStatus'),
     graphRedirectUri: document.getElementById('graphRedirectUri'),
+    graphTenantId: document.getElementById('graphTenantId'),
+    graphClientId: document.getElementById('graphClientId'),
+    graphSaveSetup: document.getElementById('graphSaveSetup'),
+    graphClearSetup: document.getElementById('graphClearSetup'),
+    graphSetupStatus: document.getElementById('graphSetupStatus'),
     graphConnectButton: document.getElementById('graphConnectButton'),
     graphDisconnectButton: document.getElementById('graphDisconnectButton'),
     graphJoinUrl: document.getElementById('graphJoinUrl'),
@@ -62,17 +67,13 @@ const UI_ELEMENTS = {
 let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
+let graphConfigured = false;
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
 ]);
 const runtimeManifest = chrome.runtime.getManifest();
 const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
-const runtimeVersionName = String(runtimeManifest.version_name || '');
-const isDevUatBuild = (runtimeManifest.name === 'Better CaptionKeep - Development'
-        && /\bdevelopment\b/i.test(runtimeVersionName))
-    || (runtimeManifest.name === 'Better CaptionKeep - UAT Release Candidate'
-        && /\buat release candidate\b/i.test(runtimeVersionName));
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -202,7 +203,10 @@ function updateButtonStates(hasData) {
 }
 
 async function refreshEnterprisePolicy() {
-    const user = await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS);
+    const user = {
+        ...await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS),
+        ...await CaptionKeepConfiguration.readGraphUserConfig()
+    };
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
     const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
@@ -215,7 +219,7 @@ async function refreshEnterprisePolicy() {
 
 function setGraphBusy(busy) {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected;
+    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected || !graphConfigured;
     UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
     UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
     UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
@@ -359,8 +363,31 @@ async function sendGraphMessage(message) {
 
 function applyGraphVisibility() {
     if (!UI_ELEMENTS.graphTranscriptSection) return;
-    UI_ELEMENTS.graphTranscriptSection.hidden = !isDevUatBuild
-        && currentEnterprisePolicy.enableGraphTranscriptImport !== true;
+    UI_ELEMENTS.graphTranscriptSection.hidden = false;
+}
+
+function isGraphGuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function updateGraphSetupControls(settings, locked = new Set()) {
+    const tenantId = String(settings.graphTenantId || '');
+    const clientId = String(settings.graphClientId || '');
+    graphConfigured = settings.enableGraphTranscriptImport === true
+        && isGraphGuid(tenantId) && isGraphGuid(clientId);
+    if (UI_ELEMENTS.graphTenantId) UI_ELEMENTS.graphTenantId.value = tenantId;
+    if (UI_ELEMENTS.graphClientId) UI_ELEMENTS.graphClientId.value = clientId;
+    const managed = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'].some(key => locked.has(key));
+    for (const input of [UI_ELEMENTS.graphTenantId, UI_ELEMENTS.graphClientId]) {
+        if (input) input.disabled = managed;
+    }
+    if (UI_ELEMENTS.graphSaveSetup) UI_ELEMENTS.graphSaveSetup.disabled = managed;
+    if (UI_ELEMENTS.graphClearSetup) UI_ELEMENTS.graphClearSetup.disabled = managed || (!tenantId && !clientId);
+    if (UI_ELEMENTS.graphSetupStatus) {
+        UI_ELEMENTS.graphSetupStatus.textContent = managed
+            ? (graphConfigured ? 'Configured and locked by your organization.' : 'Microsoft 365 import is disabled or incomplete in organization policy.')
+            : (graphConfigured ? 'Customer-owned Microsoft 365 setup saved locally.' : 'Enter the tenant and client IDs from your organization’s Entra app registration.');
+    }
 }
 
 async function refreshGraphStatus() {
@@ -370,7 +397,7 @@ async function refreshGraphStatus() {
         graphConnected = !!status.connected;
         UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
-            : (status.configured ? 'Administrator configuration detected. Connect Microsoft 365 to begin.' : 'The managed Graph configuration is incomplete.');
+            : (status.configured ? 'Microsoft 365 setup detected. Connect to begin.' : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs below.');
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
         graphConnected = false;
@@ -564,6 +591,7 @@ async function loadSettings() {
         'filenamePattern',
         'uiTheme'
     ]);
+    Object.assign(userSettings, await CaptionKeepConfiguration.readGraphUserConfig());
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
     const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
@@ -574,6 +602,7 @@ async function loadSettings() {
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
     applyGraphVisibility();
+    updateGraphSetupControls(settings, locked);
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
@@ -692,6 +721,26 @@ function setupEventListeners() {
             UI_ELEMENTS.graphConnectionStatus.textContent = graphErrorMessage(error);
             setGraphBusy(false);
         }
+    });
+    UI_ELEMENTS.graphSaveSetup?.addEventListener('click', async () => {
+        const tenantId = UI_ELEMENTS.graphTenantId.value.trim().toLowerCase();
+        const clientId = UI_ELEMENTS.graphClientId.value.trim().toLowerCase();
+        if (!isGraphGuid(tenantId) || !isGraphGuid(clientId)) {
+            UI_ELEMENTS.graphSetupStatus.textContent = 'Enter valid GUID values for both the tenant ID and client ID.';
+            return;
+        }
+        if (graphConnected) await sendGraphMessage({message:'graph_disconnect'});
+        await chrome.storage.local.set({enableGraphTranscriptImport:true, graphTenantId:tenantId, graphClientId:clientId});
+        graphConnected = false;
+        await loadSettings();
+        await refreshGraphStatus();
+    });
+    UI_ELEMENTS.graphClearSetup?.addEventListener('click', async () => {
+        if (graphConnected) await sendGraphMessage({message:'graph_disconnect'});
+        await chrome.storage.local.remove(CaptionKeepConfiguration.GRAPH_USER_KEYS);
+        graphConnected = false;
+        await loadSettings();
+        await refreshGraphStatus();
     });
     UI_ELEMENTS.graphDisconnectButton?.addEventListener('click', async () => {
         setGraphBusy(true);
@@ -1313,8 +1362,10 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('DOMContentLoaded', initializePopup);
 
-chrome.storage.onChanged.addListener((_changes, areaName) => {
-    if (areaName === 'managed') void loadSettings().catch(error => {
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    const graphChanged = areaName === 'local'
+        && CaptionKeepConfiguration.GRAPH_USER_KEYS.some(key => Object.hasOwn(changes, key));
+    if (areaName === 'managed' || graphChanged) void loadSettings().catch(error => {
         UI_ELEMENTS.statusMessage.textContent = `Could not refresh managed settings: ${error.message}`;
     });
 });

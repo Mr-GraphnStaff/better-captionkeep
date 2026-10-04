@@ -12,7 +12,6 @@
         'OnlineMeetingTranscript.Read.All'
     ]);
     const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const ORGANIZATIONS_AUTHORITY = 'organizations';
     const TEAMS_JOIN_HOSTS = new Set(['teams.microsoft.com', 'teams.cloud.microsoft']);
 
     class GraphConnectorError extends Error {
@@ -29,7 +28,7 @@
         }
         const tenantId = String(settings.graphTenantId || '').trim();
         const clientId = String(settings.graphClientId || '').trim();
-        if ((tenantId.toLowerCase() !== ORGANIZATIONS_AUTHORITY && !GUID_PATTERN.test(tenantId)) || !GUID_PATTERN.test(clientId)) {
+        if (!GUID_PATTERN.test(tenantId) || !GUID_PATTERN.test(clientId)) {
             throw new GraphConnectorError('GRAPH_CONFIG_INVALID', 'The Microsoft Graph connection configuration is incomplete.');
         }
         return Object.freeze({ tenantId: tenantId.toLowerCase(), clientId: clientId.toLowerCase() });
@@ -112,11 +111,8 @@
         const idClaims = decodeJwtPayload(body.id_token);
         const accessClaims = decodeJwtPayload(body.access_token);
         const tenantClaim = String(idClaims.tid || accessClaims.tid || '').toLowerCase();
-        if (config.tenantId === ORGANIZATIONS_AUTHORITY && !GUID_PATTERN.test(tenantClaim)) {
-            throw new GraphConnectorError('TENANT_MISMATCH', 'Microsoft did not return a valid organizational tenant.');
-        }
-        if (config.tenantId !== ORGANIZATIONS_AUTHORITY && tenantClaim && tenantClaim !== config.tenantId) {
-            throw new GraphConnectorError('TENANT_MISMATCH', 'Microsoft signed in to a different tenant than the managed configuration.');
+        if (tenantClaim !== config.tenantId) {
+            throw new GraphConnectorError('TENANT_MISMATCH', 'Microsoft signed in to a different tenant than the configured organization.');
         }
         if (idClaims.aud && String(idClaims.aud).toLowerCase() !== config.clientId) {
             throw new GraphConnectorError('CLIENT_MISMATCH', 'Microsoft returned an identity token for a different application.');

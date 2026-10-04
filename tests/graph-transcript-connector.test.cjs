@@ -43,15 +43,12 @@ test('managed Graph configuration is opt-in and requires tenant and client GUIDs
   assert(!Graph.AUTH_SCOPES.includes('Calendars.Read'));
 });
 
-test('public Store configuration accepts the organizations authority', () => {
-  assert.deepEqual(Graph.validateManagedConfig({
+test('customer-owned configuration rejects a shared organizations authority', () => {
+  assert.throws(() => Graph.validateManagedConfig({
     enableGraphTranscriptImport: true,
     graphTenantId: 'organizations',
     graphClientId: SETTINGS.graphClientId
-  }), {
-    tenantId: 'organizations',
-    clientId: SETTINGS.graphClientId
-  });
+  }), error => error.code === 'GRAPH_CONFIG_INVALID');
 });
 
 test('meeting input accepts only exact HTTPS Teams join links', () => {
@@ -127,28 +124,24 @@ test('interactive connection uses PKCE, validates state and stores tokens only i
   assert.equal(Object.values(harness.session).some(value => value.accessToken && value.refreshToken), true);
 });
 
-test('organizations authority accepts a concrete organizational tenant claim', async () => {
+test('customer-owned authority rejects a token from another tenant', async () => {
   const harness = chromeHarness();
-  const settings = {...SETTINGS, graphTenantId:'organizations'};
   harness.api.identity.launchWebAuthFlow = async ({url}) => {
     const authorizationUrl = new URL(url);
     harness.nonce = authorizationUrl.searchParams.get('nonce');
-    assert.equal(authorizationUrl.pathname.startsWith('/organizations/'), true);
+    assert.equal(authorizationUrl.pathname.startsWith(`/${SETTINGS.graphTenantId}/`), true);
     return `${harness.api.identity.getRedirectURL('microsoft')}?code=one-time-code&state=${authorizationUrl.searchParams.get('state')}`;
   };
-  const status = await Graph.connect(settings, {
+  await assert.rejects(Graph.connect(SETTINGS, {
     chromeApi:harness.api,
     cryptoApi:webcrypto,
     fetchImpl:async () => Response.json({
-      access_token:jwt({tid:SETTINGS.graphTenantId,oid:'user-1'}),
+      access_token:jwt({tid:'33333333-3333-4333-8333-333333333333',oid:'user-1'}),
       refresh_token:'session-refresh-token',
-      id_token:jwt({tid:SETTINGS.graphTenantId,aud:SETTINGS.graphClientId,nonce:harness.nonce,preferred_username:'pilot@example.com'}),
+      id_token:jwt({tid:'33333333-3333-4333-8333-333333333333',aud:SETTINGS.graphClientId,nonce:harness.nonce,preferred_username:'pilot@example.com'}),
       expires_in:3600
     })
-  });
-  assert.equal(status.connected, true);
-  assert.equal(status.tenantId, 'organizations');
-  assert.equal(status.resolvedTenantId, SETTINGS.graphTenantId);
+  }), error => error.code === 'TENANT_MISMATCH');
 });
 
 test('interactive connection rejects substituted state and identity nonce', async () => {

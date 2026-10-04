@@ -9,7 +9,10 @@ const GRAPH_CONNECT_PENDING_MAX_AGE_MS = 2 * 60 * 1000;
 let graphConnectResumeInProgress = false;
 
 async function readEffectivePolicy(userKeys = []) {
-    const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
+    const user = {
+        ...(userKeys.length ? await chrome.storage.sync.get(userKeys) : {}),
+        ...await CaptionKeepConfiguration.readGraphUserConfig()
+    };
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
     return CaptionKeepConfiguration.applyGraphRuntimeConfig(
         policy,
