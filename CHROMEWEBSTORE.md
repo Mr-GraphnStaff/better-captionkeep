@@ -145,8 +145,8 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Recovery candidate; submit only after governed validation |
-| 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome submission requires replacement before approval if still mutable |
+| 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Chrome `PENDING_REVIEW`; Edge accepted for certification through Azure run 619; not yet public |
+| 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
 | 5.3.0 | 2026-10-03 | Consolidates Verified Teams Transcript, archive/search, corrections, Word export, All settings, Print / PDF, local AI templates, reviewed chat/screenshots, imported-cue SRT/VTT, feature-detected on-device translation, and universal access to every shipped feature. | GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
 | 5.0.0 | 2026-09-20 | Established the independent Teams and Google Meet release. | Published |
@@ -179,6 +179,6 @@ No developer-operated server, paid subscription, microphone recording, video rec
 - Chrome and Edge live UAT, customer-owned Entra setup, `Calendars.ReadBasic` tenant consent, independent review, and the unchanged 48-hour candidate window remain mandatory.
 - Upload and publication require explicit release-owner authorization. A successful build does not grant it.
 
-### Rejection History
+### Submission History
 
-No 5.3 submission has been made.
+Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. Chrome reports `PENDING_REVIEW`; Microsoft accepted Edge 5.3.2 for certification. Neither status is a claim of public availability.

@@ -8,7 +8,7 @@
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
-> **Current install status — October 4, 2026:** Microsoft Edge Add-ons is serving `5.3.1`, but its public Store build incorrectly hides Microsoft 365 unless managed policy supplies the Graph configuration. Chrome continues to serve `5.1.0`; its defective `5.3.1` submission was cancelled and retained only as a draft. Version `5.3.2` is the active recovery candidate. It uses customer-owned, tenant-specific Entra setup and is not public until Store review completes.
+> **Current install status — October 4, 2026:** Microsoft Edge Add-ons is still serving `5.3.1`, whose Microsoft 365 connection is defective. Chrome still serves `5.1.0`; its defective `5.3.1` review was cancelled. The governed 5.3.2 packages were submitted through Azure run 619: Chrome reports `PENDING_REVIEW` with automatic publication after approval, and Microsoft accepted Edge 5.3.2 for certification. Neither submission is described as public until its Store serves 5.3.2.
 
 ### October 3 development additions — not a promoted release
 
@@ -80,7 +80,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Edge `5.3.1` is public but its Microsoft 365 feature is not production-valid. Chrome continues to serve `5.1.0`; the `5.3.1` review was cancelled. Version `5.3.2` is the recovery candidate. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+Edge `5.3.1` is public but its Microsoft 365 feature is not production-valid. Chrome continues to serve `5.1.0`. Version `5.3.2` is in review in both Stores. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
