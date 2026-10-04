@@ -4,8 +4,8 @@ Last verified: **October 4, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.1.0 public; 5.3.1 submitted | Google accepted 5.3.1 for review after the required `identity` and `unlimitedStorage` Privacy justifications were saved. |
-| Microsoft Edge Add-ons | 5.1.0 public; 5.3.1 submitted | Microsoft accepted 5.3.1 for certification in Azure run 590. |
+| Chrome Web Store | 5.1.0 public; 5.3.1 In review | Google accepted 5.3.1 for review after the required `identity` and `unlimitedStorage` Privacy justifications were saved. |
+| Microsoft Edge Add-ons | 5.1.0 public; 5.3.1 In review | Microsoft accepted 5.3.1 for certification in Azure run 590. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
