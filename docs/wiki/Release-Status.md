@@ -4,8 +4,9 @@ Last verified: **October 4, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.1.0 public; 5.3.1 In review | Google accepted 5.3.1 for review after the required `identity` and `unlimitedStorage` Privacy justifications were saved. |
-| Microsoft Edge Add-ons | 5.1.0 public; 5.3.1 In review | Microsoft accepted 5.3.1 for certification in Azure run 590. |
+| Chrome Web Store | 5.1.0 public; 5.3.1 submitted | The 5.3.1 submission is not an acceptable production target because its Store Graph configuration is inert. Replace it with a validated hotfix before approval if the Dashboard permits. |
+| Microsoft Edge Add-ons | 5.3.1 public | Microsoft 365 is hidden for ordinary Store users because the packaged Graph configuration is inert. Treat this as an active production defect. |
+| Development recovery | 5.3.2 | Dev only; automated Store-package gate passes, but Entra multi-tenant conversion and live Store-equivalent UAT remain required. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -24,6 +25,12 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 - Redundant Chrome run 597 was canceled during cleanup without changing the submitted package.
 - The private release VM was deallocated after the Store operations.
 
+## 5.3.1 production incident
+
+Edge began serving 5.3.1 on October 4, 2026. The Store identity and signed CRX are valid, but the package hides Microsoft 365 unless managed policy supplies the Graph configuration. Dev and UAT had been tested with a local overlay, which was not Store-equivalent evidence.
+
+Azure Boards bug **#297** tracks the critical recovery. Version 5.3.2 must not advance until the Entra app accepts organizational tenants, the exact Store-equivalent package completes Microsoft 365 sign-in/import/viewer UAT, and the normal PR and release gates pass.
+
 ## Release terminology
 
 - **Frozen:** source commit and package hashes are fixed.
@@ -33,4 +40,4 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 - **Public:** the Store listing serves the version.
 - **Upgrade verified:** an existing installation received and ran the public version.
 
-See the repository's [5.3.1 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.1.md) and [withdrawn 5.3.0 record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.md).
+See the repository's [5.3.2 recovery record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.2.md), [5.3.1 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.1.md), and [withdrawn 5.3.0 record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.md).

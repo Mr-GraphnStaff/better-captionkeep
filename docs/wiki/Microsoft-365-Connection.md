@@ -1,6 +1,6 @@
 # Connect Microsoft 365
 
-> **Availability:** Verified Teams Transcript is part of the corrected 5.3 candidate and is not available in the public 5.1.0 Store build as of October 4, 2026.
+> **Availability warning — October 4, 2026:** Edge 5.3.1 is public but incorrectly hides this connection for ordinary Store users. Version 5.3.2 is a development recovery and is not yet approved for Store publication.
 
 The connector retrieves an official Teams transcript directly from Microsoft Graph into the browser's private local history. Better CaptionKeep's developer does not receive the transcript.
 
@@ -27,7 +27,7 @@ Microsoft may need time after a meeting ends to finish producing the transcript.
 
 ## Administrator requirements
 
-The organization must configure the approved Entra application, delegated Graph permissions, tenant consent, Teams transcript API access, and the exact browser redirect URI. Wildcard redirects do not work.
+Better CaptionKeep must use its approved multi-tenant Entra public application and exact Store redirect URIs. Each organization retains control of delegated consent and Teams transcript API access. Wildcard redirects do not work.
 
 Store installations keep Store-assigned identities. The three governed unpacked test lanes also have fixed identities, so their redirects are registered once and remain stable across rebuilds.
 

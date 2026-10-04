@@ -1,1 +1,0 @@
-globalThis.CaptionKeepUnpackedLocalConfig = undefined;

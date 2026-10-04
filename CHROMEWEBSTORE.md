@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Better CaptionKeep
 
-An optional local Graph configuration overlay exists only in ignored unpacked Dev, UAT, and local Prod folders. Store packages cannot activate or contain it. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
+The Store package contains the public Microsoft Entra client configuration required to offer Verified Teams Transcript without a local overlay. Microsoft 365 tenants retain control of delegated consent and transcript access, and managed deployments may override the packaged authority and client identifiers. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
 > Last Updated: 2026-10-04
 
@@ -18,13 +18,13 @@ Capture live captions and privately import verified Microsoft Teams transcripts 
 
 **Detailed Description**
 
-Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. In Teams, it can request captions, the participant roster, and Microsoft 365 transcription while clearly distinguishing the local browser copy from the official tenant-retained transcript. When an organization enables Verified Teams Transcript, a signed-in user can select the current meeting or choose one of five recent Teams meetings to retrieve its authorized official transcript directly into the standard transcript viewer.
+Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. In Teams, it can request captions, the participant roster, and Microsoft 365 transcription while clearly distinguishing the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
 
 Every feature included in Better CaptionKeep is available to every user. There is no paid tier, subscription, activation, or license key. Organization-managed security settings and Microsoft authorization requirements can still control how features operate in a managed environment.
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-Version 5.3.1 adds a full All Settings tab with a prominent full-width popup entry, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Cloud sign-in and uploads are not included in this release.
+Version 5.3.2 corrects the Store Microsoft 365 configuration defect found after Edge 5.3.1 became public. It also includes the 5.3 All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
@@ -34,7 +34,7 @@ Privacy Scrubber is enabled by default and can mask common sensitive patterns be
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
-To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for settings, history, and exports, or open the Evidence Board beside the meeting. Organizational users see Verified Teams Transcript only when an administrator has enabled and configured it.
+To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for settings, history, and exports, or open the Evidence Board beside the meeting. Organizational users can choose Connect Microsoft 365; their tenant may require administrator consent before transcript import is authorized.
 
 Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
 
@@ -44,7 +44,7 @@ Productivity
 
 **Single Purpose**
 
-Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, when enabled by an organization, lets a signed-in user select a recent Teams meeting and privately import its authorized official transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports or copies it.
+Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and lets a signed-in organizational user select a recent Teams meeting and privately import its authorized official transcript from Microsoft 365 when their tenant permits the delegated access. Transcript data stays in the user's browser unless the user explicitly exports or copies it.
 
 **Primary Language**
 
@@ -74,12 +74,12 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `storage` | permissions | Stores preferences, managed settings, recovery checkpoints, pending exports, temporary aliases, Evidence Board markers, and user-controlled local transcript history. |
 | `unlimitedStorage` | permissions | Lets the user-controlled local transcript archive grow beyond the default local-storage quota without silently evicting meetings. Explicit user deletion and managed retention remain authoritative. |
 | `sidePanel` | permissions | Displays the local live transcript and Evidence Board beside the supported meeting page. |
-| `identity` | permissions | Opens interactive Microsoft Entra sign-in for an administrator-enabled official Teams transcript import. No client secret is embedded. |
+| `identity` | permissions | Opens interactive Microsoft Entra sign-in with PKCE when the user chooses Connect Microsoft 365. No client secret is embedded. |
 | `https://teams.microsoft.com/*` | host_permissions | Reads captions and optional attendee information rendered during supported Microsoft Teams meetings. |
 | `https://teams.cloud.microsoft/*` | host_permissions | Reads captions and optional attendee information rendered in the current Microsoft Teams web application. |
 | `https://meet.google.com/*` | host_permissions | Reads captions rendered during Google Meet meetings. |
 | `https://app.zoom.us/*` | host_permissions | Reads captions rendered by the Zoom Web subtitle overlay. |
-| `https://login.microsoftonline.com/*` | host_permissions | Performs interactive single-tenant Microsoft Entra authorization with PKCE when the managed Graph feature is enabled. |
+| `https://login.microsoftonline.com/*` | host_permissions | Performs interactive organizational Microsoft Entra authorization with PKCE when the user chooses Connect Microsoft 365. |
 | `https://graph.microsoft.com/*` | host_permissions | Shows up to five recent eligible Teams meetings, resolves the user-selected meeting, and retrieves its authorized official transcript. |
 
 ### Microsoft Delegated Scopes
@@ -104,7 +104,7 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | Personally identifiable information | Possible | Only through explicit user export/handoff or direct Microsoft sign-in | Speaker names, optional attendee names, meeting titles, and connected-account label | Not by Better CaptionKeep automatically |
 | Health information | Not intentionally classified; may occur inside meeting content | Only through explicit user action | Preserved as part of user-controlled transcript content | Not by Better CaptionKeep automatically |
 | Financial information | Not intentionally classified; may occur inside meeting content | Only through explicit user action | Preserved as part of user-controlled transcript content | Not by Better CaptionKeep automatically |
-| Authentication information | Yes | Directly exchanged with Microsoft identity services | Administrator-enabled delegated Microsoft 365 connection | Microsoft only; not retained by the developer |
+| Authentication information | Yes | Directly exchanged with Microsoft identity services | User-initiated delegated Microsoft 365 connection subject to tenant consent | Microsoft only; not retained by the developer |
 | Personal communications | Yes | Only through explicit export/handoff, or direct Graph retrieval from Microsoft | Local transcript capture, review, recovery, and export | Not by Better CaptionKeep automatically |
 | Location | No | No | Not used | No |
 | Web history | No | No | Not used | No |
@@ -145,7 +145,8 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.3.1 | 2026-10-04 | Corrects production-lane identity and Microsoft 365 configuration visibility while retaining the reviewed 5.3 feature set and universal access to every shipped feature. | Release candidate; exact Store packages require governed pipeline promotion |
+| 5.3.2 | 2026-10-04 | Makes Microsoft 365 available in Store packages without a local overlay, adds organizational-tenant authentication, preserves managed overrides, and adds Store-equivalence regression gates. | Development recovery; not approved for Store submission |
+| 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome submission requires replacement before approval if still mutable |
 | 5.3.0 | 2026-10-03 | Consolidates Verified Teams Transcript, archive/search, corrections, Word export, All settings, Print / PDF, local AI templates, reviewed chat/screenshots, imported-cue SRT/VTT, feature-detected on-device translation, and universal access to every shipped feature. | GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
 | 5.0.0 | 2026-09-20 | Established the independent Teams and Google Meet release. | Published |
@@ -159,7 +160,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 5. Open the Evidence Board, mark a caption, and verify its source-linked brief without modifying the transcript.
 6. Confirm Privacy Scrubber is enabled by default. Optional AI handoff must stop on the internal review page until the reviewer explicitly copies text.
 7. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
-8. Verified Teams Transcript appears only when an organization supplies its approved tenant and application identifiers through managed policy. Better CaptionKeep provides no shared credentials. In an authorized profile, connect Microsoft 365, select the current or a recent Teams meeting, and explicitly import an available official transcript.
+8. Choose Connect Microsoft 365. Confirm the sign-in request uses the installed Store identity, select the current or a recent Teams meeting, and explicitly import an available official transcript. The tenant must permit the listed delegated scopes; Better CaptionKeep embeds a public client ID, never a client secret.
 
 No developer-operated server, paid subscription, microphone recording, video recording, or shared test account is required for the extension itself.
 

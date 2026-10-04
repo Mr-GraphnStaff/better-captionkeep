@@ -1,6 +1,6 @@
 # Microsoft Entra App Registration for Verified Teams Transcript
 
-Status: **pilot administrator runbook**. Complete these steps only in the controlled test tenant. This runbook does not authorize a production tenant rollout or Store publication.
+Status: **5.3.2 recovery runbook**. Store publication remains blocked until the multi-tenant registration and Store-equivalent live UAT are complete.
 
 Applies to the planned [Enterprise Microsoft Graph Transcript Connector](GRAPH-TRANSCRIPT-CONNECTOR.md).
 
@@ -39,14 +39,14 @@ Edge Store:          https://edefcbdhahfolgkoamkbknjppojpaffk.chromiumapp.org/mi
 
 Each governed unpacked lane has a fixed public manifest key and therefore a stable identity. Register its redirect once; normal rebuilds and upgrades do not change it. A Store redirect URI does not work for an unpacked identity, and an ad hoc unpacked copy outside the three governed lane builds is unsupported.
 
-## Create the single-tenant application
+## Create or verify the multi-tenant public application
 
 1. Open the Microsoft Entra admin center.
 2. Go to **Identity > Applications > App registrations > New registration**.
-3. Use the pilot name `Better CaptionKeep - Graph Transcript Pilot`.
-4. Select **Accounts in this organizational directory only**.
+3. Use the governed Better CaptionKeep application name.
+4. Select **Accounts in any organizational directory**. Personal Microsoft accounts are not required.
 5. Leave the initial redirect URI empty and select **Register**.
-6. Record the **Application (client) ID** and **Directory (tenant) ID** in the governed pilot record. These identifiers are not passwords, but do not place tenant-specific values in public screenshots or sample files.
+6. Record the **Application (client) ID** in the governed application record. The client ID is a public identifier, not a password. Do not publish tenant-specific identifiers in screenshots or examples.
 
 ## Configure Chromium redirect URIs
 
@@ -86,9 +86,11 @@ The Graph permission alone is insufficient. In the Teams admin center:
 
 Where the tenant supports per-app or per-user scoping, restrict the pilot to the test application and test users. Do not represent a global tenant setting as a narrowly scoped control unless the live configuration proves that scope.
 
-## Configure Better CaptionKeep through managed policy
+## Packaged configuration and managed override
 
-The connector remains hidden and unavailable unless all three managed settings are present and valid:
+Store builds carry the governed public-client ID and use the Microsoft `organizations` authority. This is required so an ordinary Store installation can display **Connect Microsoft 365** without a local overlay or browser policy. Tenant consent and Teams transcript controls remain authoritative.
+
+Managed deployments may override the packaged defaults with all three settings:
 
 | Managed setting | Value |
 | --- | --- |
@@ -96,7 +98,7 @@ The connector remains hidden and unavailable unless all three managed settings a
 | `graphTenantId` | Directory tenant GUID |
 | `graphClientId` | Application client GUID |
 
-These values identify the approved tenant and registration. They are not credentials. Do not add them to the normal user-settings export, browser sync storage, public documentation examples, or Store package defaults.
+These values identify a tenant-specific approved registration. They are not credentials and do not belong in the normal user-settings export or browser sync storage. Managed values take precedence over the packaged public defaults.
 
 ## Pilot validation
 
@@ -120,7 +122,8 @@ Retain status codes, timestamps, extension version and ID, browser version, perm
 
 | Condition | Expected result |
 | --- | --- |
-| Managed configuration absent | Connector is hidden and Graph calls cannot be initiated |
+| Packaged Store configuration absent | Release verification fails; the package must not advance |
+| Tenant blocks user consent or required admin consent is absent | Microsoft denies the requested delegated access |
 | User not signed in | Import is blocked and interactive connection is offered |
 | Admin consent absent | Microsoft denies the requested transcript permission |
 | Basic calendar permission absent | Recent meetings fail closed; current-meeting and manual-link selection remain visible |

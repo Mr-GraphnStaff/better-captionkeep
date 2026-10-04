@@ -37,6 +37,16 @@ async function sha256(file) {
 }
 
 const sourceManifest = JSON.parse(await readFile(path.join(projectRoot, 'teams-captions-saver', 'manifest.json'), 'utf8'));
+const storeGraphConfig = await readFile(path.join(projectRoot, 'teams-captions-saver', 'graphRuntimeConfig.js'), 'utf8');
+for (const required of [
+  'enableGraphTranscriptImport: true',
+  "graphTenantId: 'organizations'",
+  "graphClientId: 'a88e99c2-2dce-45e2-9839-fa63372c18c5'"
+]) {
+  if (!storeGraphConfig.includes(required)) {
+    throw new Error(`Store Microsoft 365 configuration is missing ${required}`);
+  }
+}
 const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
 const forbiddenSource = sourceFiles.filter(file => file.split('/').some(part => forbidden.test(part)));
@@ -64,6 +74,10 @@ for (const target of ['dev', 'uat', 'prod']) {
   }
   if (target === 'prod' && /test|development|release candidate/i.test(`${manifest.name} ${manifest.version_name ?? ''} ${manifest.action?.default_title ?? ''}`)) {
     throw new Error('prod manifest contains non-production lifecycle labeling');
+  }
+  const graphConfig = await readFile(path.join(root, 'graphRuntimeConfig.js'), 'utf8');
+  if (target === 'prod' && graphConfig !== storeGraphConfig) {
+    throw new Error('prod Microsoft 365 configuration differs from the Store source');
   }
 }
 

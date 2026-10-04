@@ -135,8 +135,14 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
             status += ')';
             if (transcriptionState === 'running') {
                 status += ' Official Microsoft 365 transcription is running.';
+            } else if (transcriptionState === 'requested') {
+                status += ' Microsoft 365 transcription was requested; Teams will confirm when it starts.';
+            } else if (transcriptionState === 'unavailable') {
+                status += ` ${transcriptionDetail || 'Local capture is working. An official Microsoft 365 transcript is unavailable for this meeting.'}`;
+            } else if (transcriptionState === 'disabled') {
+                status += ` ${transcriptionDetail || 'Local capture is working. Automatic Microsoft 365 transcription is off.'}`;
             } else {
-                status += ` CAUTION: ${transcriptionDetail || 'Teams transcription is not verified; an official tenant transcript is not guaranteed.'}`;
+                status += ' Local capture is working. Microsoft 365 transcription has not been verified yet.';
             }
             statusMessage.textContent = status;
             statusMessage.style.color = captionCount > 0 ? 'var(--ck-success)' : 'var(--ck-warning)';
@@ -180,9 +186,9 @@ function updateButtonStates(hasData) {
 async function refreshEnterprisePolicy() {
     const user = await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS);
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
-    const policy = CaptionKeepConfiguration.applyLocalGraphOverlay(
+    const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
-        globalThis.CaptionKeepUnpackedLocalConfig,
+        globalThis.CaptionKeepGraphRuntimeConfig,
         runtimeManifest
     );
     currentEnterprisePolicy = policy.settings;
@@ -541,9 +547,9 @@ async function loadSettings() {
         'uiTheme'
     ]);
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
-    const policy = CaptionKeepConfiguration.applyLocalGraphOverlay(
+    const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
-        globalThis.CaptionKeepUnpackedLocalConfig,
+        globalThis.CaptionKeepGraphRuntimeConfig,
         runtimeManifest
     );
     const settings = policy.settings;

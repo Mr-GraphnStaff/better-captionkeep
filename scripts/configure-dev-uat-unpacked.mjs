@@ -28,10 +28,10 @@ if (manifest.name !== expectedName || !expectedVersionLabel.test(manifest.versio
   throw new Error(`Refusing to configure a non-canonical ${target} build.`);
 }
 
-const source = `globalThis.CaptionKeepUnpackedLocalConfig = Object.freeze(${JSON.stringify({
+const source = `globalThis.CaptionKeepGraphRuntimeConfig = Object.freeze(${JSON.stringify({
   enableGraphTranscriptImport: true,
   graphTenantId: tenantId,
   graphClientId: clientId
 })});\n`;
-await writeFile(path.join(targetDir, 'unpackedLocalConfig.js'), source, {encoding:'utf8', mode:0o600});
+await writeFile(path.join(targetDir, 'graphRuntimeConfig.js'), source, {encoding:'utf8', mode:0o600});
 console.log(`Configured the canonical ${target} unpacked Graph connection without changing a Store package.`);

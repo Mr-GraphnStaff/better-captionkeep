@@ -1,13 +1,13 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'unpackedLocalConfig.js');
+    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'graphRuntimeConfig.js');
 let historyQueue = Promise.resolve();
 
 async function readEffectivePolicy(userKeys = []) {
     const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
-    return CaptionKeepConfiguration.applyLocalGraphOverlay(
+    return CaptionKeepConfiguration.applyGraphRuntimeConfig(
         policy,
-        globalThis.CaptionKeepUnpackedLocalConfig,
+        globalThis.CaptionKeepGraphRuntimeConfig,
         chrome.runtime.getManifest()
     );
 }

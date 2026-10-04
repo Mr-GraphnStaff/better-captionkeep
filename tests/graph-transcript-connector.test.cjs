@@ -43,6 +43,17 @@ test('managed Graph configuration is opt-in and requires tenant and client GUIDs
   assert(!Graph.AUTH_SCOPES.includes('Calendars.Read'));
 });
 
+test('public Store configuration accepts the organizations authority', () => {
+  assert.deepEqual(Graph.validateManagedConfig({
+    enableGraphTranscriptImport: true,
+    graphTenantId: 'organizations',
+    graphClientId: SETTINGS.graphClientId
+  }), {
+    tenantId: 'organizations',
+    clientId: SETTINGS.graphClientId
+  });
+});
+
 test('meeting input accepts only exact HTTPS Teams join links', () => {
   const valid = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_example/0?context=%7B%7D';
   const current = 'https://teams.microsoft.com/meet/276858178406116?p=syntheticToken';
@@ -114,6 +125,30 @@ test('interactive connection uses PKCE, validates state and stores tokens only i
   assert.equal(tokenBody.has('client_secret'), false);
   assert.equal(JSON.stringify(status).includes('access_token'), false);
   assert.equal(Object.values(harness.session).some(value => value.accessToken && value.refreshToken), true);
+});
+
+test('organizations authority accepts a concrete organizational tenant claim', async () => {
+  const harness = chromeHarness();
+  const settings = {...SETTINGS, graphTenantId:'organizations'};
+  harness.api.identity.launchWebAuthFlow = async ({url}) => {
+    const authorizationUrl = new URL(url);
+    harness.nonce = authorizationUrl.searchParams.get('nonce');
+    assert.equal(authorizationUrl.pathname.startsWith('/organizations/'), true);
+    return `${harness.api.identity.getRedirectURL('microsoft')}?code=one-time-code&state=${authorizationUrl.searchParams.get('state')}`;
+  };
+  const status = await Graph.connect(settings, {
+    chromeApi:harness.api,
+    cryptoApi:webcrypto,
+    fetchImpl:async () => Response.json({
+      access_token:jwt({tid:SETTINGS.graphTenantId,oid:'user-1'}),
+      refresh_token:'session-refresh-token',
+      id_token:jwt({tid:SETTINGS.graphTenantId,aud:SETTINGS.graphClientId,nonce:harness.nonce,preferred_username:'pilot@example.com'}),
+      expires_in:3600
+    })
+  });
+  assert.equal(status.connected, true);
+  assert.equal(status.tenantId, 'organizations');
+  assert.equal(status.resolvedTenantId, SETTINGS.graphTenantId);
 });
 
 test('interactive connection rejects substituted state and identity nonce', async () => {

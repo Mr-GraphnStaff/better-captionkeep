@@ -111,13 +111,15 @@
                 locked.add(key);
             }
         }
-        if (managed.enableGraphTranscriptImport === true) {
-            settings.enableGraphTranscriptImport = true;
+        if (typeof managed.enableGraphTranscriptImport === 'boolean') {
+            settings.enableGraphTranscriptImport = managed.enableGraphTranscriptImport;
             locked.add('enableGraphTranscriptImport');
-            for (const key of ['graphTenantId', 'graphClientId']) {
-                if (typeof managed[key] === 'string' && managed[key].trim()) {
-                    settings[key] = managed[key].trim();
-                    locked.add(key);
+            if (managed.enableGraphTranscriptImport) {
+                for (const key of ['graphTenantId', 'graphClientId']) {
+                    if (typeof managed[key] === 'string' && managed[key].trim()) {
+                        settings[key] = managed[key].trim();
+                        locked.add(key);
+                    }
                 }
             }
         }
@@ -139,24 +141,23 @@
         return Object.freeze({ settings: Object.freeze(settings), locked: Object.freeze([...locked]) });
     }
 
-    function applyLocalGraphOverlay(policy, localConfig = {}, manifest = {}) {
+    function applyGraphRuntimeConfig(policy, runtimeConfig = {}, manifest = {}) {
         const versionName = String(manifest.version_name || '');
         const isCanonicalBuild = manifest.name === 'Better CaptionKeep'
             || (manifest.name === 'Better CaptionKeep - Development'
                 && /\bdevelopment\b/i.test(versionName))
             || (manifest.name === 'Better CaptionKeep - UAT Release Candidate'
                 && /\buat release candidate\b/i.test(versionName));
-        if (!isCanonicalBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
+        if (!isCanonicalBuild || runtimeConfig.enableGraphTranscriptImport !== true) return policy;
         const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
         const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
-        graphKeys.forEach(key => locked.add(key));
+        const settings = { ...policy.settings };
+        for (const key of graphKeys) {
+            if (!locked.has(key)) settings[key] = runtimeConfig[key];
+            locked.add(key);
+        }
         return Object.freeze({
-            settings: Object.freeze({
-                ...policy.settings,
-                enableGraphTranscriptImport: true,
-                graphTenantId: localConfig.graphTenantId,
-                graphClientId: localConfig.graphClientId
-            }),
+            settings: Object.freeze(settings),
             locked: Object.freeze([...locked])
         });
     }
@@ -173,5 +174,5 @@
         return sanitize(parsed.settings);
     }
 
-    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyLocalGraphOverlay, createExport, parseImport });
+    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyGraphRuntimeConfig, createExport, parseImport });
 })();

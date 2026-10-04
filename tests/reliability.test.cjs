@@ -1423,7 +1423,7 @@ test('Dev, UAT, and production roots are directly loadable lifecycle builds',()=
     for(const id of ['pjpibiimicedkckleehljlklmblkacph','ecpjboeanaehianibdbgijldbikdgkhm','nffdfdkkbbbmngcibbeindpjlfkcnikg']) {
         assert(verifier.includes(id));
     }
-    assert.equal(fs.existsSync(path.join(root,'unpackedLocalConfig.js')),true);
+    assert.equal(fs.existsSync(path.join(root,'graphRuntimeConfig.js')),true);
     assert(!builder.includes('--output-root'));
 });
 test('Chrome Store manifest preserves runtime behavior without test labeling',()=>{
@@ -1574,18 +1574,26 @@ test('Dev, UAT, and Prod unpacked Graph configuration extends frozen policy with
     const config=context.CaptionKeepConfiguration;
     const policy=config.applyPolicy({privacyScrubberEnabled:true},{});
     const local={enableGraphTranscriptImport:true,graphTenantId:'11111111-1111-1111-1111-111111111111',graphClientId:'22222222-2222-2222-2222-222222222222'};
-    const effective=config.applyLocalGraphOverlay(policy,local,{name:'Better CaptionKeep - UAT Release Candidate',version_name:'5.3.0 uat release candidate'});
+    const effective=config.applyGraphRuntimeConfig(policy,local,{name:'Better CaptionKeep - UAT Release Candidate',version_name:'5.3.0 uat release candidate'});
     assert.equal(effective.settings.enableGraphTranscriptImport,true);
     assert.equal(effective.settings.graphTenantId,local.graphTenantId);
     assert(effective.locked.includes('graphTenantId'));
     assert.equal(policy.settings.enableGraphTranscriptImport,undefined);
     assert.equal(Object.isFrozen(effective.settings),true);
-    const development=config.applyLocalGraphOverlay(policy,local,{name:'Better CaptionKeep - Development',version_name:'5.3.0 development'});
+    const development=config.applyGraphRuntimeConfig(policy,local,{name:'Better CaptionKeep - Development',version_name:'5.3.0 development'});
     assert.equal(development.settings.enableGraphTranscriptImport,true);
     assert.equal(development.settings.graphClientId,local.graphClientId);
-    const production=config.applyLocalGraphOverlay(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
+    const production=config.applyGraphRuntimeConfig(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
     assert.equal(production.settings.enableGraphTranscriptImport,true);
     assert.equal(production.settings.graphClientId,local.graphClientId);
+    const managed=config.applyPolicy({}, {enableGraphTranscriptImport:true,graphTenantId:'33333333-3333-4333-8333-333333333333',graphClientId:'44444444-4444-4444-8444-444444444444'});
+    const managedProduction=config.applyGraphRuntimeConfig(managed,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
+    assert.equal(managedProduction.settings.graphTenantId,'33333333-3333-4333-8333-333333333333');
+    assert.equal(managedProduction.settings.graphClientId,'44444444-4444-4444-8444-444444444444');
+    const disabled=config.applyPolicy({}, {enableGraphTranscriptImport:false});
+    const disabledProduction=config.applyGraphRuntimeConfig(disabled,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
+    assert.equal(disabledProduction.settings.enableGraphTranscriptImport,false);
+    assert(disabledProduction.locked.includes('enableGraphTranscriptImport'));
 });
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
@@ -1713,7 +1721,11 @@ test('Teams automation requests tenant transcription and distinguishes it from l
     assert(popup.includes('Official tenant copy:'));
     assert(popup.includes('id="autoOpenAttendeesToggle" checked'));
     assert(popupScript.includes("transcriptionState === 'running'"));
-    assert(popupScript.includes('CAUTION:'));
+    assert(popupScript.includes("transcriptionState === 'requested'"));
+    assert(popupScript.includes("transcriptionState === 'unavailable'"));
+    assert(popupScript.includes('Local capture is working.'));
+    assert(!popupScript.includes('CAUTION:'));
+    assert(content.includes('An official Microsoft 365 transcript is unavailable for this meeting because Teams role or organization policy controls access.'));
 });
 test('Verified Teams Transcript offers current, recent-five, and manual meeting selection',()=>{
     const popup=read('popup.html');
@@ -1753,30 +1765,32 @@ test('worker accepts the same authorized unpacked Graph configuration in Dev, UA
     const popup=read('popup.html');
     const popupScript=read('popup.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
-    assert(worker.includes("'unpackedLocalConfig.js'"));
-    assert(worker.includes('CaptionKeepConfiguration.applyLocalGraphOverlay'));
-    assert(worker.includes('globalThis.CaptionKeepUnpackedLocalConfig'));
-    assert(popup.includes('<script src="unpackedLocalConfig.js" defer></script>'));
-    assert(popupScript.includes('CaptionKeepConfiguration.applyLocalGraphOverlay'));
-    assert(popupScript.includes('globalThis.CaptionKeepUnpackedLocalConfig'));
+    assert(worker.includes("'graphRuntimeConfig.js'"));
+    assert(worker.includes('CaptionKeepConfiguration.applyGraphRuntimeConfig'));
+    assert(worker.includes('globalThis.CaptionKeepGraphRuntimeConfig'));
+    assert(popup.includes('<script src="graphRuntimeConfig.js" defer></script>'));
+    assert(popupScript.includes('CaptionKeepConfiguration.applyGraphRuntimeConfig'));
+    assert(popupScript.includes('globalThis.CaptionKeepGraphRuntimeConfig'));
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep'"));
     assert(read('configuration.js').includes('/\\buat release candidate\\b/i'));
-    assert(read('configuration.js').includes('localConfig.enableGraphTranscriptImport !== true'));
+    assert(read('configuration.js').includes('runtimeConfig.enableGraphTranscriptImport !== true'));
     assert(overlayScript.includes("['dev', 'uat', 'prod'].includes(target)"));
     assert(overlayScript.includes("path.join(projectRoot, 'dist', target)"));
     assert(overlayScript.includes('without changing a Store package'));
 });
-test('every service worker loads a present inert local configuration without a failed fetch',()=>{
+test('every service worker loads a present Store-safe Graph configuration without a failed fetch',()=>{
     const production=harness();
     production.run(read('service_worker.js'));
-    assert(production.importedScripts.includes('unpackedLocalConfig.js'));
-    assert.equal(production.context.CaptionKeepUnpackedLocalConfig,undefined);
+    assert(production.importedScripts.includes('graphRuntimeConfig.js'));
+    assert.equal(production.context.CaptionKeepGraphRuntimeConfig.enableGraphTranscriptImport,true);
+    assert.equal(production.context.CaptionKeepGraphRuntimeConfig.graphTenantId,'organizations');
+    assert.equal(production.context.CaptionKeepGraphRuntimeConfig.graphClientId,'a88e99c2-2dce-45e2-9839-fa63372c18c5');
 
     const development=harness();
     development.chrome.runtime.getManifest=()=>({name:'Better CaptionKeep - Development',version:'5.3.0',version_name:'5.3.0 development'});
     development.run(read('service_worker.js'));
-    assert(development.importedScripts.includes('unpackedLocalConfig.js'));
+    assert(development.importedScripts.includes('graphRuntimeConfig.js'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');

@@ -27,8 +27,8 @@ node scripts/configure-dev-uat-unpacked.mjs uat
 
 Use `dev`, `uat`, or `prod` as the final command argument, then load that same folder in Chrome or Edge. Rebuilding a lane intentionally replaces its configured overlay with the inert placeholder; run the configuration command again afterward.
 
-A normal build contains an inert `unpackedLocalConfig.js` placeholder so Chromium never reports a failed script fetch. The configuration command replaces that placeholder only in the selected authorized unpacked lane. Dev, UAT, and Prod therefore expose the same configured Microsoft 365 behavior during local validation.
+A normal 5.3.2 build contains `graphRuntimeConfig.js` with the Store public-client configuration. The configuration command may replace it only in the selected governed unpacked lane when a tenant-specific test registration is required. Dev, UAT, local Prod, and Store packages must all expose Microsoft 365 without relying on an ignored local-only file.
 
 Register each lane's redirect URI once. A normal rebuild or version upgrade does not require an Entra redirect change. Removing the manifest key or loading a different ad hoc folder is unsupported because either action can create a different browser identity.
 
-Do not copy a configured `unpackedLocalConfig.js` into source or commit it. The release checks must continue to prove that Store artifacts contain no configured Microsoft identifiers.
+Do not commit tenant-specific overrides. The release checks must prove that Store artifacts contain the governed public client ID and `organizations` authority, while managed tenant-specific settings retain precedence.
