@@ -29,6 +29,8 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 
 Edge began serving 5.3.1 on October 4, 2026. The Store identity and signed CRX are valid, but the package hides Microsoft 365 unless managed policy supplies the Graph configuration. Dev and UAT had been tested with a local overlay, which was not Store-equivalent evidence.
 
+The canonical [after-action report and corrective action plan](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/INCIDENT-2026-10-04-EDGE-5.3.1.md) records the customer impact, timeline, five-whys analysis, accountability statement, permanent release gates, and tracked remediation work.
+
 Azure Boards bug **#297** tracks the critical recovery. The earlier live tenant proof covered optional-permission approval, Microsoft sign-in, recent-meeting discovery, verified transcript import/viewer, live capture, and export. The final architecture requires a customer-owned single-tenant registration and stores its public tenant/client identifiers locally or through managed policy. Public resolution now requires Store approval, public availability, and upgrade verification.
 
 Azure run **619** completed the protected workflow on October 4, 2026. Chrome returned `PENDING_REVIEW`; Edge returned a successful certification submission. Those are submission states, not claims that either Store is already serving 5.3.2. The release VM was deallocated after the run.
