@@ -1,16 +1,53 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'unpackedLocalConfig.js');
+    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'graphRuntimeConfig.js');
 let historyQueue = Promise.resolve();
+const MICROSOFT_365_HOST_ACCESS = Object.freeze([
+    'https://login.microsoftonline.com/*',
+    'https://graph.microsoft.com/*'
+]);
+const GRAPH_CONNECT_PENDING_MAX_AGE_MS = 2 * 60 * 1000;
+let graphConnectResumeInProgress = false;
 
 async function readEffectivePolicy(userKeys = []) {
-    const user = userKeys.length ? await chrome.storage.sync.get(userKeys) : {};
+    const user = {
+        ...(userKeys.length ? await chrome.storage.sync.get(userKeys) : {}),
+        ...await CaptionKeepConfiguration.readGraphUserConfig()
+    };
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
-    return CaptionKeepConfiguration.applyLocalGraphOverlay(
+    return CaptionKeepConfiguration.applyGraphRuntimeConfig(
         policy,
-        globalThis.CaptionKeepUnpackedLocalConfig,
+        globalThis.CaptionKeepGraphRuntimeConfig,
         chrome.runtime.getManifest()
     );
 }
+
+async function resumePendingMicrosoft365Connect() {
+    if (graphConnectResumeInProgress || !chrome.permissions?.contains) return;
+    const {graphConnectPending} = await chrome.storage.session.get('graphConnectPending');
+    if (!graphConnectPending) return;
+    const age = Date.now() - Number(graphConnectPending.createdAt || 0);
+    if (!Number.isFinite(age) || age < 0 || age > GRAPH_CONNECT_PENDING_MAX_AGE_MS) {
+        await chrome.storage.session.remove('graphConnectPending');
+        return;
+    }
+    const hasAccess = await chrome.permissions.contains({origins: [...MICROSOFT_365_HOST_ACCESS]});
+    if (!hasAccess) return;
+    graphConnectResumeInProgress = true;
+    await chrome.storage.session.remove('graphConnectPending');
+    try {
+        const policy = await readEffectivePolicy();
+        await CaptionKeepGraphTranscript.connect(policy.settings);
+    } catch (error) {
+        console.warn('[CaptionKeep] Microsoft 365 sign-in could not continue after permission approval:', error.message);
+    } finally {
+        graphConnectResumeInProgress = false;
+    }
+}
+
+chrome.permissions?.onAdded?.addListener(() => {
+    resumePendingMicrosoft365Connect().catch(error =>
+        console.warn('[CaptionKeep] Could not resume Microsoft 365 sign-in:', error.message));
+});
 
 function historyOptions(settings = {}) {
     return {

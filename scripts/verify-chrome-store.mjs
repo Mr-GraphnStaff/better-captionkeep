@@ -8,7 +8,7 @@ const sourceManifestPath = path.join(projectRoot, 'teams-captions-saver', 'manif
 const stagedRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store-unpacked');
 const artifactRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store');
 const finalRoot = path.join(projectRoot, 'dist', 'prod');
-const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^tmp$)/i;
+const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
 
 async function filesUnder(root, relative = '') {
   const entries = await readdir(path.join(root, relative), { withFileTypes: true });
@@ -31,7 +31,7 @@ if (storeManifest.name !== 'Better CaptionKeep') throw new Error('Chrome Store n
 if (/test|development/i.test(`${storeManifest.name} ${storeManifest.version_name ?? ''} ${storeManifest.action?.default_title ?? ''}`)) {
   throw new Error('Chrome Store manifest contains test or development labeling.');
 }
-for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
+for (const key of ['version', 'permissions', 'host_permissions', 'optional_host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
   if (JSON.stringify(storeManifest[key]) !== JSON.stringify(sourceManifest[key])) {
     throw new Error(`Chrome Store manifest differs from the reviewed source manifest at ${key}.`);
   }

@@ -43,6 +43,14 @@ test('managed Graph configuration is opt-in and requires tenant and client GUIDs
   assert(!Graph.AUTH_SCOPES.includes('Calendars.Read'));
 });
 
+test('customer-owned configuration rejects a shared organizations authority', () => {
+  assert.throws(() => Graph.validateManagedConfig({
+    enableGraphTranscriptImport: true,
+    graphTenantId: 'organizations',
+    graphClientId: SETTINGS.graphClientId
+  }), error => error.code === 'GRAPH_CONFIG_INVALID');
+});
+
 test('meeting input accepts only exact HTTPS Teams join links', () => {
   const valid = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_example/0?context=%7B%7D';
   const current = 'https://teams.microsoft.com/meet/276858178406116?p=syntheticToken';
@@ -114,6 +122,26 @@ test('interactive connection uses PKCE, validates state and stores tokens only i
   assert.equal(tokenBody.has('client_secret'), false);
   assert.equal(JSON.stringify(status).includes('access_token'), false);
   assert.equal(Object.values(harness.session).some(value => value.accessToken && value.refreshToken), true);
+});
+
+test('customer-owned authority rejects a token from another tenant', async () => {
+  const harness = chromeHarness();
+  harness.api.identity.launchWebAuthFlow = async ({url}) => {
+    const authorizationUrl = new URL(url);
+    harness.nonce = authorizationUrl.searchParams.get('nonce');
+    assert.equal(authorizationUrl.pathname.startsWith(`/${SETTINGS.graphTenantId}/`), true);
+    return `${harness.api.identity.getRedirectURL('microsoft')}?code=one-time-code&state=${authorizationUrl.searchParams.get('state')}`;
+  };
+  await assert.rejects(Graph.connect(SETTINGS, {
+    chromeApi:harness.api,
+    cryptoApi:webcrypto,
+    fetchImpl:async () => Response.json({
+      access_token:jwt({tid:'33333333-3333-4333-8333-333333333333',oid:'user-1'}),
+      refresh_token:'session-refresh-token',
+      id_token:jwt({tid:'33333333-3333-4333-8333-333333333333',aud:SETTINGS.graphClientId,nonce:harness.nonce,preferred_username:'pilot@example.com'}),
+      expires_in:3600
+    })
+  }), error => error.code === 'TENANT_MISMATCH');
 });
 
 test('interactive connection rejects substituted state and identity nonce', async () => {

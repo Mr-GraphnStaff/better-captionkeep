@@ -58,12 +58,6 @@ async function stageTarget(target) {
     manifest.version_name = `${manifest.version} ${isUat ? 'uat release candidate' : 'development'} - Verified Teams transcript`;
     manifest.action.default_title = manifest.name;
     manifest.key = isUat ? UAT_KEY : DEV_KEY;
-    const popupPath = path.join(targetDir, 'popup.html');
-    const popup = await readFile(popupPath, 'utf8');
-    const testPopup = popup
-      .replace('id="graphTranscriptSection" hidden open', 'id="graphTranscriptSection" open');
-    if (testPopup === popup) throw new Error(`Could not expose the ${target} controls.`);
-    await writeFile(popupPath, testPopup, 'utf8');
   }
   if (target === 'prod') {
     manifest.key = PROD_KEY;

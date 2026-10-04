@@ -8,7 +8,7 @@
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
-> **Current install status — October 4, 2026:** Chrome Web Store and Microsoft Edge Add-ons are serving `5.1.0`. The corrected `5.3.1` release is frozen, published on GitHub, and **In review** in both Stores. The public GitHub `v5.3.0` release remains historical evidence and is not approved for Store submission or new unpacked installation.
+> **Current install status — October 4, 2026:** Microsoft Edge Add-ons is serving `5.3.1`, but its public Store build incorrectly hides Microsoft 365 unless managed policy supplies the Graph configuration. Chrome continues to serve `5.1.0`; its defective `5.3.1` submission was cancelled and retained only as a draft. Version `5.3.2` is the active recovery candidate. It uses customer-owned, tenant-specific Entra setup and is not public until Store review completes.
 
 ### October 3 development additions — not a promoted release
 
@@ -36,9 +36,9 @@ The 5.1 release line adds governed Zoom Web support and hardens the shared captu
 
 The unreleased 5.2 development line adds a security-architect review package, enforceable managed controls for export, clipboard, attendee capture, evidence email, and local retention, plus a hardened Windows enterprise deployment profile. It also adds CodeQL analysis, pinned GitHub Actions, a runtime SBOM, and build provenance attestation. These changes are source candidates only until the 5.2 gate, managed-policy UAT, review, and Store promotion are complete; they are not present in the immutable 5.1.0 Store packages.
 
-## Better CaptionKeep 5.3.1
+## Better CaptionKeep 5.3.2 recovery
 
-The 5.3 line introduces **Verified Teams Transcript**: an optional, tenant-administrator-enabled Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. The original `v5.3.0` GitHub artifact was published before production unpacked identity and local-configuration defects were found. It is retained for audit history, not approved for Store submission. The corrected `5.3.1` release preserves fixed Dev, UAT, and local Prod identities and is now **In review** in both Stores after promotion through the single Azure Store pipeline. See the [5.3.1 release record](docs/RELEASE-5.3.1.md), [historical 5.3.0 record](docs/RELEASE-5.3.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
+The 5.3 line introduces **Verified Teams Transcript**: a delegated Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. Live Edge validation exposed that `5.3.1` hid Microsoft 365 in the Store build even though local Dev/UAT overlays passed. Version `5.3.2` is the controlled recovery: every organization supplies its own single-tenant Entra tenant ID and client ID through local setup or managed policy; Store packages contain no shared tenant identity. The Microsoft 365 setup remains visible, validates configuration before sign-in, and rejects tokens issued by any other tenant. See the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [customer Entra registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
 
 ## Zoom Web development
 
@@ -80,7 +80,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Version 5.1.0 is the currently verified public Store version in both Chrome and Edge. Version 5.3.1 is **In review** in both Stores; GitHub `v5.3.0` remains withdrawn after post-release defects were found. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+Edge `5.3.1` is public but its Microsoft 365 feature is not production-valid. Chrome continues to serve `5.1.0`; the `5.3.1` review was cancelled. Version `5.3.2` is the recovery candidate. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
@@ -92,7 +92,7 @@ Generated output has exactly three stable locations:
 
 Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev, UAT, and local Prod each have a separate stable extension identity and local storage. Rebuilding or upgrading a lane does not change its Microsoft redirect URI and does not overwrite a Store installation. Store installations retain the stable identity assigned by their Store.
 
-The Verified Teams Transcript controls use the same unpacked-only local Graph configuration in Dev, UAT, and Prod for controlled testing. It is not a license or feature gate, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [local Graph runbook](docs/DEV-UAT-GRAPH.md).
+Dev and UAT may use an ignored local Graph overlay for controlled testing. Production—whether loaded from `dist/prod` or installed from a Store—uses the customer-facing setup fields or managed policy. Tenant and client identifiers are excluded from source and release ZIPs. See the [Dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
 
 For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `dist/uat`. This is the only supported release-candidate path.
 
@@ -126,7 +126,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Version 5.0 established the fully independent product line, 5.1 is the latest public line, and 5.3.1 is **In review** in both Stores. The [privacy policy](PRIVACY.md) is published. Repository release status does not imply certification or approval by either store; use the release record for per-Store evidence. Chrome submission preparation is tracked in the [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md).
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Edge `5.3.1` is public with the Microsoft 365 Store-configuration defect documented above; Chrome `5.3.1` remains submitted. Version `5.3.2` is not yet a release candidate. The [privacy policy](PRIVACY.md) is published. Repository release status does not imply certification or approval by either store; use the release record for per-Store evidence. Chrome submission preparation is tracked in the [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md).
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 

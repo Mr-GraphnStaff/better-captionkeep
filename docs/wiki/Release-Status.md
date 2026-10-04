@@ -4,8 +4,9 @@ Last verified: **October 4, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.1.0 public; 5.3.1 In review | Google accepted 5.3.1 for review after the required `identity` and `unlimitedStorage` Privacy justifications were saved. |
-| Microsoft Edge Add-ons | 5.1.0 public; 5.3.1 In review | Microsoft accepted 5.3.1 for certification in Azure run 590. |
+| Chrome Web Store | 5.1.0 public; 5.3.1 draft | The defective 5.3.1 review was cancelled. Replace the draft with validated 5.3.2 through the governed pipeline. |
+| Microsoft Edge Add-ons | 5.3.1 public | Microsoft 365 is hidden for ordinary Store users because the packaged Graph configuration is inert. Treat this as an active production defect. |
+| UAT release candidate | 5.3.2 | Customer-owned single-tenant setup, exact-tenant validation, managed precedence, and Store identity exclusion are implemented. Exact package validation and governed promotion are in progress. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -20,9 +21,15 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 - Azure run 589 uploaded the verified `v5.3.1` packages as drafts to the existing Chrome and Edge products.
 - Azure run 590 passed the protected production approval and Microsoft accepted the Edge package for certification.
 - [PR #68](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/68) corrected the Chrome pipeline's handling of Google's short-lived upload-status field; 180 automated tests passed.
-- Chrome retry run 594 identified the two missing Dashboard Privacy justifications. After they were saved, the product owner submitted the existing verified 5.3.1 draft and Google accepted it for review.
+- Chrome retry run 594 identified the two missing Dashboard Privacy justifications. After they were saved, the product owner submitted 5.3.1; that review was later cancelled when the Microsoft 365 defect was confirmed, leaving Chrome 5.1.0 public.
 - Redundant Chrome run 597 was canceled during cleanup without changing the submitted package.
 - The private release VM was deallocated after the Store operations.
+
+## 5.3.1 production incident
+
+Edge began serving 5.3.1 on October 4, 2026. The Store identity and signed CRX are valid, but the package hides Microsoft 365 unless managed policy supplies the Graph configuration. Dev and UAT had been tested with a local overlay, which was not Store-equivalent evidence.
+
+Azure Boards bug **#297** tracks the critical recovery. The earlier live tenant proof covered optional-permission approval, Microsoft sign-in, recent-meeting discovery, verified transcript import/viewer, live capture, and export. The final architecture requires a customer-owned single-tenant registration and stores its public tenant/client identifiers locally or through managed policy. Store publication requires a frozen GitHub release and the protected Azure production workflow.
 
 ## Release terminology
 
@@ -33,4 +40,4 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 - **Public:** the Store listing serves the version.
 - **Upgrade verified:** an existing installation received and ran the public version.
 
-See the repository's [5.3.1 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.1.md) and [withdrawn 5.3.0 record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.md).
+See the repository's [5.3.2 recovery record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.2.md), [5.3.1 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.1.md), and [withdrawn 5.3.0 record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.md).

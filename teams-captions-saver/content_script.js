@@ -1009,7 +1009,7 @@ async function inspectTranscriptionMenu() {
     }
     if (!startControl) {
         closeMoreMenu();
-        return {state:'unavailable', detail:'Local captions are available, but Teams transcription could not be started. Your role or tenant policy may not permit an official tenant transcript.'};
+        return {state:'unavailable', detail:'Local capture is working. An official Microsoft 365 transcript is unavailable for this meeting because Teams role or organization policy controls access.'};
     }
 
     startControl.click();
@@ -1026,7 +1026,7 @@ async function ensureTeamsTranscription(force = false) {
     if (!isUserInMeeting() || transcriptionCheckInProgress) return;
     const { autoEnableCaptions } = await chrome.storage.sync.get('autoEnableCaptions');
     if (autoEnableCaptions === false) {
-        setTranscriptionState('disabled', 'Automatic Teams transcription is disabled with caption automation. Only the local CaptionKeep copy is expected.');
+        setTranscriptionState('disabled', 'Local capture is working. Automatic Microsoft 365 transcription is off in CaptionKeep settings.');
         return;
     }
     const now = Date.now();

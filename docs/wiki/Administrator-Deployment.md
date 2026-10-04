@@ -17,7 +17,7 @@ Better CaptionKeep supports browser-managed configuration for privacy, retention
 
 ## Microsoft 365 import
 
-Verified Teams Transcript requires a single-tenant Entra application, delegated Microsoft Graph permissions, explicit tenant consent, exact browser redirect URIs, and Teams transcript API access. It is not enabled by a calendar invitation alone and is not currently present in public Store version 5.1.0.
+Verified Teams Transcript requires an organization-owned single-tenant Entra app registration, the documented delegated Microsoft Graph permissions, tenant consent, exact browser redirect URIs, and Teams transcript API access. Enter the tenant/client IDs locally or deploy all three managed Graph policies; managed values take precedence. It is not enabled by a calendar invitation alone. Edge 5.3.1 is public but has a Store-configuration defect; 5.3.2 is the recovery candidate.
 
 Use [Microsoft 365 connection](Microsoft-365-Connection) for the user workflow and the repository's [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md) for controlled pilot setup.
 

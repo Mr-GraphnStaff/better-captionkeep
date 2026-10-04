@@ -29,7 +29,7 @@
         const tenantId = String(settings.graphTenantId || '').trim();
         const clientId = String(settings.graphClientId || '').trim();
         if (!GUID_PATTERN.test(tenantId) || !GUID_PATTERN.test(clientId)) {
-            throw new GraphConnectorError('GRAPH_CONFIG_INVALID', 'The managed Microsoft Graph configuration is incomplete.');
+            throw new GraphConnectorError('GRAPH_CONFIG_INVALID', 'The Microsoft Graph connection configuration is incomplete.');
         }
         return Object.freeze({ tenantId: tenantId.toLowerCase(), clientId: clientId.toLowerCase() });
     }
@@ -111,8 +111,8 @@
         const idClaims = decodeJwtPayload(body.id_token);
         const accessClaims = decodeJwtPayload(body.access_token);
         const tenantClaim = String(idClaims.tid || accessClaims.tid || '').toLowerCase();
-        if (tenantClaim && tenantClaim !== config.tenantId) {
-            throw new GraphConnectorError('TENANT_MISMATCH', 'Microsoft signed in to a different tenant than the managed configuration.');
+        if (tenantClaim !== config.tenantId) {
+            throw new GraphConnectorError('TENANT_MISMATCH', 'Microsoft signed in to a different tenant than the configured organization.');
         }
         if (idClaims.aud && String(idClaims.aud).toLowerCase() !== config.clientId) {
             throw new GraphConnectorError('CLIENT_MISMATCH', 'Microsoft returned an identity token for a different application.');
@@ -123,6 +123,7 @@
             idToken: body.id_token || null,
             expiresAt: Date.now() + (Math.max(60, Number(body.expires_in) || 3600) * 1000),
             tenantId: config.tenantId,
+            resolvedTenantId: tenantClaim || null,
             clientId: config.clientId,
             account: {
                 name: String(idClaims.name || ''),
@@ -217,6 +218,7 @@
             accountLabel: auth?.account?.username || auth?.account?.name || '',
             expiresAt: Number(auth?.expiresAt) || null,
             tenantId: auth?.tenantId || null,
+            resolvedTenantId: auth?.resolvedTenantId || null,
             redirectUri
         };
     }

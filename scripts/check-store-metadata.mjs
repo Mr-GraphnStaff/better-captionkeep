@@ -52,8 +52,16 @@ export function validateChromeStoreMetadata(manifest, metadata) {
     metadata.hostPermissions || [],
     'Chrome host-permission disclosures',
   );
+  requireSameSet(
+    manifest.optional_host_permissions || [],
+    metadata.optionalHostPermissions || [],
+    'Chrome optional host-permission disclosures',
+  );
 
-  const declaredHosts = new Set(manifest.host_permissions || []);
+  const declaredHosts = new Set([
+    ...(manifest.host_permissions || []),
+    ...(manifest.optional_host_permissions || []),
+  ]);
   if (declaredHosts.has('https://graph.microsoft.com/*')) {
     const disclosedScopes = Object.keys(metadata.oauthScopeJustifications || {});
     requireSameSet(EXPECTED_GRAPH_SCOPES, disclosedScopes, 'Microsoft delegated-scope disclosures');
@@ -98,6 +106,7 @@ export function validateChromeStoreMetadata(manifest, metadata) {
     version: manifest.version,
     permissions: manifestPermissions.length,
     hostPermissions: (manifest.host_permissions || []).length,
+    optionalHostPermissions: (manifest.optional_host_permissions || []).length,
     providers: metadata.providers.length,
   };
 }
@@ -112,6 +121,7 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
     metadata.privacyPolicyUrl,
     ...(manifest.permissions || []).map(permission => `\`${permission}\``),
     ...(manifest.host_permissions || []).map(host => `\`${host}\``),
+    ...(manifest.optional_host_permissions || []).map(host => `\`${host}\``),
     ...Object.keys(metadata.oauthScopeJustifications || {}).map(scope => `\`${scope}\``),
   ];
   for (const value of requiredValues) {

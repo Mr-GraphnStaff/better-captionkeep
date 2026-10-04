@@ -1,6 +1,6 @@
 # Better CaptionKeep Privacy Policy
 
-Effective date: October 3, 2026 (development disclosure; not a Store publication)
+Effective date: October 4, 2026
 
 Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams, Google Meet, and the Zoom Web client in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional Bring Your Own AI (BYOAI) handoff features.
 
@@ -10,7 +10,7 @@ The extension reads captions already displayed by Microsoft Teams, Google Meet, 
 
 It also handles user preferences, such as capture settings, export format, filename patterns, save locations, selected AI providers, approved provider workspace URLs, custom masking terms, and temporary speaker aliases. An administrator may supply read-only managed settings through the browser's enterprise-policy system.
 
-When an organization enables Verified Teams Transcript, a signed-in organizational user can select the current meeting, choose from up to five recent eligible Teams meetings, or paste a meeting join link before explicitly importing an available official transcript from Microsoft Graph. To populate the recent-meeting choices, the extension requests only basic calendar fields: event subject, start and end time, organizer flag, and Teams join information. Those calendar results are held only while the popup is open and are not added to transcript history, synchronized preferences, exports, or developer logs. Microsoft Entra and Teams administrator policy determine access and whether speaker attribution is available. The feature does not request audio or video and does not automatically collect transcripts across the tenant.
+When an organization enables Verified Teams Transcript, it supplies its own single-tenant Microsoft Entra tenant ID and application client ID. Those public configuration identifiers are stored only in browser local storage, are not browser-synchronized, and are never sent to the developer. A signed-in organizational user can select the current meeting, choose from up to five recent eligible Teams meetings, or paste a meeting join link before explicitly importing an available official transcript from Microsoft Graph. To populate the recent-meeting choices, the extension requests only basic calendar fields: event subject, start and end time, organizer flag, and Teams join information. Those calendar results are held only while the popup is open and are not added to transcript history, synchronized preferences, exports, or developer logs. Microsoft Entra and Teams administrator policy determine access and whether speaker attribution is available. The feature does not request audio or video and does not automatically collect transcripts across the tenant.
 
 ## Storage and use
 

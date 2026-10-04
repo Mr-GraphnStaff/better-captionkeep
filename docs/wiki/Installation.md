@@ -18,7 +18,7 @@ Store installation provides a stable extension identity and automatic updates.
 3. Confirm **Add extension**.
 4. Open Edge's Extensions menu and show Better CaptionKeep on the toolbar if desired.
 
-Both Stores were independently checked on October 4, 2026 and were serving version **5.1.0**.
+Current status on October 4, 2026: Chrome serves **5.1.0**. Edge serves **5.3.1**, but its Microsoft 365 connection is defective; use its local-caption features only until 5.3.2 is approved. See [Release status](Release-Status).
 
 ## After installation
 
@@ -35,6 +35,6 @@ Continue with [Capture your first meeting](Getting-Started).
 - A GitHub release ZIP is a Store-submission artifact, not a file ordinary users should load directly.
 - **Load unpacked** is only for controlled Development, UAT, and local Production testing.
 - Store installation and unpacked installation have different extension identities and separate local histories.
-- Microsoft 365 transcript import requires organizational configuration and is not part of the currently public 5.1.0 Store build.
+- Microsoft 365 transcript import requires an organization-owned Entra registration and is not production-valid in the currently public Store versions.
 
 Developers and testers should use [Development and UAT](Development-and-UAT). Administrators planning managed deployment should use [Administrator deployment](Administrator-Deployment).

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
 const prodDir = path.join(distDir, 'prod');
-const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^tmp$)/i;
+const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
 const expectedLifecycleIds = new Map([
   ['dev', 'pjpibiimicedkckleehljlklmblkacph'],
   ['uat', 'ecpjboeanaehianibdbgijldbikdgkhm'],
@@ -37,6 +37,13 @@ async function sha256(file) {
 }
 
 const sourceManifest = JSON.parse(await readFile(path.join(projectRoot, 'teams-captions-saver', 'manifest.json'), 'utf8'));
+const storeGraphConfig = await readFile(path.join(projectRoot, 'teams-captions-saver', 'graphRuntimeConfig.js'), 'utf8');
+if (!storeGraphConfig.includes('Object.freeze({})')) {
+  throw new Error('Store Microsoft 365 runtime configuration must be inert.');
+}
+if (/graphTenantId\s*:|graphClientId\s*:|enableGraphTranscriptImport\s*:\s*true/.test(storeGraphConfig)) {
+  throw new Error('Store Microsoft 365 runtime configuration contains an organization identity.');
+}
 const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
 const forbiddenSource = sourceFiles.filter(file => file.split('/').some(part => forbidden.test(part)));
@@ -48,7 +55,7 @@ for (const target of ['dev', 'uat', 'prod']) {
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
   if (files.filter(file => file === 'manifest.json').length !== 1) throw new Error(`${target} package must have one root manifest`);
   const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
-  for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
+  for (const key of ['version', 'permissions', 'host_permissions', 'optional_host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
   const expectedName = target === 'dev'
@@ -64,6 +71,10 @@ for (const target of ['dev', 'uat', 'prod']) {
   }
   if (target === 'prod' && /test|development|release candidate/i.test(`${manifest.name} ${manifest.version_name ?? ''} ${manifest.action?.default_title ?? ''}`)) {
     throw new Error('prod manifest contains non-production lifecycle labeling');
+  }
+  const graphConfig = await readFile(path.join(root, 'graphRuntimeConfig.js'), 'utf8');
+  if (target === 'prod' && graphConfig !== storeGraphConfig) {
+    throw new Error('prod Microsoft 365 configuration differs from the Store source');
   }
 }
 
