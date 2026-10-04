@@ -66,13 +66,14 @@ The administrator bundle must include both Edge and Chrome policy examples, assi
 
 ## Implementation locations
 
-- `teams-captions-saver/manifest.json`: add `default_locale` and localized manifest tokens.
+- `teams-captions-saver/manifest.json` and `manifests/manifest.chrome-store.json`: add `default_locale` and the same localized manifest tokens so Dev, UAT, Prod, Edge, and Chrome Store targets remain loadable and equivalent.
 - `teams-captions-saver/_locales/en/messages.json`, `_locales/fr/messages.json`, and `_locales/es/messages.json`: canonical message catalogs.
 - `teams-captions-saver/localization.js`: add focused `resolveUiLocale`, `getMessage`, and `applyLocalizedText` helpers.
 - `teams-captions-saver/configuration.js`: add local `uiLocale`, managed `forceUiLocale`, precedence, validation, and fallback.
 - `teams-captions-saver/managed-schema.json`: declare the `forceUiLocale` enterprise policy.
 - Settings and all extension surfaces: replace hard-coded user-facing text and display managed-policy state.
 - Intune deployment bundle: provide Edge and Chrome profiles for general, Quebec, and Spanish assignments without creating language-specific builds.
+- Build validation: fail when either source/Store manifest lacks the localization contract, when a target omits `_locales`, or when localized manifest tokens and catalogs drift across browser targets.
 
 ## Quebec privacy and language gate
 

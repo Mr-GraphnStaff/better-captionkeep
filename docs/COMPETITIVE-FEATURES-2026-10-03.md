@@ -1,6 +1,6 @@
 # Competitive landscape and feature implementation ledger
 
-Last verified: **October 4, 2026**.
+Competitive-source evidence last verified: **October 4, 2026**.
 
 This document corrects the earlier conclusion that Better CaptionKeep occupied an uncontested space. It does not. **SonicMeet is a direct competitor** for browser-based captions, transcripts, translation, notes, and meeting summaries across Microsoft Teams, Google Meet, and Zoom. Competitor capabilities below are public vendor claims unless explicitly marked as independently tested.
 
@@ -120,7 +120,7 @@ The previously confirmed build-tool audit findings remain release blockers. Keep
 
 ## Fresh source validation and review builds
 
-- 173 automated tests passed, zero failures.
+- 183 automated tests passed, zero failures, in a fresh October 4 source run.
 - Extension validation, Store metadata consistency, JavaScript syntax and patch whitespace checks passed.
 - The temporary Chrome/Edge review folders were reconciled into the source tree
   and removed. Current release-candidate validation uses only `dist/uat`.
