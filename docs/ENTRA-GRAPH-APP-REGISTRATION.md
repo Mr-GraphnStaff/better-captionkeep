@@ -1,6 +1,6 @@
 # Microsoft Entra App Registration for Verified Teams Transcript
 
-Status: **5.3.2 recovery runbook**. Store publication remains blocked until the multi-tenant registration and Store-equivalent live UAT are complete.
+Status: **5.3.2 recovery runbook**. The existing registration was converted in place to organizational multi-tenant on October 4, 2026, and Store-equivalent live UAT passed. Store publication remains blocked on publisher verification and governed release promotion.
 
 Applies to the planned [Enterprise Microsoft Graph Transcript Connector](GRAPH-TRANSCRIPT-CONNECTOR.md).
 
@@ -41,6 +41,14 @@ Each governed unpacked lane has a fixed public manifest key and therefore a stab
 
 ## Create or verify the multi-tenant public application
 
+Current governed registration:
+
+- Display name: **Better CaptionKeep**
+- Application (client) ID: `a88e99c2-2dce-45e2-9839-fa63372c18c5`
+- Sign-in audience: `AzureADMultipleOrgs`
+- Publisher domain: `daf-tech.com`
+- Publisher verification: not yet complete
+
 1. Open the Microsoft Entra admin center.
 2. Go to **Identity > Applications > App registrations > New registration**.
 3. Use the governed Better CaptionKeep application name.
@@ -74,6 +82,8 @@ Under **API permissions > Add a permission > Microsoft Graph > Delegated permiss
 Do not add `Calendars.Read`, `Calendars.ReadWrite`, application permissions, `OnlineMeetings.Read.All`, recording permissions, mail, files, chat, directory, or user-directory read permissions. `Calendars.ReadBasic` is sufficient for the recent-meeting selector and does not authorize calendar modification.
 
 Select **Grant admin consent** for the test tenant and retain a screenshot or exported permission record that contains no token or transcript data.
+
+The October 4, 2026 verification confirmed that the existing home-tenant service principal and tenant-wide grant remained intact after conversion. The grant contains `Calendars.ReadBasic`, `OnlineMeetings.Read`, `OnlineMeetingTranscript.Read.All`, `openid`, `profile`, and `offline_access`. No new application permission or client credential was created.
 
 ## Enable the Teams transcript API control
 

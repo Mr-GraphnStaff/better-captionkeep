@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3.2 Recovery Record
 
-Status: **Development recovery — not a release candidate and not approved for Store submission.**
+Status: **UAT passed — production promotion remains blocked on Microsoft publisher verification and the governed release workflow.**
 
 ## Incident
 
@@ -36,4 +36,14 @@ The `_metadata/verified_contents.json` file observed in the signed Edge CRX is S
 - Permission approval resumes Microsoft sign-in from the service worker, so the browser closing the small popup does not require a second **Connect Microsoft 365** click.
 - Active local capture is presented as working even when Teams role or organization policy makes an official Microsoft 365 transcript unavailable; the popup no longer labels that expected policy outcome as a capture failure.
 
-This record does not authorize publishing, changing the Entra sign-in audience, or promoting the build to UAT.
+## Live promotion evidence
+
+- A clean Edge Dev installation requested Microsoft identity and Graph origins only after **Connect Microsoft 365** was selected.
+- Permission approval automatically continued to Microsoft sign-in without requiring a second Connect action.
+- Recent eligible meetings appeared after the documented **Refresh** action.
+- A verified Teams transcript created October 4, 2026 at 7:56:45 AM Central was imported at 8:25:54 AM Central with speaker attribution and source fingerprint `276fc89ddf90964e7f99d98dd436f076a56c9adc4dfe74d65671a30a072dac86`.
+- The stable UAT identity repeated the connection, meeting discovery, transcript import/viewer, live-caption capture, and export path successfully.
+- GitHub validation, JavaScript analysis, CodeQL, Azure lifecycle validation, and the full local release-candidate gate passed for commit `c385d3bdf03e5e3afb2d16d2cb07f8c41ef99380`.
+- The existing Entra registration was renamed **Better CaptionKeep**, converted to `AzureADMultipleOrgs`, and updated to declare exactly `Calendars.ReadBasic`, `OnlineMeetings.Read`, and `OnlineMeetingTranscript.Read.All`. Existing redirect URIs and the home-tenant grant were preserved.
+
+This record does not authorize Store publication. Microsoft publisher verification and the frozen GitHub release/Azure production approval remain required.

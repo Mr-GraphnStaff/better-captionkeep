@@ -6,7 +6,7 @@ Last verified: **October 4, 2026**.
 | --- | --- | --- |
 | Chrome Web Store | 5.1.0 public; 5.3.1 submitted | The 5.3.1 submission is not an acceptable production target because its Store Graph configuration is inert. Replace it with a validated hotfix before approval if the Dashboard permits. |
 | Microsoft Edge Add-ons | 5.3.1 public | Microsoft 365 is hidden for ordinary Store users because the packaged Graph configuration is inert. Treat this as an active production defect. |
-| Development recovery | 5.3.2 | Dev only; automated Store-package gate passes, but Entra multi-tenant conversion and live Store-equivalent UAT remain required. |
+| UAT release candidate | 5.3.2 | Dev and UAT passed on commit `c385d3b`; Entra multi-tenant conversion and exact delegated permissions are verified. Production remains blocked on Microsoft publisher verification and the governed release workflow. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -29,7 +29,7 @@ The original tag, hashes, provenance, and ZIPs remain unchanged for auditability
 
 Edge began serving 5.3.1 on October 4, 2026. The Store identity and signed CRX are valid, but the package hides Microsoft 365 unless managed policy supplies the Graph configuration. Dev and UAT had been tested with a local overlay, which was not Store-equivalent evidence.
 
-Azure Boards bug **#297** tracks the critical recovery. Version 5.3.2 must not advance until the Entra app accepts organizational tenants, the exact Store-equivalent package completes Microsoft 365 sign-in/import/viewer UAT, and the normal PR and release gates pass.
+Azure Boards bug **#297** tracks the critical recovery. Dev and UAT now pass, including clean optional-permission approval, Microsoft sign-in, recent-meeting discovery, verified transcript import/viewer, live capture, and export. The existing Entra registration accepts organizational tenants and declares the exact delegated permissions. Store publication remains blocked on publisher verification, a frozen GitHub release, and the protected Azure production approval.
 
 ## Release terminology
 
