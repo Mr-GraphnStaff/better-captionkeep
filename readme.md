@@ -126,7 +126,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Edge `5.3.1` is public with the Microsoft 365 Store-configuration defect documented above; Chrome `5.3.1` remains submitted. Version `5.3.2` is not yet a release candidate. The [privacy policy](PRIVACY.md) is published. Repository release status does not imply certification or approval by either store; use the release record for per-Store evidence. Chrome submission preparation is tracked in the [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md).
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Edge `5.3.1` is public with the Microsoft 365 Store-configuration defect documented above, while Chrome continues to serve `5.1.0` after the defective `5.3.1` review was cancelled. The governed `5.3.2` recovery is frozen and submitted: Chrome reports `PENDING_REVIEW`, and Microsoft accepted Edge `5.3.2` for certification. Neither is described as public until the corresponding Store serves `5.3.2`. The [privacy policy](PRIVACY.md) is published. Use the [5.3.2 recovery record](docs/RELEASE-5.3.2.md) and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
