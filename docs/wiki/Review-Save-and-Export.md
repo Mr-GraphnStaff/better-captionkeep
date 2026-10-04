@@ -13,7 +13,7 @@ Advanced download settings can use a Downloads subfolder and, where the browser 
 
 ## Export formats
 
-The public Store version supports TXT and Markdown. The 5.3 recovery candidate adds Word and browser Print/PDF workflows; those should not be represented as publicly available until the corrected patch reaches the Store.
+All public Store versions support TXT and Markdown. Microsoft Edge Add-ons now serves 5.3.2, which also provides Word export and browser Print / PDF. Chrome continues to serve 5.1.0 and receives those additional formats only after its 5.3.2 review and publication complete.
 
 Subtitle export is offered only when an imported official transcript contains real media cue boundaries. Better CaptionKeep does not invent SRT or WebVTT timing from browser observation times.
 

@@ -35,6 +35,6 @@ Continue with [Capture your first meeting](Getting-Started).
 - A GitHub release ZIP is a Store-submission artifact, not a file ordinary users should load directly.
 - **Load unpacked** is only for controlled Development, UAT, and local Production testing.
 - Store installation and unpacked installation have different extension identities and separate local histories.
-- Microsoft 365 transcript import requires an organization-owned Entra registration and is not production-valid in the currently public Store versions.
+- Microsoft 365 transcript import requires an organization-owned Entra registration. It is available in public Edge 5.3.2; Chrome remains on 5.1.0 until the 5.3.2 review completes.
 
 Developers and testers should use [Development and UAT](Development-and-UAT). Administrators planning managed deployment should use [Administrator deployment](Administrator-Deployment).
