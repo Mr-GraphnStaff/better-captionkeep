@@ -87,6 +87,13 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
     version:'5.3.0', synchronized:true
   });
   assert.throws(
+    () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace(
+      'Production GitHub release published; Chrome and Edge Store submissions not started',
+      'Published'
+    )),
+    /Store-submission boundary/
+  );
+  assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace('`identity`', '`removed-identity`')),
     /missing current Store value: `identity`/
   );

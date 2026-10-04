@@ -131,8 +131,8 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
   ]) {
     if (!dossier.includes(asset)) throw new Error(`CHROMEWEBSTORE.md is missing Store asset: ${asset}`);
   }
-  if (!dossier.includes('Candidate — not submitted')) {
-    throw new Error('CHROMEWEBSTORE.md must preserve the 5.3 candidate publication boundary');
+  if (!dossier.includes('Production GitHub release published; Chrome and Edge Store submissions not started')) {
+    throw new Error('CHROMEWEBSTORE.md must preserve the 5.3 Store-submission boundary');
   }
   return {version:manifest.version, synchronized:true};
 }
