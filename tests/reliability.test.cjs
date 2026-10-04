@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root,file),'utf8');
 const readProject = file => fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const clone = data => JSON.parse(JSON.stringify(data));
 function harness() {
-    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[];
+    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[]; const importedScripts=[];
     const area = {
         async get(keys) { if (keys===null) return clone(data); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in data)out[k]=clone(data[k]); return out; },
         async set(values) {
@@ -45,8 +45,8 @@ function harness() {
     const context=vm.createContext({chrome,document,crypto:webcrypto,Blob,URL,TextEncoder,Uint8Array,btoa,atob,console:{log(){},warn(){},error(){}},
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
-        importScripts(...names){for(const name of names) vm.runInContext(read(name),context);}});
-    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,run:code=>vm.runInContext(code,context)};
+        importScripts(...names){for(const name of names) { importedScripts.push(name); vm.runInContext(read(name),context); }}});
+    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,importedScripts,run:code=>vm.runInContext(code,context)};
 }
 
 test('all shipped scripts parse',()=>{
@@ -1417,6 +1417,13 @@ test('Dev, UAT, and production roots are directly loadable lifecycle builds',()=
     assert(builder.includes("target === 'prod'"));
     assert(builder.includes("manifest.name = isUat ? 'Better CaptionKeep - UAT Release Candidate' : 'Better CaptionKeep - Development'"));
     assert(builder.includes('manifest.key = isUat ? UAT_KEY : DEV_KEY'));
+    assert(builder.includes('const PROD_KEY ='));
+    assert(builder.includes('manifest.key = PROD_KEY'));
+    const verifier=readProject('scripts/verify-release.mjs');
+    for(const id of ['pjpibiimicedkckleehljlklmblkacph','ecpjboeanaehianibdbgijldbikdgkhm','nffdfdkkbbbmngcibbeindpjlfkcnikg']) {
+        assert(verifier.includes(id));
+    }
+    assert.equal(fs.existsSync(path.join(root,'unpackedLocalConfig.js')),true);
     assert(!builder.includes('--output-root'));
 });
 test('Chrome Store manifest preserves runtime behavior without test labeling',()=>{
@@ -1561,23 +1568,24 @@ test('configuration import is bounded and managed policy takes precedence',()=>{
     assert.equal(enterprise.settings.maxStoredSessions,5);
     assert.equal(enterprise.settings.sessionRetentionDays,30);
 });
-test('Dev and UAT Graph overlays extend frozen policy without mutating it',()=>{
+test('Dev, UAT, and Prod unpacked Graph configuration extends frozen policy without mutating it',()=>{
     const context=vm.createContext({globalThis:null,chrome:{storage:{}}});context.globalThis=context;
     vm.runInContext(read('configuration.js'),context);
     const config=context.CaptionKeepConfiguration;
     const policy=config.applyPolicy({privacyScrubberEnabled:true},{});
     const local={enableGraphTranscriptImport:true,graphTenantId:'11111111-1111-1111-1111-111111111111',graphClientId:'22222222-2222-2222-2222-222222222222'};
-    const effective=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - UAT Release Candidate',version_name:'5.3.0 uat release candidate'});
+    const effective=config.applyLocalGraphOverlay(policy,local,{name:'Better CaptionKeep - UAT Release Candidate',version_name:'5.3.0 uat release candidate'});
     assert.equal(effective.settings.enableGraphTranscriptImport,true);
     assert.equal(effective.settings.graphTenantId,local.graphTenantId);
     assert(effective.locked.includes('graphTenantId'));
     assert.equal(policy.settings.enableGraphTranscriptImport,undefined);
     assert.equal(Object.isFrozen(effective.settings),true);
-    const development=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep - Development',version_name:'5.3.0 development'});
+    const development=config.applyLocalGraphOverlay(policy,local,{name:'Better CaptionKeep - Development',version_name:'5.3.0 development'});
     assert.equal(development.settings.enableGraphTranscriptImport,true);
     assert.equal(development.settings.graphClientId,local.graphClientId);
-    const production=config.applyDevUatGraphOverlay(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
-    assert.equal(production,policy);
+    const production=config.applyLocalGraphOverlay(policy,local,{name:'Better CaptionKeep',version_name:'5.3.0'});
+    assert.equal(production.settings.enableGraphTranscriptImport,true);
+    assert.equal(production.settings.graphClientId,local.graphClientId);
 });
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
@@ -1724,7 +1732,7 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph Dev and UAT builds stay visible without commercial feature gates',()=>{
+test('Graph controls stay available in every configured lane without commercial feature gates',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
@@ -1740,17 +1748,35 @@ test('Graph Dev and UAT builds stay visible without commercial feature gates',()
     assert(buildScript.includes("target === 'dev' || target === 'uat'"));
     assert(buildScript.includes("replace('id=\"graphTranscriptSection\" hidden open', 'id=\"graphTranscriptSection\" open')"));
 });
-test('worker accepts an optional unpacked-only Graph configuration only for Dev and UAT',()=>{
+test('worker accepts the same authorized unpacked Graph configuration in Dev, UAT, and Prod',()=>{
     const worker=read('service_worker.js');
+    const popup=read('popup.html');
+    const popupScript=read('popup.js');
     const overlayScript=readProject('scripts/configure-dev-uat-unpacked.mjs');
-    assert(worker.includes("importScripts('devUatLocalConfig.js')"));
-    assert(worker.includes('CaptionKeepConfiguration.applyDevUatGraphOverlay'));
+    assert(worker.includes("'unpackedLocalConfig.js'"));
+    assert(worker.includes('CaptionKeepConfiguration.applyLocalGraphOverlay'));
+    assert(worker.includes('globalThis.CaptionKeepUnpackedLocalConfig'));
+    assert(popup.includes('<script src="unpackedLocalConfig.js" defer></script>'));
+    assert(popupScript.includes('CaptionKeepConfiguration.applyLocalGraphOverlay'));
+    assert(popupScript.includes('globalThis.CaptionKeepUnpackedLocalConfig'));
     assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep - UAT Release Candidate'"));
+    assert(read('configuration.js').includes("manifest.name === 'Better CaptionKeep'"));
     assert(read('configuration.js').includes('/\\buat release candidate\\b/i'));
     assert(read('configuration.js').includes('localConfig.enableGraphTranscriptImport !== true'));
-    assert(overlayScript.includes("['dev', 'uat'].includes(target)"));
+    assert(overlayScript.includes("['dev', 'uat', 'prod'].includes(target)"));
     assert(overlayScript.includes("path.join(projectRoot, 'dist', target)"));
-    assert(overlayScript.includes('without changing a production package'));
+    assert(overlayScript.includes('without changing a Store package'));
+});
+test('every service worker loads a present inert local configuration without a failed fetch',()=>{
+    const production=harness();
+    production.run(read('service_worker.js'));
+    assert(production.importedScripts.includes('unpackedLocalConfig.js'));
+    assert.equal(production.context.CaptionKeepUnpackedLocalConfig,undefined);
+
+    const development=harness();
+    development.chrome.runtime.getManifest=()=>({name:'Better CaptionKeep - Development',version:'5.3.0',version_name:'5.3.0 development'});
+    development.run(read('service_worker.js'));
+    assert(development.importedScripts.includes('unpackedLocalConfig.js'));
 });
 test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');

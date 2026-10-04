@@ -84,11 +84,11 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
   const metadata = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-metadata', 'chrome.json')));
   const dossier = fs.readFileSync(path.join(__dirname, '..', 'CHROMEWEBSTORE.md'), 'utf8');
   assert.deepEqual(validateChromeWebStoreDossier(manifest, metadata, dossier), {
-    version:'5.3.0', synchronized:true
+    version:'5.3.1', synchronized:true
   });
   assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace(
-      'Production GitHub release published; Chrome and Edge Store submissions not started',
+      'GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved',
       'Published'
     )),
     /Store-submission boundary/

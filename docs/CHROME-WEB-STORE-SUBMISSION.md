@@ -2,16 +2,16 @@
 
 The canonical listing copy, privacy answers, permissions and OAuth-scope justifications, artwork inventory, reviewer instructions, developer information, version history, and known limitations are maintained in [`CHROMEWEBSTORE.md`](../CHROMEWEBSTORE.md). Do not copy or independently edit those fields here.
 
-This procedure updates the existing public Chrome item without changing the Microsoft Edge Add-ons submission. Version 5.3 remains a candidate until its live and review gates pass.
+This procedure updates the existing public Chrome item without creating a new listing or bypassing the coordinated Microsoft Edge Add-ons release. Version 5.3.1 remains a candidate until its live and review gates pass.
 
 ## Build and identify the candidate
 
 1. Verify the intended source commit and clean working tree.
 2. Run `npm ci` and `npm run release:candidate`.
-3. Preserve `dist/prod/release-provenance.json` and the exact ZIP at `dist/prod/better_captionkeep-chrome-5.3.0.zip`.
+3. Preserve `dist/prod/release-provenance.json` and the exact ZIP at `dist/prod/better_captionkeep-chrome-5.3.1.zip`.
 4. Confirm the provenance commit and the ZIP's SHA-256 match the release record.
 5. Load `dist/uat` through `chrome://extensions` and complete the Chrome UAT matrix.
-6. Confirm the installed name is **Better CaptionKeep - UAT Release Candidate** and the version is **5.3.0**.
+6. Confirm the installed name is **Better CaptionKeep - UAT Release Candidate** and the version is **5.3.1**.
 
 Do not upload anything from `dist/dev` or `dist/uat`; upload only the verified ZIP from `dist/prod`.
 

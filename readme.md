@@ -6,7 +6,9 @@
 
 [Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Save live captions from Microsoft Teams and Google Meet in Chrome or Microsoft Edge, including the Teams PWA. The next development track adds evidence-gated Zoom Web capture. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+
+> **Current install status — October 4, 2026:** Chrome Web Store and Microsoft Edge Add-ons are serving `5.1.0`. The public GitHub `v5.3.0` release is frozen historical evidence and is not approved for Store submission or new unpacked installation. The corrected `5.3.1` candidate is tracked in [PR #67](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/67) and must be promoted through the unified Azure Store pipeline after its release gate passes.
 
 ### October 3 development additions — not a promoted release
 
@@ -34,9 +36,9 @@ The 5.1 release line adds governed Zoom Web support and hardens the shared captu
 
 The unreleased 5.2 development line adds a security-architect review package, enforceable managed controls for export, clipboard, attendee capture, evidence email, and local retention, plus a hardened Windows enterprise deployment profile. It also adds CodeQL analysis, pinned GitHub Actions, a runtime SBOM, and build provenance attestation. These changes are source candidates only until the 5.2 gate, managed-policy UAT, review, and Store promotion are complete; they are not present in the immutable 5.1.0 Store packages.
 
-## Better CaptionKeep 5.3 development
+## Better CaptionKeep 5.3.1 recovery candidate
 
-The polished 5.3 candidate introduces **Verified Teams Transcript**: an optional, tenant-administrator-enabled Microsoft Graph experience that automatically recognizes the active Teams meeting, shows up to five recent eligible Teams meetings from the signed-in user's calendar, and retrieves a chosen meeting directly into the standard transcript viewer and private local history. Users can still paste a link when a meeting is not listed. The connector uses delegated Microsoft Entra authentication with PKCE, the least-privileged basic-calendar scope, no embedded client secret, no meeting bot, and no developer-operated transcript service. Recent calendar results stay transient. Tokens remain in browser session storage, while an imported raw source, readable captions, attribution state, and hashed provenance remain together but separate from live capture. The feature is hidden unless managed policy supplies the approved tenant and app registration. It is not included in any promoted Store package until its gate and live Chrome/Edge UAT pass. See the [5.3 release notes](docs/RELEASE-NOTES-5.3.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md), and [5.3 development gate](docs/RELEASE-5.3.md).
+The 5.3 line introduces **Verified Teams Transcript**: an optional, tenant-administrator-enabled Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. The original `v5.3.0` GitHub artifact was published before production unpacked identity and local-configuration defects were found. It is retained for audit history, not approved for Store submission. The corrected `5.3.1` candidate preserves fixed Dev, UAT, and local Prod identities and is promoted through the single Azure Store pipeline. See the [5.3.1 release record](docs/RELEASE-5.3.1.md), [historical 5.3.0 record](docs/RELEASE-5.3.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
 
 ## Zoom Web development
 
@@ -44,11 +46,11 @@ The Zoom discovery branch captures displayed subtitle-overlay text from the exac
 
 ## Interface previews
 
-Screenshots below show the current packaged HTML and styling rendered in Microsoft Edge, with extension scripts disabled and no meeting connected. They illustrate the interface, not a live capture test. The banner above is approved mascot concept artwork.
+These synthetic 5.3 product previews replace the obsolete popup and empty-viewer images previously shown here. They contain no customer meeting, tenant, transcript, or account data. They describe the recovery candidate and must not be confused with proof of Store availability.
 
-| Capture and settings | Transcript viewer |
+| Supported meetings | Private review and export |
 | --- | --- |
-| <img src="branding/screenshots/popup.png" alt="Better CaptionKeep popup and settings preview" width="320"> | <img src="branding/screenshots/viewer.png" alt="Better CaptionKeep transcript viewer empty-state preview" width="600"> |
+| <img src="store-assets/5.3/04-three-meeting-platforms.png" alt="Better CaptionKeep support for Microsoft Teams, Google Meet, and Zoom Web" width="600"> | <img src="store-assets/5.3/03-private-review-and-export.png" alt="Better CaptionKeep private transcript review and export" width="600"> |
 
 ## What it does
 
@@ -78,7 +80,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Version 4.6 is the previous Microsoft Edge Add-ons baseline. Version 4.7 is a completed, retired stabilization baseline and was not submitted to the Store. Version 5.1 is the latest promoted release line; its evidence record distinguishes per-Store availability. Versions 5.2 and 5.3 remain unreleased development.
+Version 5.1.0 is the currently verified public Store version in both Chrome and Edge. GitHub `v5.3.0` exists but is not approved for installation or Store submission after post-release defects were found. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
@@ -88,9 +90,9 @@ Generated output has exactly three stable locations:
 - `dist/uat` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
 - `dist/prod` — directly loadable production build plus Store packages, deployment bundles, hashes, and provenance.
 
-Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev and UAT have separate stable extension identities and local storage, so a rebuild does not create a new identity and does not overwrite the Store installation.
+Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev, UAT, and local Prod each have a separate stable extension identity and local storage. Rebuilding or upgrading a lane does not change its Microsoft redirect URI and does not overwrite a Store installation. Store installations retain the stable identity assigned by their Store.
 
-The Verified Teams Transcript controls in development builds can use an unpacked-only local Graph configuration for controlled testing. It is not a license or Store feature, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
+The Verified Teams Transcript controls use the same unpacked-only local Graph configuration in Dev, UAT, and Prod for controlled testing. It is not a license or feature gate, and configured Microsoft identifiers are excluded from source and release ZIPs. See the [local Graph runbook](docs/DEV-UAT-GRAPH.md).
 
 For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `dist/uat`. This is the only supported release-candidate path.
 
@@ -118,7 +120,7 @@ Use Node.js 20 or newer, then run `npm install`.
 - `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store package in `dist/prod/`.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication. Zoom development also requires unpacked Chrome and Edge UAT against the Web client.
 
-Release and enterprise references: [standalone product record](docs/PROJECT-EMERGENCE.md), [5.1 release notes](docs/RELEASE-NOTES-5.1.md), [security architecture and threat model](docs/SECURITY-ARCHITECTURE.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [enterprise security review record](docs/ENTERPRISE-SECURITY-REVIEW.md), [5.2 development gate](docs/RELEASE-5.2.md), [5.3 release-candidate gate](docs/RELEASE-5.3.md), [dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the completed [5.1 release record](docs/RELEASE-5.1.md), [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md), and [Chrome publishing pipeline](docs/CHROME-PUBLISH-PIPELINE.md).
+Release and enterprise references: [standalone product record](docs/PROJECT-EMERGENCE.md), [5.1 release notes](docs/RELEASE-NOTES-5.1.md), [security architecture and threat model](docs/SECURITY-ARCHITECTURE.md), [security and privacy design](docs/SECURITY-PRIVACY.md), [EUC deployment](docs/EUC-DEPLOYMENT.md), [enterprise security review record](docs/ENTERPRISE-SECURITY-REVIEW.md), [5.2 development gate](docs/RELEASE-5.2.md), [5.3.1 release-candidate record](docs/RELEASE-5.3.1.md), [withdrawn 5.3.0 record](docs/RELEASE-5.3.md), [Dev/UAT/Prod Graph runbook](docs/DEV-UAT-GRAPH.md), [enterprise Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), [Entra app-registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md), [platform adapter boundary](docs/PLATFORM-ADAPTERS.md), the completed [5.1 release record](docs/RELEASE-5.1.md), [Edge publishing pipeline](docs/EDGE-PUBLISH-PIPELINE.md), and [Chrome publishing pipeline](docs/CHROME-PUBLISH-PIPELINE.md).
 
 Browser API identifiers such as `chrome.storage` remain unchanged because Edge implements those Chromium extension APIs. Internal source paths remain stable.
 

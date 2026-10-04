@@ -7,7 +7,7 @@ parameters:
   - name: releaseTag
     displayName: Published GitHub release tag
     type: string
-    default: v5.1.0
+    default: v5.3.1
   - name: chromePrepare
     displayName: Chrome preparation
     type: string

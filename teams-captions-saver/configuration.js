@@ -139,13 +139,14 @@
         return Object.freeze({ settings: Object.freeze(settings), locked: Object.freeze([...locked]) });
     }
 
-    function applyDevUatGraphOverlay(policy, localConfig = {}, manifest = {}) {
+    function applyLocalGraphOverlay(policy, localConfig = {}, manifest = {}) {
         const versionName = String(manifest.version_name || '');
-        const isDevUatBuild = (manifest.name === 'Better CaptionKeep - Development'
+        const isCanonicalBuild = manifest.name === 'Better CaptionKeep'
+            || (manifest.name === 'Better CaptionKeep - Development'
                 && /\bdevelopment\b/i.test(versionName))
             || (manifest.name === 'Better CaptionKeep - UAT Release Candidate'
                 && /\buat release candidate\b/i.test(versionName));
-        if (!isDevUatBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
+        if (!isCanonicalBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
         const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
         const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
         graphKeys.forEach(key => locked.add(key));
@@ -172,5 +173,5 @@
         return sanitize(parsed.settings);
     }
 
-    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyDevUatGraphOverlay, createExport, parseImport });
+    globalThis.CaptionKeepConfiguration = Object.freeze({ USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize, readManaged, applyPolicy, applyLocalGraphOverlay, createExport, parseImport });
 })();
