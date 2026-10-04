@@ -17,8 +17,8 @@ Promotion into a packaged release requires a successful Entra/Graph tenant proof
 - [x] Managed controls are enforced both in the interface and again at the action boundary.
 - [x] The hardened local-only profile disables AI handoff, clipboard, evidence email, and attendee capture; forces scrubbed exports; and bounds local history.
 - [x] Release automation emits an SBOM and provenance attestations and pins third-party actions to reviewed commits.
-- [x] Scope is consolidated on `release/5.2`: long-meeting local BYOAI handoff, durable local archive, cross-session search, reversible corrections/local dictionary, DOCX export, and same-install entitlement/Intune groundwork.
-- [x] Issues #49-#53 remain available in Free by default; no paid-tier allocation, production activation service, billing, or cloud transcript service is included.
+- [x] Scope is consolidated on `release/5.2`: long-meeting local BYOAI handoff, durable local archive, cross-session search, reversible corrections/local dictionary, DOCX export, and Intune groundwork.
+- [x] Issues #49-#53 are available to every user; no paid tier, activation service, billing, or cloud transcript service is included.
 - [x] Scope is frozen on one release branch and this record describes the exact candidate.
 
 ## Automated evidence

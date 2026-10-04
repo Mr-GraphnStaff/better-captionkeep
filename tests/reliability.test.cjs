@@ -53,32 +53,11 @@ test('all shipped scripts parse',()=>{
     for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))) new vm.Script(read(name),{filename:name});
 });
 
-test('same-install entitlement transitions are signed, local, and preserve Free data',async()=>{
-    const h=harness();h.data.unrelatedUserData={captions:'preserved'};h.run(read('entitlement.js'));
-    const api=h.context.CaptionKeepEntitlements;
-    assert.equal((await api.resolveStored()).state,'free');
-    const fixture=clone(api.DEVELOPMENT_FIXTURE);
-    assert.equal((await api.validateDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')})).state,'active');
-    assert.equal((await api.validateDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2099-01-15')})).state,'offline-grace');
-    assert.equal((await api.validateDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2099-03-01')})).state,'expired');
-    const tampered=clone(fixture);tampered.payload.entitlementId='tampered';
-    assert.equal((await api.validateDevelopmentFixture(tampered,{allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')})).state,'unavailable');
-    await api.installDevelopmentFixture(fixture,{allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')});
-    assert.equal((await api.resolveStored({allowDevelopmentFixtures:true,now:Date.parse('2026-10-02')})).effectiveTier,'pro');
-    assert.equal(h.data.unrelatedUserData.captions,'preserved');
-    await api.deactivate();
-    assert.equal((await api.resolveStored()).state,'free');
-    assert.equal(h.data.unrelatedUserData.captions,'preserved');
-});
-
-test('feature tier mapping defaults to Free and managed policy always wins',()=>{
-    const h=harness();h.run(read('entitlement.js'));const api=h.context.CaptionKeepEntitlements;
-    const pro={effectiveTier:'pro'};const free={effectiveTier:'free'};
-    assert.equal(api.evaluateFeature('issue-49',free,{}).allowed,true);
-    assert.equal(api.evaluateFeature('future-feature',free,{'future-feature':'pro'}).allowed,false);
-    assert.equal(api.evaluateFeature('future-feature',pro,{'future-feature':'pro'}).allowed,true);
-    assert.deepEqual({...api.evaluateFeature('future-feature',pro,{'future-feature':'pro'},false)},
-        {allowed:false,reason:'managed-policy'});
+test('the extension ships no commercial entitlement or feature-tier gate',()=>{
+    const worker=read('service_worker.js');
+    assert.equal(fs.existsSync(path.join(root,'entitlement.js')),false);
+    assert(!worker.includes('CaptionKeepEntitlements'));
+    assert(!worker.includes('get_entitlement_state'));
 });
 
 function storedZipEntries(bytes) {
@@ -234,19 +213,6 @@ function sendWorker(h, message) {
     return new Promise(resolve => h.chrome.listener(message,
         {id:'test',url:'chrome-extension://test/viewer.html'}, resolve));
 }
-
-test('dev and UAT editions resolve Pro without stored activation; production does not', async () => {
-    const h = harness();
-    h.run(read('entitlement.js'));
-    const api = h.context.CaptionKeepEntitlements;
-    h.chrome.runtime.getManifest = () => ({name:'Better CaptionKeep - UAT Release Candidate', version_name:'5.3.0 uat release candidate'});
-    assert.equal((await api.resolveStored()).effectiveTier, 'pro');
-    assert.equal((await api.resolveStored()).reason, 'developer-edition');
-    assert.equal(api.evaluateFeature('anything', await api.resolveStored(), {anything:'pro'}, false).allowed, false);
-    h.chrome.runtime.getManifest = () => ({name:'Better CaptionKeep', version_name:'5.3.0'});
-    assert.equal((await api.resolveStored()).effectiveTier, 'free');
-    assert.equal(api.isDeveloperEdition({name:'Better CaptionKeep', version_name:'development'}), false);
-});
 
 test('meeting extras serialize writes, scrub text, reject missing source and managed screenshots', async () => {
     const h = harness(); h.run(read('service_worker.js'));
@@ -1755,7 +1721,7 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph Dev and UAT builds stay visible without consumer entitlement machinery',()=>{
+test('Graph Dev and UAT builds stay visible without commercial feature gates',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');

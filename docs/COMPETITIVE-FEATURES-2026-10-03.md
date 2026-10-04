@@ -31,7 +31,7 @@ Listings describe vendor claims, not independently tested competitor behavior:
 | Screenshots | Active-tab capture, review, explicit local retention implemented | Live Chrome/Edge and navigation/policy UAT; no automatic OCR masking |
 | Translation | On-device feature-detected derivative with incremental visible-caption mode | Real language models/browser UAT; unavailable-device fallback is reviewed AI template |
 | All settings | Shared full-page view registered in all manifests | Responsive/browser visual UAT |
-| Developer edition access | Test manifest resolves Pro without activation | Consumer licensing remains separate and not production-ready |
+| Universal feature access | Every shipped feature works for every user | No paid tier, activation, subscription, or license gate |
 | Google Drive/Docs | Transport adapter and mocked tests | App registration, account connection, reviewed upload UI and live consent/upload UAT |
 | Microsoft OneDrive/SharePoint | Transport adapter and mocked tests | Separate delegated file-write consent, destination UX, reviewed upload UI and live UAT |
 | Notion | Excluded by user's corrected destination choice | None for this scope |
