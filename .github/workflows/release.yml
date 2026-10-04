@@ -50,26 +50,24 @@ jobs:
 
       - name: Generate runtime SBOM
         shell: bash
-        run: npm sbom --omit=dev --sbom-format=cyclonedx > dist/better-captionkeep-sbom.cdx.json
+        run: npm sbom --omit=dev --sbom-format=cyclonedx > dist/prod/better-captionkeep-sbom.cdx.json
 
       - name: Record package checksums
         shell: bash
         run: |
           (
-            cd dist
+            cd dist/prod
             sha256sum better_captionkeep-*.zip > SHA256SUMS.txt
-            sha256sum chrome-store/better_captionkeep-chrome-*.zip | sed 's#chrome-store/##' >> SHA256SUMS.txt
           )
 
       - name: Attest release provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: |
-            dist/better_captionkeep-*.zip
-            dist/chrome-store/better_captionkeep-chrome-*.zip
-            dist/release-provenance.json
-            dist/SHA256SUMS.txt
-            dist/better-captionkeep-sbom.cdx.json
+            dist/prod/better_captionkeep-*.zip
+            dist/prod/release-provenance.json
+            dist/prod/SHA256SUMS.txt
+            dist/prod/better-captionkeep-sbom.cdx.json
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -77,11 +75,10 @@ jobs:
           name: better-captionkeep-${{ github.run_id }}
           if-no-files-found: error
           path: |
-            dist/better_captionkeep-*.zip
-            dist/chrome-store/better_captionkeep-chrome-*.zip
-            dist/release-provenance.json
-            dist/SHA256SUMS.txt
-            dist/better-captionkeep-sbom.cdx.json
+            dist/prod/better_captionkeep-*.zip
+            dist/prod/release-provenance.json
+            dist/prod/SHA256SUMS.txt
+            dist/prod/better-captionkeep-sbom.cdx.json
 
       - name: Create draft GitHub release
         if: github.event_name == 'push'
@@ -95,4 +92,4 @@ jobs:
             echo "Release $RELEASE_TAG already exists; refusing to replace immutable release artifacts."
             exit 1
           fi
-          gh release create "$RELEASE_TAG" dist/better_captionkeep-*.zip dist/chrome-store/better_captionkeep-chrome-*.zip dist/release-provenance.json dist/SHA256SUMS.txt dist/better-captionkeep-sbom.cdx.json --draft --verify-tag --title "$title" --generate-notes
+          gh release create "$RELEASE_TAG" dist/prod/better_captionkeep-*.zip dist/prod/release-provenance.json dist/prod/SHA256SUMS.txt dist/prod/better-captionkeep-sbom.cdx.json --draft --verify-tag --title "$title" --generate-notes

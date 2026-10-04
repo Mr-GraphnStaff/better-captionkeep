@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const {createHash} = require('node:crypto');
-const {mkdtemp, writeFile} = require('node:fs/promises');
+const {mkdtemp, readFile, writeFile} = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
@@ -26,4 +26,13 @@ test('release asset verifier binds tag, checksums, provenance, and ZIPs', async 
   await assert.rejects(verifyReleaseAssets(root, 'v5.1.1'), /does not match/);
   await writeFile(path.join(root, 'better_captionkeep-5.1.0.zip'), 'tampered');
   await assert.rejects(verifyReleaseAssets(root, 'v5.1.0'), /Checksum mismatch/);
+});
+
+test('release workflow publishes only the canonical production lane', async () => {
+  const workflow = await readFile(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8');
+  assert(workflow.includes('cd dist/prod'));
+  assert(workflow.includes('dist/prod/better_captionkeep-*.zip'));
+  assert(workflow.includes('dist/prod/release-provenance.json'));
+  assert(!workflow.includes('dist/chrome-store/'));
+  assert(!workflow.includes('cd dist\n'));
 });
