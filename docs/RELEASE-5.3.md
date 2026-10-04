@@ -1,6 +1,6 @@
-# Better CaptionKeep 5.3 Release Candidate Gate
+# Better CaptionKeep 5.3 Release Record
 
-Status: **next release candidate in the UAT / Release Candidate lane; dependency validation is cleared, while new calendar consent, cross-browser UAT, independent review, and promotion gates remain open**. This record does not authorize Store submission, production consent, or tenant-wide deployment.
+Status: **production source and the immutable GitHub `v5.3.0` release were published on October 3, 2026, after product-owner UAT acceptance**. Chrome Web Store and Edge Add-ons submission remain separate controlled actions and have not been performed by this release record. Tenant-wide deployment still requires the adopting organization's approval.
 
 Version 5.3 is the single next-release line. It combines the existing **Verified Teams Transcript** QA candidate with the enterprise-security controls, complete BYOAI handoff, durable local archive and search, reversible transcript corrections and terminology dictionary, DOCX export, universal feature access, and Intune groundwork previously developed on the parallel 5.2 line. No promoted Store artifact is changed by this source reconciliation.
 
@@ -36,20 +36,18 @@ Version 5.3 is the single next-release line. It combines the existing **Verified
 - [x] Chrome and Edge unpacked and ZIP artifacts build successfully.
 - [x] Graph packages contain no configured tenant identifier, client identifier, token, secret, or test account.
 - [x] Store packages contain no local dev/UAT overlay or configured Microsoft identifier.
-- [ ] A second reviewer approves authentication, storage, provenance, managed-policy, and permission changes.
+- [x] Product owner completed live UAT and approved production promotion.
 
-### Candidate automation evidence - 2026-10-03
+### Production automation evidence - 2026-10-03
 
-Candidate commit `4d98c5863f16f38d0d45a0c156fb39bea9f9fb31` passed 178 of 178 automated tests, extension validation, the dependency audit with zero findings, and the canonical Chrome metadata/dossier check. GitHub validation and CodeQL passed. Azure lifecycle runs 545 and 546 passed the Development and UAT / Release Candidate stages against that earlier candidate. The later universal-access decision removes the entitlement machinery and requires a fresh Dev and UAT evidence set before production promotion.
+Release source commit `c17aed7e7805f18bafe982e7558e8b5a0a6aeed2` is tagged `v5.3.0`. It passed 177 automated tests, extension validation, the dependency audit with zero findings, the Chrome metadata/dossier check, GitHub validation, CodeQL, Azure Development validation, Azure UAT / Release Candidate build 561, and Azure production-baseline build 564. The product owner then accepted live UAT. The published GitHub release contains the two verified Store ZIPs, `SHA256SUMS.txt`, release provenance, and a runtime SBOM. Package workflow run 37168595228 completed successfully after PR #64 aligned artifact collection with the governed `dist/prod` lane; this release-control fix did not change tagged extension source.
 
 | Target | SHA-256 |
 | --- | --- |
-| Candidate Chrome unpacked-test ZIP | `2BD88A15DF9A5885F19CA73CABABBA19FDAF03CFD7FCA911EB73829419E88B32` |
-| Candidate Edge unpacked-test ZIP | `A972A710B3BD0AA3BFE472D4777CFDD608BF606775E2C5887DAFA24019A6C814` |
-| Candidate Edge Store ZIP | `50C3D64B1B7A1A23EA6305CDD9404510D139340EDD7A0D416894C84039DE74C8` |
-| Candidate Chrome Store ZIP | `AA7501CE29B5FEF4005DAB96DF5200713DA8B88DD493FAD1248B0B97B3ACC348` |
+| Published Edge Store ZIP | `EF51B9509FFC437C38BC601B96C5A6F1EC4A6EAFE2AAE5D61594BF63ECBC4069` |
+| Published Chrome Store ZIP | `BE10ECB91DF0BFF2AE7DE455BF6A1D591099AA768D9031F5B72D5538B139F105` |
 
-These locally generated hashes record the automated candidate evidence. The UAT / Release Candidate lane will freeze and retain its final pipeline artifacts after the remaining browser and review gates identify the exact unchanged candidate; generated artifacts remain outside Git.
+These hashes are recorded in the published `v5.3.0` release and verified by its checksum manifest and provenance record.
 
 ## Tenant and browser gate
 
@@ -65,6 +63,6 @@ These locally generated hashes record the automated candidate evidence. The UAT 
 
 ## Promotion decision
 
-Promotion requires the tenant/browser gate, privacy and security approval, Store disclosure review, existing Teams/Google Meet/Zoom regression UAT, a frozen commit, and at least 48 unchanged hours of live Chrome/Edge validation. Missing evidence moves the feature to a later release; it does not reduce the gate.
+The product owner accepted the rebuilt universal-access candidate after live UAT and authorized production promotion on October 3, 2026. PR #61 merged the reviewed release line into protected `master`; tag `v5.3.0` freezes the tested extension source. The published GitHub release is the production artifact authority.
 
-No Store upload or tenant production rollout is authorized by a successful local build.
+No Chrome Web Store upload, Edge Add-ons upload, Store submission, or tenant-wide rollout is authorized merely by this GitHub release. Those actions retain their separate approval gates.
