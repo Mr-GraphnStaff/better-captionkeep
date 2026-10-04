@@ -62,6 +62,10 @@ const UI_ELEMENTS = {
 let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
+const MICROSOFT_365_HOST_ACCESS = Object.freeze([
+    'https://login.microsoftonline.com/*',
+    'https://graph.microsoft.com/*'
+]);
 const runtimeManifest = chrome.runtime.getManifest();
 const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
 const runtimeVersionName = String(runtimeManifest.version_name || '');
@@ -78,6 +82,11 @@ function safeExecute(fn, context = '', fallback = null) {
         console.error(`[Teams Caption Saver] ${context}:`, error);
         return fallback;
     }
+}
+
+async function requestMicrosoft365HostAccess() {
+    if (!chrome.permissions?.request) return true;
+    return chrome.permissions.request({origins: [...MICROSOFT_365_HOST_ACCESS]});
 }
 
 // --- Utility Functions ---
@@ -653,8 +662,14 @@ function setupEventListeners() {
     UI_ELEMENTS.graphRefreshMeetings?.addEventListener('click', () => refreshRecentGraphMeetings());
     UI_ELEMENTS.graphConnectButton?.addEventListener('click', async () => {
         setGraphBusy(true);
-        UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
+        UI_ELEMENTS.graphConnectionStatus.textContent = 'Requesting Microsoft 365 access…';
         try {
+            if (!await requestMicrosoft365HostAccess()) {
+                UI_ELEMENTS.graphConnectionStatus.textContent = 'Microsoft 365 access was not granted. Local caption capture still works.';
+                setGraphBusy(false);
+                return;
+            }
+            UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
             await sendGraphMessage({message:'graph_connect'});
             await refreshGraphStatus();
             await refreshRecentGraphMeetings();

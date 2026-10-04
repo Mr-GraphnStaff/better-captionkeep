@@ -60,8 +60,10 @@ async function validateManifest(manifest) {
   if (!hostPermissions.includes('https://meet.google.com/*')) {
     errors.push('Google Meet development requires the exact "https://meet.google.com/*" host permission.');
   }
+  const optionalHostPermissions = manifest.optional_host_permissions ?? [];
   for (const host of ['https://login.microsoftonline.com/*', 'https://graph.microsoft.com/*']) {
-    if (!hostPermissions.includes(host)) errors.push(`Verified Teams Transcript requires the exact "${host}" host permission.`);
+    if (hostPermissions.includes(host)) errors.push(`Verified Teams Transcript must not require "${host}" during extension installation or update.`);
+    if (!optionalHostPermissions.includes(host)) errors.push(`Verified Teams Transcript requires the exact optional host permission "${host}".`);
   }
 
   const backgroundWorker = manifest.background?.service_worker;

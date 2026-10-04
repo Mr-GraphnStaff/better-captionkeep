@@ -79,8 +79,8 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `https://teams.cloud.microsoft/*` | host_permissions | Reads captions and optional attendee information rendered in the current Microsoft Teams web application. |
 | `https://meet.google.com/*` | host_permissions | Reads captions rendered during Google Meet meetings. |
 | `https://app.zoom.us/*` | host_permissions | Reads captions rendered by the Zoom Web subtitle overlay. |
-| `https://login.microsoftonline.com/*` | host_permissions | Performs interactive organizational Microsoft Entra authorization with PKCE when the user chooses Connect Microsoft 365. |
-| `https://graph.microsoft.com/*` | host_permissions | Shows up to five recent eligible Teams meetings, resolves the user-selected meeting, and retrieves its authorized official transcript. |
+| `https://login.microsoftonline.com/*` | optional_host_permissions | Requested only when the user chooses Connect Microsoft 365; performs interactive organizational Microsoft Entra authorization with PKCE. |
+| `https://graph.microsoft.com/*` | optional_host_permissions | Requested only when the user chooses Connect Microsoft 365; shows up to five recent eligible Teams meetings, resolves the selected meeting, and retrieves its authorized official transcript. |
 
 ### Microsoft Delegated Scopes
 

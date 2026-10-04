@@ -16,6 +16,7 @@ function fixture() {
       description: 'Microsoft Teams, Google Meet, and Zoom Web captions.',
       permissions: ['downloads', 'storage', 'sidePanel'],
       host_permissions: ['https://meet.google.com/*'],
+      optional_host_permissions: [],
       content_scripts: [{ matches: ['https://meet.google.com/*'] }],
     },
     metadata: {
@@ -28,6 +29,7 @@ function fixture() {
         sidePanel: 'Display the local live transcript beside the supported meeting page.',
       },
       hostPermissions: ['https://meet.google.com/*'],
+      optionalHostPermissions: [],
       hostPermissionJustification: 'Read Microsoft Teams, Google Meet, and Zoom Web captions on declared meeting pages only.',
       usesRemoteCode: false,
       privacyPolicyUrl: 'https://example.test/privacy',
@@ -42,6 +44,7 @@ test('Chrome Store metadata contract accepts synchronized disclosures', async ()
     version: '5.2.0',
     permissions: 3,
     hostPermissions: 1,
+    optionalHostPermissions: 0,
     providers: 3,
   });
 });
@@ -70,8 +73,8 @@ test('Chrome Store metadata contract rejects host and version drift', async () =
 test('Chrome Store metadata contract requires every Microsoft delegated scope', async () => {
   const { validateChromeStoreMetadata } = await import('../scripts/check-store-metadata.mjs');
   const { manifest, metadata } = fixture();
-  manifest.host_permissions.push('https://graph.microsoft.com/*');
-  metadata.hostPermissions.push('https://graph.microsoft.com/*');
+  manifest.optional_host_permissions.push('https://graph.microsoft.com/*');
+  metadata.optionalHostPermissions.push('https://graph.microsoft.com/*');
   assert.throws(
     () => validateChromeStoreMetadata(manifest, metadata),
     /delegated-scope disclosures drifted/i,

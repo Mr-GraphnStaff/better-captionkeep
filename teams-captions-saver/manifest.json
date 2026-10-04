@@ -29,7 +29,9 @@
     "https://teams.microsoft.com/*",
     "https://teams.cloud.microsoft/*",
     "https://meet.google.com/*",
-    "https://app.zoom.us/*",
+    "https://app.zoom.us/*"
+  ],
+  "optional_host_permissions": [
     "https://login.microsoftonline.com/*",
     "https://graph.microsoft.com/*"
   ],

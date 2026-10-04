@@ -1403,6 +1403,13 @@ test('manifest supports both official Teams web hosts',()=>{
         assert(manifest.host_permissions.includes(host));
         assert(manifest.content_scripts.some(entry=>entry.matches.includes(host)));
     }
+    for(const host of ['https://login.microsoftonline.com/*','https://graph.microsoft.com/*']) {
+        assert(!manifest.host_permissions.includes(host));
+        assert(manifest.optional_host_permissions.includes(host));
+    }
+    const popupScript=read('popup.js');
+    assert(popupScript.includes('requestMicrosoft365HostAccess'));
+    assert(popupScript.includes("chrome.permissions.request({origins: [...MICROSOFT_365_HOST_ACCESS]})"));
     assert.equal(manifest.storage.managed_schema,'managed-schema.json');
     assert.deepEqual(manifest.content_scripts[0].js.slice(0,3),['providerRegistry.js','configuration.js','transcriptInsights.js']);
 });
@@ -1429,7 +1436,7 @@ test('Dev, UAT, and production roots are directly loadable lifecycle builds',()=
 test('Chrome Store manifest preserves runtime behavior without test labeling',()=>{
     const source=JSON.parse(read('manifest.json'));
     const manifest=JSON.parse(readProject('manifests/manifest.chrome-store.json'));
-    for(const key of ['version','permissions','host_permissions','background','content_scripts','storage']) {
+    for(const key of ['version','permissions','host_permissions','optional_host_permissions','background','content_scripts','storage']) {
         assert.deepEqual(manifest[key],source[key]);
     }
     assert.equal(manifest.name,'Better CaptionKeep');

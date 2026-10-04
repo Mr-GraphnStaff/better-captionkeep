@@ -107,7 +107,7 @@ Use a scheduled Teams meeting containing invented phrases and no confidential, p
 1. Confirm Teams transcription is permitted and start transcription in the meeting.
 2. End the meeting and wait for the transcript artifact to become available.
 3. Open Better CaptionKeep and confirm the Graph connector reports the expected tenant and redirect URI.
-4. Select **Connect Microsoft 365** and complete organizational sign-in.
+4. Select **Connect Microsoft 365**, approve the browser's optional Microsoft identity and Graph access request, and complete organizational sign-in. The extension does not require those origins during installation or update.
 5. Confirm the consent screen names only the intended delegated permissions.
 6. Confirm the synthetic meeting appears in the five recent meetings without exposing attendee lists, message bodies, or unrelated calendar fields.
 7. Select the meeting, import the official transcript, and confirm it is labeled as a Microsoft Graph source.

@@ -46,6 +46,8 @@ The connector creates a second source artifact:
 
 Teams remains the meeting service for both paths: it processes the meeting and renders live captions. Better CaptionKeep’s local-capture path reads those rendered captions and does not upload its saved browser copy. The official-source path is different: Teams transcription must run, Microsoft notifies participants, and Microsoft 365 retains the resulting transcript under the organization’s tenant controls before Graph can return it. A scheduled meeting, visible live captions, or a successful local export does not by itself prove that an official tenant transcript exists.
 
+Microsoft identity and Graph origins are optional browser permissions. Better CaptionKeep requests them only from the explicit **Connect Microsoft 365** action, so an ordinary extension installation or update does not broaden mandatory site access or interrupt local caption capture.
+
 For Teams meetings, caption automation also attempts to start and verify Teams transcription and opens the participant roster by default when attendee tracking is enabled. The attempt can fail when the signed-in participant lacks the required meeting role, tenant policy blocks transcription, or Teams changes or withholds the control. The popup must show that state as a caution and must never claim that Microsoft 365 will retain an official transcript unless transcription is verified as running.
 
 The initial pilot must not automatically merge, overwrite, or silently prefer one source. Evidence markers and notes must remain linked to the exact source and source-caption identifiers they reference.

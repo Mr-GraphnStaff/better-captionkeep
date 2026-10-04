@@ -17,7 +17,7 @@ A calendar invitation or live captions alone does not create the official Micros
 
 1. Open Better CaptionKeep.
 2. Open **Verified Teams transcripts**.
-3. Select **Connect Microsoft 365** and complete Microsoft sign-in.
+3. Select **Connect Microsoft 365**, approve the one-time browser access request for Microsoft identity and Graph, and complete Microsoft sign-in. This optional access is not requested during extension installation or update.
 4. Select **Refresh** to list up to five recent eligible Teams meetings.
 5. Choose a meeting, or use the current-meeting/manual-link fallback.
 6. Select **Import verified transcript**.

@@ -164,8 +164,8 @@ Better CaptionKeep does not add application-level encryption to extension storag
 | Teams hosts | Read displayed captions and optional attendee DOM | Exact Microsoft hosts only |
 | `meet.google.com` | Read displayed captions | Exact host only |
 | `app.zoom.us` | Read tested Web-client subtitle overlay in the matching frame | No vanity-domain wildcard; no native client, audio, or video |
-| `login.microsoftonline.com` | Single-tenant interactive sign-in and token exchange | Exact Microsoft identity host; tenant GUID comes from managed policy |
-| `graph.microsoft.com` | Resolve one user-supplied Teams join URL and retrieve its available transcript | Delegated access only; exact Graph host; no tenant-wide background collection |
+| `login.microsoftonline.com` | User-initiated organizational sign-in and token exchange | Optional exact Microsoft identity host requested only when the user selects Connect Microsoft 365; no client secret |
+| `graph.microsoft.com` | Show recent eligible meetings and retrieve the selected authorized transcript | Optional delegated access requested only from Connect Microsoft 365; exact Graph host; no tenant-wide background collection |
 
 The extension does not request cookies, browsing history, microphone, camera, geolocation, native messaging, web request interception, or broad `<all_urls>` access.
 

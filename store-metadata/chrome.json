@@ -26,11 +26,13 @@
     "https://teams.microsoft.com/*",
     "https://teams.cloud.microsoft/*",
     "https://meet.google.com/*",
-    "https://app.zoom.us/*",
+    "https://app.zoom.us/*"
+  ],
+  "optionalHostPermissions": [
     "https://login.microsoftonline.com/*",
     "https://graph.microsoft.com/*"
   ],
-  "hostPermissionJustification": "Meeting-origin access is limited to Microsoft Teams, Google Meet, and Zoom Web for local caption capture. When and only when an administrator enables Verified Teams Transcript, login.microsoftonline.com is used for interactive Microsoft Entra authentication and graph.microsoft.com is used to show up to five recent eligible Teams meetings, resolve the meeting the user selected, and retrieve its authorized official transcript. Calendar results remain transient. Better CaptionKeep does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
+  "hostPermissionJustification": "Required meeting-origin access is limited to Microsoft Teams, Google Meet, and Zoom Web for local caption capture. Microsoft identity and Graph origins are optional and requested only after the user selects Connect Microsoft 365; they support interactive sign-in, up to five recent eligible Teams meetings, and retrieval of the one authorized official transcript the user selects. Calendar results remain transient. Better CaptionKeep does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
   "usesRemoteCode": false,
   "privacyPolicyUrl": "https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md"
 }

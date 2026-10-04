@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
 const prodDir = path.join(distDir, 'prod');
-const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^tmp$)/i;
+const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
 const expectedLifecycleIds = new Map([
   ['dev', 'pjpibiimicedkckleehljlklmblkacph'],
   ['uat', 'ecpjboeanaehianibdbgijldbikdgkhm'],
@@ -58,7 +58,7 @@ for (const target of ['dev', 'uat', 'prod']) {
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
   if (files.filter(file => file === 'manifest.json').length !== 1) throw new Error(`${target} package must have one root manifest`);
   const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
-  for (const key of ['version', 'permissions', 'host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
+  for (const key of ['version', 'permissions', 'host_permissions', 'optional_host_permissions', 'background', 'content_scripts', 'storage', 'side_panel']) {
     if (JSON.stringify(manifest[key]) !== JSON.stringify(sourceManifest[key])) throw new Error(`${target} manifest differs at ${key}`);
   }
   const expectedName = target === 'dev'
