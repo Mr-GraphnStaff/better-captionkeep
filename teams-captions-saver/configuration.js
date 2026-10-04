@@ -140,8 +140,11 @@
     }
 
     function applyDevUatGraphOverlay(policy, localConfig = {}, manifest = {}) {
-        const isDevUatBuild = manifest.name === 'Better CaptionKeep - UAT Release Candidate'
-            && /\buat release candidate\b/i.test(String(manifest.version_name || ''));
+        const versionName = String(manifest.version_name || '');
+        const isDevUatBuild = (manifest.name === 'Better CaptionKeep - Development'
+                && /\bdevelopment\b/i.test(versionName))
+            || (manifest.name === 'Better CaptionKeep - UAT Release Candidate'
+                && /\buat release candidate\b/i.test(versionName));
         if (!isDevUatBuild || localConfig.enableGraphTranscriptImport !== true) return policy;
         const graphKeys = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'];
         const locked = new Set(Array.isArray(policy.locked) ? policy.locked : []);
