@@ -59,6 +59,15 @@ test('Chrome status summary separates published and submitted revisions', async 
   });
 });
 
+test('Chrome blocks only active submitted revisions and permits terminal cancelled or rejected revisions', async () => {
+  const { isActiveSubmission } = await import('../scripts/chrome-publish.mjs');
+  assert.equal(isActiveSubmission({ submittedItemRevisionStatus: { state: 'PENDING_REVIEW' } }), true);
+  assert.equal(isActiveSubmission({ submittedItemRevisionStatus: { state: 'STAGED' } }), true);
+  assert.equal(isActiveSubmission({ submittedItemRevisionStatus: { state: 'CANCELLED' } }), false);
+  assert.equal(isActiveSubmission({ submittedItemRevisionStatus: { state: 'REJECTED' } }), false);
+  assert.equal(isActiveSubmission({}), false);
+});
+
 test('Chrome preflight proves credentials and item identity without uploading', async () => {
   const { main } = await import('../scripts/chrome-publish.mjs');
   const requests = [];
