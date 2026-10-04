@@ -4,7 +4,8 @@
 **Report date:** October 4, 2026  
 **Severity:** SEV2 — a major advertised feature was unavailable to ordinary users of the public Edge release  
 **Affected release:** Microsoft Edge Add-ons 5.3.1  
-**Tracking:** Azure Boards bug #297  
+**Incident tracking:** [Azure Boards bug #297](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/297)<br>
+**Corrective program:** [Azure Boards Feature #298](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/298), with CAP-08 through CAP-16 tracked as Tasks #299–#307<br>
 **Recovery release:** 5.3.2  
 **Status:** Recovery submitted to Chrome and Edge; incident remains open until both Stores serve 5.3.2 and installed upgrades are verified
 
