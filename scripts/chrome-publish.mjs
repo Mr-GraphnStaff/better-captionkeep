@@ -145,8 +145,13 @@ function assertHealthy(status) {
   if (status.warned) throw new Error('Chrome item has a policy warning; resolve it before Store mutation');
 }
 
+export function isActiveSubmission(status) {
+  const state = String(status?.submittedItemRevisionStatus?.state || '');
+  return state === 'PENDING_REVIEW' || state === 'STAGED';
+}
+
 function assertNoActiveSubmission(status) {
-  if (status.submittedItemRevisionStatus) {
+  if (isActiveSubmission(status)) {
     const summary = summarizeChromeStatus(status);
     throw new Error(
       `Chrome already has an active submission (${summary.submittedState}/${summary.submittedVersion}); ` +
