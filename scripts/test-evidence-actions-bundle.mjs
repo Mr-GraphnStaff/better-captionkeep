@@ -25,6 +25,21 @@ function installProduction(packageDirectory) {
   });
 }
 
+function listArchiveEntries(archivePath) {
+  const [command, args] = process.platform === 'win32'
+    ? ['tar', ['-tf', archivePath]]
+    : ['unzip', ['-Z1', archivePath]];
+  return execFileSync(command, args, {encoding:'utf8', windowsHide:true})
+    .split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+}
+
+function extractArchive(archivePath, destination) {
+  const [command, args] = process.platform === 'win32'
+    ? ['tar', ['-xf', archivePath, '-C', destination]]
+    : ['unzip', ['-q', archivePath, '-d', destination]];
+  execFileSync(command, args, {stdio:'pipe', windowsHide:true});
+}
+
 function inheritedEnvironment(extra) {
   return {...Object.fromEntries(Object.entries(process.env).filter(([, value]) => typeof value === 'string')), ...extra};
 }
@@ -97,15 +112,14 @@ const temporary = await mkdtemp(path.join(tmpdir(), 'captionkeep-evidence-bundle
 try {
   const artifactBytes = await readFile(artifactPath);
   assert.equal(sha256(artifactBytes), provenance.artifact.sha256);
-  const entries = execFileSync('tar', ['-tf', artifactPath], {encoding:'utf8', windowsHide:true})
-    .split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+  const entries = listArchiveEntries(artifactPath);
   assert(entries.length > 0);
   for (const entry of entries) {
     assert(!path.isAbsolute(entry), `Bundle path is absolute: ${entry}`);
     assert(!entry.includes('\\') && !entry.split('/').includes('..') && !entry.includes(':'), `Bundle path is unsafe: ${entry}`);
     assert(!/(?:^|\/)(?:node_modules|test|obj|bin)(?:\/|$)|\.env|\.pem$/i.test(entry), `Bundle path is forbidden: ${entry}`);
   }
-  execFileSync('tar', ['-xf', artifactPath, '-C', temporary], {stdio:'pipe', windowsHide:true});
+  extractArchive(artifactPath, temporary);
   const bundleManifest = JSON.parse(await readFile(path.join(temporary, 'BUNDLE-MANIFEST.json'), 'utf8'));
   assert.equal(bundleManifest.connectorOwnership, 'customer');
   assert.equal(bundleManifest.captionKeepProvidesConnectors, false);
