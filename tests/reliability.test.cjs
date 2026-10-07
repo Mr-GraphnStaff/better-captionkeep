@@ -1683,6 +1683,9 @@ test('all target manifests expose the local Evidence Board through the side pane
     const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
     assert(sidepanel.includes('>Live transcript</button>'));
     assert(sidepanel.includes('>Open full transcript</button>'));
+    const viewerScript=read('viewer.js');
+    assert(!viewerScript.includes('choose View Transcript'));
+    assert(viewerScript.includes('choose Open Live Workspace, then select Open full transcript'));
     assert(sidepanel.includes('id="close-panel"'));
     assert(sidepanel.includes('id="transcript-search"'));
     assert(sidepanel.includes('id="email-board"'));
