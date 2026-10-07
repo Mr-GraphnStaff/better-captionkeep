@@ -396,7 +396,11 @@ async function refreshGraphStatus() {
         graphConnected = !!status.connected;
         UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
-            : (status.configured ? 'Microsoft 365 setup detected. Connect to begin.' : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs below.');
+            : (status.configured
+                ? 'Microsoft 365 setup detected. Connect to begin.'
+                : (isFullSettingsPage
+                    ? 'Microsoft 365 setup required. Add your organization’s tenant and client IDs under Administrator connection details.'
+                    : 'Microsoft 365 setup required. Open All Settings to add your organization’s tenant and client IDs.'));
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
         graphConnected = false;

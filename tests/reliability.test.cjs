@@ -1765,10 +1765,11 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph controls stay visible for customer setup in every lane without commercial feature gates',()=>{
+test('Graph controls remain available in every lane while editable setup stays in All Settings',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
+    const settingsScript=read('settings.js');
     const buildScript=readProject('scripts/build-browser-targets.mjs');
     assert(!popup.includes('devUatSection'));
     assert(!popup.includes('Signed UAT pass'));
@@ -1777,6 +1778,14 @@ test('Graph controls stay visible for customer setup in every lane without comme
     assert(popup.includes('id="graphTenantId"'));
     assert(popup.includes('id="graphClientId"'));
     assert(popup.includes('Save Microsoft 365 setup'));
+    assert(popup.includes('class="graph-manual graph-admin-details"'));
+    assert(popup.includes('.graph-admin-details { display: none; }'));
+    assert(popup.includes('html[data-view="settings"] .graph-admin-details { display: block; }'));
+    assert(popup.includes('href="settings.html#graphTranscriptSection"'));
+    assert(popup.includes('Enter tenant and application IDs in All Settings'));
+    assert(popup.includes('html[data-view="settings"] .graph-settings-link { display: none; }'));
+    assert(popupScript.includes('Open All Settings to add your organization’s tenant and client IDs.'));
+    assert(settingsScript.includes('destination.hash = location.hash'));
     assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = false'));
     assert(popupScript.includes('CaptionKeepConfiguration.readGraphUserConfig()'));
     assert(buildScript.includes("target === 'dev' || target === 'uat'"));

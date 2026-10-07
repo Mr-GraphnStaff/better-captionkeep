@@ -24,7 +24,7 @@ Every feature included in Better CaptionKeep is available to every user. There i
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-Version 5.3.3 replaces competing live-transcript controls with one Live Workspace in the browser side panel. The full transcript viewer remains available as an intentional expanded view and for completed history. It also removes a popup shortcut that intercepted the standard paste command. The 5.3 line includes the All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
+Version 5.3.3 replaces competing live-transcript controls with one Live Workspace in the browser side panel. The full transcript viewer remains available as an intentional expanded view and for completed history. It also removes a popup shortcut that intercepted the standard paste command and moves Microsoft 365 tenant and application ID entry to the full-tab All Settings page so the form stays open while an administrator copies both values. The 5.3 line includes the All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
@@ -34,7 +34,7 @@ Privacy Scrubber is enabled by default and can mask common sensitive patterns be
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
-To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for settings, history, and exports, or open the Live Workspace beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
+To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for status, history, and everyday controls; use All Settings for the complete settings form; or open the Live Workspace beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs in All Settings; tenant administrator consent may be required.
 
 Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
 
@@ -161,7 +161,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 5. Open the Evidence Board, mark a caption, and verify its source-linked brief without modifying the transcript.
 6. Confirm Privacy Scrubber is enabled by default. Optional AI handoff must stop on the internal review page until the reviewer explicitly copies text.
 7. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
-8. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
+8. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Open All Settings, enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
 
 No developer-operated server, paid subscription, microphone recording, video recording, or shared test account is required for the extension itself.
 
