@@ -18,7 +18,7 @@ Store installation provides a stable extension identity and automatic updates.
 3. Confirm **Add extension**.
 4. Open Edge's Extensions menu and show Better CaptionKeep on the toolbar if desired.
 
-Current status on October 7, 2026: Chrome and Edge publicly serve **5.3.2**. Verification that existing installations upgrade cleanly remains separate evidence. See [Release status](Release-Status).
+Current status on October 7, 2026: Chrome and Edge both publicly serve **5.3.2**. Verification that existing installations upgrade cleanly and pass the production smoke test remains open. See [Release status](Release-Status).
 
 ## After installation
 

@@ -8,7 +8,9 @@
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
-> **Current install status — October 7, 2026:** Microsoft Edge Add-ons and the Chrome Web Store publicly serve `5.3.2`; Chrome lists the update date as October 6. Version `5.3.3` is a local hotfix candidate for the competing live-transcript controls described below. It has not been submitted or published. Installed-upgrade verification remains separate evidence.
+> **Current install status — October 7, 2026:** Microsoft Edge Add-ons and Chrome Web Store both publicly serve `5.3.2`. The public update services independently returned version 5.3.2 for both production identities. Version `5.3.3` is a local hotfix candidate for the popup reliability fixes described below; it has not been submitted or published. Azure Boards bug #297 remains active until existing Chrome and Edge installations upgrade from their prior public versions and the upgraded extension passes the production smoke test.
+
+> **Development status:** Work on `5.4` began October 4, 2026 under the governed launch-mode rule. It does not alter the frozen 5.3.2 submission. The committed scope is Canadian French and Spanish localization and translation readiness, managed language deployment, active-meeting reliability, production-defect remediation, and permanent release safeguards. See the [5.4 development record](docs/RELEASE-5.4.md).
 
 ### Current 5.3 capabilities
 
@@ -34,7 +36,7 @@ The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** a
 
 ## Release lineage
 
-Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, and [5.3.2](docs/RELEASE-5.3.2.md) is the current Store-recovery candidate. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) is the frozen Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is now in Development. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Interface previews
 
@@ -72,7 +74,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Chrome and Edge publicly serve `5.3.2`. Version `5.3.3` is an unsubmitted hotfix candidate for controlled testing only. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for local testing.
+Chrome and Edge publicly serve `5.3.2`, but the existing-install upgrade paths are not yet verified. Version `5.3.3` is an unsubmitted hotfix candidate for controlled testing only. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
@@ -118,7 +120,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Both Stores publicly serve the governed `5.3.2` recovery; Chrome lists it as updated October 6, 2026. Version `5.3.3` remains an unsubmitted hotfix candidate pending live browser UAT and governed promotion. The [privacy policy](PRIVACY.md) is published. Use the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [5.3.3 hotfix record](docs/RELEASE-5.3.3.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Both Stores now publicly serve the governed `5.3.2` recovery. Microsoft's public update service returned the signed Edge 5.3.2 CRX at 17:25 UTC on October 4, 2026; Google's public update service returned Chrome 5.3.2 with SHA-256 `fc4dc4a94e6e63660c35d3b5d8a043395450702dd27834b2e120bcfc6e245c10` at 18:55 UTC on October 6. Existing-install upgrade verification is still required, so Azure Boards bug #297 remains active. Version `5.3.3` remains an unsubmitted hotfix candidate pending live browser UAT and governed promotion. The [privacy policy](PRIVACY.md) is published. Use the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [5.3.3 hotfix record](docs/RELEASE-5.3.3.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
