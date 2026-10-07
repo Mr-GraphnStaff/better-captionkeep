@@ -60,7 +60,7 @@ blockquote {
 }
 
 label { display: block; margin: 10px 0 4px; font-weight: 650; }
-select, input, button {
+select, input, textarea, button {
     width: 100%;
     border: 1px solid var(--ck-border);
     border-radius: 8px;
@@ -68,7 +68,8 @@ select, input, button {
     color: var(--ck-text);
     font: inherit;
 }
-select, input { padding: 9px; }
+select, input, textarea { padding: 9px; }
+textarea { resize: vertical; }
 button { padding: 9px 10px; cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--ck-primary); }
 button:disabled { cursor: not-allowed; opacity: 0.55; }
@@ -78,18 +79,65 @@ button.primary { background: var(--ck-primary); color: #fff; border-color: var(-
 .mark-controls button { width: auto; white-space: nowrap; }
 .search-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .search-row input { flex: 1; min-width: 0; }
+.evidence-action-bar {
+    display: grid;
+    grid-template-columns: auto auto minmax(145px, 1fr) minmax(135px, 1fr);
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid var(--ck-border);
+    border-radius: 9px;
+    background: var(--ck-surface-soft);
+}
+.evidence-action-bar .text-button { justify-self: start; }
+.evidence-action-bar .primary { justify-self: end; width: auto; }
 
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .transcript-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 7px; max-height: 340px; overflow: auto; }
 .transcript-list li { padding: 9px; border: 1px solid var(--ck-border); border-radius: 9px; background: var(--ck-surface-soft); }
 .transcript-list li.empty { color: var(--ck-text-muted); text-align: center; }
 .caption-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.caption-select-wrap { display: flex; align-items: center; gap: 7px; min-width: 0; margin: 0; }
+.caption-select { width: auto; flex: none; }
+.transcript-list li.selected { border-color: var(--ck-primary); box-shadow: inset 3px 0 0 var(--ck-primary); }
 .caption-id { font-family: ui-monospace, "Cascadia Mono", monospace; color: var(--ck-primary); font-weight: 700; }
 .caption-mark { width: auto; padding: 3px 8px; }
 .caption-text { margin: 6px 0 0; overflow-wrap: anywhere; }
 .marker-list { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .marker-list li { padding: 10px; border: 1px solid var(--ck-border); border-radius: 9px; background: var(--ck-surface-soft); }
 .marker-list li.empty { color: var(--ck-text-muted); text-align: center; }
+.research-card-list, .connector-draft-list { display: grid; gap: 12px; }
+.evidence-job-list { display: grid; gap: 8px; }
+.evidence-job-list > .empty { color: var(--ck-text-muted); text-align: center; }
+.evidence-job {
+    display: grid;
+    gap: 6px;
+    border: 1px solid var(--ck-border);
+    border-radius: 9px;
+    padding: 10px;
+    background: var(--ck-surface-soft);
+}
+.evidence-job header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.evidence-job .job-state { font-weight: 700; text-transform: capitalize; }
+.evidence-job .job-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.research-card-list > .empty, .connector-draft-list > .empty { color: var(--ck-text-muted); text-align: center; }
+.research-card, .connector-draft {
+    border: 1px solid var(--ck-border);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--ck-surface-soft);
+}
+.research-card h3, .connector-draft h3 { margin: 0 0 6px; font-size: 1rem; }
+.research-card .card-summary { margin: 0 0 8px; color: var(--ck-text-muted); }
+.research-card ol { margin: 8px 0; padding-left: 22px; }
+.research-card details { margin-top: 8px; }
+.research-card a, .connector-draft a { overflow-wrap: anywhere; }
+.research-card .derivative-note, .connector-draft .derivative-note { font-size: 0.78rem; color: var(--ck-text-muted); }
+.connector-draft .confirmation-note { font-weight: 700; color: var(--ck-primary); }
+.connector-draft dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; margin: 8px 0; }
+.connector-draft dt { font-weight: 700; }
+.connector-draft dd { margin: 0; overflow-wrap: anywhere; }
 .marker-header { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
 .marker-kind { font-weight: 700; color: var(--ck-primary); }
 .marker-evidence { font-family: ui-monospace, "Cascadia Mono", monospace; }
@@ -97,8 +145,31 @@ button.primary { background: var(--ck-primary); color: #fff; border-color: var(-
 .marker-note { margin: 6px 0 0; color: var(--ck-text-muted); }
 .delete-marker { width: auto; padding: 3px 7px; color: var(--ck-danger); background: transparent; }
 
+dialog {
+    width: min(620px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    padding: 0;
+    border: 1px solid var(--ck-border);
+    border-radius: 12px;
+    color: var(--ck-text);
+    background: var(--ck-surface);
+    box-shadow: 0 18px 60px rgb(0 0 0 / 35%);
+}
+dialog::backdrop { background: rgb(0 0 0 / 55%); }
+dialog form { padding: 16px; }
+.dialog-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.dialog-heading h2 { margin: 0; font-size: 18px; }
+.dialog-heading p { margin: 4px 0 0; color: var(--ck-text-muted); }
+.dialog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.boundary-note { padding: 9px; border-left: 4px solid var(--ck-primary); background: var(--ck-surface-soft); color: var(--ck-text-muted); }
+.dialog-actions { display: flex; justify-content: end; }
+.dialog-actions button { width: auto; }
+
 @media (max-width: 340px) {
     .mark-controls { grid-template-columns: 1fr; }
     .mark-controls button { width: 100%; }
     .actions { grid-template-columns: 1fr; }
+    .evidence-action-bar { grid-template-columns: 1fr auto; }
+    .evidence-action-bar button:not(.text-button) { grid-column: 1 / -1; width: 100%; }
+    .dialog-grid { grid-template-columns: 1fr; }
 }

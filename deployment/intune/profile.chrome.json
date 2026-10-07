@@ -5,6 +5,7 @@
   "managedPolicy": {
     "forcePrivacyScrubber": true,
     "forceProfanityFilter": false,
+    "forceUiLocale": "system",
     "disableAiHandoff": false
   }
 }

@@ -10,6 +10,7 @@ const UI_ELEMENTS = {
     saveOptions: document.getElementById('saveOptions'),
     viewButton: document.getElementById('viewButton'),
     themeSelect: document.getElementById('themeSelect'),
+    uiLocaleSelect: document.getElementById('uiLocaleSelect'),
     defaultSaveFormatSelect: document.getElementById('defaultSaveFormat'),
     saveAsTypeSelect: document.getElementById('saveAsType'),
     saveLocationInput: document.getElementById('saveLocation'),
@@ -46,6 +47,7 @@ const UI_ELEMENTS = {
     historyButton: document.getElementById('historyButton'),
     sessionList: document.getElementById('sessionList'),
     graphTranscriptSection: document.getElementById('graphTranscriptSection'),
+    graphAdminDetails: document.getElementById('graphAdminDetails'),
     graphConnectionStatus: document.getElementById('graphConnectionStatus'),
     graphRedirectUri: document.getElementById('graphRedirectUri'),
     graphTenantId: document.getElementById('graphTenantId'),
@@ -60,7 +62,23 @@ const UI_ELEMENTS = {
     graphRefreshMeetings: document.getElementById('graphRefreshMeetings'),
     graphRecentMeetings: document.getElementById('graphRecentMeetings'),
     graphImportButton: document.getElementById('graphImportButton'),
-    graphImportStatus: document.getElementById('graphImportStatus')
+    graphImportStatus: document.getElementById('graphImportStatus'),
+    assistantBridgeSettings: document.getElementById('assistantBridgeSettings'),
+    assistantBridgeMode: document.getElementById('assistantBridgeMode'),
+    assistantLocalFields: document.getElementById('assistantLocalFields'),
+    assistantRemoteFields: document.getElementById('assistantRemoteFields'),
+    assistantNativeHost: document.getElementById('assistantNativeHost'),
+    assistantEndpointUrl: document.getElementById('assistantEndpointUrl'),
+    assistantRedirectUri: document.getElementById('assistantRedirectUri'),
+    assistantAuthorizationEndpoint: document.getElementById('assistantAuthorizationEndpoint'),
+    assistantTokenEndpoint: document.getElementById('assistantTokenEndpoint'),
+    assistantClientId: document.getElementById('assistantClientId'),
+    assistantScopes: document.getElementById('assistantScopes'),
+    assistantTimeoutSeconds: document.getElementById('assistantTimeoutSeconds'),
+    assistantSaveSetup: document.getElementById('assistantSaveSetup'),
+    assistantConnect: document.getElementById('assistantConnect'),
+    assistantDisconnect: document.getElementById('assistantDisconnect'),
+    assistantSetupStatus: document.getElementById('assistantSetupStatus')
 };
 
 
@@ -68,6 +86,8 @@ let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
 let graphConfigured = false;
+let graphBusy = false;
+let assistantProfile = null;
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -217,16 +237,21 @@ async function refreshEnterprisePolicy() {
     return currentEnterprisePolicy;
 }
 
-function setGraphBusy(busy) {
+function refreshGraphControls() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected || !graphConfigured;
-    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
-    UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
-    UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphConnectButton.disabled = graphBusy || graphConnected || !graphConfigured;
+    UI_ELEMENTS.graphDisconnectButton.disabled = graphBusy || !graphConnected;
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = graphBusy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = graphBusy || !graphConnected;
     UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
-        button.disabled = busy || !graphConnected;
+        button.disabled = graphBusy || !graphConnected;
     });
-    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphImportButton.disabled = graphBusy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+}
+
+function setGraphBusy(busy) {
+    graphBusy = !!busy;
+    refreshGraphControls();
 }
 
 function graphErrorMessage(error) {
@@ -265,7 +290,7 @@ function selectGraphMeeting(meeting, message) {
     UI_ELEMENTS.graphJoinUrl.value = String(meeting?.joinUrl || '');
     markSelectedGraphMeeting();
     UI_ELEMENTS.graphImportStatus.textContent = message;
-    setGraphBusy(false);
+    refreshGraphControls();
 }
 
 async function importGraphTranscript(joinUrl) {
@@ -298,11 +323,12 @@ function renderRecentGraphMeetings(meetings) {
         return;
     }
     for (const meeting of meetings.slice(0, 5)) {
+        const item = document.createElement('div');
+        item.setAttribute('role', 'listitem');
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'graph-meeting-card';
         button.dataset.joinUrl = meeting.joinUrl;
-        button.setAttribute('role', 'listitem');
         button.setAttribute('aria-pressed', 'false');
         const title = document.createElement('span');
         title.className = 'graph-meeting-title';
@@ -315,9 +341,11 @@ function renderRecentGraphMeetings(meetings) {
             selectGraphMeeting(meeting, `Retrieving ${meeting.subject || 'meeting'} from Microsoft 365…`);
             await importGraphTranscript(meeting.joinUrl);
         });
-        container.appendChild(button);
+        item.appendChild(button);
+        container.appendChild(item);
     }
     markSelectedGraphMeeting();
+    refreshGraphControls();
 }
 
 async function refreshRecentGraphMeetings(silent = false) {
@@ -375,6 +403,7 @@ function updateGraphSetupControls(settings, locked = new Set()) {
     const clientId = String(settings.graphClientId || '');
     graphConfigured = settings.enableGraphTranscriptImport === true
         && isGraphGuid(tenantId) && isGraphGuid(clientId);
+    document.body.dataset.graphConfigured = String(graphConfigured);
     if (UI_ELEMENTS.graphTenantId) UI_ELEMENTS.graphTenantId.value = tenantId;
     if (UI_ELEMENTS.graphClientId) UI_ELEMENTS.graphClientId.value = clientId;
     const managed = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'].some(key => locked.has(key));
@@ -397,7 +426,7 @@ async function refreshGraphStatus() {
         graphConnected = !!status.connected;
         UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
-            : (status.configured ? 'Microsoft 365 setup detected. Connect to begin.' : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs below.');
+            : (status.configured ? 'Microsoft 365 setup detected. Connect to begin.' : 'Microsoft 365 is not set up. An administrator must add your organization’s Entra details.');
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
         graphConnected = false;
@@ -480,7 +509,7 @@ function updateFilenamePreview() {
 
     let preview = pattern;
     for (const [token, value] of Object.entries(replacements)) {
-        preview = preview.replace(new RegExp(token.replace(/[{}]/g, '\\$&'), 'g'), value);
+        preview = preview.split(token).join(value);
     }
 
     preview = preview.replace(/__+/g, '_').replace(/_+$/, '');
@@ -569,6 +598,104 @@ async function renderSpeakerAliases(tab) {
 }
 
 // --- Settings Management ---
+function assistantFormSettings() {
+    return CaptionKeepConfiguration.sanitizeAssistantUserConfig({
+        assistantBridgeMode:UI_ELEMENTS.assistantBridgeMode?.value || 'disabled',
+        assistantNativeHost:UI_ELEMENTS.assistantNativeHost?.value,
+        assistantEndpointUrl:UI_ELEMENTS.assistantEndpointUrl?.value,
+        assistantAuthorizationEndpoint:UI_ELEMENTS.assistantAuthorizationEndpoint?.value,
+        assistantTokenEndpoint:UI_ELEMENTS.assistantTokenEndpoint?.value,
+        assistantClientId:UI_ELEMENTS.assistantClientId?.value,
+        assistantScopes:String(UI_ELEMENTS.assistantScopes?.value || '').split(/[\s,]+/).filter(Boolean),
+        assistantTimeoutSeconds:Number(UI_ELEMENTS.assistantTimeoutSeconds?.value || 20)
+    });
+}
+
+function updateAssistantFieldVisibility() {
+    const mode = UI_ELEMENTS.assistantBridgeMode?.value || 'disabled';
+    if (UI_ELEMENTS.assistantLocalFields) UI_ELEMENTS.assistantLocalFields.hidden = mode !== 'local';
+    if (UI_ELEMENTS.assistantRemoteFields) UI_ELEMENTS.assistantRemoteFields.hidden = mode !== 'remote';
+    if (UI_ELEMENTS.assistantConnect) UI_ELEMENTS.assistantConnect.hidden = mode === 'disabled';
+    if (UI_ELEMENTS.assistantDisconnect) UI_ELEMENTS.assistantDisconnect.hidden = mode !== 'remote';
+}
+
+async function requestAssistantPermission(profile) {
+    if (!chrome.permissions?.request) throw new Error('This browser cannot grant assistant connection permission.');
+    if (profile.mode === 'local') {
+        return chrome.permissions.request({permissions:['nativeMessaging']});
+    }
+    const origins = [...new Set([profile.endpointUrl, profile.tokenEndpoint]
+        .map(value => `${new URL(value).origin}/*`))];
+    return chrome.permissions.request({origins});
+}
+
+async function saveAssistantSetup({requestPermission = true} = {}) {
+    const settings = assistantFormSettings();
+    if ((settings.assistantBridgeMode || 'disabled') === 'disabled') {
+        await CaptionKeepAssistantBridgeAuth.disconnect();
+        await chrome.storage.local.remove(CaptionKeepConfiguration.ASSISTANT_USER_KEYS);
+        assistantProfile = null;
+        UI_ELEMENTS.assistantSetupStatus.textContent = 'Assistant connection disabled. No evidence will be sent.';
+        return null;
+    }
+    const validation = CaptionKeepConfiguration.validateAssistantProfile(settings);
+    if (!validation.valid) throw new Error(validation.errors.join(' '));
+    if (requestPermission && !await requestAssistantPermission(validation.profile)) {
+        throw new Error('Assistant connection permission was not granted. No evidence was sent.');
+    }
+    await chrome.storage.local.remove(CaptionKeepConfiguration.ASSISTANT_USER_KEYS);
+    await chrome.storage.local.set(settings);
+    assistantProfile = validation.profile;
+    UI_ELEMENTS.assistantSetupStatus.textContent = validation.profile.mode === 'local'
+        ? 'Local bridge enrolled. Reviewed requests can now be sent to that installed host.'
+        : 'Connection details saved locally. Choose Connect to sign in.';
+    return assistantProfile;
+}
+
+function renderAssistantSetup(settings, locked) {
+    if (!UI_ELEMENTS.assistantBridgeMode) return;
+    if (UI_ELEMENTS.assistantRedirectUri) {
+        UI_ELEMENTS.assistantRedirectUri.textContent = chrome.identity.getRedirectURL('assistant-bridge');
+    }
+    UI_ELEMENTS.assistantBridgeMode.value = settings.assistantBridgeMode || 'disabled';
+    UI_ELEMENTS.assistantNativeHost.value = settings.assistantNativeHost || '';
+    UI_ELEMENTS.assistantEndpointUrl.value = settings.assistantEndpointUrl || '';
+    UI_ELEMENTS.assistantAuthorizationEndpoint.value = settings.assistantAuthorizationEndpoint || '';
+    UI_ELEMENTS.assistantTokenEndpoint.value = settings.assistantTokenEndpoint || '';
+    UI_ELEMENTS.assistantClientId.value = settings.assistantClientId || '';
+    UI_ELEMENTS.assistantScopes.value = Array.isArray(settings.assistantScopes) ? settings.assistantScopes.join(' ') : '';
+    UI_ELEMENTS.assistantTimeoutSeconds.value = settings.assistantTimeoutSeconds || 20;
+    for (const [key, element] of [
+        ['assistantBridgeMode', UI_ELEMENTS.assistantBridgeMode],
+        ['assistantNativeHost', UI_ELEMENTS.assistantNativeHost],
+        ['assistantEndpointUrl', UI_ELEMENTS.assistantEndpointUrl],
+        ['assistantAuthorizationEndpoint', UI_ELEMENTS.assistantAuthorizationEndpoint],
+        ['assistantTokenEndpoint', UI_ELEMENTS.assistantTokenEndpoint],
+        ['assistantClientId', UI_ELEMENTS.assistantClientId],
+        ['assistantScopes', UI_ELEMENTS.assistantScopes],
+        ['assistantTimeoutSeconds', UI_ELEMENTS.assistantTimeoutSeconds]
+    ]) element.disabled = locked.has(key);
+    UI_ELEMENTS.assistantSaveSetup.disabled = locked.has('assistantBridgeMode');
+    const validation = CaptionKeepConfiguration.validateAssistantProfile(settings);
+    assistantProfile = validation.valid ? validation.profile : null;
+    updateAssistantFieldVisibility();
+}
+
+async function refreshAssistantStatus() {
+    if (!UI_ELEMENTS.assistantSetupStatus || !assistantProfile) return;
+    if (assistantProfile.mode === 'local') {
+        const allowed = await chrome.permissions?.contains?.({permissions:['nativeMessaging']});
+        UI_ELEMENTS.assistantSetupStatus.textContent = allowed
+            ? 'Local bridge is enrolled. CaptionKeep will still ask you to review each request.'
+            : 'Local bridge is configured but permission has not been granted.';
+        return;
+    }
+    const status = await CaptionKeepAssistantBridgeAuth.status(assistantProfile);
+    UI_ELEMENTS.assistantSetupStatus.textContent = status.connected
+        ? 'Connected for this browser session. CaptionKeep stores no client secret.'
+        : 'Connection details are saved, but this browser session is not signed in.';
+}
+
 async function loadSettings() {
     const userSettings = await chrome.storage.sync.get([
         'autoEnableCaptions',
@@ -589,9 +716,11 @@ async function loadSettings() {
         'claudeConsoleUrl',
         'timestampFormat',
         'filenamePattern',
-        'uiTheme'
+        'uiTheme',
+        'uiLocale'
     ]);
     Object.assign(userSettings, await CaptionKeepConfiguration.readGraphUserConfig());
+    Object.assign(userSettings, await CaptionKeepConfiguration.readAssistantUserConfig());
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
     const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
@@ -601,8 +730,15 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
+    if (UI_ELEMENTS.uiLocaleSelect && globalThis.CaptionKeepLocalization) {
+        CaptionKeepLocalization.populateLocaleSelect(UI_ELEMENTS.uiLocaleSelect);
+        UI_ELEMENTS.uiLocaleSelect.value = settings.uiLocale === 'fr-CA' ? 'fr' : (settings.uiLocale || 'system');
+        UI_ELEMENTS.uiLocaleSelect.disabled = locked.has('uiLocale');
+        UI_ELEMENTS.uiLocaleSelect.title = locked.has('uiLocale') ? 'Language is managed by your organization.' : '';
+    }
     applyGraphVisibility();
     updateGraphSetupControls(settings, locked);
+    renderAssistantSetup(settings, locked);
 
     UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
@@ -690,11 +826,36 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
+    UI_ELEMENTS.assistantBridgeMode?.addEventListener('change', updateAssistantFieldVisibility);
+    UI_ELEMENTS.assistantSaveSetup?.addEventListener('click', async () => {
+        UI_ELEMENTS.assistantSetupStatus.textContent = 'Checking the assistant connection…';
+        try {
+            await saveAssistantSetup();
+            await refreshAssistantStatus();
+        } catch (error) {
+            UI_ELEMENTS.assistantSetupStatus.textContent = error.message;
+        }
+    });
+    UI_ELEMENTS.assistantConnect?.addEventListener('click', async () => {
+        UI_ELEMENTS.assistantSetupStatus.textContent = 'Opening the customer assistant sign-in…';
+        try {
+            const profile = await saveAssistantSetup();
+            if (!profile) return;
+            if (profile.mode === 'remote') await CaptionKeepAssistantBridgeAuth.connect(profile);
+            await refreshAssistantStatus();
+        } catch (error) {
+            UI_ELEMENTS.assistantSetupStatus.textContent = error.message;
+        }
+    });
+    UI_ELEMENTS.assistantDisconnect?.addEventListener('click', async () => {
+        await CaptionKeepAssistantBridgeAuth.disconnect();
+        UI_ELEMENTS.assistantSetupStatus.textContent = 'Disconnected. Saved connection details were not removed.';
+    });
     document.getElementById('meetingExtrasButton').addEventListener('click', () => openMeetingExtras(false));
     document.getElementById('meetingScreenshotButton').addEventListener('click', () => openMeetingExtras(true));
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
         markSelectedGraphMeeting();
-        setGraphBusy(false);
+        refreshGraphControls();
     });
     UI_ELEMENTS.graphUseCurrentMeeting?.addEventListener('click', () => populateCurrentTeamsMeeting());
     UI_ELEMENTS.graphRefreshMeetings?.addEventListener('click', () => refreshRecentGraphMeetings());
@@ -788,6 +949,10 @@ function setupEventListeners() {
             await CaptionKeepTheme.set(event.target.value);
         });
     }
+    UI_ELEMENTS.uiLocaleSelect?.addEventListener('change', async event => {
+        await chrome.storage.sync.set({uiLocale:event.target.value});
+        location.reload();
+    });
     UI_ELEMENTS.defaultSaveFormatSelect.addEventListener('change', (e) => {
         currentDefaultFormat = e.target.value;
         chrome.storage.sync.set({ defaultSaveFormat: currentDefaultFormat });
@@ -935,12 +1100,7 @@ function setupEventListeners() {
     });
 
     UI_ELEMENTS.saveButton.addEventListener('click', async () => {
-        await refreshEnterprisePolicy();
-        if (currentEnterprisePolicy.disableFileExport) return;
-        const tab = await getActiveMeetingTab();
-        if (tab) {
-            chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format: currentDefaultFormat });
-        }
+        await handleSave({dataset:{format:currentDefaultFormat}});
     });
 
     UI_ELEMENTS.viewButton.addEventListener('click', async () => {
@@ -950,12 +1110,12 @@ function setupEventListeners() {
         }
     });
 
-    setupDropdown(UI_ELEMENTS.copyButton, UI_ELEMENTS.copyDropdownButton, UI_ELEMENTS.copyOptions, handleCopy);
-    setupDropdown(null, UI_ELEMENTS.saveDropdownButton, UI_ELEMENTS.saveOptions, handleSave);
+    const closeCopyOptions = setupDropdown(UI_ELEMENTS.copyButton, UI_ELEMENTS.copyDropdownButton, UI_ELEMENTS.copyOptions, handleCopy);
+    const closeSaveOptions = setupDropdown(null, UI_ELEMENTS.saveDropdownButton, UI_ELEMENTS.saveOptions, handleSave);
 
     document.addEventListener('click', () => {
-        UI_ELEMENTS.copyOptions.style.display = 'none';
-        UI_ELEMENTS.saveOptions.style.display = 'none';
+        closeCopyOptions();
+        closeSaveOptions();
     });
 }
 
@@ -989,19 +1149,38 @@ async function openMeetingExtras(withScreenshot) {
 }
 
 function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandler) {
+    const close = (restoreFocus = false) => {
+        optionsContainer.style.display = 'none';
+        dropdownButton.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) dropdownButton.focus();
+    };
+    const open = () => {
+        optionsContainer.style.display = 'block';
+        dropdownButton.setAttribute('aria-expanded', 'true');
+        optionsContainer.querySelector('[role="menuitem"]:not([hidden])')?.focus();
+    };
     if (mainButton) {
         mainButton.addEventListener('click', () => optionsContainer.firstElementChild.click());
     }
     dropdownButton.addEventListener('click', (e) => {
         e.stopPropagation();
-        optionsContainer.style.display = 'block';
+        if (dropdownButton.getAttribute('aria-expanded') === 'true') close();
+        else open();
     });
-    optionsContainer.addEventListener('click', (e) => {
+    optionsContainer.addEventListener('click', async (e) => {
+        const option = e.target.closest('[data-copy-type], [data-format]');
+        if (!option) return;
         e.preventDefault();
         e.stopPropagation();
-        actionHandler(e.target);
-        optionsContainer.style.display = 'none';
+        await actionHandler(option);
+        close(true);
     });
+    optionsContainer.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        e.preventDefault();
+        close(true);
+    });
+    return close;
 }
 
 async function handleCopy(target) {
@@ -1046,19 +1225,26 @@ async function handleSave(target) {
     }
     
     const tab = await getActiveMeetingTab();
-    if (tab) {
-        UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
+    if (!tab) return;
+    UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
+    try {
         if (target.dataset.cleaned !== 'true' && !currentEnterprisePolicy.forceScrubbedExport) {
-            chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format });
+            await chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format });
+            UI_ELEMENTS.statusMessage.textContent = `${format.toUpperCase()} export requested. Check the save page.`;
+            UI_ELEMENTS.statusMessage.style.color = 'var(--ck-success)';
             return;
         }
         const response = await chrome.tabs.sendMessage(tab.id, { message: 'get_transcript_for_copying' });
         const cleaned = CaptionKeepPrivacyScrubber.scrubTranscript(response?.transcriptArray || [], await getScrubOptions());
         const result = await chrome.runtime.sendMessage({ message: 'download_captions', transcriptArray: cleaned.transcript,
             format, meetingTitle: tab.title || 'Meeting transcript' });
-        UI_ELEMENTS.statusMessage.textContent = result?.ok
-            ? `Cleaned export ready (${cleaned.replacements.length} masked).`
-            : 'Could not prepare cleaned export.';
+        if (!result?.ok) throw new Error(result?.error || 'Could not prepare cleaned export.');
+        UI_ELEMENTS.statusMessage.textContent = `Cleaned export ready (${cleaned.replacements.length} masked).`;
+        UI_ELEMENTS.statusMessage.style.color = 'var(--ck-success)';
+    } catch (error) {
+        console.error('[Better CaptionKeep] Save failed:', error);
+        UI_ELEMENTS.statusMessage.textContent = 'Save failed. Refresh the meeting tab and try again. If the meeting ended, export it from Previous Sessions.';
+        UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
     }
 }
 
@@ -1290,10 +1476,16 @@ async function initializePopup() {
     if (isFullSettingsPage) {
         document.querySelector('.settings-header').textContent = 'All settings';
         document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
+        if (location.hash === '#microsoft365' && UI_ELEMENTS.graphAdminDetails) {
+            UI_ELEMENTS.graphTranscriptSection.open = true;
+            UI_ELEMENTS.graphAdminDetails.open = true;
+            UI_ELEMENTS.graphAdminDetails.scrollIntoView({block:'start'});
+        }
     }
     await loadSettings();
     setupEventListeners();
     await refreshGraphStatus();
+    await refreshAssistantStatus();
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();
@@ -1344,7 +1536,9 @@ document.addEventListener('keydown', (e) => {
     }
     
     // Ctrl/Cmd + C for copy
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.target.matches('input, textarea')) {
+    const selection = window.getSelection?.()?.toString().trim();
+    const editable = e.target.matches('input, textarea, [contenteditable="true"]');
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !editable && !selection) {
         e.preventDefault();
         if (!UI_ELEMENTS.copyButton.disabled) {
             UI_ELEMENTS.copyButton.click();
@@ -1365,7 +1559,9 @@ document.addEventListener('DOMContentLoaded', initializePopup);
 chrome.storage.onChanged.addListener((changes, areaName) => {
     const graphChanged = areaName === 'local'
         && CaptionKeepConfiguration.GRAPH_USER_KEYS.some(key => Object.hasOwn(changes, key));
-    if (areaName === 'managed' || graphChanged) void loadSettings().catch(error => {
+    const assistantChanged = areaName === 'local'
+        && CaptionKeepConfiguration.ASSISTANT_USER_KEYS.some(key => Object.hasOwn(changes, key));
+    if (areaName === 'managed' || graphChanged || assistantChanged) void loadSettings().then(refreshAssistantStatus).catch(error => {
         UI_ELEMENTS.statusMessage.textContent = `Could not refresh managed settings: ${error.message}`;
     });
 });

@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "Capture meeting captions locally for private review and export."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "reviewed"
+  },
+  "translationPreviewNotice": {
+    "message": "AI-assisted translation preview; not professionally certified. English is authoritative for privacy, security, and administration."
+  },
+  "reportTranslation": {
+    "message": "Report this translation"
+  },
+  "followBrowserLanguage": {
+    "message": "Follow browser language"
+  },
+  "languageLabel": {
+    "message": "Language"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Copy Transcript"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "View Transcript"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

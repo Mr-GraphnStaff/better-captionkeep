@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceManifestPath = path.join(projectRoot, 'teams-captions-saver', 'manifest.json');
@@ -9,6 +10,12 @@ const stagedRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store-unpacked
 const artifactRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store');
 const finalRoot = path.join(projectRoot, 'dist', 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
+
+function hasForbiddenPathPart(file) {
+  return file.split('/').some((part, index) =>
+    forbidden.test(part) && !(index === 0 && part === '_locales')
+  );
+}
 
 async function filesUnder(root, relative = '') {
   const entries = await readdir(path.join(root, relative), { withFileTypes: true });
@@ -23,11 +30,12 @@ async function filesUnder(root, relative = '') {
 
 const sourceManifest = JSON.parse(await readFile(sourceManifestPath, 'utf8'));
 const storeManifest = JSON.parse(await readFile(path.join(stagedRoot, 'manifest.json'), 'utf8'));
+const englishMessages = await readEnglishMessages(stagedRoot);
 const files = await filesUnder(stagedRoot);
-const forbiddenFiles = files.filter(file => file.split('/').some(part => forbidden.test(part)));
+const forbiddenFiles = files.filter(hasForbiddenPathPart);
 
 if (forbiddenFiles.length) throw new Error(`Chrome Store package contains forbidden files: ${forbiddenFiles.join(', ')}`);
-if (storeManifest.name !== 'Better CaptionKeep') throw new Error('Chrome Store name must be Better CaptionKeep.');
+if (resolveManifestMessage(storeManifest.name, englishMessages) !== 'Better CaptionKeep') throw new Error('Chrome Store name must resolve to Better CaptionKeep.');
 if (/test|development/i.test(`${storeManifest.name} ${storeManifest.version_name ?? ''} ${storeManifest.action?.default_title ?? ''}`)) {
   throw new Error('Chrome Store manifest contains test or development labeling.');
 }
@@ -45,7 +53,7 @@ const zipPath = path.join(finalRoot, artifactName);
 if (originalZipPath !== zipPath) await rename(originalZipPath, zipPath);
 const hash = createHash('sha256').update(await readFile(zipPath)).digest('hex').toUpperCase();
 console.log(JSON.stringify({
-  product: storeManifest.name,
+  product: resolveManifestMessage(storeManifest.name, englishMessages),
   version: storeManifest.version,
   artifact: path.relative(projectRoot, zipPath).replaceAll('\\', '/'),
   bytes: (await stat(zipPath)).size,

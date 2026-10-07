@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "Capturați local subtitrările întâlnirilor pentru examinare și export privat."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Previzualizare de traducere asistată de IA, fără certificare profesională. Engleza este referința pentru confidențialitate, securitate și administrare."
+  },
+  "reportTranslation": {
+    "message": "Raportați această traducere"
+  },
+  "followBrowserLanguage": {
+    "message": "Urmați limba browserului"
+  },
+  "languageLabel": {
+    "message": "Limbă"
+  },
+  "settings": {
+    "message": "Setări"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Copiază transcrierea"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Vezi transcrierea"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

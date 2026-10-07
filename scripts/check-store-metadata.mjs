@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { readEnglishMessages, resolvedManifest } from './manifest-localization.mjs';
 
 const EXPECTED_GRAPH_SCOPES = [
   'openid',
@@ -148,7 +149,9 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
 }
 
 export async function main() {
-  const manifest = JSON.parse(await readFile(new URL('../manifests/manifest.chrome-store.json', import.meta.url)));
+  const rawManifest = JSON.parse(await readFile(new URL('../manifests/manifest.chrome-store.json', import.meta.url)));
+  const extensionRoot = new URL('../teams-captions-saver/', import.meta.url);
+  const manifest = resolvedManifest(rawManifest, await readEnglishMessages(extensionRoot));
   const metadata = JSON.parse(await readFile(new URL('../store-metadata/chrome.json', import.meta.url)));
   const dossier = await readFile(new URL('../CHROMEWEBSTORE.md', import.meta.url), 'utf8');
   const result = validateChromeStoreMetadata(manifest, metadata);

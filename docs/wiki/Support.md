@@ -1,6 +1,6 @@
 # Support and Bug Reports
 
-Use [GitHub Issues](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) for reproducible product defects and feature requests.
+Open **All Settings → Feedback and support** to choose the focused form for a [bug](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/new?template=bug_report.yml), [feature request](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/new?template=feature_request.yml), or [translation problem](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/new?template=localization_report.yml). GitHub Issues keeps the request trackable. Plain language and invented examples are welcome.
 
 ## Include
 

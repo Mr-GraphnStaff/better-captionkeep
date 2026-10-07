@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "தனிப்பட்ட மதிப்பாய்வு மற்றும் ஏற்றுமதிக்காக சந்திப்பு தலைப்புகளை உள்ளூரில் சேமிக்கவும்."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI உதவிய மொழிபெயர்ப்பு முன்னோட்டம்; தொழில்முறை சான்றிதழ் இல்லை. தனியுரிமை, பாதுகாப்பு மற்றும் நிர்வாகத்திற்கு ஆங்கிலமே அதிகாரப்பூர்வம்."
+  },
+  "reportTranslation": {
+    "message": "இந்த மொழிபெயர்ப்பைப் புகாரளிக்கவும்"
+  },
+  "followBrowserLanguage": {
+    "message": "உலாவி மொழியைப் பின்பற்றவும்"
+  },
+  "languageLabel": {
+    "message": "மொழி"
+  },
+  "settings": {
+    "message": "அமைப்புகள்"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "உரையை நகலெடுக்கவும்"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "உரையைப் பார்க்கவும்"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

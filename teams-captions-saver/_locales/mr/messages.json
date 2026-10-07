@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "खाजगी पुनरावलोकन आणि निर्यातीसाठी मीटिंग कॅप्शन स्थानिकरित्या जतन करा."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI-सहाय्यित भाषांतर पूर्वावलोकन; व्यावसायिक प्रमाणित नाही. गोपनीयता, सुरक्षा आणि प्रशासनासाठी इंग्रजी अधिकृत संदर्भ आहे."
+  },
+  "reportTranslation": {
+    "message": "या भाषांतराची तक्रार करा"
+  },
+  "followBrowserLanguage": {
+    "message": "ब्राउझरची भाषा वापरा"
+  },
+  "languageLabel": {
+    "message": "भाषा"
+  },
+  "settings": {
+    "message": "सेटिंग्ज"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "प्रतिलेख कॉपी करा"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "प्रतिलेख पहा"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

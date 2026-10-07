@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "احفظ تسميات الاجتماع التوضيحية محليًا للمراجعة والتصدير بشكل خاص."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "معاينة ترجمة بمساعدة الذكاء الاصطناعي وغير معتمدة مهنيًا. النص الإنجليزي هو المرجع للخصوصية والأمان والإدارة."
+  },
+  "reportTranslation": {
+    "message": "الإبلاغ عن هذه الترجمة"
+  },
+  "followBrowserLanguage": {
+    "message": "استخدام لغة المتصفح"
+  },
+  "languageLabel": {
+    "message": "اللغة"
+  },
+  "settings": {
+    "message": "الإعدادات"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "نسخ النص"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "عرض النص"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

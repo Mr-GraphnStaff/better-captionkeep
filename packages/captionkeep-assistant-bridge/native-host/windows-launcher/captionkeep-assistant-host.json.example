@@ -1,0 +1,6 @@
+{
+  "nodePath": "C:\\Program Files\\nodejs\\node.exe",
+  "hostScriptPath": "C:\\Program Files\\Your Organization\\CaptionKeep Bridge\\dist\\src\\native.js",
+  "adapterPath": "C:\\Program Files\\Your Organization\\CaptionKeep Bridge\\customer-adapter.mjs",
+  "assistantId": "your-organization-assistant"
+}

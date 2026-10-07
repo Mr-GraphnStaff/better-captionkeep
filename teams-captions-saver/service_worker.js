@@ -1,6 +1,12 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'graphRuntimeConfig.js');
+    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'graphRuntimeConfig.js',
+    'evidenceActionJobs.js', 'assistantBridge.js', 'assistantBridgeAuth.js', 'researchCards.js', 'connectorActionDrafts.js');
 let historyQueue = Promise.resolve();
+const evidenceJobRepository = CaptionKeepEvidenceActionJobs.createRepository(chrome.storage.local);
+const researchCardRepository = CaptionKeepResearchCards.createRepository(chrome.storage.local);
+const connectorActionDraftRepository = CaptionKeepConnectorActionDrafts.createRepository(chrome.storage.local);
+const EVIDENCE_JOB_ALARM = 'captionkeep-evidence-action-jobs';
+const evidenceJobsInFlight = new Map();
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -11,7 +17,8 @@ let graphConnectResumeInProgress = false;
 async function readEffectivePolicy(userKeys = []) {
     const user = {
         ...(userKeys.length ? await chrome.storage.sync.get(userKeys) : {}),
-        ...await CaptionKeepConfiguration.readGraphUserConfig()
+        ...await CaptionKeepConfiguration.readGraphUserConfig(),
+        ...await CaptionKeepConfiguration.readAssistantUserConfig()
     };
     const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
     return CaptionKeepConfiguration.applyGraphRuntimeConfig(
@@ -19,6 +26,159 @@ async function readEffectivePolicy(userKeys = []) {
         globalThis.CaptionKeepGraphRuntimeConfig,
         chrome.runtime.getManifest()
     );
+}
+
+async function assistantBridgeContext(job) {
+    const policy = await readEffectivePolicy(['profanityFilterEnabled', 'customScrubTerms']);
+    if (policy.settings.disableEvidenceActions || policy.settings.disableAiHandoff) {
+        throw new CaptionKeepAssistantBridge.BridgeError('POLICY_DISABLED', 'Evidence Actions are disabled by your organization.');
+    }
+    if (policy.settings.forceScrubbedEvidenceActions && job.action?.privacyMode !== 'scrubbed') {
+        throw new CaptionKeepAssistantBridge.BridgeError('POLICY_REQUIRES_SCRUBBING', 'Your organization requires cleaned evidence text.');
+    }
+    const allowedIntents = Array.isArray(policy.settings.assistantAllowedIntents)
+        ? policy.settings.assistantAllowedIntents
+        : ['research_reference', 'prepare_work_item'];
+    if (!allowedIntents.includes(job.action?.intent)) {
+        throw new CaptionKeepAssistantBridge.BridgeError('INTENT_NOT_ALLOWED', 'This Evidence Action is not allowed by your organization.');
+    }
+    const validation = CaptionKeepConfiguration.validateAssistantProfile(policy.settings);
+    if (!validation.valid) {
+        throw new CaptionKeepAssistantBridge.BridgeError('BRIDGE_NOT_CONFIGURED', validation.errors.join(' ') || 'No customer assistant bridge is configured.');
+    }
+    const profile = validation.profile;
+    if (!chrome.permissions?.contains) {
+        throw new CaptionKeepAssistantBridge.BridgeError('PERMISSION_REQUIRED', 'Assistant bridge permission is not available.');
+    }
+    if (profile.mode === 'local') {
+        const allowed = await chrome.permissions.contains({permissions:['nativeMessaging']});
+        if (!allowed) throw new CaptionKeepAssistantBridge.BridgeError('PERMISSION_REQUIRED', 'Allow the enrolled local assistant bridge in All Settings first.');
+        return {profile, accessToken:null};
+    }
+    const originPattern = `${new URL(profile.endpointUrl).origin}/*`;
+    const allowed = await chrome.permissions.contains({origins:[originPattern]});
+    if (!allowed) throw new CaptionKeepAssistantBridge.BridgeError('PERMISSION_REQUIRED', 'Allow the customer assistant endpoint in All Settings first.');
+    try {
+        return {profile, accessToken:await CaptionKeepAssistantBridgeAuth.getAccessToken(profile)};
+    } catch (error) {
+        throw new CaptionKeepAssistantBridge.BridgeError(error.code || 'AUTH_REQUIRED', error.message);
+    }
+}
+
+async function storeBridgeOutcome(job, outcome, profile) {
+    if (['queued', 'running'].includes(outcome.state)) {
+        if (job.state === 'running') return job;
+        return evidenceJobRepository.move(job.jobId, 'running', {remoteJobId:outcome.remoteJobId});
+    }
+    if (outcome.state === 'confirmation_required') {
+        if (job.action?.intent !== 'prepare_work_item') {
+            throw new CaptionKeepAssistantBridge.BridgeError('CONFIRMATION_UNEXPECTED', 'The assistant requested connector confirmation for a non-connector action.');
+        }
+        const allowedReviewOrigin = profile?.mode === 'remote' && profile.endpointUrl
+            ? new URL(profile.endpointUrl).origin
+            : null;
+        const draft = await CaptionKeepConnectorActionDrafts.sealDraft(
+            CaptionKeepConnectorActionDrafts.buildDraft(job, outcome.actionDraft, {allowedReviewOrigin}));
+        await connectorActionDraftRepository.save(draft);
+        if (job.state === 'confirmation_required') return job;
+        return evidenceJobRepository.move(job.jobId, 'confirmation_required', {remoteJobId:outcome.remoteJobId});
+    }
+    if (outcome.state === 'cancelled') {
+        return evidenceJobRepository.move(job.jobId, 'cancelled', {remoteJobId:outcome.remoteJobId});
+    }
+    if (['succeeded', 'failed'].includes(outcome.state)) {
+        let receiptInput = outcome.receipt || {status:outcome.state};
+        if (outcome.state === 'succeeded' && job.action?.intent === 'research_reference') {
+            if (!outcome.researchCard) {
+                throw new CaptionKeepAssistantBridge.BridgeError('RESEARCH_CARD_MISSING', 'The assistant reported success without a cited Research Card.');
+            }
+            const card = await CaptionKeepResearchCards.sealCard(CaptionKeepResearchCards.buildCard(job, outcome.researchCard));
+            await researchCardRepository.save(card);
+            receiptInput = {...receiptInput, resultKind:'research_card', resultReference:card.cardId, resultSha256:card.sha256};
+        }
+        if (outcome.state === 'succeeded' && job.action?.intent === 'prepare_work_item') {
+            const connectorReceipt = CaptionKeepConnectorActionDrafts.validateSuccessReceipt(job, receiptInput);
+            receiptInput = {...receiptInput, ...connectorReceipt, resultKind:'external_record', resultReference:connectorReceipt.externalRecordUrl || connectorReceipt.externalRecordId};
+        }
+        const receipt = await CaptionKeepEvidenceActionJobs.createReceipt(job, receiptInput);
+        return evidenceJobRepository.move(job.jobId, outcome.state, {receipt, remoteJobId:outcome.remoteJobId});
+    }
+    throw new CaptionKeepAssistantBridge.BridgeError('RESPONSE_INVALID', 'The customer assistant returned an unsupported result.');
+}
+
+async function runEvidenceJob(jobId, requestedOperation = 'submit') {
+    const existing = evidenceJobsInFlight.get(jobId);
+    if (existing) return existing;
+    const operation = (async () => {
+        let job = await evidenceJobRepository.get(jobId);
+        if (!job) throw new CaptionKeepAssistantBridge.BridgeError('JOB_NOT_FOUND', 'The Evidence Action job was not found.');
+        if (new Date(job.expiresAt).getTime() <= Date.now() && !CaptionKeepEvidenceActionJobs.FINAL_STATES.includes(job.state)) {
+            return evidenceJobRepository.move(job.jobId, 'expired');
+        }
+        if (requestedOperation === 'cancel' && ['reviewed', 'queued', 'failed'].includes(job.state)) {
+            return evidenceJobRepository.move(job.jobId, 'cancelled');
+        }
+        const bridge = await assistantBridgeContext(job);
+        let bridgeOperation = requestedOperation;
+        if (requestedOperation === 'submit') {
+            if (job.state === 'reviewed' || job.state === 'failed') job = await evidenceJobRepository.move(job.jobId, 'queued');
+            if (job.state === 'queued') job = await evidenceJobRepository.move(job.jobId, 'submitting');
+            if (['running', 'confirmation_required'].includes(job.state)) bridgeOperation = 'status';
+            else if (job.state !== 'submitting') {
+                throw new CaptionKeepAssistantBridge.BridgeError('JOB_STATE_INVALID', `The Evidence Action job is already ${job.state}.`);
+            }
+        }
+        if (requestedOperation === 'status' && !['submitting', 'running', 'confirmation_required'].includes(job.state)) {
+            throw new CaptionKeepAssistantBridge.BridgeError('JOB_STATE_INVALID', `The Evidence Action job is ${job.state}.`);
+        }
+        if (requestedOperation === 'status' && job.state === 'submitting' && !job.remoteJobId) bridgeOperation = 'submit';
+        if (requestedOperation === 'cancel' && !['submitting', 'running', 'confirmation_required'].includes(job.state)) {
+            throw new CaptionKeepAssistantBridge.BridgeError('JOB_STATE_INVALID', `The Evidence Action job cannot be cancelled from ${job.state}.`);
+        }
+        const outcome = await CaptionKeepAssistantBridge.send(bridge.profile, job, bridgeOperation, {
+            accessToken:bridge.accessToken,
+            sendNativeMessage:(host, request) => chrome.runtime.sendNativeMessage(host, request)
+        });
+        return storeBridgeOutcome(job, outcome, bridge.profile);
+    })();
+    evidenceJobsInFlight.set(jobId, operation);
+    try {
+        return await operation;
+    } catch (error) {
+        const job = await evidenceJobRepository.get(jobId);
+        if (job && ['submitting', 'running', 'confirmation_required'].includes(job.state)
+            && !['AUTH_REQUIRED', 'PERMISSION_REQUIRED', 'BRIDGE_NOT_CONFIGURED'].includes(error.code)) {
+            const receipt = await CaptionKeepEvidenceActionJobs.createReceipt(job, {
+                status:'failed',
+                remoteJobId:job.remoteJobId,
+                errorCode:error.code || 'assistant_failed',
+                errorMessage:error.message
+            });
+            await evidenceJobRepository.move(job.jobId, 'failed', {receipt, remoteJobId:job.remoteJobId});
+        }
+        throw error;
+    } finally {
+        evidenceJobsInFlight.delete(jobId);
+    }
+}
+
+async function recoverEvidenceActionJobs() {
+    for (const job of await evidenceJobRepository.list()) {
+        if (new Date(job.expiresAt).getTime() <= Date.now() && !CaptionKeepEvidenceActionJobs.FINAL_STATES.includes(job.state)) {
+            await evidenceJobRepository.move(job.jobId, 'expired').catch(() => {});
+            continue;
+        }
+        if (!['submitting', 'running', 'confirmation_required'].includes(job.state)) continue;
+        await runEvidenceJob(job.jobId, 'status').catch(error => {
+            if (!['AUTH_REQUIRED', 'PERMISSION_REQUIRED', 'BRIDGE_NOT_CONFIGURED'].includes(error.code)) {
+                console.warn('[CaptionKeep] Evidence Action recovery failed:', error.code || error.message);
+            }
+        });
+    }
+}
+
+function scheduleEvidenceJobRecovery() {
+    chrome.alarms?.create?.(EVIDENCE_JOB_ALARM, {periodInMinutes:1});
 }
 
 async function resumePendingMicrosoft365Connect() {
@@ -330,7 +490,7 @@ async function generateFilename(pattern, meetingTitle, format, attendeeReport, r
 
     let filename = pattern || '{date}_{title}_{format}';
     for (const [key, value] of Object.entries(replacements)) {
-        filename = filename.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
+        filename = filename.split(key).join(value);
     }
     
     // Clean up any double underscores or trailing underscores
@@ -459,12 +619,22 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.remove('entitlement_v1').catch(() => {});
     cleanupViewerPayloads().catch(() => {});
     queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
+    scheduleEvidenceJobRecovery();
+    recoverEvidenceActionJobs().catch(error => console.warn('[CaptionKeep] Could not recover Evidence Actions:', error.message));
 });
 
 chrome.runtime.onStartup.addListener(() => {
     updateBadge(false);
     cleanupViewerPayloads().catch(() => {});
     queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
+    scheduleEvidenceJobRecovery();
+    recoverEvidenceActionJobs().catch(error => console.warn('[CaptionKeep] Could not recover Evidence Actions:', error.message));
+});
+
+chrome.alarms?.onAlarm?.addListener(alarm => {
+    if (alarm.name === EVIDENCE_JOB_ALARM) {
+        recoverEvidenceActionJobs().catch(error => console.warn('[CaptionKeep] Could not recover Evidence Actions:', error.message));
+    }
 });
 
 chrome.storage.onChanged.addListener((_changes, areaName) => {
@@ -485,18 +655,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
         'get_meeting_extras','save_meeting_extras','delete_meeting_extras',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
-        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
+        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript',
+        'evidence_action_jobs','evidence_action_dispatch','evidence_action_status','evidence_action_cancel']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
         'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_disconnect',
-        'graph_list_recent_meetings','graph_import_transcript','get_meeting_extras','save_meeting_extras','delete_meeting_extras'];
+        'graph_list_recent_meetings','graph_import_transcript','get_meeting_extras','save_meeting_extras','delete_meeting_extras',
+        'evidence_action_jobs','evidence_action_dispatch','evidence_action_status','evidence_action_cancel'];
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
         let responsePayload = {};
 
         switch (message.message) {
+            case 'evidence_action_jobs':
+                responsePayload = {jobs:await evidenceJobRepository.list()};
+                break;
+
+            case 'evidence_action_dispatch':
+                responsePayload = {job:await runEvidenceJob(String(message.jobId || ''), 'submit')};
+                break;
+
+            case 'evidence_action_status':
+                responsePayload = {job:await runEvidenceJob(String(message.jobId || ''), 'status')};
+                break;
+
+            case 'evidence_action_cancel':
+                responsePayload = {job:await runEvidenceJob(String(message.jobId || ''), 'cancel')};
+                break;
+
             case 'graph_get_status':
                 {
                     const policy = await readEffectivePolicy();

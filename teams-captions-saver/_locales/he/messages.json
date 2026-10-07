@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "שמירת כתוביות פגישה באופן מקומי לצורך בדיקה וייצוא פרטיים."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "תצוגה מקדימה של תרגום בסיוע AI, ללא אישור מקצועי. האנגלית היא המקור הקובע לפרטיות, אבטחה וניהול."
+  },
+  "reportTranslation": {
+    "message": "דיווח על התרגום"
+  },
+  "followBrowserLanguage": {
+    "message": "שימוש בשפת הדפדפן"
+  },
+  "languageLabel": {
+    "message": "שפה"
+  },
+  "settings": {
+    "message": "הגדרות"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "העתקת תמלול"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "הצגת תמלול"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

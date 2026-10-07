@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "Przechwytuj napisy ze spotkań lokalnie do prywatnego przeglądania i eksportu."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Podgląd tłumaczenia wspomaganego przez AI, bez profesjonalnej certyfikacji. Angielski jest miarodajny dla prywatności, bezpieczeństwa i administracji."
+  },
+  "reportTranslation": {
+    "message": "Zgłoś to tłumaczenie"
+  },
+  "followBrowserLanguage": {
+    "message": "Użyj języka przeglądarki"
+  },
+  "languageLabel": {
+    "message": "Język"
+  },
+  "settings": {
+    "message": "Ustawienia"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Kopiuj transkrypcję"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Wyświetl transkrypcję"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

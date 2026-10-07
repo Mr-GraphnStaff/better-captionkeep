@@ -83,7 +83,10 @@ test('Chrome Store metadata contract requires every Microsoft delegated scope', 
 
 test('Chrome Store publication dossier stays synchronized with manifest and disclosure metadata', async () => {
   const { validateChromeWebStoreDossier } = await import('../scripts/check-store-metadata.mjs');
-  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifests', 'manifest.chrome-store.json')));
+  const { resolvedManifest } = await import('../scripts/manifest-localization.mjs');
+  const rawManifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifests', 'manifest.chrome-store.json')));
+  const englishMessages = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'teams-captions-saver', '_locales', 'en', 'messages.json')));
+  const manifest = resolvedManifest(rawManifest, englishMessages);
   const metadata = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-metadata', 'chrome.json')));
   const dossier = fs.readFileSync(path.join(__dirname, '..', 'CHROMEWEBSTORE.md'), 'utf8');
   assert.deepEqual(validateChromeWebStoreDossier(manifest, metadata, dossier), {

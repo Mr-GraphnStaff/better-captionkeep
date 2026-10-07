@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "സ്വകാര്യ അവലോകനത്തിനും കയറ്റുമതിക്കും മീറ്റിംഗ് അടിക്കുറിപ്പുകൾ പ്രാദേശികമായി സൂക്ഷിക്കുക."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI സഹായിച്ച വിവർത്തന പ്രിവ്യൂ; പ്രൊഫഷണൽ സർട്ടിഫിക്കേഷൻ ഇല്ല. സ്വകാര്യത, സുരക്ഷ, ഭരണനിർവഹണം എന്നിവയ്ക്ക് ഇംഗ്ലീഷ് ആധികാരികമാണ്."
+  },
+  "reportTranslation": {
+    "message": "ഈ വിവർത്തനം റിപ്പോർട്ട് ചെയ്യുക"
+  },
+  "followBrowserLanguage": {
+    "message": "ബ്രൗസർ ഭാഷ പിന്തുടരുക"
+  },
+  "languageLabel": {
+    "message": "ഭാഷ"
+  },
+  "settings": {
+    "message": "ക്രമീകരണങ്ങൾ"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "ട്രാൻസ്ക്രിപ്റ്റ് പകർത്തുക"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "ട്രാൻസ്ക്രിപ്റ്റ് കാണുക"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

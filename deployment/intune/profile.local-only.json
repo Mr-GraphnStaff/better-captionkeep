@@ -6,6 +6,7 @@
   "managedPolicy": {
     "forcePrivacyScrubber": true,
     "forceProfanityFilter": false,
+    "forceUiLocale": "system",
     "forceScrubbedExport": true,
     "disableAiHandoff": true,
     "disableClipboard": true,

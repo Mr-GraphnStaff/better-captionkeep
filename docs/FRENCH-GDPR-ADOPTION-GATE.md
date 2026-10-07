@@ -1,7 +1,7 @@
 # French, Spanish, Quebec and GDPR Enterprise Adoption Gate
 
 Status: **required enterprise-adoption work; not yet complete**  
-Last verified: **October 4, 2026**
+Last verified: **October 5, 2026**
 
 Azure Boards tracking: [Feature 308 — Multilingual enterprise adoption](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/308), with implementation tasks [309](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/309), [310](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/310), [311](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/311), [312](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/312), and [313](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/313).
 
@@ -29,9 +29,9 @@ This design reduces processor and international-transfer exposure, but it does n
 
 ## Multilingual localization gate
 
-The product is currently English-only and has no `_locales`/`chrome.i18n` framework. Readiness requires:
+The 5.4 development branch now contains the localization framework, a reviewed English source catalog, and 37 non-English AI-assisted preview catalogs. The previews are explicitly uncertified and are not evidence of professional, legal, accessibility, or regional-language review. Readiness still requires:
 
-1. Add `default_locale`, English, French, and Spanish message catalogs, and a single localization helper used throughout extension pages. Chrome uses `_locales/fr` and `_locales/es`; the managed `fr-CA` setting maps to the reviewed Canadian French catalog.
+1. Maintain `default_locale`, exact catalog-key parity, and one localization helper throughout extension pages. Chrome uses `_locales/fr` and `_locales/es`; the managed `fr-CA` setting maps to the Canadian French preview until that catalog is professionally reviewed.
 2. Replace user-visible strings in the popup, settings, side panel, viewer, export, Evidence Board, extras, handoff, errors, permission explanations, and empty states with localized messages.
 3. Localize manifest name/description where Store rules allow it.
 4. Use locale-aware dates, times, numbers, pluralization, sorting, and accessible labels.
@@ -45,14 +45,14 @@ The product is currently English-only and has no `_locales`/`chrome.i18n` framew
 
 Localization must not create separate extension packages, IDs, Entra registrations, or Store submissions. Chrome, Edge, and Intune receive the same signed release artifact.
 
-The extension should expose a local `uiLocale` preference with these values:
+The extension exposes a local `uiLocale` preference with `system`, English, Canadian French, Spanish, and the approved preview-locale codes documented in the 5.4 release record. The baseline enterprise values are:
 
 - `system` — follow the browser/operating-system locale;
 - `en` — English;
 - `fr-CA` — Canadian French;
 - `es` — Spanish.
 
-The managed schema should add `forceUiLocale` with the same allowed values. When present, managed policy overrides the user's local choice, the Settings page displays the value as organization-managed and read-only, and an invalid value safely falls back to `system` with a diagnostic message. No language choice may alter the extension ID, OAuth redirect URI, permissions, data boundary, or release channel.
+The managed schema includes `forceUiLocale` with the same allowed values. When present, managed policy overrides the user's local choice and locks the Settings control. Invalid values are ignored so the user or browser preference remains effective. No language choice may alter the extension ID, OAuth redirect URI, permissions, data boundary, or release channel.
 
 Recommended Intune assignments:
 

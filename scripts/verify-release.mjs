@@ -3,11 +3,18 @@ import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
 const prodDir = path.join(distDir, 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
+
+function hasForbiddenPathPart(file) {
+  return file.split('/').some((part, index) =>
+    forbidden.test(part) && !(index === 0 && part === '_locales')
+  );
+}
 const expectedLifecycleIds = new Map([
   ['dev', 'pjpibiimicedkckleehljlklmblkacph'],
   ['uat', 'ecpjboeanaehianibdbgijldbikdgkhm'],
@@ -46,12 +53,12 @@ if (/graphTenantId\s*:|graphClientId\s*:|enableGraphTranscriptImport\s*:\s*true/
 }
 const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
-const forbiddenSource = sourceFiles.filter(file => file.split('/').some(part => forbidden.test(part)));
+const forbiddenSource = sourceFiles.filter(hasForbiddenPathPart);
 if (forbiddenSource.length) throw new Error(`Store source contains forbidden files: ${forbiddenSource.join(', ')}`);
 for (const target of ['dev', 'uat', 'prod']) {
   const root = path.join(distDir, target);
   const files = await filesUnder(root);
-  const bad = files.filter(file => file.split('/').some(part => forbidden.test(part)));
+  const bad = files.filter(hasForbiddenPathPart);
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
   if (files.filter(file => file === 'manifest.json').length !== 1) throw new Error(`${target} package must have one root manifest`);
   const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
@@ -63,7 +70,8 @@ for (const target of ['dev', 'uat', 'prod']) {
     : target === 'uat'
       ? 'Better CaptionKeep - UAT Release Candidate'
       : 'Better CaptionKeep';
-  if (manifest.name !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
+  const resolvedName = resolveManifestMessage(manifest.name, await readEnglishMessages(root));
+  if (resolvedName !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
   if (!manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
   const extensionId = extensionIdFromKey(manifest.key);
   if (extensionId !== expectedLifecycleIds.get(target)) {
@@ -102,6 +110,68 @@ for (const name of ['edge-extension-settings.json', 'edge-extension-force-instal
 
 const safeProjectRoot = projectRoot.replaceAll('\\', '/');
 const commit = execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
+const evidenceActionsDir = path.join(prodDir, 'evidence-actions');
+const evidenceActionsProvenancePath = path.join(evidenceActionsDir, 'evidence-actions-provenance.json');
+const evidenceActionsProvenance = JSON.parse(await readFile(evidenceActionsProvenancePath, 'utf8'));
+if (evidenceActionsProvenance.format !== 'better-captionkeep-evidence-actions-provenance'
+  || evidenceActionsProvenance.version !== 1
+  || evidenceActionsProvenance.productVersion !== sourceManifest.version
+  || evidenceActionsProvenance.commit !== commit) {
+  throw new Error('Evidence Actions provenance does not match this release candidate.');
+}
+const evidenceArtifactPath = path.join(projectRoot, evidenceActionsProvenance.artifact?.path || '');
+if (path.dirname(evidenceArtifactPath) !== evidenceActionsDir) {
+  throw new Error('Evidence Actions artifact is outside the release evidence directory.');
+}
+const evidenceArtifactSha256 = await sha256(evidenceArtifactPath);
+if (evidenceArtifactSha256 !== evidenceActionsProvenance.artifact.sha256
+  || (await stat(evidenceArtifactPath)).size !== evidenceActionsProvenance.artifact.bytes) {
+  throw new Error('Evidence Actions artifact does not match its recorded digest and size.');
+}
+const assistantLockSha256 = await sha256(path.join(projectRoot, 'packages', 'captionkeep-assistant-bridge', 'package-lock.json'));
+const mcpLockSha256 = await sha256(path.join(projectRoot, 'packages', 'captionkeep-mcp', 'package-lock.json'));
+if (assistantLockSha256 !== evidenceActionsProvenance.dependencyLocks?.assistantBridgeSha256
+  || mcpLockSha256 !== evidenceActionsProvenance.dependencyLocks?.mcpServerSha256) {
+  throw new Error('Evidence Actions dependency-lock digest drifted after packaging.');
+}
+artifacts.push({
+  target:'evidence-actions',
+  path:path.relative(prodDir, evidenceArtifactPath).replaceAll('\\', '/'),
+  bytes:(await stat(evidenceArtifactPath)).size,
+  sha256:evidenceArtifactSha256
+});
+const cleanInstallPath = path.join(evidenceActionsDir, 'clean-install-evidence.json');
+const cleanInstall = JSON.parse(await readFile(cleanInstallPath, 'utf8'));
+const expectedMcpTools = [
+  'captionkeep_get_active_selection',
+  'captionkeep_get_caption_sources',
+  'captionkeep_get_decisions_and_actions',
+  'captionkeep_get_meeting_evidence',
+  'captionkeep_search_captions',
+  'captionkeep_search_meetings',
+  'captionkeep_verify_evidence_bundle'
+];
+if (cleanInstall.format !== 'better-captionkeep-evidence-actions-clean-install'
+  || cleanInstall.version !== 1
+  || cleanInstall.productVersion !== sourceManifest.version
+  || cleanInstall.commit !== commit
+  || cleanInstall.artifactSha256 !== evidenceArtifactSha256
+  || cleanInstall.archive?.unsafeEntries !== 0
+  || cleanInstall.archive?.forbiddenEntries !== 0
+  || cleanInstall.archive?.manifestMatched !== true
+  || cleanInstall.productionInstall?.assistantBridge !== 'passed'
+  || cleanInstall.productionInstall?.mcpServer !== 'passed'
+  || cleanInstall.mcp?.stdioNegotiation !== 'passed'
+  || cleanInstall.nativeLauncher?.status !== 'passed'
+  || JSON.stringify(cleanInstall.mcp?.readOnlyTools) !== JSON.stringify(expectedMcpTools)) {
+  throw new Error('Evidence Actions clean-install evidence is missing, stale, or incomplete.');
+}
+artifacts.push({
+  target:'evidence-actions-clean-install',
+  path:path.relative(prodDir, cleanInstallPath).replaceAll('\\', '/'),
+  bytes:(await stat(cleanInstallPath)).size,
+  sha256:await sha256(cleanInstallPath)
+});
 const provenance = { product: 'Better CaptionKeep', version: sourceManifest.version, commit, createdAt: new Date().toISOString(), artifacts };
 await writeFile(path.join(prodDir, 'release-provenance.json'), `${JSON.stringify(provenance, null, 2)}\n`, 'utf8');
 console.log(JSON.stringify(provenance, null, 2));

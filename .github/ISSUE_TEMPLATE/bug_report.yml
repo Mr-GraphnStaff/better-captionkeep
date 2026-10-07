@@ -1,5 +1,5 @@
 name: Bug report
-description: Report reproducible broken or unreliable behavior
+description: Tell us what went wrong so we can reproduce and track the fix
 title: "[Bug]: "
 labels:
   - bug
@@ -7,45 +7,53 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a problem. Do not include real transcripts, attendee information, credentials, signing keys, or Partner Center data.
+        Thanks for helping improve Better CaptionKeep. Plain language is welcome—you do not need to know the technical cause.
+
+        Before submitting, remove real transcripts, meeting titles or links, participant names, tenant or account identifiers, credentials, and private screenshots. Invented test examples are perfect.
   - type: textarea
     id: summary
     attributes:
-      label: What happened?
-      description: Describe the problem and its effect on your work.
+      label: What went wrong?
+      description: Briefly describe what you saw and what it stopped you from doing.
+      placeholder: "For example: The Start transcription control flashes every minute during an Edge meeting."
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Better CaptionKeep version
-      placeholder: "For example: 4.6"
-    validations:
-      required: true
+      description: If you cannot find it, enter "Unknown" or leave this blank—we still want the report.
+      placeholder: "For example: 5.4.0"
   - type: dropdown
-    id: teams_host
+    id: provider
     attributes:
-      label: Teams client address
+      label: Where did it happen?
       options:
-        - teams.microsoft.com
-        - teams.cloud.microsoft
-        - Another address
-        - Unknown or hidden by the PWA
+        - Microsoft Teams in a browser tab
+        - Microsoft Teams installed as a PWA
+        - Google Meet
+        - Zoom Web
+        - Popup or All settings
+        - Transcript viewer or History
+        - Evidence Board side panel
+        - Microsoft 365 transcript import
+        - Store installation or update
+        - Somewhere else
     validations:
       required: true
   - type: input
     id: environment
     attributes:
       label: Environment
-      description: Edge version, Windows version, and whether Teams was a browser tab or installed PWA.
-      placeholder: "Edge 140, Windows 11, Teams PWA"
+      description: Browser/version, operating system, and anything else that may help us reproduce it.
+      placeholder: "For example: Edge 141, Windows 11, Teams PWA"
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Reproduction steps
-      description: Use a test meeting and non-sensitive example text.
+      label: How can we see it too?
+      description: Short steps are enough. Use a test meeting and invented text.
       placeholder: |
         1. Start a test meeting
         2. Enable live captions
@@ -55,26 +63,26 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
+      label: What did you expect?
     validations:
       required: true
   - type: textarea
     id: actual
     attributes:
-      label: Actual behavior
+      label: What happened instead?
     validations:
       required: true
   - type: textarea
     id: diagnostics
     attributes:
-      label: Sanitized diagnostics
-      description: Include relevant console errors or screenshots only after removing meeting, tenant, attendee, and account information.
+      label: Optional safe screenshot or diagnostic text
+      description: Include it only after removing meeting, tenant, participant, account, and credential information.
   - type: checkboxes
     id: checks
     attributes:
       label: Safety check
       options:
-        - label: I removed confidential meeting, tenant, attendee, account, and credential information.
+        - label: I removed private meeting, tenant, participant, account, credential, and browser-history information.
           required: true
         - label: I searched existing issues for the same problem.
-          required: true
+          required: false

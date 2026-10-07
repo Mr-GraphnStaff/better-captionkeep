@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "Acquisisci localmente i sottotitoli delle riunioni per revisione ed esportazione private."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Anteprima di traduzione assistita dall’IA, non certificata professionalmente. L’inglese è il riferimento per privacy, sicurezza e amministrazione."
+  },
+  "reportTranslation": {
+    "message": "Segnala questa traduzione"
+  },
+  "followBrowserLanguage": {
+    "message": "Segui la lingua del browser"
+  },
+  "languageLabel": {
+    "message": "Lingua"
+  },
+  "settings": {
+    "message": "Impostazioni"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Copia trascrizione"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Visualizza trascrizione"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "บันทึกคำบรรยายการประชุมไว้ในเครื่องเพื่อการตรวจสอบและส่งออกแบบส่วนตัว"
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "ตัวอย่างคำแปลที่ใช้ AI ช่วย ยังไม่ได้รับการรับรองโดยผู้เชี่ยวชาญ ภาษาอังกฤษเป็นข้อมูลอ้างอิงสำหรับความเป็นส่วนตัว ความปลอดภัย และการดูแลระบบ"
+  },
+  "reportTranslation": {
+    "message": "รายงานคำแปลนี้"
+  },
+  "followBrowserLanguage": {
+    "message": "ใช้ภาษาของเบราว์เซอร์"
+  },
+  "languageLabel": {
+    "message": "ภาษา"
+  },
+  "settings": {
+    "message": "การตั้งค่า"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "คัดลอกข้อความถอดเสียง"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "ดูข้อความถอดเสียง"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

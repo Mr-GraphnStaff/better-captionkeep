@@ -47,10 +47,37 @@ for filename in \
   "better_captionkeep-$version.zip" \
   "better_captionkeep-chrome-$version.zip" \
   'release-provenance.json' \
-  'SHA256SUMS.txt'; do
+  'SHA256SUMS.txt' \
+  'better-captionkeep-sbom.cdx.json' \
+  'release-attestation.sigstore.json'; do
   curl --fail --silent --show-error --location \
     "https://github.com/$repository/releases/download/$release_tag/$filename" \
     --output "$output_root/store/$filename"
+done
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo 'GitHub CLI with artifact-attestation support is required on the release runner.' >&2
+  exit 1
+fi
+minimum_gh_version='2.102.0'
+installed_gh_version="$(gh --version | awk 'NR == 1 { print $3 }')"
+if [[ "$(printf '%s\n' "$minimum_gh_version" "$installed_gh_version" | sort --version-sort | head -n 1)" != "$minimum_gh_version" ]]; then
+  echo "GitHub CLI $minimum_gh_version or newer is required for patched attestation policy verification." >&2
+  exit 1
+fi
+
+for filename in \
+  "better_captionkeep-$version.zip" \
+  "better_captionkeep-chrome-$version.zip" \
+  'release-provenance.json' \
+  'SHA256SUMS.txt' \
+  'better-captionkeep-sbom.cdx.json'; do
+  gh attestation verify "$output_root/store/$filename" \
+    --repo "$repository" \
+    --bundle "$output_root/store/release-attestation.sigstore.json" \
+    --signer-workflow "$repository/.github/workflows/release.yml" \
+    --source-ref "refs/tags/$release_tag" \
+    --deny-self-hosted-runners
 done
 
 (

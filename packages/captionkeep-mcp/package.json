@@ -1,0 +1,34 @@
+{
+  "name": "@better-captionkeep/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Customer-owned read-only MCP server for Better CaptionKeep evidence.",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "bin": {
+    "better-captionkeep-mcp": "dist/src/index.js",
+    "better-captionkeep-mcp-http": "dist/src/http.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "start": "node dist/src/index.js",
+    "start:http": "node dist/src/http.js",
+    "dev": "tsx src/index.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "^2.1.1",
+    "@modelcontextprotocol/server": "^2.3.1",
+    "jose": "^6.2.12",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

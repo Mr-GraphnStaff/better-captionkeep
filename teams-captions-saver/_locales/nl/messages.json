@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "Leg vergaderondertitels lokaal vast voor privécontrole en export."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Voorbeeld van AI-ondersteunde vertaling, niet professioneel gecertificeerd. Engels is leidend voor privacy, beveiliging en beheer."
+  },
+  "reportTranslation": {
+    "message": "Deze vertaling melden"
+  },
+  "followBrowserLanguage": {
+    "message": "Browsertaal volgen"
+  },
+  "languageLabel": {
+    "message": "Taal"
+  },
+  "settings": {
+    "message": "Instellingen"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Transcript kopiëren"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Transcript bekijken"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

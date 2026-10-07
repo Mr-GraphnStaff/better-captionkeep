@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep"
+  },
+  "extensionDescription": {
+    "message": "ಖಾಸಗಿ ಪರಿಶೀಲನೆ ಮತ್ತು ರಫ್ತಿಗಾಗಿ ಮೀಟಿಂಗ್ ಶೀರ್ಷಿಕೆಗಳನ್ನು ಸ್ಥಳೀಯವಾಗಿ ಉಳಿಸಿ."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI ನೆರವಿನ ಅನುವಾದ ಪೂರ್ವವೀಕ್ಷಣೆ; ವೃತ್ತಿಪರ ಪ್ರಮಾಣೀಕರಣವಿಲ್ಲ. ಗೌಪ್ಯತೆ, ಭದ್ರತೆ ಮತ್ತು ಆಡಳಿತಕ್ಕೆ ಇಂಗ್ಲಿಷ್ ಅಧಿಕೃತ ಉಲ್ಲೇಖ."
+  },
+  "reportTranslation": {
+    "message": "ಈ ಅನುವಾದವನ್ನು ವರದಿ ಮಾಡಿ"
+  },
+  "followBrowserLanguage": {
+    "message": "ಬ್ರೌಸರ್ ಭಾಷೆಯನ್ನು ಅನುಸರಿಸಿ"
+  },
+  "languageLabel": {
+    "message": "ಭಾಷೆ"
+  },
+  "settings": {
+    "message": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "ಪ್ರತಿಲಿಪಿ ನಕಲಿಸಿ"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "ಪ್ರತಿಲಿಪಿ ನೋಡಿ"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

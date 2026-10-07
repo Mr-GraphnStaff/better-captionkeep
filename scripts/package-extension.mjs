@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { ZipArchive } from 'archiver';
+import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
 
 function artifactStem(name) {
   return String(name)
@@ -17,7 +18,8 @@ export async function packageExtension(source, destination) {
   const sourceDir = path.resolve(source);
   const destinationDir = path.resolve(destination);
   const manifest = JSON.parse(await readFile(path.join(sourceDir, 'manifest.json'), 'utf8'));
-  const artifactName = `${artifactStem(manifest.name)}-${manifest.version}.zip`;
+  const messages = await readEnglishMessages(sourceDir);
+  const artifactName = `${artifactStem(resolveManifestMessage(manifest.name, messages))}-${manifest.version}.zip`;
   const artifactPath = path.join(destinationDir, artifactName);
   const temporaryPath = `${artifactPath}.partial`;
 
