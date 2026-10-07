@@ -8,7 +8,7 @@ const UI_ELEMENTS = {
     saveButton: document.getElementById('saveButton'),
     saveDropdownButton: document.getElementById('saveDropdownButton'),
     saveOptions: document.getElementById('saveOptions'),
-    viewButton: document.getElementById('viewButton'),
+    liveWorkspaceButton: document.getElementById('liveWorkspaceButton'),
     themeSelect: document.getElementById('themeSelect'),
     defaultSaveFormatSelect: document.getElementById('defaultSaveFormat'),
     saveAsTypeSelect: document.getElementById('saveAsType'),
@@ -199,7 +199,6 @@ function updateButtonStates(hasData) {
     UI_ELEMENTS.copyDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
     UI_ELEMENTS.saveButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
     UI_ELEMENTS.saveDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
-    UI_ELEMENTS.viewButton.disabled = !hasData;
 }
 
 async function refreshEnterprisePolicy() {
@@ -363,7 +362,7 @@ async function sendGraphMessage(message) {
 
 function applyGraphVisibility() {
     if (!UI_ELEMENTS.graphTranscriptSection) return;
-    UI_ELEMENTS.graphTranscriptSection.hidden = false;
+    UI_ELEMENTS.graphTranscriptSection.hidden = !isFullSettingsPage;
 }
 
 function isGraphGuid(value) {
@@ -397,7 +396,9 @@ async function refreshGraphStatus() {
         graphConnected = !!status.connected;
         UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
-            : (status.configured ? 'Microsoft 365 setup detected. Connect to begin.' : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs below.');
+            : (status.configured
+                ? 'Microsoft 365 setup detected. Connect to begin.'
+                : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs under Administrator connection details.');
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
         graphConnected = false;
@@ -771,7 +772,7 @@ function setupEventListeners() {
             await refreshLastTranscriptFolderButton();
         }
     });
-    document.getElementById('evidenceBoardButton')?.addEventListener('click', async () => {
+    UI_ELEMENTS.liveWorkspaceButton?.addEventListener('click', async () => {
         try {
             const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
             if (!tab?.windowId) throw new Error('No active browser window is available.');
@@ -779,7 +780,7 @@ function setupEventListeners() {
             await chrome.sidePanel.open({windowId: tab.windowId});
             window.close();
         } catch (error) {
-            console.error('[Better CaptionKeep] Could not open the Evidence Board:', error);
+            console.error('[Better CaptionKeep] Could not open the live workspace:', error);
             chrome.tabs.create({url: chrome.runtime.getURL('sidepanel.html')});
         }
     });
@@ -940,13 +941,6 @@ function setupEventListeners() {
         const tab = await getActiveMeetingTab();
         if (tab) {
             chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format: currentDefaultFormat });
-        }
-    });
-
-    UI_ELEMENTS.viewButton.addEventListener('click', async () => {
-        const tab = await getActiveMeetingTab();
-        if (tab) {
-            chrome.tabs.sendMessage(tab.id, { message: "get_captions_for_viewing" });
         }
     });
 
@@ -1348,14 +1342,6 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         if (!UI_ELEMENTS.copyButton.disabled) {
             UI_ELEMENTS.copyButton.click();
-        }
-    }
-    
-    // Ctrl/Cmd + V for view
-    if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.target.matches('input, textarea')) {
-        e.preventDefault();
-        if (!UI_ELEMENTS.viewButton.disabled) {
-            UI_ELEMENTS.viewButton.click();
         }
     }
 });

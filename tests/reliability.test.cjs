@@ -1674,10 +1674,18 @@ test('all target manifests expose the local Evidence Board through the side pane
         assert.equal(manifest.side_panel?.default_path,'sidepanel.html');
     }
     const popup=read('popup.html');const popupScript=read('popup.js');
-    assert(popup.includes('id="evidenceBoardButton"'));
+    assert(popup.includes('id="liveWorkspaceButton"'));
+    assert.equal((popup.match(/Open Live Workspace/g) || []).length,1);
+    assert(!popup.includes('id="viewButton"'));
+    assert(!popupScript.includes('Ctrl/Cmd + V for view'));
     assert(popupScript.includes('chrome.sidePanel.open'));
     assert(popupScript.includes("chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'})"));
     const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
+    assert(sidepanel.includes('>Live transcript</button>'));
+    assert(sidepanel.includes('>Open full transcript</button>'));
+    const viewerScript=read('viewer.js');
+    assert(!viewerScript.includes('choose View Transcript'));
+    assert(viewerScript.includes('choose Open Live Workspace, then select Open full transcript'));
     assert(sidepanel.includes('id="close-panel"'));
     assert(sidepanel.includes('id="transcript-search"'));
     assert(sidepanel.includes('id="email-board"'));
@@ -1756,14 +1764,15 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('async function importGraphTranscript(joinUrl)'));
     assert(popupScript.includes('await importGraphTranscript(meeting.joinUrl)'));
     assert(popupScript.includes("message:'graph_import_transcript', joinUrl:normalizedJoinUrl"));
-    assert(popup.includes('choose one to open its transcript'));
+    assert(popup.includes('Choose a Teams transcript'));
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph controls stay visible for customer setup in every lane without commercial feature gates',()=>{
+test('Graph controls remain available in every lane but render only in All Settings',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
+    const settingsScript=read('settings.js');
     const buildScript=readProject('scripts/build-browser-targets.mjs');
     assert(!popup.includes('devUatSection'));
     assert(!popup.includes('Signed UAT pass'));
@@ -1772,10 +1781,20 @@ test('Graph controls stay visible for customer setup in every lane without comme
     assert(popup.includes('id="graphTenantId"'));
     assert(popup.includes('id="graphClientId"'));
     assert(popup.includes('Save Microsoft 365 setup'));
-    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = false'));
+    assert(popup.includes('href="settings.html"'));
+    assert(popup.includes('Open every setting in a full browser tab'));
+    assert(!popup.includes('graph-settings-link'));
+    assert(popup.includes('#graphTranscriptSection { display: none; }'));
+    assert(popup.includes('html[data-view="settings"] #graphTranscriptSection { display: block; }'));
+    assert(popup.includes('class="graph-settings-layout"'));
+    assert(popup.includes('Connection and administrator setup'));
+    assert(popup.includes('Choose a Teams transcript'));
+    assert(popup.includes('grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr)'));
+    assert(popup.indexOf('class="settings-heading"') < popup.indexOf('id="graphTranscriptSection"'));
+    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isFullSettingsPage'));
+    assert(settingsScript.includes('destination.hash = location.hash'));
     assert(popupScript.includes('CaptionKeepConfiguration.readGraphUserConfig()'));
     assert(buildScript.includes("target === 'dev' || target === 'uat'"));
-    assert(!popup.includes('id="graphTranscriptSection" hidden'));
 });
 test('worker accepts local overlays only in Dev and UAT while production reads customer configuration',()=>{
     const worker=read('service_worker.js');

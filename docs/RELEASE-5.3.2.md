@@ -55,7 +55,7 @@ The `_metadata/verified_contents.json` file observed in the signed Edge CRX is S
 - Azure Store run 615 proved immutable release verification and successfully prepared the Edge draft. Its Chrome job stopped safely because the publisher initially treated Google's terminal `CANCELLED` 5.3.1 revision as active.
 - PR #71 corrected that release-tool state classifier and added regression coverage: only `PENDING_REVIEW` and `STAGED` are active; `CANCELLED` and `REJECTED` may be replaced.
 - Azure Store run 619 verified the same frozen `v5.3.2` assets, uploaded both drafts, passed the protected production approval, and submitted both existing Store products.
-- Chrome accepted 5.3.2 for review as `PENDING_REVIEW` with automatic publication after approval.
+- Chrome accepted 5.3.2 for review as `PENDING_REVIEW` with automatic publication after approval, and the public listing reported version 5.3.2 updated October 6, 2026.
 - Microsoft completed the Edge submission operation as `Succeeded` and accepted 5.3.2 for certification.
 - At 17:25 UTC on October 4, 2026, Microsoft's public Edge update service returned the signed production CRX for extension `edefcbdhahfolgkoamkbknjppojpaffk`; its root `manifest.json` reports version `5.3.2` and the expected Microsoft Edge Add-ons update URL.
 - On October 6, 2026, the public Chrome Web Store listing began serving version `5.3.2` for extension `nabjdlnkkaonnbnimnmnhjcbigceebml`.

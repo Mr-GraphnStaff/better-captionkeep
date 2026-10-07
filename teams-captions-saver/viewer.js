@@ -1204,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isDirectNavigation) {
                     renderViewerState(
                         'Ready when your meeting is',
-                        'Open Better CaptionKeep from the Edge toolbar, start Teams live captions, then choose View Transcript.',
+                        'Open Better CaptionKeep from the browser toolbar, choose Open Live Workspace, then select Open full transcript.',
                         { mark: '✓', showSteps: true }
                     );
                 } else {
@@ -1215,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Error loading captions:", error);
-            renderViewerState('We could not load this transcript', 'Open the Better CaptionKeep popup and choose View Transcript again.', { mark: '!' });
+            renderViewerState('We could not load this transcript', 'Open Better CaptionKeep, choose Open Live Workspace, then select Open full transcript again.', { mark: '!' });
         } finally { /* launch payloads are consumed; refresh uses the live tab/session locator */ }
     }
     
