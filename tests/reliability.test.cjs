@@ -1674,10 +1674,15 @@ test('all target manifests expose the local Evidence Board through the side pane
         assert.equal(manifest.side_panel?.default_path,'sidepanel.html');
     }
     const popup=read('popup.html');const popupScript=read('popup.js');
-    assert(popup.includes('id="evidenceBoardButton"'));
+    assert(popup.includes('id="liveWorkspaceButton"'));
+    assert.equal((popup.match(/Open Live Workspace/g) || []).length,1);
+    assert(!popup.includes('id="viewButton"'));
+    assert(!popupScript.includes('Ctrl/Cmd + V for view'));
     assert(popupScript.includes('chrome.sidePanel.open'));
     assert(popupScript.includes("chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'})"));
     const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
+    assert(sidepanel.includes('>Live transcript</button>'));
+    assert(sidepanel.includes('>Open full transcript</button>'));
     assert(sidepanel.includes('id="close-panel"'));
     assert(sidepanel.includes('id="transcript-search"'));
     assert(sidepanel.includes('id="email-board"'));

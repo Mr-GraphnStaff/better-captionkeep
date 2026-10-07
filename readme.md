@@ -8,9 +8,9 @@
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
-> **Current install status — October 4, 2026:** Microsoft Edge Add-ons now publicly serves `5.3.2`; the signed public CRX manifest was independently retrieved from Microsoft's update service at 17:25 UTC. Existing-install upgrade verification is still outstanding. Chrome continues to serve `5.1.0`, while `5.3.2` remains in review with automatic publication after approval. Azure Boards bug #297 stays active until both Stores serve 5.3.2 and the installed upgrade path passes.
+> **Current install status — October 7, 2026:** Microsoft Edge Add-ons and the Chrome Web Store publicly serve `5.3.2`; Chrome lists the update date as October 6. Version `5.3.3` is a local hotfix candidate for the competing live-transcript controls described below. It has not been submitted or published. Installed-upgrade verification remains separate evidence.
 
-### Current 5.3.2 candidate capabilities
+### Current 5.3 capabilities
 
 **All Settings** is a prominent full-width control beneath the popup header. It opens every setting in a full browser tab; it is also available through the browser's extension Options action. The transcript viewer has per-export file types, Print / PDF (choose Save as PDF in the browser dialog), and keyboard shortcuts. The AI handoff offers reusable local task templates without retaining transcripts as templates.
 
@@ -29,6 +29,8 @@ Better CaptionKeep is a free, local-first transcript and meeting-evidence worksp
 Zoom Web has been a governed supported provider since the 5.1 line. Its tested subtitle overlay does not reliably expose speaker identity, so Better CaptionKeep records `Unknown speaker` instead of inventing attribution. Native Zoom desktop-client and system-audio capture are not supported.
 
 The 5.3 line introduces **Verified Teams Transcript**: a delegated Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. Live Edge validation exposed that `5.3.1` hid Microsoft 365 in the Store build even though local Dev/UAT overlays passed. Version `5.3.2` is the controlled recovery: every organization supplies its own single-tenant Entra tenant ID and client ID through local setup or managed policy; Store packages contain no shared tenant identity. The Microsoft 365 setup remains visible, validates configuration before sign-in, and rejects tokens issued by any other tenant. See the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [customer Entra registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
+
+The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** and **Open Evidence Board** actions. One **Open Live Workspace** action now opens the side panel, where the live transcript and source-linked evidence stay together. The full transcript viewer remains available through **Open full transcript** and for completed history. The hotfix also stops intercepting `Ctrl+V` / `Cmd+V`, restoring the normal paste command. See the [5.3.3 hotfix record](docs/RELEASE-5.3.3.md).
 
 ## Release lineage
 
@@ -70,7 +72,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Edge publicly serves `5.3.2`, but the existing-install upgrade path is not yet verified. Chrome continues to serve `5.1.0`, with `5.3.2` still in review. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+Chrome and Edge publicly serve `5.3.2`. Version `5.3.3` is an unsubmitted hotfix candidate for controlled testing only. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for local testing.
 
 ### Three lifecycle environments
 
@@ -116,7 +118,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Edge now publicly serves the governed `5.3.2` recovery; Microsoft's public update service returned the signed 5.3.2 CRX at 17:25 UTC on October 4, 2026. Chrome continues to serve `5.1.0` after the defective `5.3.1` review was cancelled, while `5.3.2` remains in review. Existing-install upgrade verification is still required, so Azure Boards bug #297 remains active. The [privacy policy](PRIVACY.md) is published. Use the [5.3.2 recovery record](docs/RELEASE-5.3.2.md) and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Both Stores publicly serve the governed `5.3.2` recovery; Chrome lists it as updated October 6, 2026. Version `5.3.3` remains an unsubmitted hotfix candidate pending live browser UAT and governed promotion. The [privacy policy](PRIVACY.md) is published. Use the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [5.3.3 hotfix record](docs/RELEASE-5.3.3.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 

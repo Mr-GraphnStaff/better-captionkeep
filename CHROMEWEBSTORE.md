@@ -2,7 +2,7 @@
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-04
+> Last Updated: 2026-10-07
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -24,17 +24,17 @@ Every feature included in Better CaptionKeep is available to every user. There i
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-Version 5.3.2 corrects the Store Microsoft 365 configuration defect found after Edge 5.3.1 became public. It also includes the 5.3 All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
+Version 5.3.3 replaces competing live-transcript controls with one Live Workspace in the browser side panel. The full transcript viewer remains available as an intentional expanded view and for completed history. It also removes a popup shortcut that intercepted the standard paste command. The 5.3 line includes the All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
-The local Evidence Board lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
+The local Live Workspace keeps the live transcript and Evidence Board together beside the meeting. It lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
 
 Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, or an optional AI handoff. AI handoff is review-first: Better CaptionKeep prepares an editable prompt inside the extension and never puts transcript text in a provider URL, pastes it automatically, or submits it for the user.
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
-To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for settings, history, and exports, or open the Evidence Board beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
+To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for settings, history, and exports, or open the Live Workspace beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
 
 Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
 
@@ -73,7 +73,7 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `activeTab` | permissions | Lets the user-invoked popup identify and communicate with the supported meeting tab currently in view. |
 | `storage` | permissions | Stores preferences, managed settings, recovery checkpoints, pending exports, temporary aliases, Evidence Board markers, and user-controlled local transcript history. |
 | `unlimitedStorage` | permissions | Lets the user-controlled local transcript archive grow beyond the default local-storage quota without silently evicting meetings. Explicit user deletion and managed retention remain authoritative. |
-| `sidePanel` | permissions | Displays the local live transcript and Evidence Board beside the supported meeting page. |
+| `sidePanel` | permissions | Displays one unified local Live Workspace for captured captions and source-linked evidence beside the supported meeting page. |
 | `identity` | permissions | Opens interactive Microsoft Entra sign-in with PKCE for the customer-configured tenant when the user chooses Connect Microsoft 365. No shared app or client secret is embedded. |
 | `https://teams.microsoft.com/*` | host_permissions | Reads captions and optional attendee information rendered during supported Microsoft Teams meetings. |
 | `https://teams.cloud.microsoft/*` | host_permissions | Reads captions and optional attendee information rendered in the current Microsoft Teams web application. |
@@ -145,7 +145,8 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Chrome `PENDING_REVIEW`; Edge publicly serving 5.3.2; installed-upgrade verification pending |
+| 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Hotfix candidate; live Edge/Chrome UAT and governed Store promotion remain required |
+| 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
 | 5.3.0 | 2026-10-03 | Consolidates Verified Teams Transcript, archive/search, corrections, Word export, All settings, Print / PDF, local AI templates, reviewed chat/screenshots, imported-cue SRT/VTT, feature-detected on-device translation, and universal access to every shipped feature. | GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
@@ -181,4 +182,4 @@ No developer-operated server, paid subscription, microphone recording, video rec
 
 ### Submission History
 
-Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. Chrome reports `PENDING_REVIEW`. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome public availability and installed-upgrade verification remain open.
+Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome Web Store publicly listed version 5.3.2 as updated October 6, 2026. Installed-upgrade verification remains separate evidence.
