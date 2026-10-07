@@ -56,6 +56,8 @@ test('Evidence Actions bundle is allowlisted, hashed, and documents customer con
   assert.match(verifier, /Evidence Actions artifact does not match its recorded digest and size/);
   assert.match(verifier, /Evidence Actions dependency-lock digest drifted/);
   assert.match(verifier, /Evidence Actions clean-install evidence is missing, stale, or incomplete/);
+  assert.match(verifier, /nativeLauncherEvidenceIsValid/);
+  assert.match(verifier, /artifact_validated/);
   assert.match(runbook, /does \*\*not\*\* provide an LLM, Jira, Azure DevOps/);
   assert.match(runbook, /User confirms/);
   assert.match(runbook, /User denies/);

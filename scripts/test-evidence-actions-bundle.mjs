@@ -45,9 +45,17 @@ function inheritedEnvironment(extra) {
 }
 
 async function nativeRoundTrip(bundleRoot) {
-  if (process.platform !== 'win32') return {status:'not_applicable', reason:'Windows launcher is tested only on Windows.'};
   const bridgeRoot = path.join(bundleRoot, 'assistant-bridge');
   const launcherSource = path.join(bridgeRoot, 'native-host', 'windows-launcher', 'dist', 'win-x64', 'captionkeep-assistant-host.exe');
+  if (process.platform !== 'win32') {
+    const launcherBytes = await readFile(launcherSource);
+    assert.equal(launcherBytes.subarray(0, 2).toString('ascii'), 'MZ', 'Expected a packaged Windows PE launcher.');
+    return {
+      status:'artifact_validated',
+      runtime:'not_run',
+      reason:'The Windows launcher artifact was validated, but its runtime round trip requires Windows.'
+    };
+  }
   const launcherRoot = path.join(bundleRoot, 'native-launcher-test');
   const launcher = path.join(launcherRoot, 'captionkeep-assistant-host.exe');
   const adapter = path.join(launcherRoot, 'customer-adapter.mjs');

@@ -151,6 +151,11 @@ const expectedMcpTools = [
   'captionkeep_search_meetings',
   'captionkeep_verify_evidence_bundle'
 ];
+const nativeLauncherEvidenceIsValid = cleanInstall.nativeLauncher?.status === 'passed'
+  || (process.platform !== 'win32'
+    && cleanInstall.platform?.os === process.platform
+    && cleanInstall.nativeLauncher?.status === 'artifact_validated'
+    && cleanInstall.nativeLauncher?.runtime === 'not_run');
 if (cleanInstall.format !== 'better-captionkeep-evidence-actions-clean-install'
   || cleanInstall.version !== 1
   || cleanInstall.productVersion !== sourceManifest.version
@@ -162,7 +167,7 @@ if (cleanInstall.format !== 'better-captionkeep-evidence-actions-clean-install'
   || cleanInstall.productionInstall?.assistantBridge !== 'passed'
   || cleanInstall.productionInstall?.mcpServer !== 'passed'
   || cleanInstall.mcp?.stdioNegotiation !== 'passed'
-  || cleanInstall.nativeLauncher?.status !== 'passed'
+  || !nativeLauncherEvidenceIsValid
   || JSON.stringify(cleanInstall.mcp?.readOnlyTools) !== JSON.stringify(expectedMcpTools)) {
   throw new Error('Evidence Actions clean-install evidence is missing, stale, or incomplete.');
 }
