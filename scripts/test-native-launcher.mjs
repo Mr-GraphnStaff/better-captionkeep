@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {copyFile, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {copyFile, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -11,9 +11,14 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const sourceLauncher = path.join(projectRoot, 'packages', 'captionkeep-assistant-bridge', 'native-host',
   'windows-launcher', 'dist', 'win-x64', 'captionkeep-assistant-host.exe');
 const hostScript = path.join(projectRoot, 'packages', 'captionkeep-assistant-bridge', 'dist', 'src', 'native.js');
-const temporary = await mkdtemp(path.join(tmpdir(), 'captionkeep-native-launcher-'));
 
-try {
+if (process.platform !== 'win32') {
+  const launcherBytes = await readFile(sourceLauncher);
+  assert.equal(launcherBytes.subarray(0, 2).toString('ascii'), 'MZ', 'Expected a Windows PE launcher artifact.');
+  console.log('Windows native-host launcher artifact passed; runtime round trip is Windows-only.');
+} else {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'captionkeep-native-launcher-'));
+  try {
   const launcher = path.join(temporary, 'captionkeep-assistant-host.exe');
   const adapter = path.join(temporary, 'customer-adapter.mjs');
   await copyFile(sourceLauncher, launcher);
@@ -71,6 +76,7 @@ try {
     remoteJobId:'launcher-launcher-job', assistantId:'launcher-test-assistant'
   });
   console.log('Windows native-host launcher round trip passed.');
-} finally {
-  await rm(temporary, {recursive:true, force:true});
+  } finally {
+    await rm(temporary, {recursive:true, force:true});
+  }
 }
