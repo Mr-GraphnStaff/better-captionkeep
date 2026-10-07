@@ -1781,6 +1781,8 @@ test('Graph controls remain available in every lane but render only in All Setti
     assert(popup.includes('href="settings.html"'));
     assert(popup.includes('Open every setting in a full browser tab'));
     assert(!popup.includes('graph-settings-link'));
+    assert(popup.includes('#graphTranscriptSection { display: none; }'));
+    assert(popup.includes('html[data-view="settings"] #graphTranscriptSection { display: block; }'));
     assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isFullSettingsPage'));
     assert(settingsScript.includes('destination.hash = location.hash'));
     assert(popupScript.includes('CaptionKeepConfiguration.readGraphUserConfig()'));
