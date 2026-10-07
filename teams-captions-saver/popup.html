@@ -29,9 +29,6 @@
         html[data-view="settings"] .small-info-text { font-size: 14px; line-height: 1.6; }
         html[data-view="settings"] .setting-label { font-size: 15px; }
         html[data-view="settings"] .all-settings-link { display: none; }
-        .graph-admin-details { display: none; }
-        html[data-view="settings"] .graph-admin-details { display: block; }
-        html[data-view="settings"] .graph-settings-link { display: none; }
         html[data-view="settings"] details.settings-group > summary { font-size: 18px; }
         html[data-view="settings"] input[type="text"], html[data-view="settings"] textarea,
         html[data-view="settings"] select { font-size: 15px; }
@@ -592,11 +589,6 @@
             <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
         </div>
         <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
-        <a class="all-settings-link graph-settings-link" href="settings.html#graphTranscriptSection" target="_blank" rel="noopener">
-            <span class="all-settings-icon" aria-hidden="true">⚙</span>
-            <span class="all-settings-copy"><strong>Microsoft 365 setup</strong><small>Enter tenant and application IDs in All Settings</small></span>
-            <span class="all-settings-arrow" aria-hidden="true">↗</span>
-        </a>
         <div class="graph-actions">
             <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
             <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
@@ -614,7 +606,7 @@
             <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
             <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
         </details>
-        <details class="graph-manual graph-admin-details">
+        <details class="graph-manual">
             <summary>Administrator connection details</summary>
             <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
             <div class="setting-item">

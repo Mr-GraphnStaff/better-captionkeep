@@ -362,7 +362,7 @@ async function sendGraphMessage(message) {
 
 function applyGraphVisibility() {
     if (!UI_ELEMENTS.graphTranscriptSection) return;
-    UI_ELEMENTS.graphTranscriptSection.hidden = false;
+    UI_ELEMENTS.graphTranscriptSection.hidden = !isFullSettingsPage;
 }
 
 function isGraphGuid(value) {
@@ -398,9 +398,7 @@ async function refreshGraphStatus() {
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
             : (status.configured
                 ? 'Microsoft 365 setup detected. Connect to begin.'
-                : (isFullSettingsPage
-                    ? 'Microsoft 365 setup required. Add your organization’s tenant and client IDs under Administrator connection details.'
-                    : 'Microsoft 365 setup required. Open All Settings to add your organization’s tenant and client IDs.'));
+                : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs under Administrator connection details.');
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
         graphConnected = false;

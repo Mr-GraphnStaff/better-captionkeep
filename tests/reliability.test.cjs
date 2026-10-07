@@ -1765,7 +1765,7 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
-test('Graph controls remain available in every lane while editable setup stays in All Settings',()=>{
+test('Graph controls remain available in every lane but render only in All Settings',()=>{
     const worker=read('service_worker.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
@@ -1778,18 +1778,13 @@ test('Graph controls remain available in every lane while editable setup stays i
     assert(popup.includes('id="graphTenantId"'));
     assert(popup.includes('id="graphClientId"'));
     assert(popup.includes('Save Microsoft 365 setup'));
-    assert(popup.includes('class="graph-manual graph-admin-details"'));
-    assert(popup.includes('.graph-admin-details { display: none; }'));
-    assert(popup.includes('html[data-view="settings"] .graph-admin-details { display: block; }'));
-    assert(popup.includes('href="settings.html#graphTranscriptSection"'));
-    assert(popup.includes('Enter tenant and application IDs in All Settings'));
-    assert(popup.includes('html[data-view="settings"] .graph-settings-link { display: none; }'));
-    assert(popupScript.includes('Open All Settings to add your organization’s tenant and client IDs.'));
+    assert(popup.includes('href="settings.html"'));
+    assert(popup.includes('Open every setting in a full browser tab'));
+    assert(!popup.includes('graph-settings-link'));
+    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isFullSettingsPage'));
     assert(settingsScript.includes('destination.hash = location.hash'));
-    assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = false'));
     assert(popupScript.includes('CaptionKeepConfiguration.readGraphUserConfig()'));
     assert(buildScript.includes("target === 'dev' || target === 'uat'"));
-    assert(!popup.includes('id="graphTranscriptSection" hidden'));
 });
 test('worker accepts local overlays only in Dev and UAT while production reads customer configuration',()=>{
     const worker=read('service_worker.js');

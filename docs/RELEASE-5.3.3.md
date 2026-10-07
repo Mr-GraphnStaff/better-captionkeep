@@ -11,7 +11,7 @@ The 5.3 user interface exposed the active meeting transcript through two competi
 
 Both surfaces read the same authoritative capture, so this did not prove transcript corruption. It did create two simultaneous live consoles with overlapping names and controls. The popup also treated `Ctrl+V` / `Cmd+V` as a shortcut for View Transcript, conflicting with the standard paste command.
 
-The popup also exposed the editable Microsoft 365 tenant ID and application ID fields. Opening the popup again creates a new popup document, so an unsaved value could disappear while the administrator switched windows to copy the other identifier.
+The popup also exposed the complete Microsoft 365 transcript-import workspace: recent meetings, manual meeting link, administrator identifiers, and import controls. This crowded the main panel, and an unsaved identifier could disappear while the administrator switched windows to copy the other value because opening the popup again creates a new popup document.
 
 ## Hotfix behavior
 
@@ -20,8 +20,8 @@ The popup also exposed the editable Microsoft 365 tenant ID and application ID f
 3. **Open full transcript** remains available inside the workspace for an intentional expanded view.
 4. Completed and imported transcripts continue to use the full transcript viewer.
 5. The popup no longer intercepts `Ctrl+V` or `Cmd+V`.
-6. Microsoft 365 connection status remains in the popup, with a direct link to its setup in **All Settings**.
-7. Tenant ID and application ID entry appears only in the durable full-tab **All Settings** page, where switching windows does not close the form.
+6. The popup retains its prominent **All Settings** link but no longer renders the Microsoft 365 transcript-import workspace.
+7. Recent meetings, manual meeting-link entry, connection controls, tenant and application ID setup, and verified transcript import appear only in the durable full-tab **All Settings** page.
 8. Capture, recovery, local history, evidence markers, export, and transcript authority are unchanged.
 
 ## Required validation
@@ -31,9 +31,9 @@ The popup also exposed the editable Microsoft 365 tenant ID and application ID f
 - Confirm the side panel updates without opening a second viewer tab.
 - Select **Open full transcript** and confirm the expanded viewer receives the same session without duplicate or missing captions.
 - Confirm `Ctrl+V` pastes normally in an editable popup field.
-- From an unconfigured popup, select **Microsoft 365 setup** and confirm All Settings opens at **Verified Teams transcripts**.
+- From the popup, select **All Settings** and confirm the full settings tab includes **Verified Teams transcripts**.
 - Switch away from All Settings to copy each identifier, return, paste both values, save, and confirm the values remain present.
-- Reopen the popup and confirm it shows Microsoft 365 connection status and the setup link without displaying the tenant or application ID fields.
+- Reopen the popup and confirm none of the Microsoft 365 transcript-import workspace is displayed there.
 - Repeat the workspace and expanded-view checks in Chrome and Google Meet.
 - Run the release-candidate gate and retain package checksums before any Store submission.
 
