@@ -21,8 +21,8 @@
         .all-settings-copy strong { display: block; font-size: 1.05rem; }
         .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
         .all-settings-arrow { font-size: 1.5rem; }
-        html[data-view="settings"] body { width: min(100%, 960px); margin: 0 auto; padding: 28px; }
-        html[data-view="settings"] body > :not(.settings-container):not(#graphTranscriptSection):not(.brand):not(.settings-page-intro) { display: none !important; }
+        html[data-view="settings"] body { width: min(100%, 1180px); margin: 0 auto; padding: 28px; }
+        html[data-view="settings"] body > :not(.settings-container):not(.brand):not(.settings-page-intro) { display: none !important; }
         html[data-view="settings"] .settings-container { margin-top: 0; }
         html[data-view="settings"] .settings-header { font-size: 28px; }
         html[data-view="settings"] .settings-intro,
@@ -31,10 +31,32 @@
         html[data-view="settings"] .all-settings-link { display: none; }
         #graphTranscriptSection { display: none; }
         html[data-view="settings"] #graphTranscriptSection { display: block; }
+        html[data-view="settings"] .graph-settings-layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+            gap: 18px;
+            align-items: start;
+        }
+        html[data-view="settings"] .graph-settings-card {
+            min-width: 0;
+            padding: 16px;
+            border: 1px solid var(--ck-border);
+            border-radius: 10px;
+            background: var(--ck-surface);
+        }
+        html[data-view="settings"] .graph-settings-card > :first-child { margin-top: 0; }
+        html[data-view="settings"] .graph-settings-card > :last-child { margin-bottom: 0; }
+        html[data-view="settings"] .graph-settings-card .setting-item { gap: 16px; }
+        html[data-view="settings"] .graph-settings-card input[type="text"] { width: min(100%, 360px); }
+        html[data-view="settings"] #graphUseCurrentMeeting,
+        html[data-view="settings"] #graphImportButton { width: 100%; }
         html[data-view="settings"] details.settings-group > summary { font-size: 18px; }
         html[data-view="settings"] input[type="text"], html[data-view="settings"] textarea,
         html[data-view="settings"] select { font-size: 15px; }
-        @media (max-width: 600px) { html[data-view="settings"] body { padding: 16px; } }
+        @media (max-width: 800px) {
+            html[data-view="settings"] body { padding: 16px; }
+            html[data-view="settings"] .graph-settings-layout { grid-template-columns: 1fr; }
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f7f8f5;
@@ -584,55 +606,63 @@
         <div style="text-align: center; color: #999;">Loading sessions...</div>
     </div>
 
-    <details class="settings-group" id="graphTranscriptSection" open>
-        <summary>Verified Teams transcripts</summary>
-        <div class="graph-hero">
-            <strong>Official words. Verifiable source.</strong>
-            <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
-        </div>
-        <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
-        <div class="graph-actions">
-            <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
-            <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
-        </div>
-        <button id="graphUseCurrentMeeting" type="button">Use this Teams meeting</button>
-        <div class="graph-recent-header">
-            <span class="setting-label">Your five recent Teams meetings — choose one to open its transcript</span>
-            <button id="graphRefreshMeetings" type="button" disabled>Refresh</button>
-        </div>
-        <div id="graphRecentMeetings" class="graph-meeting-list" role="list" aria-label="Recent Teams meetings">
-            <p class="small-info-text">Connect Microsoft 365 to find recent meetings.</p>
-        </div>
-        <details class="graph-manual">
-            <summary>Can’t find the meeting? Paste its link</summary>
-            <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
-            <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
-        </details>
-        <details class="graph-manual">
-            <summary>Administrator connection details</summary>
-            <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
-            <div class="setting-item">
-                <label for="graphTenantId" class="setting-label">Directory (tenant) ID</label>
-                <input id="graphTenantId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
-            </div>
-            <div class="setting-item">
-                <label for="graphClientId" class="setting-label">Application (client) ID</label>
-                <input id="graphClientId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
-            </div>
-            <p class="small-info-text" id="graphRedirectUri"></p>
-            <div class="graph-actions">
-                <button id="graphSaveSetup" type="button">Save Microsoft 365 setup</button>
-                <button id="graphClearSetup" type="button">Clear setup</button>
-            </div>
-            <p class="small-info-text" id="graphSetupStatus" role="status" aria-live="polite"></p>
-        </details>
-        <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
-        <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting to retrieve and open its transcript. Teams must have finished producing it.</p>
-    </details>
-
     <div class="settings-container">
         <div class="settings-heading"><h3 class="settings-header">Settings</h3></div>
         <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
+
+        <details class="settings-group" id="graphTranscriptSection" open>
+            <summary>Verified Teams transcripts</summary>
+            <div class="graph-hero">
+                <strong>Official words. Verifiable source.</strong>
+                <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
+            </div>
+            <div class="graph-settings-layout">
+                <section class="graph-settings-card" aria-labelledby="graphConnectionHeading">
+                    <h4 id="graphConnectionHeading">Connection and administrator setup</h4>
+                    <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+                    <div class="graph-actions">
+                        <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
+                        <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
+                    </div>
+                    <details class="graph-manual" open>
+                        <summary>Administrator connection details</summary>
+                        <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
+                        <div class="setting-item">
+                            <label for="graphTenantId" class="setting-label">Directory (tenant) ID</label>
+                            <input id="graphTenantId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+                        </div>
+                        <div class="setting-item">
+                            <label for="graphClientId" class="setting-label">Application (client) ID</label>
+                            <input id="graphClientId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+                        </div>
+                        <p class="small-info-text" id="graphRedirectUri"></p>
+                        <div class="graph-actions">
+                            <button id="graphSaveSetup" type="button">Save Microsoft 365 setup</button>
+                            <button id="graphClearSetup" type="button">Clear setup</button>
+                        </div>
+                        <p class="small-info-text" id="graphSetupStatus" role="status" aria-live="polite"></p>
+                    </details>
+                </section>
+                <section class="graph-settings-card" aria-labelledby="graphMeetingHeading">
+                    <h4 id="graphMeetingHeading">Choose a Teams transcript</h4>
+                    <button id="graphUseCurrentMeeting" type="button">Use this Teams meeting</button>
+                    <div class="graph-recent-header">
+                        <span class="setting-label">Your five recent Teams meetings</span>
+                        <button id="graphRefreshMeetings" type="button" disabled>Refresh</button>
+                    </div>
+                    <div id="graphRecentMeetings" class="graph-meeting-list" role="list" aria-label="Recent Teams meetings">
+                        <p class="small-info-text">Connect Microsoft 365 to find recent meetings.</p>
+                    </div>
+                    <details class="graph-manual">
+                        <summary>Can’t find the meeting? Paste its link</summary>
+                        <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
+                        <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
+                    </details>
+                    <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
+                    <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting to retrieve and open its transcript. Teams must have finished producing it.</p>
+                </section>
+            </div>
+        </details>
 
         <details class="settings-group">
             <summary>Appearance</summary>

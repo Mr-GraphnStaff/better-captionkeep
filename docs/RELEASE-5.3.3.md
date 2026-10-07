@@ -22,7 +22,8 @@ The popup also exposed the complete Microsoft 365 transcript-import workspace: r
 5. The popup no longer intercepts `Ctrl+V` or `Cmd+V`.
 6. The popup retains its prominent **All Settings** link but no longer renders the Microsoft 365 transcript-import workspace.
 7. Recent meetings, manual meeting-link entry, connection controls, tenant and application ID setup, and verified transcript import appear only in the durable full-tab **All Settings** page.
-8. Capture, recovery, local history, evidence markers, export, and transcript authority are unchanged.
+8. In All Settings, Microsoft 365 connection/setup and transcript selection use a wide two-column workspace, with a single-column fallback for smaller windows.
+9. Capture, recovery, local history, evidence markers, export, and transcript authority are unchanged.
 
 ## Required validation
 
@@ -32,6 +33,7 @@ The popup also exposed the complete Microsoft 365 transcript-import workspace: r
 - Select **Open full transcript** and confirm the expanded viewer receives the same session without duplicate or missing captions.
 - Confirm `Ctrl+V` pastes normally in an editable popup field.
 - From the popup, select **All Settings** and confirm the full settings tab includes **Verified Teams transcripts**.
+- Confirm **All settings** appears before the Microsoft 365 workspace and that connection/setup and transcript selection render as separate columns in a wide window.
 - Switch away from All Settings to copy each identifier, return, paste both values, save, and confirm the values remain present.
 - Reopen the popup and confirm none of the Microsoft 365 transcript-import workspace is displayed there.
 - Repeat the workspace and expanded-view checks in Chrome and Google Meet.

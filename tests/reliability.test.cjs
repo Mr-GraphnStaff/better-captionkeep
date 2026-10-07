@@ -1761,7 +1761,7 @@ test('Verified Teams Transcript offers current, recent-five, and manual meeting 
     assert(popupScript.includes('async function importGraphTranscript(joinUrl)'));
     assert(popupScript.includes('await importGraphTranscript(meeting.joinUrl)'));
     assert(popupScript.includes("message:'graph_import_transcript', joinUrl:normalizedJoinUrl"));
-    assert(popup.includes('choose one to open its transcript'));
+    assert(popup.includes('Choose a Teams transcript'));
     assert(popupScript.includes('graphErrorMessage'));
     assert(worker.includes("case 'graph_list_recent_meetings'"));
 });
@@ -1783,6 +1783,11 @@ test('Graph controls remain available in every lane but render only in All Setti
     assert(!popup.includes('graph-settings-link'));
     assert(popup.includes('#graphTranscriptSection { display: none; }'));
     assert(popup.includes('html[data-view="settings"] #graphTranscriptSection { display: block; }'));
+    assert(popup.includes('class="graph-settings-layout"'));
+    assert(popup.includes('Connection and administrator setup'));
+    assert(popup.includes('Choose a Teams transcript'));
+    assert(popup.includes('grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr)'));
+    assert(popup.indexOf('class="settings-heading"') < popup.indexOf('id="graphTranscriptSection"'));
     assert(popupScript.includes('UI_ELEMENTS.graphTranscriptSection.hidden = !isFullSettingsPage'));
     assert(settingsScript.includes('destination.hash = location.hash'));
     assert(popupScript.includes('CaptionKeepConfiguration.readGraphUserConfig()'));
