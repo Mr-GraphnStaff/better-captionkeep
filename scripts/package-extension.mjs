@@ -1,5 +1,5 @@
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, rename, rm } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -14,9 +14,25 @@ function artifactStem(name) {
     .replace(/[^a-z0-9_-]/g, '');
 }
 
+export async function assertNoReservedPackagePaths(root, relative = '') {
+  const entries = await readdir(path.join(root, relative), { withFileTypes: true });
+  for (const entry of entries) {
+    const next = path.join(relative, entry.name);
+    const parts = next.split(path.sep);
+    const reserved = parts.find((part, index) =>
+      part.startsWith('_') && !(index === 0 && part === '_locales')
+    );
+    if (reserved) {
+      throw new Error(`Extension package source contains reserved path: ${next.replaceAll('\\', '/')}`);
+    }
+    if (entry.isDirectory()) await assertNoReservedPackagePaths(root, next);
+  }
+}
+
 export async function packageExtension(source, destination) {
   const sourceDir = path.resolve(source);
   const destinationDir = path.resolve(destination);
+  await assertNoReservedPackagePaths(sourceDir);
   const manifest = JSON.parse(await readFile(path.join(sourceDir, 'manifest.json'), 'utf8'));
   const messages = await readEnglishMessages(sourceDir);
   const artifactName = `${artifactStem(resolveManifestMessage(manifest.name, messages))}-${manifest.version}.zip`;
