@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "회의 자막을 로컬에 저장하여 비공개로 검토하고 내보냅니다."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI 지원 번역 미리보기이며 전문 번역 인증을 받지 않았습니다. 개인정보 보호, 보안 및 관리에 대해서는 영어가 공식 기준입니다."
+  },
+  "reportTranslation": {
+    "message": "이 번역 신고"
+  },
+  "followBrowserLanguage": {
+    "message": "브라우저 언어 사용"
+  },
+  "languageLabel": {
+    "message": "언어"
+  },
+  "settings": {
+    "message": "설정"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "대화 내용 복사"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "대화 내용 보기"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

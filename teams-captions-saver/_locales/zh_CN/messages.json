@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "在本地保存会议字幕，以便私下查看和导出。"
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "这是 AI 辅助翻译预览，未经专业认证。隐私、安全和管理内容以英文为准。"
+  },
+  "reportTranslation": {
+    "message": "报告此翻译"
+  },
+  "followBrowserLanguage": {
+    "message": "使用浏览器语言"
+  },
+  "languageLabel": {
+    "message": "语言"
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "复制文字记录"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "查看文字记录"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

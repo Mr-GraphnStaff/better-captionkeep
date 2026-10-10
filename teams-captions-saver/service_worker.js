@@ -330,7 +330,7 @@ async function generateFilename(pattern, meetingTitle, format, attendeeReport, r
 
     let filename = pattern || '{date}_{title}_{format}';
     for (const [key, value] of Object.entries(replacements)) {
-        filename = filename.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
+        filename = filename.split(key).join(value);
     }
     
     // Clean up any double underscores or trailing underscores

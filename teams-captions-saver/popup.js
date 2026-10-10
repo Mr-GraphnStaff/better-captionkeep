@@ -1,7 +1,6 @@
 // --- Constants for DOM Elements and Data ---
 const UI_ELEMENTS = {
     statusMessage: document.getElementById('status-message'),
-    manualStartInfo: document.getElementById('manual-start-info'),
     copyButton: document.getElementById('copyButton'),
     copyDropdownButton: document.getElementById('copyDropdownButton'),
     copyOptions: document.getElementById('copyOptions'),
@@ -10,6 +9,7 @@ const UI_ELEMENTS = {
     saveOptions: document.getElementById('saveOptions'),
     liveWorkspaceButton: document.getElementById('liveWorkspaceButton'),
     themeSelect: document.getElementById('themeSelect'),
+    uiLocaleSelect: document.getElementById('uiLocaleSelect'),
     defaultSaveFormatSelect: document.getElementById('defaultSaveFormat'),
     saveAsTypeSelect: document.getElementById('saveAsType'),
     saveLocationInput: document.getElementById('saveLocation'),
@@ -17,11 +17,8 @@ const UI_ELEMENTS = {
     saveBehaviorHint: document.getElementById('saveBehaviorHint'),
     openLastTranscriptFolder: document.getElementById('openLastTranscriptFolder'),
     downloadFolderStatus: document.getElementById('downloadFolderStatus'),
-    autoEnableCaptionsToggle: document.getElementById('autoEnableCaptionsToggle'),
     autoSaveOnEndToggle: document.getElementById('autoSaveOnEndToggle'),
     trackCaptionsToggle: document.getElementById('trackCaptionsToggle'),
-    trackAttendeesToggle: document.getElementById('trackAttendeesToggle'),
-    autoOpenAttendeesToggle: document.getElementById('autoOpenAttendeesToggle'),
     autoAISummaryToggle: document.getElementById('autoAISummaryToggle'),
     privacyScrubberToggle: document.getElementById('privacyScrubberToggle'),
     profanityFilterToggle: document.getElementById('profanityFilterToggle'),
@@ -37,6 +34,8 @@ const UI_ELEMENTS = {
     chatgptWorkspaceUrl: document.getElementById('chatgptWorkspaceUrl'),
     claudeWorkspaceUrl: document.getElementById('claudeWorkspaceUrl'),
     claudeConsoleUrl: document.getElementById('claudeConsoleUrl'),
+    onTheFlyAiDestination: document.getElementById('onTheFlyAiDestination'),
+    webmailDestination: document.getElementById('webmailDestination'),
     timestampFormat: document.getElementById('timestampFormat'),
     filenamePattern: document.getElementById('filenamePattern'),
     filenamePreview: document.getElementById('filenamePreview'),
@@ -46,6 +45,7 @@ const UI_ELEMENTS = {
     historyButton: document.getElementById('historyButton'),
     sessionList: document.getElementById('sessionList'),
     graphTranscriptSection: document.getElementById('graphTranscriptSection'),
+    graphAdminDetails: document.getElementById('graphAdminDetails'),
     graphConnectionStatus: document.getElementById('graphConnectionStatus'),
     graphRedirectUri: document.getElementById('graphRedirectUri'),
     graphTenantId: document.getElementById('graphTenantId'),
@@ -68,6 +68,7 @@ let currentDefaultFormat = 'txt';
 let currentEnterprisePolicy = {};
 let graphConnected = false;
 let graphConfigured = false;
+let graphBusy = false;
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -159,7 +160,7 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
             } else if (transcriptionState === 'unavailable') {
                 status += ` ${transcriptionDetail || 'Local capture is working. An official Microsoft 365 transcript is unavailable for this meeting.'}`;
             } else if (transcriptionState === 'disabled') {
-                status += ` ${transcriptionDetail || 'Local capture is working. Automatic Microsoft 365 transcription is off.'}`;
+                status += ` ${transcriptionDetail || 'Local capture is working. Microsoft 365 transcription was not requested.'}`;
             } else {
                 status += ' Local capture is working. Microsoft 365 transcription has not been verified yet.';
             }
@@ -216,16 +217,21 @@ async function refreshEnterprisePolicy() {
     return currentEnterprisePolicy;
 }
 
-function setGraphBusy(busy) {
+function refreshGraphControls() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    UI_ELEMENTS.graphConnectButton.disabled = busy || graphConnected || !graphConfigured;
-    UI_ELEMENTS.graphDisconnectButton.disabled = busy || !graphConnected;
-    UI_ELEMENTS.graphUseCurrentMeeting.disabled = busy;
-    UI_ELEMENTS.graphRefreshMeetings.disabled = busy || !graphConnected;
+    UI_ELEMENTS.graphConnectButton.disabled = graphBusy || graphConnected || !graphConfigured;
+    UI_ELEMENTS.graphDisconnectButton.disabled = graphBusy || !graphConnected;
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = graphBusy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = graphBusy || !graphConnected;
     UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
-        button.disabled = busy || !graphConnected;
+        button.disabled = graphBusy || !graphConnected;
     });
-    UI_ELEMENTS.graphImportButton.disabled = busy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphImportButton.disabled = graphBusy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+}
+
+function setGraphBusy(busy) {
+    graphBusy = !!busy;
+    refreshGraphControls();
 }
 
 function graphErrorMessage(error) {
@@ -264,7 +270,7 @@ function selectGraphMeeting(meeting, message) {
     UI_ELEMENTS.graphJoinUrl.value = String(meeting?.joinUrl || '');
     markSelectedGraphMeeting();
     UI_ELEMENTS.graphImportStatus.textContent = message;
-    setGraphBusy(false);
+    refreshGraphControls();
 }
 
 async function importGraphTranscript(joinUrl) {
@@ -297,11 +303,12 @@ function renderRecentGraphMeetings(meetings) {
         return;
     }
     for (const meeting of meetings.slice(0, 5)) {
+        const item = document.createElement('div');
+        item.setAttribute('role', 'listitem');
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'graph-meeting-card';
         button.dataset.joinUrl = meeting.joinUrl;
-        button.setAttribute('role', 'listitem');
         button.setAttribute('aria-pressed', 'false');
         const title = document.createElement('span');
         title.className = 'graph-meeting-title';
@@ -314,9 +321,11 @@ function renderRecentGraphMeetings(meetings) {
             selectGraphMeeting(meeting, `Retrieving ${meeting.subject || 'meeting'} from Microsoft 365…`);
             await importGraphTranscript(meeting.joinUrl);
         });
-        container.appendChild(button);
+        item.appendChild(button);
+        container.appendChild(item);
     }
     markSelectedGraphMeeting();
+    refreshGraphControls();
 }
 
 async function refreshRecentGraphMeetings(silent = false) {
@@ -374,6 +383,7 @@ function updateGraphSetupControls(settings, locked = new Set()) {
     const clientId = String(settings.graphClientId || '');
     graphConfigured = settings.enableGraphTranscriptImport === true
         && isGraphGuid(tenantId) && isGraphGuid(clientId);
+    document.body.dataset.graphConfigured = String(graphConfigured);
     if (UI_ELEMENTS.graphTenantId) UI_ELEMENTS.graphTenantId.value = tenantId;
     if (UI_ELEMENTS.graphClientId) UI_ELEMENTS.graphClientId.value = clientId;
     const managed = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'].some(key => locked.has(key));
@@ -481,7 +491,7 @@ function updateFilenamePreview() {
 
     let preview = pattern;
     for (const [token, value] of Object.entries(replacements)) {
-        preview = preview.replace(new RegExp(token.replace(/[{}]/g, '\\$&'), 'g'), value);
+        preview = preview.split(token).join(value);
     }
 
     preview = preview.replace(/__+/g, '_').replace(/_+$/, '');
@@ -572,25 +582,25 @@ async function renderSpeakerAliases(tab) {
 // --- Settings Management ---
 async function loadSettings() {
     const userSettings = await chrome.storage.sync.get([
-        'autoEnableCaptions',
         'autoSaveOnEnd',
         'defaultSaveFormat',
         'saveAsType',
         'saveLocation',
         'trackCaptions',
-        'trackAttendees',
-        'autoOpenAttendees',
         'autoAISummary',
         'privacyScrubberEnabled',
         'profanityFilterEnabled',
         'customScrubTerms',
         'aiSummaryProviders',
+        'onTheFlyAiDestination',
         'chatgptWorkspaceUrl',
         'claudeWorkspaceUrl',
         'claudeConsoleUrl',
+        'webmailDestination',
         'timestampFormat',
         'filenamePattern',
-        'uiTheme'
+        'uiTheme',
+        'uiLocale'
     ]);
     Object.assign(userSettings, await CaptionKeepConfiguration.readGraphUserConfig());
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
@@ -602,18 +612,17 @@ async function loadSettings() {
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
+    if (UI_ELEMENTS.uiLocaleSelect && globalThis.CaptionKeepLocalization) {
+        CaptionKeepLocalization.populateLocaleSelect(UI_ELEMENTS.uiLocaleSelect);
+        UI_ELEMENTS.uiLocaleSelect.value = settings.uiLocale === 'fr-CA' ? 'fr' : (settings.uiLocale || 'system');
+        UI_ELEMENTS.uiLocaleSelect.disabled = locked.has('uiLocale');
+        UI_ELEMENTS.uiLocaleSelect.title = locked.has('uiLocale') ? 'Language is managed by your organization.' : '';
+    }
     applyGraphVisibility();
     updateGraphSetupControls(settings, locked);
 
-    UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
-    UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
-    UI_ELEMENTS.trackAttendeesToggle.disabled = locked.has('trackAttendees');
-    if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-        UI_ELEMENTS.autoOpenAttendeesToggle.checked = settings.autoOpenAttendees !== false;
-        UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked || locked.has('autoOpenAttendees');
-    }
     if (UI_ELEMENTS.autoAISummaryToggle) {
         UI_ELEMENTS.autoAISummaryToggle.checked = !!settings.autoAISummary;
         UI_ELEMENTS.autoAISummaryToggle.disabled = locked.has('autoAISummary');
@@ -656,6 +665,15 @@ async function loadSettings() {
     if (UI_ELEMENTS.chatgptWorkspaceUrl) UI_ELEMENTS.chatgptWorkspaceUrl.value = settings.chatgptWorkspaceUrl || '';
     if (UI_ELEMENTS.claudeWorkspaceUrl) UI_ELEMENTS.claudeWorkspaceUrl.value = settings.claudeWorkspaceUrl || '';
     if (UI_ELEMENTS.claudeConsoleUrl) UI_ELEMENTS.claudeConsoleUrl.value = settings.claudeConsoleUrl || '';
+    if (UI_ELEMENTS.onTheFlyAiDestination) {
+        UI_ELEMENTS.onTheFlyAiDestination.value = settings.onTheFlyAiDestination || 'chatgpt';
+        UI_ELEMENTS.onTheFlyAiDestination.disabled = locked.has('onTheFlyAiDestination');
+    }
+    if (UI_ELEMENTS.webmailDestination) {
+        UI_ELEMENTS.webmailDestination.value = settings.webmailDestination === 'outlook'
+            ? 'outlook_work'
+            : (settings.webmailDestination || 'outlook_work');
+    }
     for (const [key, input] of [['chatgptWorkspaceUrl', UI_ELEMENTS.chatgptWorkspaceUrl], ['claudeWorkspaceUrl', UI_ELEMENTS.claudeWorkspaceUrl], ['claudeConsoleUrl', UI_ELEMENTS.claudeConsoleUrl]]) {
         if (input && locked.has(key)) input.disabled = true;
     }
@@ -664,8 +682,6 @@ async function loadSettings() {
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.value = CaptionKeepTheme.apply(settings.uiTheme);
     }
-    UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions !== false ? 'none' : 'block';
-
     const allowedFormats = ['txt', 'md', 'docx'];
     currentDefaultFormat = settings.defaultSaveFormat || 'txt';
     if (!allowedFormats.includes(currentDefaultFormat)) {
@@ -695,7 +711,7 @@ function setupEventListeners() {
     document.getElementById('meetingScreenshotButton').addEventListener('click', () => openMeetingExtras(true));
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
         markSelectedGraphMeeting();
-        setGraphBusy(false);
+        refreshGraphControls();
     });
     UI_ELEMENTS.graphUseCurrentMeeting?.addEventListener('click', () => populateCurrentTeamsMeeting());
     UI_ELEMENTS.graphRefreshMeetings?.addEventListener('click', () => refreshRecentGraphMeetings());
@@ -789,6 +805,10 @@ function setupEventListeners() {
             await CaptionKeepTheme.set(event.target.value);
         });
     }
+    UI_ELEMENTS.uiLocaleSelect?.addEventListener('change', async event => {
+        await chrome.storage.sync.set({uiLocale:event.target.value});
+        location.reload();
+    });
     UI_ELEMENTS.defaultSaveFormatSelect.addEventListener('change', (e) => {
         currentDefaultFormat = e.target.value;
         chrome.storage.sync.set({ defaultSaveFormat: currentDefaultFormat });
@@ -810,42 +830,11 @@ function setupEventListeners() {
 
     UI_ELEMENTS.trackCaptionsToggle.addEventListener('change', (e) => {
         chrome.storage.sync.set({ trackCaptions: e.target.checked });
-        if (!e.target.checked) {
-            UI_ELEMENTS.autoEnableCaptionsToggle.checked = false;
-            UI_ELEMENTS.autoEnableCaptionsToggle.disabled = true;
-            chrome.storage.sync.set({ autoEnableCaptions: false });
-        } else {
-            UI_ELEMENTS.autoEnableCaptionsToggle.disabled = false;
-        }
-    });
-
-    UI_ELEMENTS.autoEnableCaptionsToggle.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ autoEnableCaptions: e.target.checked });
-        UI_ELEMENTS.manualStartInfo.style.display = e.target.checked ? 'none' : 'block';
     });
 
     UI_ELEMENTS.autoSaveOnEndToggle.addEventListener('change', (e) => {
         chrome.storage.sync.set({ autoSaveOnEnd: e.target.checked });
     });
-
-    UI_ELEMENTS.trackAttendeesToggle.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ trackAttendees: e.target.checked });
-        if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-            if (!e.target.checked) {
-                UI_ELEMENTS.autoOpenAttendeesToggle.checked = false;
-                UI_ELEMENTS.autoOpenAttendeesToggle.disabled = true;
-                chrome.storage.sync.set({ autoOpenAttendees: false });
-            } else {
-                UI_ELEMENTS.autoOpenAttendeesToggle.disabled = false;
-            }
-        }
-    });
-
-    if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-        UI_ELEMENTS.autoOpenAttendeesToggle.addEventListener('change', (e) => {
-            chrome.storage.sync.set({ autoOpenAttendees: e.target.checked });
-        });
-    }
 
     if (UI_ELEMENTS.autoAISummaryToggle) {
         UI_ELEMENTS.autoAISummaryToggle.addEventListener('change', (e) => {
@@ -911,10 +900,12 @@ function setupEventListeners() {
     if (UI_ELEMENTS.chatgptWorkspaceUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.chatgptWorkspaceUrl, 'chatgpt', 'chatgptWorkspaceUrl');
     if (UI_ELEMENTS.claudeWorkspaceUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.claudeWorkspaceUrl, 'claude', 'claudeWorkspaceUrl');
     if (UI_ELEMENTS.claudeConsoleUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.claudeConsoleUrl, 'claude_console', 'claudeConsoleUrl');
-
-    if (UI_ELEMENTS.trackCaptionsToggle) {
-        UI_ELEMENTS.autoEnableCaptionsToggle.disabled = !UI_ELEMENTS.trackCaptionsToggle.checked;
-    }
+    UI_ELEMENTS.onTheFlyAiDestination?.addEventListener('change', event => {
+        chrome.storage.sync.set({onTheFlyAiDestination:event.target.value});
+    });
+    UI_ELEMENTS.webmailDestination?.addEventListener('change', event => {
+        chrome.storage.sync.set({webmailDestination:event.target.value});
+    });
 
     UI_ELEMENTS.timestampFormat.addEventListener('change', (e) => {
         chrome.storage.sync.set({ timestampFormat: e.target.value });
@@ -936,20 +927,15 @@ function setupEventListeners() {
     });
 
     UI_ELEMENTS.saveButton.addEventListener('click', async () => {
-        await refreshEnterprisePolicy();
-        if (currentEnterprisePolicy.disableFileExport) return;
-        const tab = await getActiveMeetingTab();
-        if (tab) {
-            chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format: currentDefaultFormat });
-        }
+        await handleSave({dataset:{format:currentDefaultFormat}});
     });
 
-    setupDropdown(UI_ELEMENTS.copyButton, UI_ELEMENTS.copyDropdownButton, UI_ELEMENTS.copyOptions, handleCopy);
-    setupDropdown(null, UI_ELEMENTS.saveDropdownButton, UI_ELEMENTS.saveOptions, handleSave);
+    const closeCopyOptions = setupDropdown(UI_ELEMENTS.copyButton, UI_ELEMENTS.copyDropdownButton, UI_ELEMENTS.copyOptions, handleCopy);
+    const closeSaveOptions = setupDropdown(null, UI_ELEMENTS.saveDropdownButton, UI_ELEMENTS.saveOptions, handleSave);
 
     document.addEventListener('click', () => {
-        UI_ELEMENTS.copyOptions.style.display = 'none';
-        UI_ELEMENTS.saveOptions.style.display = 'none';
+        closeCopyOptions();
+        closeSaveOptions();
     });
 }
 
@@ -983,19 +969,38 @@ async function openMeetingExtras(withScreenshot) {
 }
 
 function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandler) {
+    const close = (restoreFocus = false) => {
+        optionsContainer.style.display = 'none';
+        dropdownButton.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) dropdownButton.focus();
+    };
+    const open = () => {
+        optionsContainer.style.display = 'block';
+        dropdownButton.setAttribute('aria-expanded', 'true');
+        optionsContainer.querySelector('[role="menuitem"]:not([hidden])')?.focus();
+    };
     if (mainButton) {
         mainButton.addEventListener('click', () => optionsContainer.firstElementChild.click());
     }
     dropdownButton.addEventListener('click', (e) => {
         e.stopPropagation();
-        optionsContainer.style.display = 'block';
+        if (dropdownButton.getAttribute('aria-expanded') === 'true') close();
+        else open();
     });
-    optionsContainer.addEventListener('click', (e) => {
+    optionsContainer.addEventListener('click', async (e) => {
+        const option = e.target.closest('[data-copy-type], [data-format]');
+        if (!option) return;
         e.preventDefault();
         e.stopPropagation();
-        actionHandler(e.target);
-        optionsContainer.style.display = 'none';
+        await actionHandler(option);
+        close(true);
     });
+    optionsContainer.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        e.preventDefault();
+        close(true);
+    });
+    return close;
 }
 
 async function handleCopy(target) {
@@ -1040,19 +1045,26 @@ async function handleSave(target) {
     }
     
     const tab = await getActiveMeetingTab();
-    if (tab) {
-        UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
+    if (!tab) return;
+    UI_ELEMENTS.statusMessage.textContent = `Saving as ${format.toUpperCase()}...`;
+    try {
         if (target.dataset.cleaned !== 'true' && !currentEnterprisePolicy.forceScrubbedExport) {
-            chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format });
+            await chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format });
+            UI_ELEMENTS.statusMessage.textContent = `${format.toUpperCase()} export requested. Check the save page.`;
+            UI_ELEMENTS.statusMessage.style.color = 'var(--ck-success)';
             return;
         }
         const response = await chrome.tabs.sendMessage(tab.id, { message: 'get_transcript_for_copying' });
         const cleaned = CaptionKeepPrivacyScrubber.scrubTranscript(response?.transcriptArray || [], await getScrubOptions());
         const result = await chrome.runtime.sendMessage({ message: 'download_captions', transcriptArray: cleaned.transcript,
             format, meetingTitle: tab.title || 'Meeting transcript' });
-        UI_ELEMENTS.statusMessage.textContent = result?.ok
-            ? `Cleaned export ready (${cleaned.replacements.length} masked).`
-            : 'Could not prepare cleaned export.';
+        if (!result?.ok) throw new Error(result?.error || 'Could not prepare cleaned export.');
+        UI_ELEMENTS.statusMessage.textContent = `Cleaned export ready (${cleaned.replacements.length} masked).`;
+        UI_ELEMENTS.statusMessage.style.color = 'var(--ck-success)';
+    } catch (error) {
+        console.error('[Better CaptionKeep] Save failed:', error);
+        UI_ELEMENTS.statusMessage.textContent = 'Save failed. Refresh the meeting tab and try again. If the meeting ended, export it from Previous Sessions.';
+        UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
     }
 }
 
@@ -1284,6 +1296,11 @@ async function initializePopup() {
     if (isFullSettingsPage) {
         document.querySelector('.settings-header').textContent = 'All settings';
         document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
+        if (location.hash === '#microsoft365' && UI_ELEMENTS.graphAdminDetails) {
+            UI_ELEMENTS.graphTranscriptSection.open = true;
+            UI_ELEMENTS.graphAdminDetails.open = true;
+            UI_ELEMENTS.graphAdminDetails.scrollIntoView({block:'start'});
+        }
     }
     await loadSettings();
     setupEventListeners();
@@ -1338,7 +1355,9 @@ document.addEventListener('keydown', (e) => {
     }
     
     // Ctrl/Cmd + C for copy
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.target.matches('input, textarea')) {
+    const selection = window.getSelection?.()?.toString().trim();
+    const editable = e.target.matches('input, textarea, [contenteditable="true"]');
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !editable && !selection) {
         e.preventDefault();
         if (!UI_ELEMENTS.copyButton.disabled) {
             UI_ELEMENTS.copyButton.click();

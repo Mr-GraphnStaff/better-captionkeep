@@ -6,14 +6,13 @@
         'autoEnableCaptions', 'autoSaveOnEnd', 'defaultSaveFormat', 'saveAsType',
         'saveLocation', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees',
         'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled',
-        'customScrubTerms', 'aiSummaryProviders', 'chatgptWorkspaceUrl',
-        'claudeWorkspaceUrl', 'claudeConsoleUrl', 'timestampFormat',
-        'filenamePattern', 'uiTheme'
+        'customScrubTerms', 'aiSummaryProviders', 'onTheFlyAiDestination', 'chatgptWorkspaceUrl',
+        'claudeWorkspaceUrl', 'claudeConsoleUrl', 'webmailDestination', 'timestampFormat',
+        'filenamePattern', 'uiTheme', 'uiLocale'
     ]);
     const GRAPH_USER_KEYS = Object.freeze([
         'enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'
     ]);
-
     const POLICY_KEYS = Object.freeze([
         'forcePrivacyScrubber', 'disableAiHandoff', 'allowedAiProviders',
         'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl',
@@ -21,16 +20,23 @@
         'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
         'disableAttendeeCapture', 'disableSessionHistory', 'maxStoredSessions',
         'sessionRetentionDays', 'enableGraphTranscriptImport', 'graphTenantId',
-        'graphClientId'
+        'graphClientId', 'forceUiLocale'
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
     const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled']);
+    const UI_LOCALES = new Set([
+        'system', 'en', 'fr', 'fr-CA', 'es', 'es_419', 'de', 'pt_BR', 'pt_PT', 'it', 'nl', 'pl',
+        'cs', 'el', 'ro', 'sv', 'uk', 'ru', 'tr', 'hi', 'bn', 'gu', 'kn', 'ml', 'mr', 'ta', 'te',
+        'id', 'fil', 'ms', 'th', 'vi', 'ja', 'ko', 'zh_CN', 'zh_TW', 'ar', 'he', 'fa', 'sw'
+    ]);
     const ENUMS = Object.freeze({
         defaultSaveFormat: new Set(['txt', 'md', 'docx']),
         saveAsType: new Set(['prompt', 'downloads', 'custom']),
         timestampFormat: new Set(['12hr', '24hr', 'relative']),
+        webmailDestination: new Set(['outlook_work', 'outlook_personal', 'outlook', 'gmail', 'default']),
+        onTheFlyAiDestination: ALLOWED_PROVIDERS,
         uiTheme: new Set(['captionkeep', 'light', 'midnight', 'system'])
     });
 
@@ -48,6 +54,8 @@
                 if (typeof value === 'boolean') output[key] = value;
             } else if (ENUMS[key]) {
                 if (ENUMS[key].has(value)) output[key] = value;
+            } else if (key === 'uiLocale') {
+                if (UI_LOCALES.has(value)) output[key] = value;
             } else if (['saveLocation', 'filenamePattern'].includes(key)) {
                 if (typeof value === 'string') output[key] = value.slice(0, 200);
             } else if (['chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl'].includes(key)) {
@@ -107,6 +115,10 @@
             settings.profanityFilterEnabled = true;
             locked.add('profanityFilterEnabled');
         }
+        if (typeof managed.forceUiLocale === 'string' && UI_LOCALES.has(managed.forceUiLocale)) {
+            settings.uiLocale = managed.forceUiLocale;
+            locked.add('uiLocale');
+        }
         if (managed.disableAiHandoff === true) {
             settings.disableAiHandoff = true;
             settings.autoAISummary = false;
@@ -148,7 +160,9 @@
         if (Array.isArray(managed.allowedAiProviders)) {
             const allowed = new Set(managed.allowedAiProviders.filter(provider => ALLOWED_PROVIDERS.has(provider)));
             settings.aiSummaryProviders = (Array.isArray(settings.aiSummaryProviders) ? settings.aiSummaryProviders : []).filter(provider => allowed.has(provider));
+            if (!allowed.has(settings.onTheFlyAiDestination)) settings.onTheFlyAiDestination = [...allowed][0] || '';
             locked.add('aiSummaryProviders');
+            locked.add('onTheFlyAiDestination');
         }
         for (const key of ['chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl']) {
             if (typeof managed[key] === 'string' && managed[key].trim()) {

@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "వ్యక్తిగత సమీక్ష మరియు ఎగుమతి కోసం సమావేశ క్యాప్షన్‌లను స్థానికంగా సేవ్ చేయండి."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI సహాయ అనువాద ప్రివ్యూ; వృత్తిపరంగా ధృవీకరించబడలేదు. గోప్యత, భద్రత మరియు పరిపాలనకు ఆంగ్లమే అధికారిక సూచన."
+  },
+  "reportTranslation": {
+    "message": "ఈ అనువాదాన్ని నివేదించండి"
+  },
+  "followBrowserLanguage": {
+    "message": "బ్రౌజర్ భాషను అనుసరించండి"
+  },
+  "languageLabel": {
+    "message": "భాష"
+  },
+  "settings": {
+    "message": "సెట్టింగ్‌లు"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "ట్రాన్స్‌క్రిప్ట్ కాపీ చేయండి"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "ట్రాన్స్‌క్రిప్ట్ చూడండి"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

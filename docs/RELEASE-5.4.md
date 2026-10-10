@@ -1,82 +1,72 @@
-# Better CaptionKeep 5.4 Development Record
+# Better CaptionKeep 5.4 development record
 
-Status: **Development started October 4, 2026**.
+Status: **Development only; not uploaded, submitted, or published**
+Last updated: 2026-10-10
 
-Version 5.4 is the active development release. Work may proceed while the
-frozen 5.3.2 Store submission completes review because the two releases use
-separate branches, artifacts, evidence, and Azure Boards scope.
+## Release decision
 
-## Relationship to 5.3.2
+Version 5.4 is limited to capabilities that can be demonstrated directly in
+the extension without a missing customer service. On the Fly is included as a
+bounded, reviewed workspace handoff: select meeting evidence, choose a task,
+review the exact prompt, then explicitly copy and open the user's existing AI
+workspace. Automatic research, result return, MCP, Research Cards, and
+connector execution remain outside the release.
 
-Version 5.3.2 remains unchanged. It is not complete until:
+No Azure MCP or assistant service was deployed for 5.4.
 
-1. Chrome Web Store publicly serves 5.3.2;
-2. Microsoft Edge Add-ons publicly serves 5.3.2; and
-3. an existing installation is proven to upgrade and run successfully in each
-   supported browser.
+## Included development scope
 
-Azure Boards bug **#297** remains active until those conditions pass. No 5.4
-change may be added to, substituted for, or used to rebuild the frozen 5.3.2
-packages.
+- Microsoft Teams, Google Meet, and Zoom Web remain explicit supported
+  meeting surfaces.
+- Opening the Live Workspace does not automatically enable captions, open the
+  attendee panel, or request a Teams transcript. Those actions remain visible
+  user choices when the provider supports them.
+- The local Evidence Board continues to mark captured captions and export
+  source-linked Markdown and provenance JSON.
+- On the Fly accepts highlighted words or a whole source-linked caption for
+  Research with sources, Explain in context, Draft a live reply, or Draft a
+  follow-up email. It opens the reviewed AI handoff and never places evidence
+  in a provider URL or submits a prompt.
+- **Email follow-up** opens a reviewed draft in the user's saved Outlook work
+  or school, Outlook.com personal, Gmail, or browser/default email destination.
+  Recipients remain blank and nothing is sent automatically.
+- DAF-TECH parent branding and the reviewed sphere asset remain.
+- Packaged language catalogs remain uncertified AI-assisted previews with
+  English fallback and a privacy-preserving correction form.
+- Release provenance, Store metadata validation, and the single Azure Store
+  publishing control plane remain in force.
 
-## Committed 5.4 scope
+## Explicitly excluded
 
-| Workstream | User outcome | Azure Boards authority |
-| --- | --- | --- |
-| Canadian French and Spanish product localization | Users can operate the core product in English, Canadian French, or Spanish, including accessible UI, help, privacy, and Store-facing material. | Feature #308 and tasks #309-#313 |
-| Managed language deployment | Administrators can set an approved UI language through the existing managed-policy model, with documented Intune deployment and fallback behavior. | Feature #308 |
-| French and Spanish transcript translation readiness | The viewer exposes reviewed French and Spanish translation choices, makes browser capability/model-download state clear, preserves the original transcript and provenance, and fails explicitly when local translation is unavailable. | Feature #315 |
-| Active-meeting and production reliability | Active sessions are protected from accidental loss, production defects discovered after 5.3.2 are triaged into 5.4, and browser-specific upgrade behavior receives repeatable regression coverage. | Feature #316 |
-| Permanent release safeguards | Store-equivalent clean-profile UAT, machine-readable evidence, permission-delta review, frozen-digest testing, the uninterrupted candidate window, public-upgrade canaries, a single release-status authority, identity decisions, and release pre-mortems become enforced controls. | Feature #298 and tasks #299-#307 |
-| Edge `_metadata` upgrade investigation | Reproduce and document the transient Edge Store loader warning, verify package boundaries, and pursue an upstream/browser resolution when the evidence confirms Store-added metadata is responsible. | Bug #317 |
+- Connected BYOAI automatic result return in the 5.4 artifact. It remains part
+  of the unified framework but needs a validated customer-owned adapter,
+  authentication, permissions, disclosure, and return contract before shipping.
+- Assistant endpoint or native-host enrollment.
+- Automatic research or automatic return of cited results.
+- CaptionKeep MCP server or Azure MCP deployment.
+- Research Cards or live-chat drafts returned automatically from assistant output.
+- Jira, Azure DevOps, Microsoft 365, Planner, email, or other connector actions.
+- Publisher-hosted transcription, AI, analytics, or transcript storage.
 
-## Data and privacy boundaries
+## Release gates
 
-- Translation remains on-device through supported browser capabilities. Better
-  CaptionKeep does not add a publisher-operated translation or transcript
-  server.
-- The original transcript remains available and distinguishable from translated
-  output.
-- Language selection never sends a transcript to an AI provider automatically.
-- Any AI handoff continues to require the existing user review and confirmation
-  boundary.
-- Localization does not change the customer-owned Entra registration model for
-  Microsoft 365 transcript import.
+5.4 cannot be promoted until all of the following are complete:
 
-## Defect intake
+1. The extension tests, validation, security audit, Store metadata check, and
+   production package verification pass from the frozen candidate.
+2. Clean-profile Chrome and Edge UAT verifies Teams, Google Meet, Zoom Web,
+   manual meeting controls, history, Evidence Board, exports, settings, and
+   localization fallback.
+3. Store screenshots and descriptions show only verified shipping behavior.
+4. The candidate remains unchanged for at least 48 hours after live UAT.
+5. The product owner records a written go/no-go decision before any Store
+   upload, submission, or publication.
 
-Beginning October 4, 2026, newly discovered product defects are recorded as
-Bugs under the 5.4 reliability feature and fixed through Development before
-promotion to the 5.4 release candidate. A production security, data-loss, or
-Store-blocking defect may instead receive a separately governed hotfix from the
-affected production baseline. A hotfix does not authorize unfinished 5.4 work
-to enter 5.3.2.
+## Future research boundary
 
-## Explicitly out of scope
-
-The following are not commitments for 5.4:
-
-- live Google Drive/Docs or OneDrive/SharePoint upload transports;
-- an additional meeting provider;
-- publisher-hosted transcription, translation, analytics, or storage;
-- paid or restricted feature tiers; and
-- replacement of a customer's own Entra application registration with a shared
-  publisher identity.
-
-## Promotion gates
-
-The 5.4 candidate cannot enter Production until all committed work is complete
-and the normal release process passes, including automated validation,
-permission/privacy review, clean-profile Chrome and Edge UAT, multilingual
-accessibility testing, managed-policy validation, an unchanged 48-hour
-candidate window, immutable artifact evidence, and explicit publication
-approval.
-
-## Lifecycle authority
-
-- Azure Boards Epic **#314**: Better CaptionKeep 5.4 - Multilingual Enterprise
-  and Reliability
-- Development: topic branches and pull requests
-- UAT / Release Candidate: `release/5.4`
-- Production: protected `master` and immutable Store artifacts
-- Release process: [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
+Any future connected-assistant or MCP work requires a new product decision that
+defines the actual assistant, who operates it, its deployment and cost model,
+authentication, supported AI providers, end-to-end browser behavior, customer
+responsibilities, Store disclosures, and live acceptance evidence before code
+returns to a release branch. The proposed, non-shipping direction is documented
+in [Unified AI Framework](UNIFIED-AI-FRAMEWORK.md).

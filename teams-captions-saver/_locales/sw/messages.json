@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Hifadhi manukuu ya mkutano kwenye kifaa kwa ukaguzi na uhamishaji wa faragha."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Onyesho la awali la tafsiri iliyosaidiwa na AI, halijathibitishwa kitaalamu. Kiingereza ndicho rejea kwa faragha, usalama na usimamizi."
+  },
+  "reportTranslation": {
+    "message": "Ripoti tafsiri hii"
+  },
+  "followBrowserLanguage": {
+    "message": "Fuata lugha ya kivinjari"
+  },
+  "languageLabel": {
+    "message": "Lugha"
+  },
+  "settings": {
+    "message": "Mipangilio"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Nakili nakala"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Tazama nakala"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

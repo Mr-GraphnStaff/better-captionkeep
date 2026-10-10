@@ -5,6 +5,25 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install --yes ca-certificates curl git gnupg jq lsb-release unzip zip
 
+minimum_gh_version='2.102.0'
+installed_gh_version='0'
+if command -v gh >/dev/null 2>&1; then
+  installed_gh_version="$(gh --version | awk 'NR == 1 { print $3 }')"
+fi
+if ! command -v gh >/dev/null 2>&1 || \
+   ! gh attestation --help >/dev/null 2>&1 || \
+   [[ "$(printf '%s\n' "$minimum_gh_version" "${installed_gh_version:-0}" | sort --version-sort | head -n 1)" != "$minimum_gh_version" ]]; then
+  install -m 0755 -d /etc/apt/keyrings
+  curl --fail --silent --show-error --location \
+    https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    --output /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list
+  apt-get update
+  apt-get install --yes gh
+fi
+
 if ! command -v node >/dev/null 2>&1 || [ "$(node --version | cut -d. -f1 | tr -d v)" -lt 20 ]; then
   curl --fail --silent --show-error --location https://deb.nodesource.com/setup_22.x | bash -
   apt-get install --yes nodejs
@@ -78,5 +97,6 @@ fi
 
 node --version
 npm --version
+gh --version | head -n 1
 az version --query '"azure-cli"' --output tsv
 ./svc.sh status

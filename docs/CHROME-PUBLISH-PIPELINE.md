@@ -9,7 +9,7 @@ release whose checksums pass.
 
 `azure-pipelines.yml` runs on the private `Better CaptionKeep Private` agent
 pool. It downloads the published GitHub release, verifies the tag, provenance,
-and SHA-256 hashes, and selects the exact
+GitHub-hosted artifact attestations, and SHA-256 hashes, and selects the exact
 `better_captionkeep-chrome-<version>.zip` package. Chrome credentials are read
 at runtime from the private Azure Key Vault by the VM managed identity.
 
@@ -55,16 +55,19 @@ the publisher ID from **Chrome Developer Dashboard → Publisher → Settings**.
 2. Merge the reviewed candidate, create its version tag, and let `release.yml`
    create the checksummed draft GitHub release.
 3. Review and publish the GitHub release without replacing its artifacts.
-4. Queue **Better CaptionKeep Store Release** in Azure DevOps with Chrome
+4. Confirm the release includes its signed Sigstore attestation bundle;
+   the Azure release job fails closed if any artifact is unattested or came
+   from a self-hosted GitHub runner.
+5. Queue **Better CaptionKeep Store Release** in Azure DevOps with Chrome
    `upload-only` and the appropriate Edge preparation action.
-5. Review the resulting Store draft and any required disclosure or listing
+6. Review the resulting Store draft and any required disclosure or listing
    changes in the Dashboard.
-6. Queue the pipeline with either `submit-auto` for immediate publication after
+7. Queue the pipeline with either `submit-auto` for immediate publication after
    approval or `submit-staged` for a deliberate hold. Approve
    `bck-store-production` only after the draft and testing matrix are correct.
-7. If staged, run `publish-staged` after Google approval. If automatic, verify
+8. If staged, run `publish-staged` after Google approval. If automatic, verify
    public availability as soon as Google completes review.
-8. Record the tag, commit, package hash, workflow run, review status, public
+9. Record the tag, commit, package hash, workflow run, review status, public
    date, and installed-upgrade evidence in the release record.
 
 Do not upload another version while a Chrome submission is under review. Do not

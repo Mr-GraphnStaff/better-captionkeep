@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Capturez localement les sous-titres de réunion pour les examiner et les exporter en privé."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Aperçu de traduction assistée par IA, non certifiée par un professionnel. L’anglais fait autorité pour la confidentialité, la sécurité et l’administration."
+  },
+  "reportTranslation": {
+    "message": "Signaler cette traduction"
+  },
+  "followBrowserLanguage": {
+    "message": "Suivre la langue du navigateur"
+  },
+  "languageLabel": {
+    "message": "Langue"
+  },
+  "settings": {
+    "message": "Paramètres"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Copier la transcription"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Afficher la transcription"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

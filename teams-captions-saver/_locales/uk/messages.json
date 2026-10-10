@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Зберігайте субтитри зустрічей локально для приватного перегляду й експорту."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Попередній переклад за допомогою ШІ без професійної сертифікації. Англійська версія є основною для конфіденційності, безпеки й адміністрування."
+  },
+  "reportTranslation": {
+    "message": "Повідомити про переклад"
+  },
+  "followBrowserLanguage": {
+    "message": "Використовувати мову браузера"
+  },
+  "languageLabel": {
+    "message": "Мова"
+  },
+  "settings": {
+    "message": "Налаштування"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Копіювати стенограму"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Переглянути стенограму"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

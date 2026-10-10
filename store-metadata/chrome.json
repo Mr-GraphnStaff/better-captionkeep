@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "5.3.3",
+  "manifestVersion": "5.4.0",
   "singlePurpose": "Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports or copies it.",
   "providers": [
     "Microsoft Teams",

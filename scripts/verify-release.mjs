@@ -3,11 +3,18 @@ import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
 const prodDir = path.join(distDir, 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
+
+function hasForbiddenPathPart(file) {
+  return file.split('/').some((part, index) =>
+    forbidden.test(part) && !(index === 0 && part === '_locales')
+  );
+}
 const expectedLifecycleIds = new Map([
   ['dev', 'pjpibiimicedkckleehljlklmblkacph'],
   ['uat', 'ecpjboeanaehianibdbgijldbikdgkhm'],
@@ -46,12 +53,12 @@ if (/graphTenantId\s*:|graphClientId\s*:|enableGraphTranscriptImport\s*:\s*true/
 }
 const artifacts = [];
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
-const forbiddenSource = sourceFiles.filter(file => file.split('/').some(part => forbidden.test(part)));
+const forbiddenSource = sourceFiles.filter(hasForbiddenPathPart);
 if (forbiddenSource.length) throw new Error(`Store source contains forbidden files: ${forbiddenSource.join(', ')}`);
 for (const target of ['dev', 'uat', 'prod']) {
   const root = path.join(distDir, target);
   const files = await filesUnder(root);
-  const bad = files.filter(file => file.split('/').some(part => forbidden.test(part)));
+  const bad = files.filter(hasForbiddenPathPart);
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
   if (files.filter(file => file === 'manifest.json').length !== 1) throw new Error(`${target} package must have one root manifest`);
   const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
@@ -62,8 +69,9 @@ for (const target of ['dev', 'uat', 'prod']) {
     ? 'Better CaptionKeep - Development'
     : target === 'uat'
       ? 'Better CaptionKeep - UAT Release Candidate'
-      : 'Better CaptionKeep';
-  if (manifest.name !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
+      : 'Better CaptionKeep — Live Meeting Transcript';
+  const resolvedName = resolveManifestMessage(manifest.name, await readEnglishMessages(root));
+  if (resolvedName !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
   if (!manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);
   const extensionId = extensionIdFromKey(manifest.key);
   if (extensionId !== expectedLifecycleIds.get(target)) {

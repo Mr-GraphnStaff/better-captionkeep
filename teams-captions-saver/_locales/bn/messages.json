@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "ব্যক্তিগত পর্যালোচনা ও রপ্তানির জন্য মিটিং ক্যাপশন স্থানীয়ভাবে সংরক্ষণ করুন।"
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "AI-সহায়িত অনুবাদ প্রিভিউ; পেশাদারভাবে প্রত্যয়িত নয়। গোপনীয়তা, নিরাপত্তা ও প্রশাসনের জন্য ইংরেজি প্রামাণ্য।"
+  },
+  "reportTranslation": {
+    "message": "এই অনুবাদটি রিপোর্ট করুন"
+  },
+  "followBrowserLanguage": {
+    "message": "ব্রাউজারের ভাষা অনুসরণ করুন"
+  },
+  "languageLabel": {
+    "message": "ভাষা"
+  },
+  "settings": {
+    "message": "সেটিংস"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "ট্রান্সক্রিপ্ট কপি করুন"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "ট্রান্সক্রিপ্ট দেখুন"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

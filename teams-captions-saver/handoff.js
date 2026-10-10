@@ -20,6 +20,7 @@ let basePrompt = '';
 let handoffReady = false;
 let customTemplates = [];
 let appliedInstructions = '';
+let onTheFlyMode = false;
 const templateSelect = document.getElementById('template-select');
 const templateName = document.getElementById('template-name');
 const templateInstructions = document.getElementById('template-instructions');
@@ -131,7 +132,8 @@ function renderPackage() {
     let metadata = {
         meetingTitle:sourceData.meetingTitle,
         providerLabel:sourceData.providerLabel,
-        warnings:sourceData.warnings
+        warnings:sourceData.warnings,
+        question:sourceData.question
     };
     if (scrubberToggle.checked) {
         const scrubbed = CaptionKeepPrivacyScrubber.scrubHandoff(transcript, metadata, scrubOptions);
@@ -152,14 +154,32 @@ function renderPackage() {
         warnings:metadata.warnings,
         privacyMode
     });
-    basePrompt = currentPackage.prompt;
+    if (onTheFlyMode) {
+        const selectedEvidence = transcript.map((caption, index) => ({
+            evidenceId: sourceData.evidence?.[index]?.evidenceId || `selection-${index + 1}`,
+            speaker: caption.Name,
+            time: caption.Time,
+            text: caption.Text
+        }));
+        basePrompt = CaptionKeepAiTasks.buildPrompt({
+            taskId: sourceData.taskId,
+            question: metadata.question,
+            meetingTitle: metadata.meetingTitle,
+            providerLabel: metadata.providerLabel,
+            evidence: selectedEvidence
+        });
+    } else {
+        basePrompt = currentPackage.prompt;
+    }
     promptBox.value = appliedInstructions
         ? CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions)
         : basePrompt;
     currentChunk = 0;
     renderCoverage();
     renderChunk();
-    statusBox.textContent = `Review the ${privacyMode} instructions and complete evidence before sharing.`;
+    statusBox.textContent = onTheFlyMode
+        ? `Review the ${privacyMode} On the Fly request. Nothing has been sent.`
+        : `Review the ${privacyMode} instructions and complete evidence before sharing.`;
 }
 
 scrubberToggle.addEventListener('change', () => {
@@ -267,14 +287,25 @@ function renderProvider(providerKey, settings) {
         : destination.requiresWorkspaceConfirmation
             ? 'No enterprise destination saved - choose the correct workspace after opening'
             : new URL(destination.url).hostname;
-    const link = document.createElement('a');
+    const link = document.createElement('button');
+    link.type = 'button';
     link.className = 'provider-link';
-    link.textContent = destination.configured ? 'Open saved workspace' : `Open ${destination.name}`;
-    link.href = destination.url;
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-    link.addEventListener('click', () => {
-        statusBox.textContent = `Opened ${destination.name}. Confirm the active workspace before attaching or pasting.`;
+    link.textContent = destination.configured ? 'Copy + open saved workspace' : `Copy + open ${destination.name}`;
+    link.addEventListener('click', async () => {
+        try {
+            await requireAllowedAction('copy');
+            if (!scrubberToggle.checked && !unmaskedCopyArmed) {
+                unmaskedCopyArmed = true;
+                statusBox.textContent = `Scrubby is off. Choose ${destination.name} again to confirm unmasked copying.`;
+                return;
+            }
+            await navigator.clipboard.writeText(promptBox.value);
+            unmaskedCopyArmed = false;
+            await chrome.tabs.create({url: destination.url});
+            statusBox.textContent = `Prompt copied and ${destination.name} opened. Confirm the active workspace before attaching or pasting, then review and send there.`;
+        } catch (error) {
+            statusBox.textContent = error.message;
+        }
     });
     card.append(heading, detail, link);
     providersBox.append(card);
@@ -287,6 +318,17 @@ function renderProvider(providerKey, settings) {
         if (!sourceData) throw new Error('This handoff is no longer available');
         effectivePolicy = await readPolicy();
         if (effectivePolicy.settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        onTheFlyMode = sourceData.mode === 'on_the_fly';
+        if (onTheFlyMode) {
+            const selectedTask = CaptionKeepAiTasks.task(sourceData.taskId);
+            document.getElementById('handoffTitle').textContent = `On the Fly — ${selectedTask.label}`;
+            document.getElementById('handoffIntro').textContent = 'Review the selected meeting evidence and editable instructions. Copying and opening an assistant never submits the request for you.';
+            document.getElementById('template-tools').hidden = true;
+            document.getElementById('coverageSection').hidden = true;
+            document.getElementById('chunkSection').hidden = true;
+            saveEvidenceButton.hidden = true;
+            promptBox.style.minHeight = '430px';
+        }
         scrubOptions = {
             profanityFilterEnabled:!!effectivePolicy.settings.profanityFilterEnabled,
             customTerms:effectivePolicy.settings.customScrubTerms || []
@@ -299,9 +341,11 @@ function renderProvider(providerKey, settings) {
         const storedTemplates = await chrome.storage.local.get(CaptionKeepPromptTemplates.STORAGE_KEY);
         customTemplates = CaptionKeepPromptTemplates.sanitize(storedTemplates[CaptionKeepPromptTemplates.STORAGE_KEY]);
         handoffReady = true;
-        templateApply.disabled = false;
-        templateSave.disabled = false;
-        renderTemplates();
+        if (!onTheFlyMode) {
+            templateApply.disabled = false;
+            templateSave.disabled = false;
+            renderTemplates();
+        }
         for (const provider of sourceData.providers) renderProvider(provider, effectivePolicy.settings);
         await chrome.storage.local.remove(id);
     } catch (error) {

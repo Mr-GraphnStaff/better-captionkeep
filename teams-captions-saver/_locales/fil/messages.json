@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "I-save nang lokal ang mga caption ng pulong para sa pribadong pagsusuri at pag-export."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Preview ng saling tinulungan ng AI; hindi propesyonal na sertipikado. Ingles ang opisyal na sanggunian para sa privacy, seguridad, at pamamahala."
+  },
+  "reportTranslation": {
+    "message": "Iulat ang saling ito"
+  },
+  "followBrowserLanguage": {
+    "message": "Sundin ang wika ng browser"
+  },
+  "languageLabel": {
+    "message": "Wika"
+  },
+  "settings": {
+    "message": "Mga setting"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Kopyahin ang transcript"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Tingnan ang transcript"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

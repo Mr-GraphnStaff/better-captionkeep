@@ -229,6 +229,13 @@ test('meeting extras serialize writes, scrub text, reject missing source and man
     assert.equal(h.data[key], undefined);
 });
 
+test('service worker contains no connected-assistant dispatch surface', () => {
+    const worker = read('service_worker.js');
+    for (const removedSurface of ['evidence_action_dispatch', 'evidence_action_status', 'sendNativeMessage', 'assistantBridgeMode']) {
+        assert(!worker.includes(removedSurface), removedSurface);
+    }
+});
+
 test('service worker serializes corrections from multiple viewer contexts',async()=>{
     const h=harness();h.run(read('service_worker.js'));
     const sessionId='2026-10-02T10:00:00.000Z';
@@ -632,7 +639,7 @@ test('Zoom Web adapter uses the live subtitle overlay and reports recoverable so
     adapter.stop();
     assert.equal(adapter.getCaptionSource(),null);
 });
-test('Zoom Web auto-enable opens More, selects English, and confirms the caption dialog',()=>{
+test('Zoom Web enables captions once per explicit side-panel request',()=>{
     const observers=[];
     class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
     const clicks=[];
@@ -663,6 +670,8 @@ test('Zoom Web auto-enable opens More, selects English, and confirms the caption
     vm.runInContext(read('zoomProvider.js'),context);
     const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
     const events=[];adapter.start(event=>events.push(event));
+    assert.deepEqual(clicks,[]);
+    adapter.setAutoEnableCaptions(true);
     assert.deepEqual(clicks,['More meeting control']);
     observers[0].callback();
     assert.deepEqual(clicks,['More meeting control','Show Captions']);
@@ -673,6 +682,14 @@ test('Zoom Web auto-enable opens More, selects English, and confirms the caption
     observers[0].callback();
     assert.equal(adapter.getCaptionSource(),currentSource);
     assert(events.some(event=>event.type==='caption-source-available'));
+    currentSource=null;
+    dialog=null;
+    pageControls=[more];
+    observers[0].callback();
+    assert.equal(clicks.length,4);
+    adapter.setAutoEnableCaptions(true);
+    assert.equal(clicks.at(-1),'More meeting control');
+    assert.equal(clicks.length,5);
 });
 test('Zoom Web manifest scope is exact and reaches the embedded meeting frame',()=>{
     const manifest=JSON.parse(read('manifest.json'));
@@ -777,7 +794,7 @@ test('capture coordinator restores only the same recent meeting and finalizes hi
     assert.equal(messages.filter(message=>message.message==='save_on_leave').length,1);
     assert.equal(data[restored.activeCaptureKey],undefined);
 });
-test('Google Meet auto-enables captions once and respects a later manual disable',()=>{
+test('Google Meet enables captions once per explicit request and respects a later manual disable',()=>{
     const observers=[];
     class FakeObserver {
         constructor(callback){this.callback=callback;observers.push(this);}
@@ -809,6 +826,8 @@ test('Google Meet auto-enables captions once and respects a later manual disable
     source=null;
     observers[0].callback();
     assert.equal(clickCount,1);
+    adapter.setAutoEnableCaptions(true);
+    assert.equal(clickCount,2);
 });
 test('Google Meet caption auto-enable can be disabled before adapter startup',()=>{
     class FakeObserver { constructor(callback){this.callback=callback;} observe(){} disconnect(){} }
@@ -1306,6 +1325,14 @@ test('exports stage locally and start automatic downloads in a background tab',a
     assert(h.tabs[0].url.startsWith('chrome-extension://test/export.html?job='));
     assert.equal(h.tabs[0].active,false);
 });
+test('export page accepts only owned, bounded export job keys',()=>{
+    const script=read('export.js');
+    assert(script.includes("/^export_[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/"));
+    assert(script.includes('Object.hasOwn(storedJob, jobId)'));
+    assert(script.includes('Object.fromEntries([[jobId, value]])'));
+    assert(!script.includes('{[jobId]'));
+    assert(!script.includes("(await chrome.storage.local.get(jobId))[jobId]"));
+});
 test('service worker stages DOCX through the common export contract after managed scrubbing',async()=>{
     const h=harness();h.managedData.forceScrubbedExport=true;h.managedData.customScrubTerms=['Project Nightfall'];h.run(read('service_worker.js'));
     const result=await new Promise(resolve=>h.chrome.listener({message:'download_captions',format:'docx',meetingTitle:'Project Nightfall secret@example.com',
@@ -1445,8 +1472,10 @@ test('Chrome Store manifest preserves runtime behavior without test labeling',()
     for(const key of ['version','permissions','host_permissions','optional_host_permissions','background','content_scripts','storage']) {
         assert.deepEqual(manifest[key],source[key]);
     }
-    assert.equal(manifest.name,'Better CaptionKeep');
-    assert.equal(manifest.action.default_title,'Better CaptionKeep — by Señor Farris');
+    assert.equal(manifest.name,'__MSG_extensionName__');
+    assert.equal(manifest.description,'__MSG_extensionDescription__');
+    assert.equal(manifest.action.default_title,'__MSG_actionTitle__');
+    assert.equal(manifest.default_locale,'en');
     assert(!/test|development/i.test(`${manifest.name} ${manifest.version_name||''} ${manifest.action.default_title}`));
 });
 test('Scrubby masks supported sensitive patterns with stable local placeholders',()=>{
@@ -1611,14 +1640,33 @@ test('Dev and UAT overlays are isolated while production accepts customer-owned 
     assert.equal(disabledProduction.settings.enableGraphTranscriptImport,false);
     assert(disabledProduction.locked.includes('enableGraphTranscriptImport'));
 });
+test('connected-assistant configuration is absent from the release extension',()=>{
+    const configuration=read('configuration.js');
+    const schema=read('managed-schema.json');
+    for(const removedSurface of ['assistantBridgeMode','assistantEndpointUrl','assistantNativeHost','disableEvidenceActions']) {
+        assert(!configuration.includes(removedSurface),removedSurface);
+        assert(!schema.includes(removedSurface),removedSurface);
+    }
+});
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
-    assert(html.includes('Confirm the destination workspace'));
+    assert(html.includes('Confirm your BYOAI destination'));
     assert(script.includes('Saved enterprise destination'));
     assert(script.includes('Confirm the active workspace before attaching or pasting'));
     assert(html.includes('privacyScrubber.js'));
     assert(script.includes('CaptionKeepPrivacyScrubber.scrub'));
     assert(!script.includes('const destinations ='));
+});
+test('On the Fly destinations are set once, sanitized, and available in Settings',()=>{
+    const configuration=read('configuration.js');const popup=read('popup.html');const popupScript=read('popup.js');
+    assert(configuration.includes("'onTheFlyAiDestination'"));
+    assert(configuration.includes("'webmailDestination'"));
+    assert(popup.includes('id="onTheFlyAiDestination"'));
+    assert(popup.includes('Outlook work or school — outlook.office.com'));
+    assert(popup.includes('Outlook.com personal — outlook.live.com'));
+    assert(popup.includes('Gmail — mail.google.com'));
+    assert(popupScript.includes('onTheFlyAiDestination:event.target.value'));
+    assert(popupScript.includes('webmailDestination:event.target.value'));
 });
 test('Privacy Scrubber is visible, defaults on, and guards unmasked copying',()=>{
     const popup=read('popup.html');const popupScript=read('popup.js');
@@ -1644,6 +1692,13 @@ test('extension pages use only packaged scripts and settings use progressive dis
     for(const section of ['Appearance','Speaker aliases','Saving transcripts','Bring your own AI (BYOAI) and privacy','Naming and timestamps','Configuration portability']) {
         assert(popup.includes(`<summary>${section}</summary>`));
     }
+    assert(!popup.includes('id="assistantBridgeSettings"'));
+    assert(!popup.includes('id="assistantEndpointUrl"'));
+    assert(!popup.includes('assistantBridgeAuth.js'));
+    const manifest=JSON.parse(read('manifest.json'));
+    assert(!manifest.permissions.includes('alarms'));
+    assert(!manifest.optional_permissions?.includes('nativeMessaging'));
+    assert(!manifest.optional_host_permissions.includes('https://*/*'));
 });
 test('managed release restrictions are enforced across extension action surfaces',()=>{
     const worker=read('service_worker.js');
@@ -1693,7 +1748,7 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanelScript.includes("typeof chrome.sidePanel.close === 'function'"));
     assert(sidepanelScript.includes('chrome.sidePanel.setOptions({enabled: false})'));
     assert(sidepanelScript.includes("crypto.subtle.digest('SHA-256'"));
-    assert(sidepanelScript.includes('mailto:?subject='));
+    assert(sidepanelScript.includes('CaptionKeepWebMail.compose'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions)'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions)'));
 });
@@ -1731,19 +1786,33 @@ test('Graph pilot can capture the active Teams meeting link without new permissi
     assert(popup.includes('id="graphUseCurrentMeeting"'));
     assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
 });
-test('Teams automation requests tenant transcription and distinguishes it from local capture',()=>{
+test('Teams meeting sources require explicit side-panel actions',()=>{
     const content=read('content_script.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
-    assert(content.includes('async function ensureTeamsTranscription'));
+    const sidepanel=read('sidepanel.html');
+    const sidepanelScript=read('sidepanel.js');
+    assert(content.includes('async function requestTeamsTranscription'));
+    assert(content.includes('async function requestLiveCaptions'));
     assert(content.includes('async function inspectTranscriptionMenu'));
     assert(content.includes('/^start transcription$/i'));
     assert(content.includes('/^stop transcription$/i'));
     assert(content.includes('transcriptionState,'));
-    assert(content.includes('autoOpenAttendees !== false'));
+    assert(content.includes("case 'enable_live_captions'"));
+    assert(content.includes("case 'open_attendee_panel'"));
+    assert(content.includes("case 'request_teams_transcription'"));
+    assert(read('googleMeetContentScript.js').includes("case 'enable_live_captions'"));
+    assert(read('zoomContentScript.js').includes("case 'enable_live_captions'"));
+    assert(!content.includes('ensureTeamsTranscription(!previouslyInMeeting)'));
+    assert(!content.includes('debouncedAutoEnableCaptions()'));
     assert(popup.includes('Local CaptionKeep copy:'));
-    assert(popup.includes('Official tenant copy:'));
-    assert(popup.includes('id="autoOpenAttendeesToggle" checked'));
+    assert(popup.includes('You choose when they start.'));
+    assert(!popup.includes('id="autoOpenAttendeesToggle"'));
+    assert(!popup.includes('id="autoEnableCaptionsToggle"'));
+    assert(sidepanel.includes('id="enable-live-captions"'));
+    assert(sidepanel.includes('id="open-attendee-panel"'));
+    assert(sidepanel.includes('id="request-teams-transcription"'));
+    assert(sidepanelScript.includes("runMeetingControl('enable_live_captions'"));
     assert(popupScript.includes("transcriptionState === 'running'"));
     assert(popupScript.includes("transcriptionState === 'requested'"));
     assert(popupScript.includes("transcriptionState === 'unavailable'"));

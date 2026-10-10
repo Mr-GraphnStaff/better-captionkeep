@@ -11,6 +11,10 @@ This page is the starting point for organizational deployment. Test with synthet
 
 Use Store identities for managed production deployment. Do not force-install a local unpacked identity.
 
+## Configuration portability
+
+Users can export and import bounded Better CaptionKeep preferences from **All Settings → Configuration portability**. Transcript content, Microsoft authentication tokens, and customer tenant/client identifiers are excluded from the portable preference file. Managed browser policy always takes precedence after import. Administrators should distribute policy through the documented Edge or Chrome management path rather than sharing a user preference file as enforcement.
+
 ## Managed policy
 
 Better CaptionKeep supports browser-managed configuration for privacy, retention, export, attendee capture, approved AI destinations, and optional Microsoft 365 transcript import. The repository contains the authoritative [managed schema](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/teams-captions-saver/managed-schema.json), [EUC deployment guide](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/EUC-DEPLOYMENT.md), and [security architecture](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/SECURITY-ARCHITECTURE.md).

@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Zachycujte titulky schůzek místně pro soukromou kontrolu a export."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Náhled překladu s podporou AI bez profesionální certifikace. Pro soukromí, zabezpečení a správu je rozhodující angličtina."
+  },
+  "reportTranslation": {
+    "message": "Nahlásit tento překlad"
+  },
+  "followBrowserLanguage": {
+    "message": "Použít jazyk prohlížeče"
+  },
+  "languageLabel": {
+    "message": "Jazyk"
+  },
+  "settings": {
+    "message": "Nastavení"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Kopírovat přepis"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Zobrazit přepis"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

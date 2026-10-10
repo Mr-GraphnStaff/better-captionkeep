@@ -1,9 +1,10 @@
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, rename, rm } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { ZipArchive } from 'archiver';
+import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
 
 function artifactStem(name) {
   return String(name)
@@ -13,11 +14,29 @@ function artifactStem(name) {
     .replace(/[^a-z0-9_-]/g, '');
 }
 
-export async function packageExtension(source, destination) {
+export async function assertNoReservedPackagePaths(root, relative = '') {
+  const entries = await readdir(path.join(root, relative), { withFileTypes: true });
+  for (const entry of entries) {
+    const next = path.join(relative, entry.name);
+    const parts = next.split(path.sep);
+    const reserved = parts.find((part, index) =>
+      part.startsWith('_') && !(index === 0 && part === '_locales')
+    );
+    if (reserved) {
+      throw new Error(`Extension package source contains reserved path: ${next.replaceAll('\\', '/')}`);
+    }
+    if (entry.isDirectory()) await assertNoReservedPackagePaths(root, next);
+  }
+}
+
+export async function packageExtension(source, destination, artifactBaseName = null) {
   const sourceDir = path.resolve(source);
   const destinationDir = path.resolve(destination);
+  await assertNoReservedPackagePaths(sourceDir);
   const manifest = JSON.parse(await readFile(path.join(sourceDir, 'manifest.json'), 'utf8'));
-  const artifactName = `${artifactStem(manifest.name)}-${manifest.version}.zip`;
+  const messages = await readEnglishMessages(sourceDir);
+  const resolvedArtifactName = artifactBaseName || resolveManifestMessage(manifest.name, messages);
+  const artifactName = `${artifactStem(resolvedArtifactName)}-${manifest.version}.zip`;
   const artifactPath = path.join(destinationDir, artifactName);
   const temporaryPath = `${artifactPath}.partial`;
 
@@ -43,7 +62,7 @@ export async function packageExtension(source, destination) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [source, destination] = process.argv.slice(2);
-  if (!source || !destination) throw new Error('Usage: node scripts/package-extension.mjs <source-dir> <destination-dir>');
-  await packageExtension(source, destination);
+  const [source, destination, artifactBaseName] = process.argv.slice(2);
+  if (!source || !destination) throw new Error('Usage: node scripts/package-extension.mjs <source-dir> <destination-dir> [artifact-base-name]');
+  await packageExtension(source, destination, artifactBaseName);
 }

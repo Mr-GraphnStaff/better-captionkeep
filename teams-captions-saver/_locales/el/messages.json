@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Αποθηκεύστε τοπικά τους υπότιτλους συσκέψεων για ιδιωτικό έλεγχο και εξαγωγή."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Προεπισκόπηση μετάφρασης με βοήθεια AI, χωρίς επαγγελματική πιστοποίηση. Τα αγγλικά αποτελούν την επίσημη αναφορά για απόρρητο, ασφάλεια και διαχείριση."
+  },
+  "reportTranslation": {
+    "message": "Αναφορά αυτής της μετάφρασης"
+  },
+  "followBrowserLanguage": {
+    "message": "Χρήση γλώσσας προγράμματος περιήγησης"
+  },
+  "languageLabel": {
+    "message": "Γλώσσα"
+  },
+  "settings": {
+    "message": "Ρυθμίσεις"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Αντιγραφή απομαγνητοφώνησης"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Προβολή απομαγνητοφώνησης"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

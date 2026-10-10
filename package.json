@@ -1,14 +1,15 @@
 {
   "name": "better-captionkeep",
-  "version": "5.3.3",
+  "version": "5.4.0",
   "private": true,
   "description": "Developer tooling for Better CaptionKeep on Chromium browsers.",
   "scripts": {
     "test": "node --test tests/*.test.cjs",
     "lint": "node scripts/check-extension.mjs",
+    "locales:generate": "node scripts/generate-locales.mjs",
     "security:audit": "npm audit --audit-level=high",
     "clean:dist": "node scripts/clean-dist.mjs",
-    "build": "node scripts/package-extension.mjs teams-captions-saver dist/prod",
+    "build": "node scripts/package-extension.mjs teams-captions-saver dist/prod better_captionkeep",
     "build:targets": "node scripts/build-browser-targets.mjs",
     "build:dev": "node scripts/build-browser-targets.mjs dev",
     "build:uat": "node scripts/build-browser-targets.mjs uat",

@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Toplantı altyazılarını özel inceleme ve dışa aktarma için yerel olarak kaydedin."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Yapay zekâ destekli çeviri önizlemesi; profesyonel olarak onaylanmamıştır. Gizlilik, güvenlik ve yönetim için İngilizce esas alınır."
+  },
+  "reportTranslation": {
+    "message": "Bu çeviriyi bildir"
+  },
+  "followBrowserLanguage": {
+    "message": "Tarayıcı dilini kullan"
+  },
+  "languageLabel": {
+    "message": "Dil"
+  },
+  "settings": {
+    "message": "Ayarlar"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Transkripti kopyala"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Transkripti görüntüle"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

@@ -1,11 +1,18 @@
 // File handles stay in IndexedDB on this device; never put them in sync storage.
 const statusElement = document.getElementById('status');
-const jobId = new URL(location.href).searchParams.get('job');
+const requestedJobId = new URL(location.href).searchParams.get('job');
+const jobId = /^export_[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(requestedJobId || '')
+    ? requestedJobId
+    : null;
 let currentJob;
 let directory;
 let busy = false;
 let fileExportDisabled = true;
 const supportsDirectoryPicker = typeof window.showDirectoryPicker === 'function';
+
+function jobStorageUpdate(value) {
+    return jobId ? Object.fromEntries([[jobId, value]]) : {};
+}
 
 function hasJobContent(job = currentJob) {
     return typeof job?.content === 'string' && job.content.length > 0;
@@ -114,7 +121,7 @@ async function downloadWithBrowser(promptForLocation = true, closeWhenDone = fal
             saveAs:promptForLocation
         });
         currentJob.downloadId = downloadId;
-        await chrome.storage.local.set({[jobId]:currentJob});
+        await chrome.storage.local.set(jobStorageUpdate(currentJob));
         statusElement.textContent = 'Download started. Waiting for file completion…';
         await new Promise((resolve,reject) => {
             const finish = state => {
@@ -192,7 +199,8 @@ document.getElementById('forget-folder').onclick = async () => {
         if (!await refreshFileExportPolicy({discardPending:true})) return;
         directory = await folderStore('readonly',store => store.get('exportFolder'));
         const settings = await chrome.storage.sync.get(['saveAsType']);
-        currentJob = jobId ? (await chrome.storage.local.get(jobId))[jobId] : null;
+        const storedJob = jobId ? await chrome.storage.local.get(jobId) : {};
+        currentJob = jobId && Object.hasOwn(storedJob, jobId) ? storedJob[jobId] : null;
         statusElement.textContent = currentJob ? 'Export ready. Choose where to save.' : 'Choose a folder or open a pending export.';
         if (currentJob) {
             document.getElementById('actions').hidden = false;
@@ -211,7 +219,7 @@ document.getElementById('forget-folder').onclick = async () => {
         }
         if (currentJob?.autoStart) {
             currentJob.autoStart = false;
-            await chrome.storage.local.set({[jobId]:currentJob});
+            await chrome.storage.local.set(jobStorageUpdate(currentJob));
             if (currentJob.saveAs === false && directory && settings.saveAsType !== 'custom') {
                 const saved = await saveToFolder(false);
                 if (saved) closeCurrentTabSoon();

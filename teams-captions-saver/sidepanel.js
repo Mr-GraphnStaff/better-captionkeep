@@ -10,6 +10,11 @@
         closePanel: document.getElementById('close-panel'),
         meetingTitle: document.getElementById('meeting-title'),
         meetingProvider: document.getElementById('meeting-provider'),
+        meetingSourceControls: document.getElementById('meeting-source-controls'),
+        meetingSourceStatus: document.getElementById('meeting-source-status'),
+        enableLiveCaptions: document.getElementById('enable-live-captions'),
+        openAttendeePanel: document.getElementById('open-attendee-panel'),
+        requestTeamsTranscription: document.getElementById('request-teams-transcription'),
         latestCaption: document.getElementById('latest-caption'),
         latestMeta: document.getElementById('latest-meta'),
         transcriptTab: document.getElementById('transcript-tab'),
@@ -30,7 +35,18 @@
         downloadBoard: document.getElementById('download-board'),
         emailBoard: document.getElementById('email-board'),
         downloadBundle: document.getElementById('download-bundle'),
-        openTranscript: document.getElementById('open-transcript')
+        openTranscript: document.getElementById('open-transcript'),
+        onTheFlyBar: document.getElementById('on-the-fly-bar'),
+        onTheFlyLabel: document.getElementById('on-the-fly-label'),
+        onTheFlyPreview: document.getElementById('on-the-fly-preview'),
+        clearOnTheFly: document.getElementById('clear-on-the-fly'),
+        reviewOnTheFly: document.getElementById('review-on-the-fly'),
+        onTheFlyDialog: document.getElementById('on-the-fly-dialog'),
+        onTheFlyTask: document.getElementById('on-the-fly-task'),
+        onTheFlyQuestion: document.getElementById('on-the-fly-question'),
+        onTheFlyEvidence: document.getElementById('on-the-fly-evidence'),
+        cancelOnTheFly: document.getElementById('cancel-on-the-fly'),
+        prepareOnTheFly: document.getElementById('prepare-on-the-fly')
     };
     let currentContext = null;
     let allMarkers = [];
@@ -38,12 +54,19 @@
     let polling = false;
     let transcriptSignature = '';
     let enterprisePolicy = {};
+    let enterpriseLocked = new Set();
     let scrubOptions = {};
+    let onTheFlyEvidence = null;
 
     async function refreshEnterprisePolicy() {
-        const user = await chrome.storage.sync.get(['profanityFilterEnabled', 'customScrubTerms']);
+        const user = await chrome.storage.sync.get([
+            'privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms',
+            'aiSummaryProviders', 'onTheFlyAiDestination', 'chatgptWorkspaceUrl', 'claudeWorkspaceUrl',
+            'claudeConsoleUrl', 'webmailDestination'
+        ]);
         const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
         enterprisePolicy = policy.settings;
+        enterpriseLocked = new Set(policy.locked);
         scrubOptions = {
             profanityFilterEnabled: !!enterprisePolicy.profanityFilterEnabled,
             customTerms: enterprisePolicy.customScrubTerms || []
@@ -133,8 +156,34 @@
         const tab = await activeMeetingTab();
         if (!tab?.id) throw new Error('No active meeting tab is available.');
         const response = await chrome.tabs.sendMessage(tab.id, {message: 'get_evidence_context'});
-        if (!response?.sessionId) throw new Error('Caption capture has not started in this tab.');
+        if (!response?.providerLabel) throw new Error('This tab is not a supported meeting surface.');
         return {...response, tabId: tab.id};
+    }
+
+    function renderMeetingSourceControls() {
+        const provider = currentContext?.providerLabel || '';
+        const supported = ['Microsoft Teams', 'Google Meet', 'Zoom Web'].includes(provider);
+        const controls = currentContext?.meetingControls || {};
+        const inMeeting = currentContext?.isInMeeting === true;
+        const isTeams = provider === 'Microsoft Teams';
+        elements.meetingSourceControls.hidden = !supported;
+        elements.openAttendeePanel.hidden = !isTeams;
+        elements.requestTeamsTranscription.hidden = !isTeams;
+        elements.enableLiveCaptions.disabled = !inMeeting || controls.liveCaptions === true;
+        elements.enableLiveCaptions.textContent = controls.liveCaptions ? 'Live captions enabled' : 'Enable live captions';
+        elements.openAttendeePanel.disabled = !inMeeting || controls.attendeeAllowed === false || controls.attendees === true;
+        elements.openAttendeePanel.textContent = controls.attendees ? 'Attendee capture enabled' : 'Open attendee panel';
+        elements.requestTeamsTranscription.disabled = !inMeeting || ['checking', 'running', 'requested'].includes(controls.transcriptionState);
+        elements.requestTeamsTranscription.textContent = controls.transcriptionState === 'running'
+            ? 'Teams transcript running'
+            : controls.transcriptionState === 'requested'
+                ? 'Teams transcript requested'
+                : 'Request Teams transcript';
+        if (!inMeeting) elements.meetingSourceStatus.textContent = 'Join the meeting, then choose which meeting sources to enable.';
+        else if (isTeams && controls.transcriptionDetail && controls.transcriptionState !== 'unchecked') {
+            elements.meetingSourceStatus.textContent = controls.transcriptionDetail;
+        } else if (controls.liveCaptions) elements.meetingSourceStatus.textContent = 'Live captions are available for local capture.';
+        else elements.meetingSourceStatus.textContent = 'Opening this panel does not change the meeting.';
     }
 
     function renderContext() {
@@ -143,11 +192,33 @@
         elements.captureState.textContent = currentContext?.captureState || 'Not connected';
         elements.meetingTitle.textContent = currentContext?.meetingTitle || 'Open Teams, Meet, or Zoom Web.';
         elements.meetingProvider.textContent = currentContext?.providerLabel || '';
+        renderMeetingSourceControls();
         elements.latestCaption.textContent = latest?.Text || 'Waiting for a stable captured caption…';
         elements.latestMeta.textContent = latest
             ? `${board.evidenceId(transcript.length - 1)} · ${latest.Time || 'time unavailable'} · ${latest.Name || 'Unknown speaker'}`
             : '';
         elements.markLatest.disabled = !latest;
+    }
+
+    async function runMeetingControl(message, pendingMessage) {
+        const tab = await activeMeetingTab();
+        if (!tab?.id) throw new Error('No active meeting tab is available.');
+        const buttonByMessage = {
+            enable_live_captions: elements.enableLiveCaptions,
+            open_attendee_panel: elements.openAttendeePanel,
+            request_teams_transcription: elements.requestTeamsTranscription
+        };
+        const button = buttonByMessage[message];
+        if (button) button.disabled = true;
+        elements.meetingSourceStatus.textContent = pendingMessage;
+        try {
+            const response = await chrome.tabs.sendMessage(tab.id, {message});
+            if (!response?.ok) throw new Error(response?.error || 'The meeting control was not available.');
+            elements.meetingSourceStatus.textContent = response.detail || 'Request accepted. The meeting remains under your control.';
+            await pollContext();
+        } finally {
+            renderMeetingSourceControls();
+        }
     }
 
     function captionNode(caption, index) {
@@ -162,12 +233,144 @@
         mark.className = 'caption-mark';
         mark.dataset.captionIndex = String(index);
         mark.textContent = 'Mark';
-        heading.append(meta, mark);
+        const onTheFly = document.createElement('button');
+        onTheFly.type = 'button';
+        onTheFly.className = 'caption-research';
+        onTheFly.dataset.onTheFlyIndex = String(index);
+        onTheFly.textContent = 'On the Fly';
+        const actions = document.createElement('div');
+        actions.className = 'caption-row-actions';
+        actions.append(mark, onTheFly);
+        heading.append(meta, actions);
         const text = document.createElement('p');
         text.className = 'caption-text';
+        text.dataset.captionIndex = String(index);
         text.textContent = caption.Text;
         item.append(heading, text);
         return item;
+    }
+
+    function selectForOnTheFly(captionIndex, selectedText = '') {
+        const caption = currentContext?.transcriptArray?.[captionIndex];
+        const text = board.cleanInline(selectedText || caption?.Text);
+        if (!caption || !text) return;
+        onTheFlyEvidence = {
+            evidenceId: board.evidenceId(captionIndex),
+            speaker: caption.Name || 'Unknown speaker',
+            time: caption.Time || 'time unavailable',
+            text
+        };
+        elements.onTheFlyLabel.textContent = `${onTheFlyEvidence.evidenceId} · ${onTheFlyEvidence.speaker}`;
+        elements.onTheFlyPreview.textContent = text;
+        elements.onTheFlyBar.hidden = false;
+        setStatus('On the Fly selection is local. Choose a task when ready.');
+    }
+
+    function clearOnTheFly() {
+        onTheFlyEvidence = null;
+        elements.onTheFlyBar.hidden = true;
+        elements.onTheFlyQuestion.value = '';
+    }
+
+    function openOnTheFlyDialog() {
+        if (!onTheFlyEvidence) return;
+        elements.onTheFlyEvidence.textContent = `${onTheFlyEvidence.evidenceId} · ${onTheFlyEvidence.time} · ${onTheFlyEvidence.speaker}\n“${onTheFlyEvidence.text}”`;
+        elements.onTheFlyDialog.showModal();
+    }
+
+    function buildOnTheFlyPrompt(taskId, question = '') {
+        const prompt = CaptionKeepAiTasks.buildPrompt({
+            taskId,
+            question,
+            meetingTitle: currentContext?.meetingTitle || 'Meeting',
+            providerLabel: currentContext?.providerLabel || 'Meeting platform',
+            evidence: [onTheFlyEvidence]
+        });
+        const scrub = enterprisePolicy.privacyScrubberEnabled !== false || enterprisePolicy.forceScrubbedExport;
+        return scrub ? CaptionKeepPrivacyScrubber.scrub(prompt, scrubOptions).text : prompt;
+    }
+
+    function preferredAiDestination() {
+        const configured = Array.isArray(enterprisePolicy.aiSummaryProviders)
+            ? enterprisePolicy.aiSummaryProviders
+            : [];
+        const preferred = enterprisePolicy.onTheFlyAiDestination;
+        if (!preferred && !configured.length && enterpriseLocked.has('aiSummaryProviders')) {
+            throw new Error('Your organization has not enabled an AI destination.');
+        }
+        const provider = preferred || configured[0] || 'chatgpt';
+        const destination = CaptionKeepDestinations.resolve(provider, enterprisePolicy);
+        if (!destination) throw new Error('Choose an AI destination in Settings.');
+        return destination;
+    }
+
+    async function runQuickAiTask(taskId) {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        if (enterprisePolicy.disableClipboard) throw new Error('Clipboard actions are disabled by your organization.');
+        if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
+        const destination = preferredAiDestination();
+        const prompt = buildOnTheFlyPrompt(taskId);
+        await navigator.clipboard.writeText(prompt);
+        await chrome.tabs.create({url:destination.url});
+        clearOnTheFly();
+        setStatus(`${CaptionKeepAiTasks.task(taskId).label} copied and ${destination.name} opened. Paste, review, and send when ready.`);
+    }
+
+    async function openOnTheFlyEmail() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableEvidenceEmail) throw new Error('Evidence email is disabled by your organization.');
+        if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
+        const rawSubject = `Follow-up: ${currentContext?.meetingTitle || 'Meeting'}`;
+        const rawBody = [
+            'Follow-up from the meeting:',
+            '',
+            `[${onTheFlyEvidence.evidenceId}] ${onTheFlyEvidence.time} — ${onTheFlyEvidence.speaker}`,
+            onTheFlyEvidence.text,
+            '',
+            'Review this draft, add recipients, and edit before sending.'
+        ].join('\n');
+        const scrub = enterprisePolicy.privacyScrubberEnabled !== false || enterprisePolicy.forceScrubbedExport;
+        const subject = scrub ? CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions).text : rawSubject;
+        const body = scrub ? CaptionKeepPrivacyScrubber.scrub(rawBody, scrubOptions).text : rawBody;
+        const destination = CaptionKeepWebMail.compose(enterprisePolicy.webmailDestination || 'outlook_work', {subject, body});
+        await chrome.tabs.create({url:destination.url});
+        clearOnTheFly();
+        setStatus(`Draft opened in ${destination.name}. Add recipients, review, and send when ready.`);
+    }
+
+    async function prepareOnTheFly() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
+        const settings = await chrome.storage.sync.get('aiSummaryProviders');
+        const providers = Array.isArray(settings.aiSummaryProviders) && settings.aiSummaryProviders.length
+            ? settings.aiSummaryProviders
+            : ['chatgpt', 'claude', 'copilot', 'gemini'];
+        const handoffId = `handoff_${crypto.randomUUID()}`;
+        const taskId = elements.onTheFlyTask.value;
+        await chrome.storage.local.set({
+            [handoffId]: {
+                mode: 'on_the_fly',
+                taskId,
+                question: board.cleanInline(elements.onTheFlyQuestion.value),
+                evidence: [onTheFlyEvidence],
+                transcript: [{
+                    Time: onTheFlyEvidence.time,
+                    Name: onTheFlyEvidence.speaker,
+                    Text: onTheFlyEvidence.text
+                }],
+                providers,
+                meetingTitle: currentContext?.meetingTitle || 'Meeting',
+                providerLabel: currentContext?.providerLabel || 'Meeting platform',
+                sessionId: currentContext?.sessionId || '',
+                warnings: ['Selected meeting text only. Nothing has been sent.']
+            }
+        });
+        elements.onTheFlyDialog.close();
+        await chrome.tabs.create({url: chrome.runtime.getURL(`handoff.html?id=${encodeURIComponent(handoffId)}`)});
+        clearOnTheFly();
+        setStatus('Review opened. Nothing is sent until you choose to copy it.');
     }
 
     function renderTranscript() {
@@ -258,7 +461,9 @@
             const next = await requestContext();
             const sessionChanged = currentContext?.sessionId !== next.sessionId;
             currentContext = next;
-            if (sessionChanged) selectedSessionId = next.sessionId;
+            if (sessionChanged) {
+                selectedSessionId = next.sessionId;
+            }
             const reconciliation = board.reconcileMarkers(allMarkers, next);
             if (reconciliation.changed) {
                 allMarkers = reconciliation.markers;
@@ -397,10 +602,9 @@
         const body = markdown.length > 12000
             ? `${markdown.slice(0, 12000)}\n\n[Brief shortened for email. Attach the saved Markdown for the complete evidence board.]`
             : markdown;
-        const link = document.createElement('a');
-        link.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        link.click();
-        setStatus('Email draft opened. Review the brief and choose recipients before sending.');
+        const destination = CaptionKeepWebMail.compose(enterprisePolicy.webmailDestination || 'outlook_work', {subject, body});
+        await chrome.tabs.create({url:destination.url});
+        setStatus(`Follow-up opened in ${destination.name}. Review the brief and choose recipients before sending.`);
     }
 
     async function downloadBundle() {
@@ -436,6 +640,13 @@
         elements.markerKind.append(option);
     }
 
+    for (const [taskId, task] of Object.entries(CaptionKeepAiTasks.TASKS)) {
+        const option = document.createElement('option');
+        option.value = taskId;
+        option.textContent = task.label;
+        elements.onTheFlyTask.append(option);
+    }
+
     elements.markLatest.addEventListener('click', () => void markLatest());
     elements.closePanel.addEventListener('click', () => void closePanel().catch(error => setStatus(error.message)));
     elements.copyBoard.addEventListener('click', () => void copyBoard().catch(error => setStatus(error.message)));
@@ -443,6 +654,19 @@
     elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
+    elements.clearOnTheFly.addEventListener('click', clearOnTheFly);
+    elements.reviewOnTheFly.addEventListener('click', openOnTheFlyDialog);
+    elements.onTheFlyBar.addEventListener('click', event => {
+        const quickTask = event.target.closest('button[data-quick-task]')?.dataset.quickTask;
+        if (!quickTask) return;
+        const action = quickTask === 'email' ? openOnTheFlyEmail() : runQuickAiTask(quickTask);
+        void action.catch(error => setStatus(error.message));
+    });
+    elements.cancelOnTheFly.addEventListener('click', () => elements.onTheFlyDialog.close());
+    elements.prepareOnTheFly.addEventListener('click', () => void prepareOnTheFly().catch(error => setStatus(error.message)));
+    elements.enableLiveCaptions.addEventListener('click', () => void runMeetingControl('enable_live_captions', 'Requesting live captions…').catch(error => setStatus(error.message)));
+    elements.openAttendeePanel.addEventListener('click', () => void runMeetingControl('open_attendee_panel', 'Opening the attendee panel…').catch(error => setStatus(error.message)));
+    elements.requestTeamsTranscription.addEventListener('click', () => void runMeetingControl('request_teams_transcription', 'Requesting the tenant transcript…').catch(error => setStatus(error.message)));
     elements.markerList.addEventListener('click', event => {
         const button = event.target.closest('button[data-marker-id]');
         if (button) void deleteMarker(button.dataset.markerId);
@@ -452,8 +676,18 @@
         renderMarkers();
     });
     elements.transcriptList.addEventListener('click', event => {
-        const button = event.target.closest('button[data-caption-index]');
-        if (button) void markCaption(Number.parseInt(button.dataset.captionIndex, 10));
+        const markButton = event.target.closest('button[data-caption-index]');
+        if (markButton) void markCaption(Number.parseInt(markButton.dataset.captionIndex, 10));
+        const onTheFlyButton = event.target.closest('button[data-on-the-fly-index]');
+        if (onTheFlyButton) selectForOnTheFly(Number.parseInt(onTheFlyButton.dataset.onTheFlyIndex, 10));
+    });
+    elements.transcriptList.addEventListener('mouseup', event => {
+        const textNode = event.target.closest('.caption-text');
+        if (!textNode) return;
+        const selection = window.getSelection();
+        const text = board.cleanInline(selection?.toString());
+        if (!text || !selection?.rangeCount || !textNode.contains(selection.anchorNode) || !textNode.contains(selection.focusNode)) return;
+        selectForOnTheFly(Number.parseInt(textNode.dataset.captionIndex, 10), text);
     });
     elements.transcriptSearch.addEventListener('input', renderTranscript);
     elements.transcriptTab.addEventListener('click', () => switchView('transcript'));
@@ -462,8 +696,12 @@
     chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
         if (changeInfo.status === 'complete') void pollContext();
     });
-    chrome.storage.onChanged.addListener((_changes, areaName) => {
-        if (areaName === 'managed') void refreshEnterprisePolicy().then(renderMarkers).catch(error => setStatus(error.message));
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'managed') return;
+        void (async () => {
+            await refreshEnterprisePolicy();
+            renderMarkers();
+        })().catch(error => setStatus(error.message));
     });
 
     void (async () => {

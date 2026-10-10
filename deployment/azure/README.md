@@ -17,6 +17,8 @@ Better CaptionKeep Store credentials.
 - Private DNS resolves the vault name to its private endpoint from the VM.
 - Store credentials are read at runtime by the VM's managed identity. They are
   not copied into Azure DevOps variable groups or service connections.
+- GitHub CLI verifies each downloaded release artifact against GitHub's signed
+  artifact attestation before any Store credential is loaded or upload starts.
 - The administrator is explicitly assigned Key Vault Administrator.
   Subscription Owner remains the management-plane recovery path and authorizes
   Run Command if data-plane access or networking is misconfigured.
@@ -71,11 +73,17 @@ environments into this vault. The duplicate GitHub secrets and publishing
 workflows were then removed after Azure preflight passed. Rotate credentials
 directly into Key Vault; do not recreate a second long-lived secret store.
 
+The release agent bootstrap requires GitHub CLI 2.102.0 or newer for patched
+artifact-attestation policy verification. The signed Sigstore bundle is
+published with the release, so the private runner does not need a GitHub token. Repository,
+workflow, tag, and GitHub-hosted build provenance are verified before the
+existing checksum and release-provenance checks run.
+
 ## Azure Pipeline
 
 `azure-pipelines.yml` uses the `Better CaptionKeep Private` agent pool. The
-pipeline verifies the published GitHub release and hashes, optionally performs
-credential preflight or uploads the exact packages as drafts, and only then
+pipeline verifies the published GitHub release, signed attestations, and hashes,
+optionally performs credential preflight or uploads the exact packages as drafts, and only then
 enters the `bck-store-production` environment for submission or publication.
 That environment is the sole approval boundary. Verification and draft upload
 do not require approval.

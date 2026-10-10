@@ -28,7 +28,7 @@ Zoom account and meeting policy can disable or hide browser join. This limits th
 
 The controlled Zoom Web client exposed an ephemeral subtitle overlay as DOM text. That overlay is capturable but has no speaker attribution or visible history. A Live Transcript side panel could be richer, but it was not available in the controlled test and is not part of the initial adapter.
 
-When auto-enable is on, Better CaptionKeep follows the bounded `More` -> `Show Captions` flow and selects English only in Zoom's first-use language dialog. Once captions are active, manually hiding them is respected and the adapter does not turn them back on.
+Only after the user chooses **Enable live captions** in Live Workspace, Better CaptionKeep follows the bounded `More` -> `Show Captions` flow and selects English only in Zoom's first-use language dialog. Merely opening the extension never changes Zoom. Once captions are active, manually hiding them is respected and the adapter does not turn them back on unless the user makes another explicit request.
 
 ## 4. Privacy and compliance boundary
 
