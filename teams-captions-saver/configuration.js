@@ -13,12 +13,6 @@
     const GRAPH_USER_KEYS = Object.freeze([
         'enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'
     ]);
-    const ASSISTANT_USER_KEYS = Object.freeze([
-        'assistantBridgeMode', 'assistantEndpointUrl', 'assistantNativeHost',
-        'assistantAuthorizationEndpoint', 'assistantTokenEndpoint',
-        'assistantClientId', 'assistantScopes', 'assistantTimeoutSeconds'
-    ]);
-
     const POLICY_KEYS = Object.freeze([
         'forcePrivacyScrubber', 'disableAiHandoff', 'allowedAiProviders',
         'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl',
@@ -26,18 +20,11 @@
         'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
         'disableAttendeeCapture', 'disableSessionHistory', 'maxStoredSessions',
         'sessionRetentionDays', 'enableGraphTranscriptImport', 'graphTenantId',
-        'graphClientId', 'forceUiLocale', 'disableEvidenceActions',
-        'forceScrubbedEvidenceActions', 'assistantBridgeMode',
-        'assistantEndpointUrl', 'assistantNativeHost',
-        'assistantAuthorizationEndpoint', 'assistantTokenEndpoint',
-        'assistantClientId', 'assistantScopes', 'assistantTimeoutSeconds',
-        'assistantAllowedIntents'
+        'graphClientId', 'forceUiLocale'
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
     const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const NATIVE_HOST_PATTERN = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
-    const ASSISTANT_INTENTS = new Set(['research_reference', 'prepare_work_item']);
     const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled']);
     const UI_LOCALES = new Set([
         'system', 'en', 'fr', 'fr-CA', 'es', 'es_419', 'de', 'pt_BR', 'pt_PT', 'it', 'nl', 'pl',
@@ -93,81 +80,9 @@
         return { enableGraphTranscriptImport: true, graphTenantId: tenantId, graphClientId: clientId };
     }
 
-    function safeHttpsUrl(value) {
-        try {
-            const url = new URL(String(value || '').trim());
-            if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) return '';
-            return url.toString().replace(/\/$/, '');
-        } catch {
-            return '';
-        }
-    }
-
-    function sanitizeAssistantUserConfig(settings = {}) {
-        const output = {};
-        if (['disabled', 'local', 'remote'].includes(settings.assistantBridgeMode)) {
-            output.assistantBridgeMode = settings.assistantBridgeMode;
-        }
-        for (const key of ['assistantEndpointUrl', 'assistantAuthorizationEndpoint', 'assistantTokenEndpoint']) {
-            const value = safeHttpsUrl(settings[key]);
-            if (value) output[key] = value;
-        }
-        const nativeHost = String(settings.assistantNativeHost || '').trim().toLowerCase();
-        if (NATIVE_HOST_PATTERN.test(nativeHost)) output.assistantNativeHost = nativeHost;
-        const clientId = String(settings.assistantClientId || '').trim();
-        if (clientId && clientId.length <= 200 && /^[a-z0-9._~-]+$/i.test(clientId)) output.assistantClientId = clientId;
-        if (Array.isArray(settings.assistantScopes)) {
-            output.assistantScopes = [...new Set(settings.assistantScopes
-                .map(scope => String(scope).trim())
-                .filter(scope => scope.length >= 1 && scope.length <= 200 && /^[a-z0-9:/. _-]+$/i.test(scope))
-                .slice(0, 20))];
-        }
-        if (Number.isInteger(settings.assistantTimeoutSeconds)
-            && settings.assistantTimeoutSeconds >= 5 && settings.assistantTimeoutSeconds <= 60) {
-            output.assistantTimeoutSeconds = settings.assistantTimeoutSeconds;
-        }
-        return output;
-    }
-
-    function validateAssistantProfile(settings = {}) {
-        const sanitized = sanitizeAssistantUserConfig(settings);
-        const mode = sanitized.assistantBridgeMode || 'disabled';
-        const errors = [];
-        if (mode === 'local' && !sanitized.assistantNativeHost) {
-            errors.push('An enrolled native host is required for the local assistant bridge.');
-        }
-        if (mode === 'remote') {
-            if (!sanitized.assistantEndpointUrl) errors.push('An HTTPS assistant endpoint is required.');
-            if (!sanitized.assistantAuthorizationEndpoint) errors.push('An HTTPS authorization endpoint is required.');
-            if (!sanitized.assistantTokenEndpoint) errors.push('An HTTPS token endpoint is required.');
-            if (!sanitized.assistantClientId) errors.push('A public OAuth client ID is required.');
-            if (!sanitized.assistantScopes?.length) errors.push('At least one delegated assistant scope is required.');
-        }
-        return Object.freeze({
-            configured: mode !== 'disabled',
-            valid: mode !== 'disabled' && errors.length === 0,
-            errors: Object.freeze(errors),
-            profile: Object.freeze({
-                mode,
-                endpointUrl: sanitized.assistantEndpointUrl || null,
-                nativeHost: sanitized.assistantNativeHost || null,
-                authorizationEndpoint: sanitized.assistantAuthorizationEndpoint || null,
-                tokenEndpoint: sanitized.assistantTokenEndpoint || null,
-                clientId: sanitized.assistantClientId || null,
-                scopes: Object.freeze(sanitized.assistantScopes || []),
-                timeoutMs: (sanitized.assistantTimeoutSeconds || 20) * 1000
-            })
-        });
-    }
-
     async function readGraphUserConfig() {
         if (!chrome.storage?.local) return {};
         return sanitizeGraphUserConfig(await chrome.storage.local.get(GRAPH_USER_KEYS));
-    }
-
-    async function readAssistantUserConfig() {
-        if (!chrome.storage?.local) return {};
-        return sanitizeAssistantUserConfig(await chrome.storage.local.get(ASSISTANT_USER_KEYS));
     }
 
     async function readManaged() {
@@ -183,8 +98,6 @@
         const settings = { ...userSettings };
         for (const key of GRAPH_USER_KEYS) delete settings[key];
         Object.assign(settings, sanitizeGraphUserConfig(userSettings));
-        for (const key of ASSISTANT_USER_KEYS) delete settings[key];
-        Object.assign(settings, sanitizeAssistantUserConfig(userSettings));
         const locked = new Set();
         if (managed.forcePrivacyScrubber === true) {
             settings.privacyScrubberEnabled = true;
@@ -209,14 +122,6 @@
             settings.autoAISummary = false;
             locked.add('autoAISummary');
             locked.add('disableAiHandoff');
-        }
-        if (managed.disableEvidenceActions === true) {
-            settings.disableEvidenceActions = true;
-            locked.add('disableEvidenceActions');
-        }
-        if (managed.forceScrubbedEvidenceActions === true) {
-            settings.forceScrubbedEvidenceActions = true;
-            locked.add('forceScrubbedEvidenceActions');
         }
         if (managed.disableAttendeeCapture === true) {
             settings.trackAttendees = false;
@@ -265,17 +170,6 @@
             settings.customScrubTerms = normalizeTerms(managed.customScrubTerms);
             locked.add('customScrubTerms');
         }
-        const managedAssistant = sanitizeAssistantUserConfig(managed);
-        for (const key of ASSISTANT_USER_KEYS) {
-            if (!Object.hasOwn(managedAssistant, key)) continue;
-            settings[key] = managedAssistant[key];
-            locked.add(key);
-        }
-        if (Array.isArray(managed.assistantAllowedIntents)) {
-            settings.assistantAllowedIntents = [...new Set(managed.assistantAllowedIntents
-                .filter(intent => ASSISTANT_INTENTS.has(intent)))];
-            locked.add('assistantAllowedIntents');
-        }
         return Object.freeze({ settings: Object.freeze(settings), locked: Object.freeze([...locked]) });
     }
 
@@ -313,9 +207,8 @@
     }
 
     globalThis.CaptionKeepConfiguration = Object.freeze({
-        USER_KEYS, GRAPH_USER_KEYS, ASSISTANT_USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize,
-        sanitizeGraphUserConfig, sanitizeAssistantUserConfig, validateAssistantProfile,
-        readGraphUserConfig, readAssistantUserConfig, readManaged, applyPolicy,
+        USER_KEYS, GRAPH_USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize,
+        sanitizeGraphUserConfig, readGraphUserConfig, readManaged, applyPolicy,
         applyGraphRuntimeConfig, createExport, parseImport
     });
 })();

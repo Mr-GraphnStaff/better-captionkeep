@@ -25,32 +25,6 @@ AI handoff is review-first. Better CaptionKeep prepares material inside the exte
 - The user reviews the destination and content.
 - Privacy scrubbing can create a derivative while preserving the original local source.
 
-## Evidence Actions
-
-Evidence Actions are optional, review-first requests created from captions that
-the user explicitly selects in the Evidence Board. Saving a reviewed action
-creates only a local job. Nothing leaves the browser until the user chooses
-**Send to my assistant**.
-
-- A local bridge uses an administrator-installed native messaging host.
-- A remote bridge uses an organization-hosted HTTPS endpoint and OAuth
-  authorization code with PKCE. CaptionKeep never asks for a client secret.
-- Remote access and refresh tokens live only in browser session storage.
-- CaptionKeep sends the sealed action envelope and selected evidence, not the
-  full transcript by default. Administrators can require Privacy Scrubber.
-- The customer's assistant owns its LLM, research services, and connectors.
-  CaptionKeep does not receive those connector credentials.
-- Research Cards are assistant-created derivatives. Every claim must cite the
-  selected meeting evidence, an organizational source, or an HTTPS public-web
-  source. The original transcript remains the authoritative meeting record.
-- Retry, status, cancellation, and receipts remain visible in the Evidence
-  Board. A stable idempotency key prevents a restart from intentionally
-  creating a second action.
-
-Treat captions and assistant output as untrusted content. Review cited sources
-and the prepared action before using a customer connector to create or change
-records in another system.
-
 ## Administrative configuration
 
 Tenant IDs and public client IDs are configuration identifiers, not client secrets. Tokens remain in browser session storage. Passwords, MFA codes, access tokens, refresh tokens, cookies, and client secrets must never be placed in repository files, wiki pages, work items, or support screenshots.

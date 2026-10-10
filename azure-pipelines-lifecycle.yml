@@ -39,10 +39,6 @@ stages:
                   displayName: Install locked dependencies
                 - bash: npm test
                   displayName: Run automated tests
-                - bash: npm run test:mcp
-                  displayName: Test the authenticated MCP server
-                - bash: npm run test:bridge
-                  displayName: Test the assistant bridge and native launcher
                 - bash: npm run lint
                   displayName: Validate extension source
                 - bash: npm run security:audit

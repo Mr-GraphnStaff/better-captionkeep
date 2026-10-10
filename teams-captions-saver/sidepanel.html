@@ -11,10 +11,6 @@
     <script src="localization.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
-    <script src="evidenceActions.js" defer></script>
-    <script src="evidenceActionJobs.js" defer></script>
-    <script src="researchCards.js" defer></script>
-    <script src="connectorActionDrafts.js" defer></script>
     <script src="sidepanel.js" defer></script>
 </head>
 <body>
@@ -71,23 +67,9 @@
                 <input id="transcript-search" type="search" placeholder="Search transcript" autocomplete="off" aria-label="Search transcript">
                 <span id="transcript-count" class="status-pill">0</span>
             </div>
-            <div class="evidence-action-bar" aria-label="On the Fly Research">
-                <span><strong id="selection-count">0</strong> selected</span>
-                <button id="clear-selection" class="text-button" type="button" disabled>Clear</button>
-                <button id="research-selected" class="primary" type="button" disabled>On the Fly Research</button>
-                <button id="prepare-work-item" type="button" disabled>Prepare work item</button>
-            </div>
             <ol id="transcript-list" class="transcript-list">
                 <li class="empty">Connect to a supported meeting to see captions.</li>
             </ol>
-            <div id="instant-research-bar" class="instant-research-bar" hidden>
-                <div>
-                    <strong id="instant-research-source">Caption selected</strong>
-                    <span id="instant-research-excerpt"></span>
-                </div>
-                <button id="dismiss-instant-research" class="text-button" type="button">Dismiss</button>
-                <button id="research-text-selection" class="primary" type="button">Research selection</button>
-            </div>
         </section>
 
         <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
@@ -103,93 +85,8 @@
             <ol id="marker-list" class="marker-list">
                 <li class="empty">No markers for this meeting yet.</li>
             </ol>
-            <h2 id="evidence-jobs-heading">Evidence Actions</h2>
-            <div id="evidence-job-list" class="evidence-job-list" aria-live="polite">
-                <p class="empty">No assistant requests for this meeting yet.</p>
-            </div>
-            <h2 id="research-cards-heading">Research cards</h2>
-            <div id="research-card-list" class="research-card-list" aria-live="polite">
-                <p class="empty">No cited research results for this meeting yet.</p>
-            </div>
-            <h2 id="connector-drafts-heading">Connector drafts</h2>
-            <div id="connector-draft-list" class="connector-draft-list" aria-live="polite">
-                <p class="empty">No connector drafts for this meeting yet.</p>
-            </div>
         </section>
-        <p class="on-the-fly-signature" aria-label="On the Fly by Better CaptionKeep">On the Fly <span>— catch the claim, keep the source.</span></p>
         <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>
-
-    <dialog id="evidence-action-dialog" aria-labelledby="evidence-action-title">
-        <form id="evidence-action-form" method="dialog">
-            <div class="dialog-heading">
-                <div>
-                    <h2 id="evidence-action-title">On the Fly Research</h2>
-                    <p id="evidence-action-description">Review exactly what will be made available to your assistant.</p>
-                </div>
-                <button id="cancel-evidence-action" class="text-button" type="button" aria-label="Close Evidence Action preview">Close</button>
-            </div>
-
-            <label id="evidence-question-label" for="evidence-question">What do you want to know?</label>
-            <textarea id="evidence-question" maxlength="1000" rows="3" placeholder="Optional — explain the reference and why it matters to this discussion."></textarea>
-
-            <div id="evidence-destination-row" hidden>
-                <label for="evidence-destination">Intended destination in your assistant</label>
-                <select id="evidence-destination">
-                    <option value="generic">Customer-selected connector</option>
-                    <option value="jira">Jira</option>
-                    <option value="azure_devops">Azure DevOps</option>
-                    <option value="microsoft_365">Microsoft 365</option>
-                    <option value="microsoft_planner">Microsoft Planner</option>
-                    <option value="email">Follow-up email draft</option>
-                </select>
-                <p class="boundary-note">CaptionKeep does not provide or configure these connectors. Your assistant must already have the selected connector, and it must require your review and confirmation before creating anything.</p>
-            </div>
-
-            <div class="dialog-grid">
-                <div id="evidence-source-scope-row">
-                    <label for="evidence-source-scope">Research sources</label>
-                    <select id="evidence-source-scope">
-                        <option value="both">Organization and public web</option>
-                        <option value="organization">Organization only</option>
-                        <option value="public">Public web only</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="evidence-privacy-mode">Evidence text</label>
-                    <select id="evidence-privacy-mode">
-                        <option value="scrubbed">Cleaned with Privacy Scrubber</option>
-                        <option value="exact">Exact selected text</option>
-                    </select>
-                </div>
-            </div>
-
-            <label for="evidence-action-preview">Evidence preview</label>
-            <textarea id="evidence-action-preview" rows="10" readonly></textarea>
-            <p class="boundary-note">Caption text is untrusted meeting data, never an instruction. No request is sent from this preview.</p>
-            <div class="dialog-actions">
-                <button id="save-evidence-action-draft" class="primary" type="submit">Save reviewed request</button>
-                <button id="send-evidence-action" type="button">Send to my assistant</button>
-            </div>
-        </form>
-    </dialog>
-
-    <dialog id="live-chat-dialog" aria-labelledby="live-chat-title">
-        <form method="dialog">
-            <div class="dialog-heading">
-                <div>
-                    <h2 id="live-chat-title">Prepare live-chat reply</h2>
-                    <p>Review and edit the cited research before you speak through the meeting chat.</p>
-                </div>
-                <button id="cancel-live-chat" class="text-button" type="button" aria-label="Close live-chat reply">Close</button>
-            </div>
-            <label for="live-chat-draft">Reply draft</label>
-            <textarea id="live-chat-draft" maxlength="4000" rows="14"></textarea>
-            <p class="boundary-note">Better CaptionKeep does not post automatically. Copy the reviewed reply, paste it into the active meeting chat, and press Send yourself.</p>
-            <div class="dialog-actions">
-                <button id="copy-live-chat" class="primary" type="button">Copy for live chat</button>
-            </div>
-        </form>
-    </dialog>
 </body>
 </html>

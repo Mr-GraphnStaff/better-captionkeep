@@ -137,9 +137,9 @@ test('All settings shares popup form, is registered for all browser targets, and
     const popupScript = source('popup.js');
     assert(popupScript.includes("document.body.dataset.graphConfigured = String(graphConfigured)"));
     assert(popupScript.includes("location.hash === '#microsoft365'"));
-    assert.equal((popup.match(/class="settings-help-link"/g) || []).length, 10);
-    assert(popup.includes('id="assistantBridgeSettings"'));
-    assert(popup.includes('Privacy-and-Data-Boundaries#evidence-actions'));
+    assert.equal((popup.match(/class="settings-help-link"/g) || []).length, 9);
+    assert(!popup.includes('id="assistantBridgeSettings"'));
+    assert(!popup.includes('Privacy-and-Data-Boundaries#evidence-actions'));
     for (const wikiPage of ['Microsoft-365-Connection', 'Review-Save-and-Export', 'Getting-Started', 'Privacy-and-Data-Boundaries', 'Administrator-Deployment', 'Support']) {
         assert(popup.includes(`better-captionkeep/wiki/${wikiPage}`), wikiPage);
     }

@@ -559,7 +559,6 @@
     <script src="localization.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
-    <script src="assistantBridgeAuth.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
@@ -838,49 +837,6 @@
             </div>
         </details>
 
-        <details id="assistantBridgeSettings" class="settings-group all-settings-only">
-            <summary>Send to my assistant</summary>
-            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Privacy-and-Data-Boundaries#evidence-actions" target="_blank" rel="noopener noreferrer" aria-label="Read the Evidence Actions privacy guide in the Better CaptionKeep Wiki">Learn more ↗</a>
-            <p class="small-info-text">Optional. Connect an assistant controlled by you or your organization. CaptionKeep sends only evidence you select and review; connector credentials stay with your assistant.</p>
-            <div class="setting-item">
-                <label for="assistantBridgeMode" class="setting-label">Assistant connection</label>
-                <select id="assistantBridgeMode">
-                    <option value="disabled">Not connected</option>
-                    <option value="local">Installed local bridge</option>
-                    <option value="remote">Organization-hosted endpoint</option>
-                </select>
-            </div>
-            <div id="assistantLocalFields" hidden>
-                <label for="assistantNativeHost" class="setting-label">Enrolled local host name</label>
-                <input type="text" id="assistantNativeHost" placeholder="com.example.captionkeep_bridge" autocomplete="off">
-                <p class="small-info-text">Your administrator or local bridge installer provides this exact name.</p>
-            </div>
-            <div id="assistantRemoteFields" hidden>
-                <label for="assistantEndpointUrl" class="setting-label">Evidence Action endpoint</label>
-                <input type="url" id="assistantEndpointUrl" placeholder="https://assistant.example.com/evidence-actions" autocomplete="off">
-                <details>
-                    <summary>Organization identity details</summary>
-                    <p class="small-info-text">Use a public OAuth client with authorization code and PKCE. Never enter a client secret.</p>
-                    <p class="small-info-text"><strong>Register this redirect URI:</strong><br><code id="assistantRedirectUri"></code></p>
-                    <label for="assistantAuthorizationEndpoint" class="setting-label">Authorization endpoint</label>
-                    <input type="url" id="assistantAuthorizationEndpoint" placeholder="https://login.example.com/authorize" autocomplete="off">
-                    <label for="assistantTokenEndpoint" class="setting-label">Token endpoint</label>
-                    <input type="url" id="assistantTokenEndpoint" placeholder="https://login.example.com/token" autocomplete="off">
-                    <label for="assistantClientId" class="setting-label">Public client ID</label>
-                    <input type="text" id="assistantClientId" autocomplete="off">
-                    <label for="assistantScopes" class="setting-label">Delegated scopes</label>
-                    <textarea id="assistantScopes" rows="2" placeholder="evidence.submit evidence.status"></textarea>
-                    <label for="assistantTimeoutSeconds" class="setting-label">Request timeout in seconds</label>
-                    <input type="number" id="assistantTimeoutSeconds" min="5" max="60" value="20">
-                </details>
-            </div>
-            <div class="actions-row" style="flex-wrap: wrap;">
-                <button id="assistantSaveSetup" type="button">Save connection</button>
-                <button id="assistantConnect" type="button">Connect</button>
-                <button id="assistantDisconnect" type="button">Disconnect</button>
-            </div>
-            <p class="small-info-text" id="assistantSetupStatus" role="status" aria-live="polite">No assistant connection is configured.</p>
-        </details>
         <details class="settings-group">
             <summary>Configuration portability</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Administrator-Deployment#configuration-portability" target="_blank" rel="noopener noreferrer" aria-label="Read the configuration portability guide in the Better CaptionKeep Wiki">Learn more ↗</a>

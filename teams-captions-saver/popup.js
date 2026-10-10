@@ -58,23 +58,7 @@ const UI_ELEMENTS = {
     graphRefreshMeetings: document.getElementById('graphRefreshMeetings'),
     graphRecentMeetings: document.getElementById('graphRecentMeetings'),
     graphImportButton: document.getElementById('graphImportButton'),
-    graphImportStatus: document.getElementById('graphImportStatus'),
-    assistantBridgeSettings: document.getElementById('assistantBridgeSettings'),
-    assistantBridgeMode: document.getElementById('assistantBridgeMode'),
-    assistantLocalFields: document.getElementById('assistantLocalFields'),
-    assistantRemoteFields: document.getElementById('assistantRemoteFields'),
-    assistantNativeHost: document.getElementById('assistantNativeHost'),
-    assistantEndpointUrl: document.getElementById('assistantEndpointUrl'),
-    assistantRedirectUri: document.getElementById('assistantRedirectUri'),
-    assistantAuthorizationEndpoint: document.getElementById('assistantAuthorizationEndpoint'),
-    assistantTokenEndpoint: document.getElementById('assistantTokenEndpoint'),
-    assistantClientId: document.getElementById('assistantClientId'),
-    assistantScopes: document.getElementById('assistantScopes'),
-    assistantTimeoutSeconds: document.getElementById('assistantTimeoutSeconds'),
-    assistantSaveSetup: document.getElementById('assistantSaveSetup'),
-    assistantConnect: document.getElementById('assistantConnect'),
-    assistantDisconnect: document.getElementById('assistantDisconnect'),
-    assistantSetupStatus: document.getElementById('assistantSetupStatus')
+    graphImportStatus: document.getElementById('graphImportStatus')
 };
 
 
@@ -83,7 +67,6 @@ let currentEnterprisePolicy = {};
 let graphConnected = false;
 let graphConfigured = false;
 let graphBusy = false;
-let assistantProfile = null;
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -595,104 +578,6 @@ async function renderSpeakerAliases(tab) {
 }
 
 // --- Settings Management ---
-function assistantFormSettings() {
-    return CaptionKeepConfiguration.sanitizeAssistantUserConfig({
-        assistantBridgeMode:UI_ELEMENTS.assistantBridgeMode?.value || 'disabled',
-        assistantNativeHost:UI_ELEMENTS.assistantNativeHost?.value,
-        assistantEndpointUrl:UI_ELEMENTS.assistantEndpointUrl?.value,
-        assistantAuthorizationEndpoint:UI_ELEMENTS.assistantAuthorizationEndpoint?.value,
-        assistantTokenEndpoint:UI_ELEMENTS.assistantTokenEndpoint?.value,
-        assistantClientId:UI_ELEMENTS.assistantClientId?.value,
-        assistantScopes:String(UI_ELEMENTS.assistantScopes?.value || '').split(/[\s,]+/).filter(Boolean),
-        assistantTimeoutSeconds:Number(UI_ELEMENTS.assistantTimeoutSeconds?.value || 20)
-    });
-}
-
-function updateAssistantFieldVisibility() {
-    const mode = UI_ELEMENTS.assistantBridgeMode?.value || 'disabled';
-    if (UI_ELEMENTS.assistantLocalFields) UI_ELEMENTS.assistantLocalFields.hidden = mode !== 'local';
-    if (UI_ELEMENTS.assistantRemoteFields) UI_ELEMENTS.assistantRemoteFields.hidden = mode !== 'remote';
-    if (UI_ELEMENTS.assistantConnect) UI_ELEMENTS.assistantConnect.hidden = mode === 'disabled';
-    if (UI_ELEMENTS.assistantDisconnect) UI_ELEMENTS.assistantDisconnect.hidden = mode !== 'remote';
-}
-
-async function requestAssistantPermission(profile) {
-    if (!chrome.permissions?.request) throw new Error('This browser cannot grant assistant connection permission.');
-    if (profile.mode === 'local') {
-        return chrome.permissions.request({permissions:['nativeMessaging']});
-    }
-    const origins = [...new Set([profile.endpointUrl, profile.tokenEndpoint]
-        .map(value => `${new URL(value).origin}/*`))];
-    return chrome.permissions.request({origins});
-}
-
-async function saveAssistantSetup({requestPermission = true} = {}) {
-    const settings = assistantFormSettings();
-    if ((settings.assistantBridgeMode || 'disabled') === 'disabled') {
-        await CaptionKeepAssistantBridgeAuth.disconnect();
-        await chrome.storage.local.remove(CaptionKeepConfiguration.ASSISTANT_USER_KEYS);
-        assistantProfile = null;
-        UI_ELEMENTS.assistantSetupStatus.textContent = 'Assistant connection disabled. No evidence will be sent.';
-        return null;
-    }
-    const validation = CaptionKeepConfiguration.validateAssistantProfile(settings);
-    if (!validation.valid) throw new Error(validation.errors.join(' '));
-    if (requestPermission && !await requestAssistantPermission(validation.profile)) {
-        throw new Error('Assistant connection permission was not granted. No evidence was sent.');
-    }
-    await chrome.storage.local.remove(CaptionKeepConfiguration.ASSISTANT_USER_KEYS);
-    await chrome.storage.local.set(settings);
-    assistantProfile = validation.profile;
-    UI_ELEMENTS.assistantSetupStatus.textContent = validation.profile.mode === 'local'
-        ? 'Local bridge enrolled. Reviewed requests can now be sent to that installed host.'
-        : 'Connection details saved locally. Choose Connect to sign in.';
-    return assistantProfile;
-}
-
-function renderAssistantSetup(settings, locked) {
-    if (!UI_ELEMENTS.assistantBridgeMode) return;
-    if (UI_ELEMENTS.assistantRedirectUri) {
-        UI_ELEMENTS.assistantRedirectUri.textContent = chrome.identity.getRedirectURL('assistant-bridge');
-    }
-    UI_ELEMENTS.assistantBridgeMode.value = settings.assistantBridgeMode || 'disabled';
-    UI_ELEMENTS.assistantNativeHost.value = settings.assistantNativeHost || '';
-    UI_ELEMENTS.assistantEndpointUrl.value = settings.assistantEndpointUrl || '';
-    UI_ELEMENTS.assistantAuthorizationEndpoint.value = settings.assistantAuthorizationEndpoint || '';
-    UI_ELEMENTS.assistantTokenEndpoint.value = settings.assistantTokenEndpoint || '';
-    UI_ELEMENTS.assistantClientId.value = settings.assistantClientId || '';
-    UI_ELEMENTS.assistantScopes.value = Array.isArray(settings.assistantScopes) ? settings.assistantScopes.join(' ') : '';
-    UI_ELEMENTS.assistantTimeoutSeconds.value = settings.assistantTimeoutSeconds || 20;
-    for (const [key, element] of [
-        ['assistantBridgeMode', UI_ELEMENTS.assistantBridgeMode],
-        ['assistantNativeHost', UI_ELEMENTS.assistantNativeHost],
-        ['assistantEndpointUrl', UI_ELEMENTS.assistantEndpointUrl],
-        ['assistantAuthorizationEndpoint', UI_ELEMENTS.assistantAuthorizationEndpoint],
-        ['assistantTokenEndpoint', UI_ELEMENTS.assistantTokenEndpoint],
-        ['assistantClientId', UI_ELEMENTS.assistantClientId],
-        ['assistantScopes', UI_ELEMENTS.assistantScopes],
-        ['assistantTimeoutSeconds', UI_ELEMENTS.assistantTimeoutSeconds]
-    ]) element.disabled = locked.has(key);
-    UI_ELEMENTS.assistantSaveSetup.disabled = locked.has('assistantBridgeMode');
-    const validation = CaptionKeepConfiguration.validateAssistantProfile(settings);
-    assistantProfile = validation.valid ? validation.profile : null;
-    updateAssistantFieldVisibility();
-}
-
-async function refreshAssistantStatus() {
-    if (!UI_ELEMENTS.assistantSetupStatus || !assistantProfile) return;
-    if (assistantProfile.mode === 'local') {
-        const allowed = await chrome.permissions?.contains?.({permissions:['nativeMessaging']});
-        UI_ELEMENTS.assistantSetupStatus.textContent = allowed
-            ? 'Local bridge is enrolled. CaptionKeep will still ask you to review each request.'
-            : 'Local bridge is configured but permission has not been granted.';
-        return;
-    }
-    const status = await CaptionKeepAssistantBridgeAuth.status(assistantProfile);
-    UI_ELEMENTS.assistantSetupStatus.textContent = status.connected
-        ? 'Connected for this browser session. CaptionKeep stores no client secret.'
-        : 'Connection details are saved, but this browser session is not signed in.';
-}
-
 async function loadSettings() {
     const userSettings = await chrome.storage.sync.get([
         'autoSaveOnEnd',
@@ -714,7 +599,6 @@ async function loadSettings() {
         'uiLocale'
     ]);
     Object.assign(userSettings, await CaptionKeepConfiguration.readGraphUserConfig());
-    Object.assign(userSettings, await CaptionKeepConfiguration.readAssistantUserConfig());
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
     const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
@@ -732,7 +616,6 @@ async function loadSettings() {
     }
     applyGraphVisibility();
     updateGraphSetupControls(settings, locked);
-    renderAssistantSetup(settings, locked);
 
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
@@ -811,31 +694,6 @@ async function loadSettings() {
 
 // --- Event Handling ---
 function setupEventListeners() {
-    UI_ELEMENTS.assistantBridgeMode?.addEventListener('change', updateAssistantFieldVisibility);
-    UI_ELEMENTS.assistantSaveSetup?.addEventListener('click', async () => {
-        UI_ELEMENTS.assistantSetupStatus.textContent = 'Checking the assistant connection…';
-        try {
-            await saveAssistantSetup();
-            await refreshAssistantStatus();
-        } catch (error) {
-            UI_ELEMENTS.assistantSetupStatus.textContent = error.message;
-        }
-    });
-    UI_ELEMENTS.assistantConnect?.addEventListener('click', async () => {
-        UI_ELEMENTS.assistantSetupStatus.textContent = 'Opening the customer assistant sign-in…';
-        try {
-            const profile = await saveAssistantSetup();
-            if (!profile) return;
-            if (profile.mode === 'remote') await CaptionKeepAssistantBridgeAuth.connect(profile);
-            await refreshAssistantStatus();
-        } catch (error) {
-            UI_ELEMENTS.assistantSetupStatus.textContent = error.message;
-        }
-    });
-    UI_ELEMENTS.assistantDisconnect?.addEventListener('click', async () => {
-        await CaptionKeepAssistantBridgeAuth.disconnect();
-        UI_ELEMENTS.assistantSetupStatus.textContent = 'Disconnected. Saved connection details were not removed.';
-    });
     document.getElementById('meetingExtrasButton').addEventListener('click', () => openMeetingExtras(false));
     document.getElementById('meetingScreenshotButton').addEventListener('click', () => openMeetingExtras(true));
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
@@ -1428,7 +1286,6 @@ async function initializePopup() {
     await loadSettings();
     setupEventListeners();
     await refreshGraphStatus();
-    await refreshAssistantStatus();
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();
@@ -1494,9 +1351,7 @@ document.addEventListener('DOMContentLoaded', initializePopup);
 chrome.storage.onChanged.addListener((changes, areaName) => {
     const graphChanged = areaName === 'local'
         && CaptionKeepConfiguration.GRAPH_USER_KEYS.some(key => Object.hasOwn(changes, key));
-    const assistantChanged = areaName === 'local'
-        && CaptionKeepConfiguration.ASSISTANT_USER_KEYS.some(key => Object.hasOwn(changes, key));
-    if (areaName === 'managed' || graphChanged || assistantChanged) void loadSettings().then(refreshAssistantStatus).catch(error => {
+    if (areaName === 'managed' || graphChanged) void loadSettings().catch(error => {
         UI_ELEMENTS.statusMessage.textContent = `Could not refresh managed settings: ${error.message}`;
     });
 });

@@ -6,7 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputRoot = path.join(root, 'teams-captions-saver', '_locales');
 const base = Object.freeze({
   extensionName: 'Better CaptionKeep — Live Meeting Transcript',
-  extensionDescription: 'Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked On the Fly AI research and cited evidence.',
+  extensionDescription: 'Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked evidence you control.',
   actionTitle: 'Better CaptionKeep — by Señor Farris',
   localizationQuality: 'reviewed',
   translationPreviewNotice: 'AI-assisted translation preview; not professionally certified. English is authoritative for privacy, security, and administration.',

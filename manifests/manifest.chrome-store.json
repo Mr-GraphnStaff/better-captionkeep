@@ -17,11 +17,7 @@
     "storage",
     "unlimitedStorage",
     "sidePanel",
-    "identity",
-    "alarms"
-  ],
-  "optional_permissions": [
-    "nativeMessaging"
+    "identity"
   ],
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -38,8 +34,7 @@
   ],
   "optional_host_permissions": [
     "https://login.microsoftonline.com/*",
-    "https://graph.microsoft.com/*",
-    "https://*/*"
+    "https://graph.microsoft.com/*"
   ],
   "action": {
     "default_icon": {

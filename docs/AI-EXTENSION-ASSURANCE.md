@@ -79,20 +79,17 @@ The candidate may advance only when all applicable items are evidenced:
 | Package | Store ZIPs exclude secrets, development artifacts, MCP dependencies, and unreviewed executable code. |
 | Release | The exact candidate digest completes the required unchanged window and written go/no-go review. |
 
-## Current automated adversarial evidence
+## Current release boundary
 
-The October 5, 2026 focused Evidence Actions and reliability run passes 132 of
-132 tests. It now exercises untrusted caption text attempting to change the
-reviewed connector destination and self-confirm an action, hostile and
-cross-origin review links, oversized and timed-out assistant responses,
-tampered stored Evidence Actions, Research Cards, connector drafts and
-receipts, stale selections, duplicate jobs, and connector success without a
-customer confirmation attestation. Failed connector attestations are stored as
-sealed failures rather than accepted as external records.
+Connected-assistant, automatic research, connector-action, and MCP runtime
+features are not part of the release extension. Their earlier experimental
+contracts and tests were removed pending a new product roadmap and architecture
+decision. The general controls above remain the minimum bar if runtime AI work
+is proposed again.
 
-This is automated contract evidence only. Clean-profile Chrome and Edge tests,
-a customer-managed assistant and connector round trip, accessibility review,
-candidate-digest freeze, and the unchanged release window remain open.
+Current release evidence must cover only the capabilities actually packaged:
+local capture and review, manual Evidence Board markers, exports, the existing
+reviewed AI handoff, managed policy, and supported meeting providers.
 
 ## Authoritative references
 

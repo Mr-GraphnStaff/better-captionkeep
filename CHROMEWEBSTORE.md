@@ -23,7 +23,7 @@ Better CaptionKeep — Live Meeting Transcript
 
 **Short Description**
 
-Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked On the Fly AI research and cited evidence.
+Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked evidence you control.
 
 **Detailed Description**
 
@@ -43,13 +43,7 @@ Privacy Scrubber is enabled by default and can mask common sensitive patterns be
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
-Version 5.4 is preparing broad AI-assisted interface translation previews and optional Evidence Actions. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
-
-Evidence Actions let the user select specific source-linked captions, review the exact outbound evidence, choose a research scope, and send the approved request only through an enrolled local assistant bridge or an authenticated customer-hosted endpoint. The feature is disabled until configured, defaults to scrubbed evidence, never sends an entire transcript by default, and does not give Better CaptionKeep the customer's model or connector credentials. CaptionKeep's MCP tools are read-only. A Jira, Microsoft 365, or other external change is prepared and confirmed in the customer's own assistant environment; it is never executed silently by the extension.
-
-**On the Fly Research** lets the user highlight exact words in a live captured caption and choose **Research selection**, use a caption's one-click **Research** control, or select several complete captions. The review opens immediately with the selected excerpt bound to its source-caption identifier; unrelated transcript text is not included automatically. A returned cited Research Card can prepare an editable live-chat reply. Better CaptionKeep copies the reviewed draft, but never posts automatically or presses Send for the user.
-
-On the Fly uses the local or customer-hosted assistant enrolled under **All Settings → Customer assistant connection**. It does not use the older ChatGPT or Claude handoff shortcuts.
+Version 5.4 is preparing broad AI-assisted interface translation previews. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
 
 To begin, open a supported meeting and open Better CaptionKeep. Use **Live Workspace** to choose when live captions start and, in Teams, whether to open the attendee panel or request the official transcript. Use the popup for settings, history, and exports, or keep the Evidence Board beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
 
@@ -92,15 +86,12 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `unlimitedStorage` | permissions | Lets the user-controlled local transcript archive grow beyond the default local-storage quota without silently evicting meetings. Explicit user deletion and managed retention remain authoritative. |
 | `sidePanel` | permissions | Displays one unified local Live Workspace for captured captions and source-linked evidence beside the supported meeting page. |
 | `identity` | permissions | Opens interactive Microsoft Entra sign-in with PKCE for the customer-configured tenant when the user chooses Connect Microsoft 365. No shared app or client secret is embedded. |
-| `alarms` | permissions | Wakes the service worker at a bounded interval to recover or poll only user-approved Evidence Action jobs after Manifest V3 suspension. It does not start new actions or collect analytics. |
-| `nativeMessaging` | optional_permissions | Requested only when the user enrolls a customer-installed local assistant bridge. The extension sends only the reviewed Evidence Action to the exact configured native host. |
 | `https://teams.microsoft.com/*` | host_permissions | Reads captions and optional attendee information rendered during supported Microsoft Teams meetings. |
 | `https://teams.cloud.microsoft/*` | host_permissions | Reads captions and optional attendee information rendered in the current Microsoft Teams web application. |
 | `https://meet.google.com/*` | host_permissions | Reads captions rendered during Google Meet meetings. |
 | `https://app.zoom.us/*` | host_permissions | Reads captions rendered by the Zoom Web subtitle overlay. |
 | `https://login.microsoftonline.com/*` | optional_host_permissions | Requested only when the user chooses Connect Microsoft 365; performs interactive organizational Microsoft Entra authorization with PKCE. |
 | `https://graph.microsoft.com/*` | optional_host_permissions | Requested only when the user chooses Connect Microsoft 365; shows up to five recent eligible Teams meetings, resolves the selected meeting, and retrieves its authorized official transcript. |
-| `https://*/*` | optional_host_permissions | Declares the capability to request one exact customer-configured HTTPS assistant origin at runtime. The wildcard is never granted automatically; the user approves the specific enrolled origin before any reviewed Evidence Action can be sent. |
 
 ### Microsoft Delegated Scopes
 
@@ -121,15 +112,15 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 
 | Data Type | Handled? | Transmitted Off-Device? | Purpose | Shared with Third Parties? |
 | --- | --- | --- | --- | --- |
-| Personally identifiable information | Possible | Only through explicit user export/handoff, reviewed Evidence Action, or direct Microsoft sign-in | Speaker names, optional attendee names, meeting titles, and connected-account label | Only the user-selected destination or Microsoft service; not the developer |
+| Personally identifiable information | Possible | Only through explicit user export/handoff or direct Microsoft sign-in | Speaker names, optional attendee names, meeting titles, and connected-account label | Only the user-selected destination or Microsoft service; not the developer |
 | Health information | Not intentionally classified; may occur inside meeting content | Only through explicit user action | Preserved as part of user-controlled transcript content | Not by Better CaptionKeep automatically |
 | Financial information | Not intentionally classified; may occur inside meeting content | Only through explicit user action | Preserved as part of user-controlled transcript content | Not by Better CaptionKeep automatically |
 | Authentication information | Yes | Directly exchanged with Microsoft identity services | User-initiated delegated Microsoft 365 connection subject to tenant consent | Microsoft only; not retained by the developer |
-| Personal communications | Yes | Only through explicit export/handoff, reviewed Evidence Action, or direct Graph retrieval from Microsoft | Local transcript capture, review, recovery, export, and optional customer-controlled research | Only the user-selected destination; not the developer |
+| Personal communications | Yes | Only through explicit export/handoff or direct Graph retrieval from Microsoft | Local transcript capture, review, recovery, export, and optional reviewed handoff | Only the user-selected destination; not the developer |
 | Location | No | No | Not used | No |
 | Web history | No | No | Not used | No |
 | User activity | No analytics or behavioral tracking | Small user preferences may synchronize through the browser account | User-selected extension configuration | Browser synchronization service only |
-| Website content | Yes | Only through explicit export/handoff or reviewed Evidence Action | Reads captions, meeting title, and optional attendee details on supported meeting pages | Only the user-selected destination; not the developer |
+| Website content | Yes | Only through explicit export/handoff | Reads captions, meeting title, and optional attendee details on supported meeting pages | Only the user-selected destination; not the developer |
 
 ### Data Use Certification
 
@@ -165,7 +156,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.4.0 | 2026-10-10 | Development: localization previews, explicit meeting-source controls, source-linked On the Fly research, cited live-chat drafts, DAF-TECH parent branding, Trust Center, and new Store artwork. | Development candidate; not uploaded or submitted |
+| 5.4.0 | 2026-10-10 | Development: localization previews, explicit meeting-source controls, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Development candidate; not uploaded or submitted |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
@@ -197,7 +188,6 @@ No developer-operated server, paid subscription, microphone recording, video rec
 - Privacy Scrubber reduces accidental disclosure risk but is not a compliance guarantee or enterprise DLP replacement.
 - The optional direct-folder feature depends on browser support; Downloads and per-export Save As remain available.
 - AI-assisted preview localizations are not professionally certified. English remains the authoritative privacy, security, and administration reference until a locale receives the documented review evidence.
-- Evidence Actions require a separately enrolled customer-controlled assistant destination. Without one, the extension remains fully usable and no research request can leave the browser.
 
 ### Submission Gate
 

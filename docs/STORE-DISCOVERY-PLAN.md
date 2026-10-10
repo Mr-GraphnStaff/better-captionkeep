@@ -41,10 +41,10 @@ Its truthful search vocabulary is:
 
 - Primary: live meeting transcript; meeting captions; Microsoft Teams;
   Google Meet; Zoom Web.
-- Differentiator: On the Fly AI research; cited evidence; source-linked;
-  local transcript; no meeting bot.
+- Differentiator: source-linked evidence; local transcript; manual evidence
+  markers; no meeting bot.
 - Enterprise proof: managed browser policy; customer-owned Microsoft 365 and
-  AI; explicit meeting controls; reviewed handoff.
+  AI handoff; explicit meeting controls; reviewed export.
 
 Use each phrase naturally where it explains a real capability. Do not append
 keyword lists, repeat a phrase more than needed, name competitors in metadata,
@@ -59,17 +59,16 @@ Better CaptionKeep — Live Meeting Transcript
 **Summary**
 
 Local live meeting transcripts for Teams, Google Meet, and Zoom, with
-source-linked On the Fly AI research and cited evidence.
+source-linked evidence markers and explicit capture controls.
 
 **Category**
 
 Workflow & Planning
 
 The first description paragraph must repeat the user story in natural prose:
-capture displayed captions locally, select an exact claim during the meeting,
-research it through the customer's assistant, inspect cited evidence, and copy
-an editable reply. Follow it with privacy and enterprise controls—not a long
-architecture preamble.
+capture displayed captions locally, mark an exact claim during the meeting,
+keep its source context, and export a reviewed evidence brief. Follow it with
+privacy and enterprise controls—not a long architecture preamble.
 
 ## Five-image story
 
@@ -77,12 +76,12 @@ architecture preamble.
    Teams, Google Meet, and Zoom Web support.
 2. **Nothing starts until you choose it.** The visible caption, attendee, and
    Teams transcript controls with their status states.
-3. **Research the exact words—On the Fly.** A highlighted caption excerpt and
-   the reviewed outbound-evidence preview.
-4. **Answers that keep their sources.** A cited Research Card, source caption
-   identifier, and editable live-chat reply boundary.
-5. **Your browser. Your tenant. Your assistant.** Local storage, managed policy,
-   customer-owned Microsoft 365, and customer-owned AI/connector controls.
+3. **Mark the exact words.** A source-linked Evidence Board marker created from
+   a real transcript excerpt.
+4. **Build a reviewed evidence brief.** The local Evidence Board and explicit
+   copy, download, email-draft, and bundle controls.
+5. **Your browser. Your tenant. Your controls.** Local storage, managed policy,
+   and optional customer-owned Microsoft 365 and reviewed AI handoff.
 
 Every screenshot must use synthetic meeting content, actual current UI, a
 single visual system, large readable headings, and no more than one main claim.
@@ -92,7 +91,7 @@ single visual system, large readable headings, and no more than one main claim.
 Before submission, record dated results for these unauthenticated searches in
 both stores: `Better CaptionKeep`, `live meeting transcript`, `meeting captions
 Teams`, `Google Meet transcript local`, `Zoom live transcript extension`, and
-`meeting AI research cited evidence`. Search indexing can lag publication, so
+`meeting source linked evidence`. Search indexing can lag publication, so
 repeat the same check after the update becomes public.
 
 Run a small managed pilot and ask only real users for honest reviews after they

@@ -12,20 +12,17 @@ reviews.
 Better CaptionKeep is a Manifest V3 browser extension for Microsoft Teams,
 Google Meet, and Zoom Web. It reads captions already displayed to the signed-in
 participant; it does not record microphone, tab, system audio, or video. The
-core transcript, archive, Evidence Board, research selections, and Research
-Cards are stored in the browser profile. The publisher does not operate a
-transcript collection or AI service.
+core transcript, archive, and Evidence Board markers are stored in the browser
+profile. The publisher does not operate a transcript collection or AI service.
 
 Optional Microsoft 365 transcript import uses a customer-owned, single-tenant
-Entra registration. Optional AI research uses a destination and connector
-chosen and controlled by the customer. Exact outbound content is shown for
-review before the separate user-authorized handoff. A live-chat reply is copied
-only after review; Better CaptionKeep does not paste or send it into the
-meeting.
+Entra registration. The existing AI handoff opens a user-selected AI workspace
+and requires the user to review and transfer the prepared material. Better
+CaptionKeep does not operate an assistant endpoint or automatic research
+service.
 
-Detailed flows and trust boundaries: [Security architecture](SECURITY-ARCHITECTURE.md),
-[security and privacy behavior](SECURITY-PRIVACY.md), and
-[Evidence Actions](EVIDENCE-ACTIONS.md).
+Detailed flows and trust boundaries: [Security architecture](SECURITY-ARCHITECTURE.md)
+and [security and privacy behavior](SECURITY-PRIVACY.md).
 
 ## Permissions
 
@@ -49,7 +46,7 @@ their own managed-uninstall and rollback path.
 
 Managed browser policy can restrict providers, attendee capture, AI handoff,
 clipboard, file export, evidence email, saved history, retention, privacy
-scrubbing, and approved assistant destinations. Meeting-source actions remain
+scrubbing, and approved handoff destinations. Meeting-source actions remain
 explicit: opening the side panel does not enable captions, open attendees, or
 request a Teams transcript. See the [deployment guide](EUC-DEPLOYMENT.md) and
 the versioned [managed schema](../teams-captions-saver/managed-schema.json).
@@ -76,12 +73,11 @@ policy are in [SECURITY.md](../SECURITY.md).
   each release requires clean-profile Chrome and Edge live UAT.
 - Zoom Web's tested caption surface may not expose speaker identity; the
   product reports `Unknown speaker` instead of inventing attribution.
-- Captions, translations, assistant results, and research sources can be
-  incomplete or wrong. Research Cards are derivatives; the captured source
+- Captions and translations can be incomplete or wrong. The captured source
   caption remains authoritative.
 - Privacy Scrubber reduces accidental disclosure but is not DLP and cannot
   guarantee removal of every sensitive term.
-- Customer-owned Microsoft 365 and AI paths inherit the customer's licensing,
+- Customer-owned Microsoft 365 and AI handoff destinations inherit the customer's licensing,
   tenant policy, retention, audit, and service availability.
 - There is no publisher-operated centralized compliance log, cloud retention
   service, or server-side DLP.

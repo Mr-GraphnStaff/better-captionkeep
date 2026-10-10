@@ -12,8 +12,7 @@
     "storage": "Used for extension preferences, capture-recovery checkpoints, pending exports, temporary speaker aliases, and the user-controlled local transcript archive. Managed enterprise settings are also read through the browser's managed-storage system. The developer does not operate a transcript-storage service.",
     "unlimitedStorage": "Allows the local transcript archive to retain more than chrome.storage.local's default 10 MB quota without silently evicting older meetings. Archive data remains on this browser profile until the user deletes it, the extension is removed, or an explicit managed retention policy applies.",
     "sidePanel": "Used to display one unified live workspace for captured captions and source-linked evidence alongside the supported meeting page. The side panel is opened only by the user and does not transmit transcript data to a developer-operated service.",
-    "identity": "Used when the user chooses Connect Microsoft 365 after entering an organization-owned tenant ID and client ID. It opens an interactive tenant-specific Microsoft Entra authorization-code flow with PKCE so the user can find recent Teams meetings and explicitly import an authorized official transcript. Tokens stay in browser session storage; no shared application identity or client secret is embedded.",
-    "alarms": "Wakes the Manifest V3 service worker at a bounded interval to recover or poll only Evidence Action jobs the user already reviewed and submitted. It does not initiate actions, transmit unrelated data, or collect analytics."
+    "identity": "Used when the user chooses Connect Microsoft 365 after entering an organization-owned tenant ID and client ID. It opens an interactive tenant-specific Microsoft Entra authorization-code flow with PKCE so the user can find recent Teams meetings and explicitly import an authorized official transcript. Tokens stay in browser session storage; no shared application identity or client secret is embedded."
   },
   "oauthScopeJustifications": {
     "openid": "Confirms the identity returned by Microsoft during the interactive organizational sign-in flow.",
@@ -31,10 +30,9 @@
   ],
   "optionalHostPermissions": [
     "https://login.microsoftonline.com/*",
-    "https://graph.microsoft.com/*",
-    "https://*/*"
+    "https://graph.microsoft.com/*"
   ],
-  "hostPermissionJustification": "Required meeting-origin access is limited to Microsoft Teams, Google Meet, and Zoom Web for local caption capture. Microsoft identity and Graph origins are optional and requested only after the user selects Connect Microsoft 365; they support interactive sign-in, up to five recent eligible Teams meetings, and retrieval of the one authorized official transcript the user selects. The HTTPS wildcard is optional and never granted as a wildcard: when the user enrolls a customer-hosted assistant, Better CaptionKeep requests only that exact HTTPS origin before sending reviewed evidence. Calendar results remain transient. Better CaptionKeep does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
+  "hostPermissionJustification": "Required meeting-origin access is limited to Microsoft Teams, Google Meet, and Zoom Web for local caption capture. Microsoft identity and Graph origins are optional and requested only after the user selects Connect Microsoft 365; they support interactive sign-in, up to five recent eligible Teams meetings, and retrieval of the one authorized official transcript the user selects. Calendar results remain transient. Better CaptionKeep does not access unrelated websites, record audio or video, or send transcripts to a developer-operated service.",
   "usesRemoteCode": false,
   "privacyPolicyUrl": "https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md"
 }
