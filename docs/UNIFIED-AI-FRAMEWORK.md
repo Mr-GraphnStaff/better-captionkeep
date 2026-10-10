@@ -149,10 +149,13 @@ browser navigation history and provider logs, the extension must:
 separate assistant product.
 
 1. Select caption text or one or more source-linked captions.
-2. Choose **On the Fly** and a task such as Research, Explain, or Draft reply.
-3. Review the exact excerpt, question, privacy mode, and destination.
-4. Explicitly choose **Copy + open** for an approved AI workspace.
-5. Confirm the workspace, paste, review, and send inside the AI workspace.
+2. Choose Research, Explain, Reply, or Email from the compact action bar.
+3. Research, Explain, and Reply copy the bounded cleaned prompt and open the
+   first saved AI destination. The user pastes, reviews, and sends there.
+4. Email opens a cleaned, recipient-free draft in the saved Outlook work or
+   school, Outlook.com personal, Gmail, or browser/default destination.
+5. Choose **Review/edit** only when the excerpt, question, privacy mode, or
+   destination needs adjustment before release.
 
 With the zero-infrastructure workspace path, the result stays in the user's AI
 workspace. Returning a cited answer automatically to the Evidence panel is a

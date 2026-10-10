@@ -27,8 +27,9 @@ No Azure MCP or assistant service was deployed for 5.4.
   Research with sources, Explain in context, Draft a live reply, or Draft a
   follow-up email. It opens the reviewed AI handoff and never places evidence
   in a provider URL or submits a prompt.
-- **Email follow-up** opens the user's default mail handler with a local
-  evidence brief, no recipients, and no automatic send.
+- **Email follow-up** opens a reviewed draft in the user's saved Outlook work
+  or school, Outlook.com personal, Gmail, or browser/default email destination.
+  Recipients remain blank and nothing is sent automatically.
 - DAF-TECH parent branding and the reviewed sphere asset remain.
 - Packaged language catalogs remain uncertified AI-assisted previews with
   English fallback and a privacy-preserving correction form.

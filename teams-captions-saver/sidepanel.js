@@ -54,13 +54,19 @@
     let polling = false;
     let transcriptSignature = '';
     let enterprisePolicy = {};
+    let enterpriseLocked = new Set();
     let scrubOptions = {};
     let onTheFlyEvidence = null;
 
     async function refreshEnterprisePolicy() {
-        const user = await chrome.storage.sync.get(['profanityFilterEnabled', 'customScrubTerms']);
+        const user = await chrome.storage.sync.get([
+            'privacyScrubberEnabled', 'profanityFilterEnabled', 'customScrubTerms',
+            'aiSummaryProviders', 'onTheFlyAiDestination', 'chatgptWorkspaceUrl', 'claudeWorkspaceUrl',
+            'claudeConsoleUrl', 'webmailDestination'
+        ]);
         const policy = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
         enterprisePolicy = policy.settings;
+        enterpriseLocked = new Set(policy.locked);
         scrubOptions = {
             profanityFilterEnabled: !!enterprisePolicy.profanityFilterEnabled,
             customTerms: enterprisePolicy.customScrubTerms || []
@@ -270,6 +276,67 @@
         if (!onTheFlyEvidence) return;
         elements.onTheFlyEvidence.textContent = `${onTheFlyEvidence.evidenceId} · ${onTheFlyEvidence.time} · ${onTheFlyEvidence.speaker}\n“${onTheFlyEvidence.text}”`;
         elements.onTheFlyDialog.showModal();
+    }
+
+    function buildOnTheFlyPrompt(taskId, question = '') {
+        const prompt = CaptionKeepAiTasks.buildPrompt({
+            taskId,
+            question,
+            meetingTitle: currentContext?.meetingTitle || 'Meeting',
+            providerLabel: currentContext?.providerLabel || 'Meeting platform',
+            evidence: [onTheFlyEvidence]
+        });
+        const scrub = enterprisePolicy.privacyScrubberEnabled !== false || enterprisePolicy.forceScrubbedExport;
+        return scrub ? CaptionKeepPrivacyScrubber.scrub(prompt, scrubOptions).text : prompt;
+    }
+
+    function preferredAiDestination() {
+        const configured = Array.isArray(enterprisePolicy.aiSummaryProviders)
+            ? enterprisePolicy.aiSummaryProviders
+            : [];
+        const preferred = enterprisePolicy.onTheFlyAiDestination;
+        if (!preferred && !configured.length && enterpriseLocked.has('aiSummaryProviders')) {
+            throw new Error('Your organization has not enabled an AI destination.');
+        }
+        const provider = preferred || configured[0] || 'chatgpt';
+        const destination = CaptionKeepDestinations.resolve(provider, enterprisePolicy);
+        if (!destination) throw new Error('Choose an AI destination in Settings.');
+        return destination;
+    }
+
+    async function runQuickAiTask(taskId) {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        if (enterprisePolicy.disableClipboard) throw new Error('Clipboard actions are disabled by your organization.');
+        if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
+        const destination = preferredAiDestination();
+        const prompt = buildOnTheFlyPrompt(taskId);
+        await navigator.clipboard.writeText(prompt);
+        await chrome.tabs.create({url:destination.url});
+        clearOnTheFly();
+        setStatus(`${CaptionKeepAiTasks.task(taskId).label} copied and ${destination.name} opened. Paste, review, and send when ready.`);
+    }
+
+    async function openOnTheFlyEmail() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableEvidenceEmail) throw new Error('Evidence email is disabled by your organization.');
+        if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
+        const rawSubject = `Follow-up: ${currentContext?.meetingTitle || 'Meeting'}`;
+        const rawBody = [
+            'Follow-up from the meeting:',
+            '',
+            `[${onTheFlyEvidence.evidenceId}] ${onTheFlyEvidence.time} — ${onTheFlyEvidence.speaker}`,
+            onTheFlyEvidence.text,
+            '',
+            'Review this draft, add recipients, and edit before sending.'
+        ].join('\n');
+        const scrub = enterprisePolicy.privacyScrubberEnabled !== false || enterprisePolicy.forceScrubbedExport;
+        const subject = scrub ? CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions).text : rawSubject;
+        const body = scrub ? CaptionKeepPrivacyScrubber.scrub(rawBody, scrubOptions).text : rawBody;
+        const destination = CaptionKeepWebMail.compose(enterprisePolicy.webmailDestination || 'outlook_work', {subject, body});
+        await chrome.tabs.create({url:destination.url});
+        clearOnTheFly();
+        setStatus(`Draft opened in ${destination.name}. Add recipients, review, and send when ready.`);
     }
 
     async function prepareOnTheFly() {
@@ -535,10 +602,9 @@
         const body = markdown.length > 12000
             ? `${markdown.slice(0, 12000)}\n\n[Brief shortened for email. Attach the saved Markdown for the complete evidence board.]`
             : markdown;
-        const link = document.createElement('a');
-        link.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        link.click();
-        setStatus('Follow-up opened in your default mail app. Review the brief and choose recipients before sending.');
+        const destination = CaptionKeepWebMail.compose(enterprisePolicy.webmailDestination || 'outlook_work', {subject, body});
+        await chrome.tabs.create({url:destination.url});
+        setStatus(`Follow-up opened in ${destination.name}. Review the brief and choose recipients before sending.`);
     }
 
     async function downloadBundle() {
@@ -590,6 +656,12 @@
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
     elements.clearOnTheFly.addEventListener('click', clearOnTheFly);
     elements.reviewOnTheFly.addEventListener('click', openOnTheFlyDialog);
+    elements.onTheFlyBar.addEventListener('click', event => {
+        const quickTask = event.target.closest('button[data-quick-task]')?.dataset.quickTask;
+        if (!quickTask) return;
+        const action = quickTask === 'email' ? openOnTheFlyEmail() : runQuickAiTask(quickTask);
+        void action.catch(error => setStatus(error.message));
+    });
     elements.cancelOnTheFly.addEventListener('click', () => elements.onTheFlyDialog.close());
     elements.prepareOnTheFly.addEventListener('click', () => void prepareOnTheFly().catch(error => setStatus(error.message)));
     elements.enableLiveCaptions.addEventListener('click', () => void runMeetingControl('enable_live_captions', 'Requesting live captions…').catch(error => setStatus(error.message)));

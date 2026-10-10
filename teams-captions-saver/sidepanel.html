@@ -12,6 +12,8 @@
     <script src="privacyScrubber.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
     <script src="aiTaskFramework.js" defer></script>
+    <script src="aiDestinations.js" defer></script>
+    <script src="webMailDestinations.js" defer></script>
     <script src="sidepanel.js" defer></script>
 </head>
 <body>
@@ -63,13 +65,19 @@
                 <img src="icons/on-the-fly-orb.png" alt="" width="72" height="72">
                 <div>
                     <h2 id="on-the-fly-heading">On the Fly</h2>
-                    <p>Select words in any captured caption, or use a whole caption. Review exactly what will be shared, then use the AI workspace or connected BYOAI your organization already provides.</p>
+                    <p>Select meeting words, then research, explain, reply, or open a follow-up in webmail. Use Review/edit only when you need more control.</p>
                 </div>
             </section>
             <div id="on-the-fly-bar" class="instant-research-bar" hidden>
                 <div><strong id="on-the-fly-label">Selected meeting text</strong><span id="on-the-fly-preview"></span></div>
-                <button id="clear-on-the-fly" type="button">Clear</button>
-                <button id="review-on-the-fly" class="primary" type="button">Choose task</button>
+                <div class="on-the-fly-quick-actions" aria-label="On the Fly actions">
+                    <button class="primary" type="button" data-quick-task="research">Research</button>
+                    <button type="button" data-quick-task="explain">Explain</button>
+                    <button type="button" data-quick-task="draft_reply">Reply</button>
+                    <button type="button" data-quick-task="email">Email</button>
+                    <button id="review-on-the-fly" type="button">Review/edit</button>
+                    <button id="clear-on-the-fly" class="text-button" type="button">Clear</button>
+                </div>
             </div>
             <div class="mark-controls">
                 <select id="marker-kind" aria-label="Marker type"></select>

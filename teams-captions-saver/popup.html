@@ -803,6 +803,28 @@
             </div>
             <p class="small-info-text" id="aiProviderHint" style="display: none;">Review the prompt locally before copying or sharing it. Long transcripts are marked when truncated.</p>
             <p class="small-info-text" id="enterpriseDestinationHint" style="display: none;">Optional: save approved ChatGPT, Claude, and Anthropic Console workspace URLs. Microsoft Copilot opens its official Microsoft 365 chat URL. Always confirm the active organization before pasting.</p>
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                <label for="onTheFlyAiDestination" class="setting-label">On the Fly AI opens</label>
+                <select id="onTheFlyAiDestination">
+                    <option value="chatgpt">ChatGPT — chatgpt.com</option>
+                    <option value="claude">Claude — claude.ai</option>
+                    <option value="copilot">Microsoft Copilot — m365.cloud.microsoft/chat</option>
+                    <option value="gemini">Gemini — gemini.google.com</option>
+                    <option value="claude_console">Claude Console — console.anthropic.com</option>
+                </select>
+                <p class="small-info-text">Used automatically by Research, Explain, and Reply. A saved enterprise ChatGPT or Claude workspace URL takes precedence.</p>
+            </div>
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                <label for="webmailDestination" class="setting-label">Follow-up email opens in</label>
+                <select id="webmailDestination">
+                    <option value="outlook_work">Outlook work or school — outlook.office.com</option>
+                    <option value="outlook_personal">Outlook.com personal — outlook.live.com</option>
+                    <option value="gmail">Gmail — mail.google.com</option>
+                    <option value="default">Browser/default email app</option>
+                </select>
+                <p class="small-info-text">On the Fly and Evidence Board email actions open a new reviewed draft. Recipients stay blank and nothing is sent automatically.</p>
+                <p class="small-info-text">Suggested sign-in pages: <a href="https://outlook.office.com/mail/" target="_blank" rel="noopener noreferrer">Outlook work or school</a> · <a href="https://outlook.live.com/mail/" target="_blank" rel="noopener noreferrer">Outlook.com</a> · <a href="https://mail.google.com/" target="_blank" rel="noopener noreferrer">Gmail</a></p>
+            </div>
             <div class="setting-item">
                 <label for="profanityFilterToggle" class="setting-label">Profanity filter</label>
                 <label class="toggle-switch"><input type="checkbox" id="profanityFilterToggle"><span class="slider"></span></label>

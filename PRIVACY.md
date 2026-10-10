@@ -24,7 +24,9 @@ For Verified Teams Transcript, authentication, basic-calendar discovery, meeting
 
 ## Optional BYOAI handoffs
 
-Better CaptionKeep uses a Bring Your Own AI (BYOAI) model. If the user enables AI handoff and selects providers, the extension opens an internal review page after a meeting ends. The page prepares short instructions, a complete local Markdown evidence file, and bounded numbered copy chunks, and shows caption coverage, size, and privacy mode before release. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
+Better CaptionKeep uses a Bring Your Own AI (BYOAI) model. If the user enables AI handoff and selects providers, the extension can open an internal review page after a meeting ends. The page prepares short instructions, a complete local Markdown evidence file, and bounded numbered copy chunks, and shows caption coverage, size, and privacy mode before release. During a meeting, On the Fly can instead copy a bounded cleaned prompt and open the user's saved AI workspace in one click. Better CaptionKeep does not paste or submit the AI prompt. Supported destinations include ChatGPT (OpenAI), Claude and Claude Console (Anthropic), Microsoft Copilot, and Gemini (Google).
+
+If the user explicitly chooses an Email action, Better CaptionKeep places the cleaned subject and body into the compose request for the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. For webmail, those values are included in the destination compose URL and therefore leave the extension for that mail provider. Recipients remain blank, and Better CaptionKeep does not send the message.
 
 The transcript prompt is not placed in a provider URL and is not automatically pasted or submitted. A temporary local copy is loaded into extension-page memory for review and then removed from extension storage. The user must explicitly copy it and paste or attach it in a provider workspace. Provider terms and privacy policies govern information the user submits there.
 
@@ -32,7 +34,7 @@ AI handoffs are optional. Better CaptionKeep warns users to verify that the open
 
 ## Local Evidence Board
 
-The optional Evidence Board stores user-created markers in browser local storage. A marker contains a snapshot of one captured caption, its speaker and timestamp when available, a stable evidence label, a user-selected category, and an optional user note. Markers do not alter the raw transcript and are not transmitted by Better CaptionKeep. The user can delete markers, copy an evidence brief, save it locally as Markdown or provenance JSON, or open a draft in the operating system's email handler. Better CaptionKeep does not select email recipients or send the message. An active-session provenance export can include the locally captured transcript and its SHA-256 fingerprint, so the user must review the destination before saving or sharing it.
+The optional Evidence Board stores user-created markers in browser local storage. A marker contains a snapshot of one captured caption, its speaker and timestamp when available, a stable evidence label, a user-selected category, and an optional user note. Markers do not alter the raw transcript and are not transmitted automatically. The user can delete markers, copy an evidence brief, save it locally as Markdown or provenance JSON, or explicitly open a draft in the saved webmail/default email destination. Better CaptionKeep does not select email recipients or send the message. An active-session provenance export can include the locally captured transcript and its SHA-256 fingerprint, so the user must review the destination before saving or sharing it.
 
 ## Privacy Scrubber
 

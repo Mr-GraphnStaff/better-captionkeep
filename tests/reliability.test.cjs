@@ -1657,6 +1657,17 @@ test('AI handoff requires workspace confirmation and supports saved enterprise d
     assert(script.includes('CaptionKeepPrivacyScrubber.scrub'));
     assert(!script.includes('const destinations ='));
 });
+test('On the Fly destinations are set once, sanitized, and available in Settings',()=>{
+    const configuration=read('configuration.js');const popup=read('popup.html');const popupScript=read('popup.js');
+    assert(configuration.includes("'onTheFlyAiDestination'"));
+    assert(configuration.includes("'webmailDestination'"));
+    assert(popup.includes('id="onTheFlyAiDestination"'));
+    assert(popup.includes('Outlook work or school — outlook.office.com'));
+    assert(popup.includes('Outlook.com personal — outlook.live.com'));
+    assert(popup.includes('Gmail — mail.google.com'));
+    assert(popupScript.includes('onTheFlyAiDestination:event.target.value'));
+    assert(popupScript.includes('webmailDestination:event.target.value'));
+});
 test('Privacy Scrubber is visible, defaults on, and guards unmasked copying',()=>{
     const popup=read('popup.html');const popupScript=read('popup.js');
     const handoff=read('handoff.html');const handoffScript=read('handoff.js');
@@ -1737,7 +1748,7 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanelScript.includes("typeof chrome.sidePanel.close === 'function'"));
     assert(sidepanelScript.includes('chrome.sidePanel.setOptions({enabled: false})'));
     assert(sidepanelScript.includes("crypto.subtle.digest('SHA-256'"));
-    assert(sidepanelScript.includes('mailto:?subject='));
+    assert(sidepanelScript.includes('CaptionKeepWebMail.compose'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions)'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions)'));
 });

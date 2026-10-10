@@ -31,7 +31,7 @@ Better CaptionKeep turns captions already displayed in Microsoft Teams, Google M
 
 **Bring Your Own AI (BYOAI)**
 
-Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly prepares a bounded, editable prompt from the exact words you selected. You review it, choose **Copy + open**, confirm the destination workspace, and decide whether to paste and send it there. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways; the 5.4 Store artifact claims only the reviewed workspace handoff that can be demonstrated today.
+Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly turns selected meeting words into one-click Research, Explain, Reply, or Email outcomes. AI actions copy a bounded prompt and open the user's saved AI workspace; the user still pastes, reviews, and sends. Email opens a prefilled, recipient-free draft in the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. **Review/edit** remains available when more control is needed. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways; the 5.4 Store artifact claims only the workspace handoff that can be demonstrated today.
 
 **What you get**
 
@@ -70,9 +70,9 @@ Separate quick-start buttons open Teams to Meet now or launch each provider's of
 
 The local Live Workspace keeps the live transcript and Evidence Board together beside the meeting. It lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
 
-Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, or an optional AI handoff. AI handoff is review-first: Better CaptionKeep prepares an editable prompt inside the extension and never puts transcript text in a provider URL, pastes it automatically, or submits it for the user.
+Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, an optional AI handoff, or a user-requested email draft. Better CaptionKeep never puts meeting text in an AI-provider URL, pastes into an AI workspace automatically, or submits for the user. When the user explicitly chooses Email, the cleaned draft subject and body are placed in the selected webmail compose URL or default mail-handler request; recipients remain blank and nothing is sent automatically.
 
-On the Fly turns highlighted meeting words or a whole caption into a bounded, source-linked task: research with sources, explain in context, draft a live reply, or draft a follow-up email. The user reviews the complete prompt, then chooses **Copy + open** for ChatGPT, Claude, Microsoft Copilot, or Gemini. Results stay in that AI workspace; the extension does not claim an automatic assistant return channel.
+On the Fly turns highlighted meeting words or a whole caption into a bounded, source-linked task. Research, Explain, and Reply copy the cleaned prompt and open the user's first saved AI destination in one click; the user pastes, reviews, and sends there. Email opens a recipient-free draft in the saved webmail destination. **Review/edit** opens the complete local prompt and provider chooser for exceptional cases. Results stay in the chosen external workspace; the extension does not claim an automatic assistant return channel.
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
@@ -204,8 +204,8 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 3. Speak a short synthetic phrase and confirm capture activity in the popup.
 4. Open the transcript viewer; search, copy, and export the phrase as TXT or Markdown.
 5. Open the Evidence Board, mark a caption, and verify its source-linked brief without modifying the transcript.
-6. Confirm Privacy Scrubber is enabled by default. Optional AI handoff must stop on the internal review page until the reviewer explicitly copies text.
-7. In the live transcript, highlight synthetic caption words and choose On the Fly. Verify the task dialog and handoff page show only the bounded evidence, then verify **Copy + open** copies but does not paste or submit the prompt.
+6. Confirm Privacy Scrubber is enabled by default. In Settings, choose an AI destination and Outlook work or school, Outlook.com personal, Gmail, or the browser/default email app for follow-up drafts.
+7. In the live transcript, highlight synthetic caption words. Verify Research, Explain, and Reply copy a bounded cleaned prompt and open the saved AI workspace without pasting or submitting it. Verify Email opens a recipient-free webmail draft, and Review/edit opens the complete local prompt and provider chooser.
 8. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
 9. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Open All Settings, enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
 

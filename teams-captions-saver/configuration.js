@@ -6,8 +6,8 @@
         'autoEnableCaptions', 'autoSaveOnEnd', 'defaultSaveFormat', 'saveAsType',
         'saveLocation', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees',
         'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled',
-        'customScrubTerms', 'aiSummaryProviders', 'chatgptWorkspaceUrl',
-        'claudeWorkspaceUrl', 'claudeConsoleUrl', 'timestampFormat',
+        'customScrubTerms', 'aiSummaryProviders', 'onTheFlyAiDestination', 'chatgptWorkspaceUrl',
+        'claudeWorkspaceUrl', 'claudeConsoleUrl', 'webmailDestination', 'timestampFormat',
         'filenamePattern', 'uiTheme', 'uiLocale'
     ]);
     const GRAPH_USER_KEYS = Object.freeze([
@@ -35,6 +35,8 @@
         defaultSaveFormat: new Set(['txt', 'md', 'docx']),
         saveAsType: new Set(['prompt', 'downloads', 'custom']),
         timestampFormat: new Set(['12hr', '24hr', 'relative']),
+        webmailDestination: new Set(['outlook_work', 'outlook_personal', 'outlook', 'gmail', 'default']),
+        onTheFlyAiDestination: ALLOWED_PROVIDERS,
         uiTheme: new Set(['captionkeep', 'light', 'midnight', 'system'])
     });
 
@@ -158,7 +160,9 @@
         if (Array.isArray(managed.allowedAiProviders)) {
             const allowed = new Set(managed.allowedAiProviders.filter(provider => ALLOWED_PROVIDERS.has(provider)));
             settings.aiSummaryProviders = (Array.isArray(settings.aiSummaryProviders) ? settings.aiSummaryProviders : []).filter(provider => allowed.has(provider));
+            if (!allowed.has(settings.onTheFlyAiDestination)) settings.onTheFlyAiDestination = [...allowed][0] || '';
             locked.add('aiSummaryProviders');
+            locked.add('onTheFlyAiDestination');
         }
         for (const key of ['chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl']) {
             if (typeof managed[key] === 'string' && managed[key].trim()) {

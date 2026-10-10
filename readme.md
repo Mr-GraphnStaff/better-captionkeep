@@ -42,8 +42,10 @@ does not make you buy or use a DAF-TECH AI service.
 - No required Better CaptionKeep account, paid tier, activation, or license key.
 - Source-linked Evidence Board markers preserve the exact caption behind a
   decision, action, question, risk, follow-up, or important moment.
-- On the Fly creates a bounded, reviewed task from selected meeting words;
-  Better CaptionKeep never pastes or submits it automatically.
+- On the Fly turns selected meeting words into quick Research, Explain, Reply,
+  or Email actions. A set-once preference chooses the AI workspace and Outlook
+  work/school, Outlook.com, Gmail, or default mail destination; Review/edit is
+  optional. Better CaptionKeep never pastes or submits an AI prompt or sends email.
 - Customer-owned Microsoft 365 and AI destinations remain under the user's or
   organization's existing identity, tenant, retention, and policy controls.
 - Managed policy, Intune profiles, local retention, privacy disclosures, SBOM,

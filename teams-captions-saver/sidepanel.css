@@ -130,7 +130,7 @@ button.primary { background: var(--ck-primary); color: #fff; border-color: var(-
     bottom: 8px;
     z-index: 2;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     align-items: center;
     margin-top: 8px;
@@ -144,6 +144,9 @@ button.primary { background: var(--ck-primary); color: #fff; border-color: var(-
 .instant-research-bar strong, .instant-research-bar span { display: block; }
 .instant-research-bar span { overflow: hidden; color: var(--ck-text-muted); text-overflow: ellipsis; white-space: nowrap; }
 .instant-research-bar button { width: auto; white-space: nowrap; }
+.on-the-fly-quick-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.on-the-fly-quick-actions button { flex: 1 0 auto; padding: 7px 9px; }
+.on-the-fly-quick-actions .text-button { flex: 0 0 auto; }
 .marker-list { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .marker-list li { padding: 10px; border: 1px solid var(--ck-border); border-radius: 9px; background: var(--ck-surface-soft); }
 .marker-list li.empty { color: var(--ck-text-muted); text-align: center; }
@@ -213,8 +216,8 @@ dialog form { padding: 16px; }
     .actions { grid-template-columns: 1fr; }
     .evidence-action-bar { grid-template-columns: 1fr auto; }
     .evidence-action-bar button:not(.text-button) { grid-column: 1 / -1; width: 100%; }
-    .instant-research-bar { grid-template-columns: 1fr auto; }
-    .instant-research-bar > div { grid-column: 1 / -1; }
+    .instant-research-bar { grid-template-columns: 1fr; }
+    .instant-research-bar > div { grid-column: 1; }
     .instant-research-bar .primary { width: auto; }
     .dialog-grid { grid-template-columns: 1fr; }
 }

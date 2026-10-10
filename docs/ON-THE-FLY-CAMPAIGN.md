@@ -27,9 +27,10 @@ Proof line:
 ## Product truth beneath the attitude
 
 - Highlight meeting words or choose a full caption.
-- Choose Research, Explain, Draft a live reply, or Draft a follow-up email.
-- Review the exact source-linked prompt inside Better CaptionKeep.
-- Explicitly copy and open the user's chosen AI workspace.
+- Choose Research, Explain, Reply, or Email directly from the compact action bar.
+- AI actions copy the cleaned source-linked prompt and open the saved workspace.
+- Email opens a recipient-free draft in the user's saved webmail destination.
+- Review/edit remains available without slowing the ordinary path.
 - Confirm the workspace, paste, review, and send there.
 - No DAF-TECH AI account or infrastructure is required. Connected BYOAI may use
   infrastructure the user or organization already owns, once its adapter is

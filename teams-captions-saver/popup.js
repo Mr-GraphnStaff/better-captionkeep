@@ -34,6 +34,8 @@ const UI_ELEMENTS = {
     chatgptWorkspaceUrl: document.getElementById('chatgptWorkspaceUrl'),
     claudeWorkspaceUrl: document.getElementById('claudeWorkspaceUrl'),
     claudeConsoleUrl: document.getElementById('claudeConsoleUrl'),
+    onTheFlyAiDestination: document.getElementById('onTheFlyAiDestination'),
+    webmailDestination: document.getElementById('webmailDestination'),
     timestampFormat: document.getElementById('timestampFormat'),
     filenamePattern: document.getElementById('filenamePattern'),
     filenamePreview: document.getElementById('filenamePreview'),
@@ -590,9 +592,11 @@ async function loadSettings() {
         'profanityFilterEnabled',
         'customScrubTerms',
         'aiSummaryProviders',
+        'onTheFlyAiDestination',
         'chatgptWorkspaceUrl',
         'claudeWorkspaceUrl',
         'claudeConsoleUrl',
+        'webmailDestination',
         'timestampFormat',
         'filenamePattern',
         'uiTheme',
@@ -661,6 +665,15 @@ async function loadSettings() {
     if (UI_ELEMENTS.chatgptWorkspaceUrl) UI_ELEMENTS.chatgptWorkspaceUrl.value = settings.chatgptWorkspaceUrl || '';
     if (UI_ELEMENTS.claudeWorkspaceUrl) UI_ELEMENTS.claudeWorkspaceUrl.value = settings.claudeWorkspaceUrl || '';
     if (UI_ELEMENTS.claudeConsoleUrl) UI_ELEMENTS.claudeConsoleUrl.value = settings.claudeConsoleUrl || '';
+    if (UI_ELEMENTS.onTheFlyAiDestination) {
+        UI_ELEMENTS.onTheFlyAiDestination.value = settings.onTheFlyAiDestination || 'chatgpt';
+        UI_ELEMENTS.onTheFlyAiDestination.disabled = locked.has('onTheFlyAiDestination');
+    }
+    if (UI_ELEMENTS.webmailDestination) {
+        UI_ELEMENTS.webmailDestination.value = settings.webmailDestination === 'outlook'
+            ? 'outlook_work'
+            : (settings.webmailDestination || 'outlook_work');
+    }
     for (const [key, input] of [['chatgptWorkspaceUrl', UI_ELEMENTS.chatgptWorkspaceUrl], ['claudeWorkspaceUrl', UI_ELEMENTS.claudeWorkspaceUrl], ['claudeConsoleUrl', UI_ELEMENTS.claudeConsoleUrl]]) {
         if (input && locked.has(key)) input.disabled = true;
     }
@@ -887,6 +900,12 @@ function setupEventListeners() {
     if (UI_ELEMENTS.chatgptWorkspaceUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.chatgptWorkspaceUrl, 'chatgpt', 'chatgptWorkspaceUrl');
     if (UI_ELEMENTS.claudeWorkspaceUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.claudeWorkspaceUrl, 'claude', 'claudeWorkspaceUrl');
     if (UI_ELEMENTS.claudeConsoleUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.claudeConsoleUrl, 'claude_console', 'claudeConsoleUrl');
+    UI_ELEMENTS.onTheFlyAiDestination?.addEventListener('change', event => {
+        chrome.storage.sync.set({onTheFlyAiDestination:event.target.value});
+    });
+    UI_ELEMENTS.webmailDestination?.addEventListener('change', event => {
+        chrome.storage.sync.set({webmailDestination:event.target.value});
+    });
 
     UI_ELEMENTS.timestampFormat.addEventListener('change', (e) => {
         chrome.storage.sync.set({ timestampFormat: e.target.value });

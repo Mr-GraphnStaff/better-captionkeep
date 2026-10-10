@@ -4,7 +4,7 @@
 
 Privacy Scrubber is enabled by default and can mask supported sensitive patterns before copy, export, or an optional AI handoff. The original saved transcript remains unchanged. A scrubbed derivative can still contain sensitive context, and pattern matching is not a compliance guarantee or a replacement for organizational review.
 
-AI handoff is review-first. Better CaptionKeep prepares material inside the extension; it does not place transcript text in a provider URL, paste automatically, or submit for the user. Opening an external AI workspace and transferring reviewed material remain explicit user actions subject to the organization's policy.
+AI handoff is user-directed. On the Fly can copy a bounded cleaned prompt and open the saved AI workspace in one click; it does not place transcript text in an AI-provider URL, paste automatically, or submit for the user. Review/edit remains available for a full local review. When the user explicitly chooses Email, the cleaned subject and body are placed in the saved webmail compose URL or default mail-handler request. Recipients remain blank, and nothing is sent automatically.
 
 ## Local caption capture
 

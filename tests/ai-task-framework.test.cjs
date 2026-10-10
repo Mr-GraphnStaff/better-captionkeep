@@ -27,21 +27,43 @@ test('On the Fly bounds evidence and rejects an empty selection', () => {
     assert.throws(() => tasks.buildPrompt({evidence: []}), /Select meeting words/);
 });
 
-test('On the Fly UI uses the reviewed local handoff and never places a prompt in a provider URL', () => {
+test('On the Fly offers one-click outcomes plus optional review and never places a prompt in an AI provider URL', () => {
     const panel = fs.readFileSync(path.join(root, 'teams-captions-saver', 'sidepanel.js'), 'utf8');
+    const panelHtml = fs.readFileSync(path.join(root, 'teams-captions-saver', 'sidepanel.html'), 'utf8');
     const handoff = fs.readFileSync(path.join(root, 'teams-captions-saver', 'handoff.js'), 'utf8');
     const destinations = fs.readFileSync(path.join(root, 'teams-captions-saver', 'aiDestinations.js'), 'utf8');
     assert.match(panel, /mode: 'on_the_fly'/);
-    assert.match(panel, /Nothing is sent until you choose to copy it/);
+    for (const task of ['research', 'explain', 'draft_reply', 'email']) {
+        assert.match(panelHtml, new RegExp(`data-quick-task="${task}"`));
+    }
+    assert.match(panelHtml, />Review\/edit</);
+    assert.match(panel, /navigator\.clipboard\.writeText\(prompt\)/);
+    assert.match(panel, /chrome\.tabs\.create\(\{url:destination\.url\}\)/);
     assert.match(handoff, /navigator\.clipboard\.writeText\(promptBox\.value\)/);
     assert.match(handoff, /Confirm the active workspace before attaching or pasting/);
     assert.doesNotMatch(destinations, /[?&](prompt|q|text)=/);
 });
 
-test('follow-up uses the default mail handler and requires recipient review', () => {
+test('follow-up opens the saved webmail destination and requires recipient review', () => {
     const panel = fs.readFileSync(path.join(root, 'teams-captions-saver', 'sidepanel.js'), 'utf8');
-    assert.match(panel, /mailto:\?subject=/);
+    const popup = fs.readFileSync(path.join(root, 'teams-captions-saver', 'popup.html'), 'utf8');
+    assert.match(panel, /CaptionKeepWebMail\.compose/);
+    assert.match(popup, /id="onTheFlyAiDestination"/);
+    assert.match(popup, /id="webmailDestination"/);
     assert.match(panel, /choose recipients before sending/);
+});
+
+test('webmail destinations create reviewed drafts with no recipient', () => {
+    const webmail = require(path.join(root, 'teams-captions-saver', 'webMailDestinations.js'));
+    const outlook = webmail.compose('outlook_work', {subject:'Follow-up', body:'Evidence'});
+    const outlookPersonal = webmail.compose('outlook_personal', {subject:'Follow-up', body:'Evidence'});
+    const gmail = webmail.compose('gmail', {subject:'Follow-up', body:'Evidence'});
+    const fallback = webmail.compose('default', {subject:'Follow-up', body:'Evidence'});
+    assert.match(outlook.url, /^https:\/\/outlook\.office\.com\/mail\/deeplink\/compose\?/);
+    assert.match(outlookPersonal.url, /^https:\/\/outlook\.live\.com\/mail\/0\/deeplink\/compose\?/);
+    assert.match(gmail.url, /^https:\/\/mail\.google\.com\/mail\/\?/);
+    assert.match(fallback.url, /^mailto:\?/);
+    for (const result of [outlook, outlookPersonal, gmail, fallback]) assert.doesNotMatch(result.url, /(?:^|[?&])to=/);
 });
 
 test('Privacy Scrubber includes the optional On the Fly question', () => {
