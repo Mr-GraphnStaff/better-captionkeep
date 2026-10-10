@@ -6,10 +6,10 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Last Updated: 2026-10-10
 
-> Development metadata version: **5.4.0**. This value initializes the
-> `release/5.4` validation contract; it is not evidence that 5.4.0 was uploaded,
-> submitted, approved, or published. The public and pending Store versions
-> remain recorded in the repository and Wiki release-status pages.
+> Frozen metadata version: **5.4.0**. Azure Store Release run 716 submitted the
+> verified package on October 10, 2026. Chrome accepted it for review and Edge
+> accepted it for certification; neither response is evidence that 5.4.0 is
+> publicly available.
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -27,7 +27,7 @@ Local Teams, Meet, and Zoom transcripts with source-linked evidence and BYOAI—
 
 **Detailed Description**
 
-Better CaptionKeep turns captions already displayed in Microsoft Teams, Google Meet, and Zoom Web into a private, searchable transcript and source-linked meeting evidence. It does not add a meeting bot, record microphone or video, or require a Better CaptionKeep account.
+Better CaptionKeep is a private meeting note taker and live transcript tool for Microsoft Teams captions, Google Meet transcription, and Zoom Web transcripts. It turns captions already displayed in the meeting into searchable notes and source-linked evidence. It does not add a meeting bot, record microphone or video, or require a Better CaptionKeep account.
 
 **Bring Your Own AI (BYOAI)**
 
@@ -189,7 +189,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.4.0 | 2026-10-10 | Development: localization previews, explicit meeting-source controls, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Development candidate; not uploaded or submitted |
+| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Frozen and submitted: Chrome `PENDING_REVIEW`; Edge accepted for certification; not yet verified public |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
@@ -224,9 +224,11 @@ No developer-operated server, paid subscription, microphone recording, video rec
 
 ### Submission Gate
 
-- Chrome and Edge live UAT, customer-owned Entra setup, `Calendars.ReadBasic` tenant consent, independent review, and the unchanged 48-hour candidate window remain mandatory.
+- Chrome and Edge live UAT, customer-owned Entra setup, `Calendars.ReadBasic` tenant consent, independent review, and the unchanged 48-hour candidate window are normal release gates. For 5.4.0, the product owner accepted UAT and explicitly authorized an early release; the shortened observation window is recorded as an exception, not a completed gate.
 - Upload and publication require explicit release-owner authorization. A successful build does not grant it.
 
 ### Submission History
 
 Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome Web Store publicly listed version 5.3.2 as updated October 6, 2026. Installed-upgrade verification remains separate evidence.
+
+Azure Store Release run 716 submitted the immutable 5.4.0 packages on October 10, 2026. Chrome accepted the update for review with state `PENDING_REVIEW`; Microsoft accepted the Edge update for certification after the submission operation returned `Succeeded`. Public listing and installed-upgrade verification remain open.
