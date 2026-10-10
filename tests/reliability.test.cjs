@@ -1650,7 +1650,7 @@ test('connected-assistant configuration is absent from the release extension',()
 });
 test('AI handoff requires workspace confirmation and supports saved enterprise destinations',()=>{
     const html=read('handoff.html');const script=read('handoff.js');
-    assert(html.includes('Confirm the destination workspace'));
+    assert(html.includes('Confirm your BYOAI destination'));
     assert(script.includes('Saved enterprise destination'));
     assert(script.includes('Confirm the active workspace before attaching or pasting'));
     assert(html.includes('privacyScrubber.js'));

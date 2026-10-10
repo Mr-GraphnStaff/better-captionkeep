@@ -10,6 +10,12 @@ Better CaptionKeep should present one AI experience for every provider-neutral
 AI task. Ordinary users must not deploy Azure resources, run an MCP server,
 install a native bridge, enter an API endpoint, or obtain an API key.
 
+**BYOAI is the umbrella, not merely the browser-workspace adapter.** A user or
+organization may bring an existing AI web workspace, an on-device model, or a
+customer-owned hosted assistant/gateway. The unifying rule is that CaptionKeep
+does not force a DAF-TECH model account or service. The owner of the AI chooses
+its identity, provider, hosting, retention, tools, and cost boundary.
+
 The default path is **Use my AI**: the extension prepares a bounded, reviewed
 prompt, copies it only after an explicit user action, and opens the user's
 chosen AI workspace. The user remains signed in through the provider's normal
@@ -29,6 +35,10 @@ The user makes one choice in Settings:
 - **On-device only:** never release meeting text to an external AI provider.
 - **Use my AI:** always use the selected ChatGPT, Claude, Copilot, Gemini, or
   other supported workspace adapter.
+- **Connected BYOAI:** use a user- or organization-owned assistant/gateway after
+  its adapter, authentication, permissions, disclosure, and return contract
+  pass live validation. This may be Azure OpenAI, OpenAI, Anthropic, Bedrock,
+  Vertex AI, Microsoft Foundry, or a governed internal/MCP-backed service.
 - **Organization managed:** an administrator selects the allowed execution
   modes and destinations through browser policy.
 - **Off:** disable all AI actions without affecting capture, Evidence Board,
@@ -149,23 +159,24 @@ workspace. Returning a cited answer automatically to the Evidence panel is a
 different capability and must not be promised until a real API-backed service
 or governed enterprise gateway exists.
 
-## Optional automatic-return path
+## Connected BYOAI and optional automatic return
 
-Automatic return uses the same task and result contracts but requires a real
-backend. It is optional and never required for core extension use.
+Connected assistance is part of BYOAI. Automatic return uses the same task and
+result contracts but requires a real customer- or user-owned backend. It is
+optional and never required for core extension use.
 
-- **DAF-TECH service:** a narrowly scoped hosted service can provide a small
-  free research allowance without asking users to deploy anything.
+- **User-hosted assistant:** an individual may connect infrastructure they
+  already operate, subject to a supported adapter and explicit disclosure.
 - **Organization gateway:** an enterprise may route tasks to Anthropic,
   OpenAI, Azure OpenAI, Microsoft Foundry, Amazon Bedrock, Google Vertex AI,
   or an approved internal gateway.
 - **MCP:** if used, it lives behind the gateway as a tool/data connector. It is
   not the model, authentication method, or user-facing destination.
 
-Provider credentials stay on the gateway. They are never stored in the
-extension or placed in Store packages. Anthropic's API organization identifier
-does not replace an API credential; Claude Team/Enterprise workspace seats and
-Anthropic API Console access are separate integration paths.
+Provider credentials stay on the connected gateway. They are never placed in
+Store packages. Anthropic's API organization identifier does not replace an API
+credential; Claude Team/Enterprise workspace seats and Anthropic API Console
+access are separate integration paths.
 
 ## Common request and result contracts
 

@@ -16,6 +16,14 @@ Product line:
 
 **Select it. Research it. Keep the evidence.**
 
+Master product position:
+
+**Bring your AI. Keep your control.**
+
+Proof line:
+
+**We don't sell you an AI. We help you use yours.**
+
 ## Product truth beneath the attitude
 
 - Highlight meeting words or choose a full caption.
@@ -23,8 +31,10 @@ Product line:
 - Review the exact source-linked prompt inside Better CaptionKeep.
 - Explicitly copy and open the user's chosen AI workspace.
 - Confirm the workspace, paste, review, and send there.
-- No publisher AI account, Azure MCP, extension API key, automatic paste,
-  automatic send, or fabricated return channel.
+- No DAF-TECH AI account or infrastructure is required. Connected BYOAI may use
+  infrastructure the user or organization already owns, once its adapter is
+  configured and validated.
+- No automatic paste, automatic send, or fabricated return channel.
 
 ## Visual system
 
@@ -41,3 +51,29 @@ Primary assets:
 - `store-assets/5.4/04-reviewed-ai-handoff.png`
 - `store-assets/5.4/small-promotional-tile.png`
 - `store-assets/5.4/large-promotional-tile.png`
+
+## Complete feature proof
+
+- Microsoft Teams, Google Meet, and Zoom Web displayed-caption capture.
+- Explicit live captions, Teams attendee panel, and Teams transcription actions.
+- Local history, recovery, full-text search, aliases, corrections, and terminology.
+- Source-linked Evidence Board markers and provenance exports.
+- On the Fly research, explanation, live-reply, and follow-up tasks.
+- Reviewed BYOAI handoff to ChatGPT, Claude, Copilot, and Gemini.
+- Unified BYOAI framework for web workspaces, on-device AI, and optional
+  customer-owned hosted assistants or gateways.
+- Privacy Scrubber and managed disclosure controls.
+- TXT, Markdown, DOCX, Print/PDF, provenance JSON, and evidence briefs.
+- SRT/VTT only when an official source includes real cue timing.
+- Reviewed meeting-chat/shared-link snapshots and active-tab screenshots.
+- Feature-detected on-device translation without silent cloud fallback.
+- Optional customer-owned Microsoft 365 official-transcript import.
+- Managed policy, Intune profiles, retention controls, SBOM, and release provenance.
+
+## Competitive difference
+
+The campaign does not claim that Better CaptionKeep is the only local or
+bot-free product. It leads with the combined boundary the verified source can
+prove: displayed-caption minimization, no required account or paid tier,
+source-linked evidence, reviewed BYOAI, customer-owned destinations, managed
+enterprise controls, and no publisher-operated transcript or AI service.

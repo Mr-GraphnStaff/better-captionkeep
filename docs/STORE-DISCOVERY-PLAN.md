@@ -41,8 +41,8 @@ Its truthful search vocabulary is:
 
 - Primary: live meeting transcript; meeting captions; Microsoft Teams;
   Google Meet; Zoom Web.
-- Differentiator: source-linked evidence; local transcript; manual evidence
-  markers; no meeting bot.
+- Differentiator: Bring Your Own AI; source-linked evidence; local transcript;
+  manual evidence markers; no meeting bot; no required account or AI subscription.
 - Enterprise proof: managed browser policy; customer-owned Microsoft 365 and
   AI handoff; explicit meeting controls; reviewed export.
 
@@ -58,8 +58,8 @@ Better CaptionKeep — Live Meeting Transcript
 
 **Summary**
 
-Local live meeting transcripts for Teams, Google Meet, and Zoom, with
-source-linked evidence markers and explicit capture controls.
+Local Teams, Meet, and Zoom transcripts with source-linked evidence and
+BYOAI—no bot, account, or AI subscription.
 
 **Category**
 
@@ -76,12 +76,12 @@ privacy and enterprise controls—not a long architecture preamble.
    Teams, Google Meet, and Zoom Web support.
 2. **Nothing starts until you choose it.** The visible caption, attendee, and
    Teams transcript controls with their status states.
-3. **Mark the exact words.** A source-linked Evidence Board marker created from
-   a real transcript excerpt.
-4. **Build a reviewed evidence brief.** The local Evidence Board and explicit
-   copy, download, email-draft, and bundle controls.
-5. **Your browser. Your tenant. Your controls.** Local storage, managed policy,
-   and optional customer-owned Microsoft 365 and reviewed AI handoff.
+3. **Select it. Research it. Keep the evidence.** On the Fly begins with exact,
+   source-linked meeting words.
+4. **Your AI. Your final click.** Review the complete prompt before Copy + open;
+   nothing is pasted or submitted automatically.
+5. **Bring your AI. Keep your control.** No required CaptionKeep account,
+   DAF-TECH AI subscription, meeting bot, or publisher transcript cloud.
 
 Every screenshot must use synthetic meeting content, actual current UI, a
 single visual system, large readable headings, and no more than one main claim.

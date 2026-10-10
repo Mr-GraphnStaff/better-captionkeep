@@ -23,11 +23,42 @@ Better CaptionKeep — Live Meeting Transcript
 
 **Short Description**
 
-Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked evidence you control.
+Local Teams, Meet, and Zoom transcripts with source-linked evidence and BYOAI—no bot, account, or AI subscription.
 
 **Detailed Description**
 
-Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. Opening the extension does not change the meeting. The user explicitly enables live captions from Live Workspace; Teams attendee capture and Microsoft 365 transcription each have their own visible action. The interface clearly distinguishes the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
+Better CaptionKeep turns captions already displayed in Microsoft Teams, Google Meet, and Zoom Web into a private, searchable transcript and source-linked meeting evidence. It does not add a meeting bot, record microphone or video, or require a Better CaptionKeep account.
+
+**Bring Your Own AI (BYOAI)**
+
+Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly prepares a bounded, editable prompt from the exact words you selected. You review it, choose **Copy + open**, confirm the destination workspace, and decide whether to paste and send it there. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways; the 5.4 Store artifact claims only the reviewed workspace handoff that can be demonstrated today.
+
+**What you get**
+
+- Live Workspace side panel for Teams, Google Meet, and Zoom Web.
+- Explicit controls: nothing enables captions, opens the Teams attendee panel, or requests a Teams transcript until you choose it.
+- Local transcript history, interruption recovery, full-text search, speaker aliases, corrections, and a local terminology dictionary.
+- Evidence Board markers for decisions, actions, questions, risks, follow-ups, and important moments, each tied to its source-caption ID.
+- On the Fly research, explanation, live-reply, and follow-up tasks using your chosen AI workspace.
+- Privacy Scrubber, on by default, for supported sensitive patterns before copy, export, or AI handoff.
+- TXT, Markdown, DOCX, Print/PDF, evidence-brief Markdown, and provenance JSON exports.
+- SRT and WebVTT when an imported official source contains real media cue timing.
+- User-reviewed loaded meeting-chat/shared-link snapshots and active-tab screenshots.
+- Feature-detected on-device translation with no silent cloud substitute.
+- Optional customer-owned Microsoft 365 transcript import through the organization's own single-tenant Entra application.
+- Managed browser policy, Intune deployment profiles, local retention controls, and documented release provenance.
+
+**Why it is different**
+
+- No meeting bot.
+- No required Better CaptionKeep account or paid feature tier.
+- No required DAF-TECH AI subscription or publisher-operated transcript cloud; optional connected BYOAI remains customer-owned.
+- No automatic prompt submission, chat posting, connector execution, or fabricated assistant return channel.
+- Displayed-caption minimization instead of broad microphone, tab-audio, system-audio, or video recording.
+- Source-linked evidence and immutable caption references instead of an untraceable AI summary.
+- Customer-controlled Microsoft 365 and AI destinations, with managed policy for organizational deployment.
+
+Opening the extension does not change the meeting. The user explicitly enables live captions from Live Workspace; Teams attendee capture and Microsoft 365 transcription each have their own visible action. The interface clearly distinguishes the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
 
 Every feature included in Better CaptionKeep is available to every user. There is no paid tier, subscription, activation, or license key. Organization-managed security settings and Microsoft authorization requirements can still control how features operate in a managed environment.
 

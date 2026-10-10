@@ -37,7 +37,9 @@ No Azure MCP or assistant service was deployed for 5.4.
 
 ## Explicitly excluded
 
-- Connected “Send to my assistant” or automatic assistant result return.
+- Connected BYOAI automatic result return in the 5.4 artifact. It remains part
+  of the unified framework but needs a validated customer-owned adapter,
+  authentication, permissions, disclosure, and return contract before shipping.
 - Assistant endpoint or native-host enrollment.
 - Automatic research or automatic return of cited results.
 - CaptionKeep MCP server or Azure MCP deployment.

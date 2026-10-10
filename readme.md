@@ -30,6 +30,25 @@ The viewer also exports SRT/WebVTT when a newly imported official Teams transcri
 
 Better CaptionKeep is a free, local-first transcript and meeting-evidence workspace for Microsoft Teams, Google Meet, and Zoom Web. It captures captions already displayed to the participant rather than recording microphone, tab, or system audio. Browser-local history, search, exports, Privacy Scrubber, Evidence Board, on-device translation where the browser supports it, and review-first AI handoff are available without an account, subscription, or publisher-operated transcript service.
 
+## Why Better CaptionKeep is different
+
+**Bring your AI. Keep your control.** Use the ChatGPT, Claude, Microsoft
+Copilot, or Gemini workspace you already have. The unified BYOAI framework also
+allows future validated adapters for on-device AI and user- or organization-
+owned hosted assistants, gateways, and MCP-backed tools. Better CaptionKeep
+does not make you buy or use a DAF-TECH AI service.
+
+- No meeting bot and no microphone, tab-audio, system-audio, or video recording.
+- No required Better CaptionKeep account, paid tier, activation, or license key.
+- Source-linked Evidence Board markers preserve the exact caption behind a
+  decision, action, question, risk, follow-up, or important moment.
+- On the Fly creates a bounded, reviewed task from selected meeting words;
+  Better CaptionKeep never pastes or submits it automatically.
+- Customer-owned Microsoft 365 and AI destinations remain under the user's or
+  organization's existing identity, tenant, retention, and policy controls.
+- Managed policy, Intune profiles, local retention, privacy disclosures, SBOM,
+  release provenance, and reproducible packages support enterprise review.
+
 Zoom Web has been a governed supported provider since the 5.1 line. Its tested subtitle overlay does not reliably expose speaker identity, so Better CaptionKeep records `Unknown speaker` instead of inventing attribution. Native Zoom desktop-client and system-audio capture are not supported.
 
 The 5.3 line introduces **Verified Teams Transcript**: a delegated Microsoft Graph experience that recognizes the active Teams meeting, shows up to five recent eligible Teams meetings, and retrieves a chosen official transcript into the standard viewer and private local history. Live Edge validation exposed that `5.3.1` hid Microsoft 365 in the Store build even though local Dev/UAT overlays passed. Version `5.3.2` is the controlled recovery: every organization supplies its own single-tenant Entra tenant ID and client ID through local setup or managed policy; Store packages contain no shared tenant identity. The Microsoft 365 setup remains visible, validates configuration before sign-in, and rejects tokens issued by any other tenant. See the [5.3.2 recovery record](docs/RELEASE-5.3.2.md), [Graph transcript connector record](docs/GRAPH-TRANSCRIPT-CONNECTOR.md), and [customer Entra registration runbook](docs/ENTRA-GRAPH-APP-REGISTRATION.md).
