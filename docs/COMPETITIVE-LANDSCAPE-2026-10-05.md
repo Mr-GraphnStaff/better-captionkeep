@@ -1,4 +1,4 @@
-# Browser-extension competitive landscape — October 5, 2026
+# Browser-extension competitive landscape — updated October 10, 2026
 
 Status: **point-in-time public-Store research and next-release decision input**.
 
@@ -11,6 +11,11 @@ as Better CaptionKeep source evidence.
 
 No competitor extension was installed, no account was created, and no meeting
 content was submitted during this review.
+
+The October 10 addendum below verifies additional Edge listings supplied by the
+product owner. Direct Edge pages were checked alongside matching Chrome Store,
+vendor-site, and wider-web evidence because the Edge catalog does not expose all
+listing detail reliably to search crawlers.
 
 ## Search boundary and method
 
@@ -80,6 +85,40 @@ similar extensions compete for meeting intelligence, translation, or recording.
 They are strategically relevant, but audio capture, cloud accounts, mobile sync,
 sales coaching, team workspaces, or broad video translation makes them less
 direct than caption-first transcript tools.
+
+## October 10 Edge-listing addendum
+
+| Product | Current public evidence | Competitive meaning | Classification |
+| --- | --- | --- | --- |
+| [OpenNoteTaker](https://microsoftedge.microsoft.com/addons/detail/meeting-recorder-ai-not/adfnhkmknajcfclcllekjihnncmheblf) | Edge lists the product at 5/5 from 2 ratings. Its [Chrome listing](https://chromewebstore.google.com/detail/meeting-recorder-ai-notes/jdcdmbjofjpalkidlefnbhbfcmcagcgn) and [product site](https://opennotetaker.app/) claim bot-free Meet, Zoom, Teams, and Tencent capture; on-device Whisper transcription and speaker separation; local summaries, search, and exports; no account for local features; and open source/self-hosting. Optional AI minutes, cross-library Q&A, and translation use paid backend credits. | This is the most strategically important new entrant. It now competes directly for the local-first, no-account, no-bot position and explains its architecture with unusually concrete privacy copy. Its audio capture provides broader coverage than displayed captions, while Better CaptionKeep retains a stronger evidence-provenance and managed-enterprise story. | **Direct** |
+| [MeetLive](https://microsoftedge.microsoft.com/addons/detail/meetlive-ai-meeting-note/kkennodgmjifilebjfeiliecocblfcdf) | The Edge listing is present with no ratings. Its [Chrome listing](https://chromewebstore.google.com/detail/meetlive-ai-meeting-notes/mbniongbpabplcbhdidamihcnmgielec) reports 16 users and 1 rating and claims rolling in-meeting notes, live transcript-grounded AI questions, follow-up drafting, translation, screenshots, templates, and a synced cloud workspace. Caption capture is text-only, while live translation streams audio during explicit use. | Its strongest lesson is not raw platform count; it is a coherent live-meeting panel that turns captured words into useful work before the call ends. This validates the On the Fly direction, but its cloud workspace and publisher AI are not the Better CaptionKeep trust model. | **Direct** |
+| [DBird Dual](https://microsoftedge.microsoft.com/addons/detail/dbird-dual-live-meeting-/acofojbkdlnnfakafoagjaikogcfkoad) | The current vendor page claims Teams, Zoom, and Meet; speaker-by-speaker bilingual captions; local browser translation; local transcripts; 30+ languages; 100 free translations per day; and a one-time paid upgrade. It says one-click AI summary sends transcript text for processing but does not retain it. | DBird remains the clearest live-translation UX benchmark. Its paired original/translation presentation, two-click activation, and plain pricing are worth matching in clarity, not by copying its unverified privacy superlatives. | **Direct** |
+| [MeetingHub](https://microsoftedge.microsoft.com/addons/detail/meetinghub-ai-meeting-re/ofaicdkdjhgefibcnbbofocgpkkpnlje) | Edge lists it with no ratings. Its [Chrome listing](https://chromewebstore.google.com/detail/meetinghub-ai-meeting-rec/fbfagiblphdfmgnokogeeebngjlgfkkc) reports 52 users and 2 ratings and claims capture across 19 browser meeting platforms, 100+ languages, uploaded tab/microphone audio, a cloud account, AI summaries, document uploads, cross-meeting chat, recurring-topic tracking, and team sharing. | The “19 platforms” claim comes from generic browser-audio recording rather than nineteen caption adapters. That breadth is real for users, but it carries recording-consent, audio-upload, retention, identity, and enterprise-review costs that Better CaptionKeep intentionally avoids. | **Adjacent recorder / intelligence hub** |
+| [Banafo](https://microsoftedge.microsoft.com/addons/detail/banafo-transcribe-rec/fkgojjjehknjckmjfepghlgjofepjncj) | Edge lists it with no ratings. Its [Chrome listing](https://chromewebstore.google.com/detail/banafo-transcribe-record/fimdehpmamnjanklbfejacbkomabdhdh) reports about 467 users and 2 ratings and claims recording of any browser conversation, cloud upload to a Banafo account, limited free transcription, synchronized manual notes, paid AI insights, and paid Google Drive export. | Banafo's broad meeting support is another result of generic audio capture. Synchronized personal notes are useful; the account, audio upload, cloud storage, and broad Store data disclosures make it a different procurement proposition. | **Adjacent recorder** |
+| [NoteMeet](https://microsoftedge.microsoft.com/addons/detail/notemeet-meeting-recorder/njjobhoojhpgimbmdleifbkoghncindb) | Edge lists it with no ratings. Its [Chrome listing](https://chromewebstore.google.com/detail/notemeet-meeting-recorder/iglooicboappkpddcinabadplpbkchfl) was last updated January 12, 2025 and claims Meet, Zoom, and Teams recording, real-time transcription, AI summaries, cloud storage, and sharing. | The offer is broad but generic and lightly evidenced. It is useful as category-language research, not as a product-design leader. | **Adjacent / lower-priority** |
+| [Work Hub for Teams](https://microsoftedge.microsoft.com/addons/detail/work-hub-for-teams/nlbnhijdmapeoephdniekfboafkgnkbc) | A third-party Edge-catalog snapshot reports roughly 3,000 installs, 4.2/5 from 8 ratings, and a March 2024 update. It is a compact standalone Teams web wrapper with always-on-top/sidebar behavior, notifications, and sharing—not a transcript, evidence, or AI note-taking product. Its published permission explanation includes broad request interception and all-sites access for its wrapper behavior. | There is no meeting-intelligence feature to copy. The only relevant idea is compact multitasking presentation; Better CaptionKeep already has a safer, purpose-built side panel and should not inherit this wrapper's broad permission model. | **Not a competitor** |
+
+### What changes after this addendum
+
+1. **Local-first is no longer an open position.** OpenNoteTaker now makes a
+   strong, specific, open-source claim to local audio, transcription, summary,
+   search, and export. Better CaptionKeep must lead with its different proof:
+   displayed-caption minimization, source-linked evidence, reviewed disclosure,
+   customer-owned destinations, managed policy, and release provenance.
+2. **On the Fly is competitively validated.** MeetLive's live transcript Q&A
+   and drafting make clear that users value answers during the meeting. Better
+   CaptionKeep should implement the reviewed provider-adapter flow without
+   implying an automatic assistant service or silently sending transcript text.
+3. **Do not chase platform-count headlines with audio capture.** MeetingHub and
+   Banafo cover many services because they record generic tab audio. Adding that
+   architecture would change Better CaptionKeep's permissions, consent model,
+   privacy disclosures, processing cost, and enterprise risk.
+4. **The marketing gap remains larger than the capability gap.** The strongest
+   listings tell a visual sequence—meeting detected, capture active, useful
+   result, export/share—and state platform breadth in the first sentence. The
+   Better CaptionKeep Store story should show its own sequence: explicit start,
+   live captions, source-linked Evidence Board, On the Fly review, and customer-
+   controlled export or AI handoff.
 
 ## Better CaptionKeep's verified source position
 
