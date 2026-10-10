@@ -1,6 +1,6 @@
-# Better CaptionKeep 5.4 development record
+# Better CaptionKeep 5.4 release record
 
-Status: **Development only; not uploaded, submitted, or published**
+Status: **Frozen and submitted; Store review/certification in progress**
 Last updated: 2026-10-10
 
 ## Release decision
@@ -13,6 +13,19 @@ workspace. Automatic research, result return, MCP, Research Cards, and
 connector execution remain outside the release.
 
 No Azure MCP or assistant service was deployed for 5.4.
+
+Production PR [#86](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/86)
+merged commit `515819599bcd0c9e3d6d97852d36ef3517e68ac8`. The immutable
+[GitHub release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v5.4.0)
+contains the Store ZIPs, checksums, provenance, SBOM, and attestations. Azure
+Store Release run **716** submitted the verified packages on October 10, 2026:
+
+- Chrome accepted 5.4.0 for review with state `PENDING_REVIEW`.
+- Microsoft accepted 5.4.0 for Edge certification.
+- Chrome ZIP SHA-256: `71B9E7A7BC504BEED19FE53A0B0E92CB2DB7E7CCB1E8BD1A30D7F0904291D39D`.
+- Edge ZIP SHA-256: `EF52646237380B6812091ABE90E9C8D7775879506C671DE7061E23CDAFF83CD7`.
+
+These are submission states, not proof that either Store publicly serves 5.4.0.
 
 ## Included development scope
 
@@ -50,7 +63,7 @@ No Azure MCP or assistant service was deployed for 5.4.
 
 ## Release gates
 
-5.4 cannot be promoted until all of the following are complete:
+The promotion decision used the following gates:
 
 1. The extension tests, validation, security audit, Store metadata check, and
    production package verification pass from the frozen candidate.
@@ -58,9 +71,17 @@ No Azure MCP or assistant service was deployed for 5.4.
    manual meeting controls, history, Evidence Board, exports, settings, and
    localization fallback.
 3. Store screenshots and descriptions show only verified shipping behavior.
-4. The candidate remains unchanged for at least 48 hours after live UAT.
+4. The candidate normally remains unchanged for at least 48 hours after live
+   UAT. The product owner explicitly authorized an early release on October 10;
+   this gate was shortened and is not represented as completed.
 5. The product owner records a written go/no-go decision before any Store
-   upload, submission, or publication.
+   upload, submission, or publication. That authorization and the exception
+   are recorded in PR #86, Azure run 716, and Azure Boards task #333.
+
+Automated validation, clean-profile Chrome and Edge UAT, Production checks,
+immutable package verification, and protected approval completed. Store
+approval, public availability, and existing-install upgrade smoke tests remain
+open and must not be inferred from a successful submission.
 
 ## Future research boundary
 

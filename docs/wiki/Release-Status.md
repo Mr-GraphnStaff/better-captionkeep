@@ -1,13 +1,13 @@
 # Release Status
 
-Last verified: **October 7, 2026**.
+Last verified: **October 10, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.3.2 public; installed upgrade pending | The public listing and Google's update service both serve 5.3.2. An existing 5.1.0 installation must still be observed upgrading and pass the production smoke test. |
-| Microsoft Edge Add-ons | 5.3.2 public; installed upgrade pending | Microsoft's public update service served the signed 5.3.2 CRX at 17:25 UTC on October 4. The upgrade from an existing 5.3.1 installation still requires verification. |
-| Frozen production release | 5.3.2 | Public in both Stores. GitHub release, hashes, SBOM, provenance, Store packages, PR checks, protected approval, and Store submissions are complete; installed-upgrade verification remains open. |
-| Active development release | 5.4.0 | Development began October 4 under the governed concurrent-release boundary. Scope is tracked in Azure Boards Epic #314 and the repository 5.4 development record. |
+| Chrome Web Store | 5.3.3 public; 5.4.0 in review | Azure Store Release run 716 submitted the verified 5.4.0 package. Google accepted it with state `PENDING_REVIEW`; this is not evidence of public availability. |
+| Microsoft Edge Add-ons | 5.3.3 public; 5.4.0 in certification | Azure Store Release run 716 submitted the verified 5.4.0 package. Microsoft accepted it for certification; this is not evidence of public availability. |
+| Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Store approval, public availability, and installed-upgrade verification remain open. |
+| Active development release | None | Version 5.4.0 is frozen at Production commit `515819599bcd0c9e3d6d97852d36ef3517e68ac8`. New product work must use a later development lane. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -36,15 +36,29 @@ Azure Boards bug **#297** tracks the critical recovery. The earlier live tenant 
 
 Azure run **619** completed the protected workflow on October 4, 2026. Edge returned a successful certification submission, and Microsoft's public update service independently served the signed production CRX for extension `edefcbdhahfolgkoamkbknjppojpaffk` at 17:25 UTC. On October 6, the Chrome listing began serving 5.3.2; Google's public update service independently returned version 5.3.2 with SHA-256 `fc4dc4a94e6e63660c35d3b5d8a043395450702dd27834b2e120bcfc6e245c10`. The release VM remains deallocated. Bug #297 remains active only for installed-upgrade and post-upgrade smoke-test evidence.
 
-## 5.4 development has started
+## 5.4.0 Store submission
 
-Version 5.4 development began October 4, 2026 without modifying the frozen
-5.3.2 artifacts. Its committed scope covers Canadian French and Spanish
-localization and translation readiness, managed language deployment,
-active-meeting reliability, production-defect remediation, and the permanent
-release controls created after the 5.3.1 incident. Azure Boards Epic **#314**
-is the lifecycle authority. See the repository's
-[5.4 development record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.4.md).
+Version 5.4.0 was frozen and published as an immutable GitHub release on
+October 10, 2026. Production PR
+[\#86](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/86) merged commit
+`515819599bcd0c9e3d6d97852d36ef3517e68ac8`. The Chrome Store ZIP SHA-256 is
+`71B9E7A7BC504BEED19FE53A0B0E92CB2DB7E7CCB1E8BD1A30D7F0904291D39D`; the
+Edge Store ZIP SHA-256 is
+`EF52646237380B6812091ABE90E9C8D7775879506C671DE7061E23CDAFF83CD7`.
+
+Azure run **716** downloaded and reverified those immutable assets, passed the
+protected Production approval, submitted Chrome for immediate publication
+after review, and submitted Edge for Microsoft certification. Chrome returned
+`PENDING_REVIEW`; the Edge certification submission operation returned
+`Succeeded`. Neither response means that 5.4.0 is public yet.
+
+The product owner accepted clean UAT and explicitly authorized an early
+full-pipeline release. The normal unchanged 48-hour observation window was
+shortened; the release record does not represent that gate as completed. Azure
+Boards Epic **#314**, release task **#333**, discovery task **#334**, and canary
+task **#304** remain the lifecycle authority. See the repository's
+[5.4 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.4.md)
+and [immutable GitHub release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v5.4.0).
 
 ## Release terminology
 
