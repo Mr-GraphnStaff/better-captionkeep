@@ -21,18 +21,48 @@
         .all-settings-copy strong { display: block; font-size: 1.05rem; }
         .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
         .all-settings-arrow { font-size: 1.5rem; }
-        html[data-view="settings"] body { width: min(100%, 960px); margin: 0 auto; padding: 28px; }
-        html[data-view="settings"] body > :not(.settings-container):not(#graphTranscriptSection):not(.brand):not(.settings-page-intro) { display: none !important; }
+        html[data-view="settings"] body { width: min(100%, 1180px); margin: 0 auto; padding: 28px; }
+        html[data-view="settings"] body > :not(.settings-container):not(.brand):not(.settings-page-intro) { display: none !important; }
         html[data-view="settings"] .settings-container { margin-top: 0; }
         html[data-view="settings"] .settings-header { font-size: 28px; }
         html[data-view="settings"] .settings-intro,
         html[data-view="settings"] .small-info-text { font-size: 14px; line-height: 1.6; }
         html[data-view="settings"] .setting-label { font-size: 15px; }
         html[data-view="settings"] .all-settings-link { display: none; }
+        #graphTranscriptSection { display: none; }
+        html[data-view="settings"] #graphTranscriptSection { display: block; }
+        html[data-view="settings"] .graph-settings-layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+            gap: 18px;
+            align-items: start;
+        }
+        html[data-view="settings"] .graph-settings-card {
+            min-width: 0;
+            padding: 16px;
+            border: 1px solid var(--ck-border);
+            border-radius: 10px;
+            background: var(--ck-surface);
+        }
+        html[data-view="settings"] .graph-settings-card > :first-child { margin-top: 0; }
+        html[data-view="settings"] .graph-settings-card > :last-child { margin-bottom: 0; }
+        html[data-view="settings"] .graph-settings-card .setting-item { gap: 16px; }
+        html[data-view="settings"] .graph-settings-card input[type="text"] { width: min(100%, 360px); }
+        html[data-view="settings"] #graphUseCurrentMeeting,
+        html[data-view="settings"] #graphImportButton { width: 100%; }
         html[data-view="settings"] details.settings-group > summary { font-size: 18px; }
+        .settings-help-link { display: none; }
+        html[data-view="settings"] .settings-help-link { display: block; width: fit-content; margin: -2px 0 10px auto; color: var(--ck-link); font-size: 13px; font-weight: 650; text-decoration: none; }
+        html[data-view="settings"] .settings-help-link:hover { text-decoration: underline; }
+        html[data-view="settings"] .settings-help-link:focus-visible { outline-offset: 3px; }
+        .all-settings-only { display: none; }
+        html[data-view="settings"] .all-settings-only { display: block; }
         html[data-view="settings"] input[type="text"], html[data-view="settings"] textarea,
         html[data-view="settings"] select { font-size: 15px; }
-        @media (max-width: 600px) { html[data-view="settings"] body { padding: 16px; } }
+        @media (max-width: 800px) {
+            html[data-view="settings"] body { padding: 16px; }
+            html[data-view="settings"] .graph-settings-layout { grid-template-columns: 1fr; }
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f7f8f5;
@@ -199,6 +229,20 @@
             cursor: not-allowed;
             opacity: 0.7;
         }
+        .button-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 9px 11px;
+            border: 1px solid var(--ck-border);
+            border-radius: 6px;
+            background: var(--ck-surface-soft);
+            color: var(--ck-primary);
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .button-link:hover, .button-link:focus-visible { border-color: var(--ck-primary); text-decoration: underline; }
 
         #copyButton, #copyDropdownButton { background-color: #087f8c; }
         #copyButton:not(:disabled):hover, #copyDropdownButton:not(:disabled):hover { background-color: #065e68; }
@@ -206,12 +250,12 @@
         #saveButton, #saveDropdownButton { background-color: #107c41; }
         #saveButton:not(:disabled):hover, #saveDropdownButton:not(:disabled):hover { background-color: #0b6031; }
 
-        #viewButton {
+        #liveWorkspaceButton {
             background-color: #444791;
             flex-grow: 1;
             border-radius: 6px;
         }
-        #viewButton:not(:disabled):hover { background-color: #343170; }
+        #liveWorkspaceButton:not(:disabled):hover { background-color: #343170; }
 
         .split-button {
             position: relative;
@@ -323,6 +367,15 @@
         .graph-manual summary { cursor: pointer; color: var(--ck-text-muted); font-size: 11px; font-weight: 650; }
         .graph-manual .setting-label { display: block; margin-top: 8px; }
         #graphImportButton { width: 100%; background: var(--ck-primary); }
+        .graph-explainer { margin: 8px 0; }
+        .graph-explainer > summary { cursor: pointer; color: var(--ck-text-muted); font-size: 12px; font-weight: 650; }
+        .graph-setup-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 4px; padding: 10px 12px; border: 1px solid var(--ck-primary); border-radius: 7px; color: var(--ck-text); background: var(--ck-surface); font-weight: 700; text-decoration: none; }
+        .graph-setup-link:hover { background: var(--ck-surface-soft); }
+        .graph-setup-link:focus-visible { outline-offset: 3px; }
+        body:not([data-graph-configured="false"]) .graph-setup-link { display: none; }
+        body[data-graph-configured="false"] .graph-requires-config { display: none; }
+        html:not([data-view="settings"]) .graph-admin-details { display: none; }
+        html[data-view="settings"] .graph-setup-link { display: none; }
         .setting-item {
             width: 100%;
             display: flex;
@@ -492,7 +545,8 @@
     .brand { display: flex; align-items: center; gap: 10px; }
         .brand img { flex-shrink: 0; }
         .brand h2 { font-size: 19px; line-height: 1.2; }
-        .signature { margin: 4px 0 0; font-size: 12px; color: #087f8c; }
+        .signature { display: flex; align-items: center; gap: 5px; margin: 4px 0 0; font-size: 12px; color: #087f8c; font-weight: 650; }
+        .signature img { width: 18px; height: 18px; }
         .enterprise-destinations { display: grid; gap: 7px; width: 100%; }
         .workspace-url-label { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--ck-text); }
         .enterprise-destinations input { width: 100%; box-sizing: border-box; padding: 7px; border: 1px solid var(--ck-border); border-radius: 5px; font-size: 12px; }
@@ -502,13 +556,14 @@
     <script src="theme.js" defer></script>
     <script src="graphRuntimeConfig.js" defer></script>
     <script src="configuration.js" defer></script>
+    <script src="localization.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
-<body>
-    <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature">by Señor Farris</p></div></header>
+<body data-graph-configured="unknown">
+    <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p></div></header>
     <p class="subtitle">Keep the words. Stay in the conversation.</p>
 
     <a class="all-settings-link" href="settings.html" target="_blank" rel="noopener" aria-describedby="all-settings-description">
@@ -545,28 +600,27 @@
     <div class="button-container">
         <div class="split-button" id="copy-container">
             <button id="copyButton" class="split-button-main" disabled>Copy Transcript</button>
-            <button id="copyDropdownButton" class="split-button-dropdown" disabled>▾</button>
-            <div id="copyOptions" class="split-button-options">
-                <a href="#" data-copy-type="standard">Copy Transcript</a>
-                <a href="#" data-copy-type="cleaned">Copy Cleaned Transcript</a>
+            <button id="copyDropdownButton" class="split-button-dropdown" type="button" aria-label="More copy options" aria-haspopup="menu" aria-expanded="false" aria-controls="copyOptions" disabled>▾</button>
+            <div id="copyOptions" class="split-button-options" role="menu" aria-label="Copy transcript options">
+                <a href="#" role="menuitem" data-copy-type="standard">Copy Transcript</a>
+                <a href="#" role="menuitem" data-copy-type="cleaned">Copy Cleaned Transcript</a>
             </div>
         </div>
         <div class="split-button" id="save-container">
             <button id="saveButton" class="split-button-main" disabled>Save TXT</button>
-            <button id="saveDropdownButton" class="split-button-dropdown" disabled>▾</button>
-            <div id="saveOptions" class="split-button-options">
-                <a href="#" data-format="txt">Save TXT (.txt)</a>
-                <a href="#" data-format="md">Save Markdown (.md)</a>
-                <a href="#" data-format="docx">Save Word document (.docx)</a>
-                <a href="#" data-format="txt" data-cleaned="true">Save Cleaned TXT (.txt)</a>
-                <a href="#" data-format="md" data-cleaned="true">Save Cleaned Markdown (.md)</a>
-                <a href="#" data-format="docx" data-cleaned="true">Save Cleaned Word document (.docx)</a>
+            <button id="saveDropdownButton" class="split-button-dropdown" type="button" aria-label="More save options" aria-haspopup="menu" aria-expanded="false" aria-controls="saveOptions" disabled>▾</button>
+            <div id="saveOptions" class="split-button-options" role="menu" aria-label="Save transcript options">
+                <a href="#" role="menuitem" data-format="txt">Save TXT (.txt)</a>
+                <a href="#" role="menuitem" data-format="md">Save Markdown (.md)</a>
+                <a href="#" role="menuitem" data-format="docx">Save Word document (.docx)</a>
+                <a href="#" role="menuitem" data-format="txt" data-cleaned="true">Save Cleaned TXT (.txt)</a>
+                <a href="#" role="menuitem" data-format="md" data-cleaned="true">Save Cleaned Markdown (.md)</a>
+                <a href="#" role="menuitem" data-format="docx" data-cleaned="true">Save Cleaned Word document (.docx)</a>
             </div>
         </div>
     </div>
     <div class="button-container">
-         <button id="viewButton" disabled>View Transcript</button>
-         <button id="evidenceBoardButton">Open Evidence Board</button>
+         <button id="liveWorkspaceButton" type="button">Open Live Workspace</button>
     </div>
     <div class="button-container">
         <button id="meetingExtrasButton" type="button">Chat &amp; links</button>
@@ -583,58 +637,73 @@
         <div style="text-align: center; color: #999;">Loading sessions...</div>
     </div>
 
-    <details class="settings-group" id="graphTranscriptSection" open>
-        <summary>Verified Teams transcripts</summary>
-        <div class="graph-hero">
-            <strong>Official words. Verifiable source.</strong>
-            <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
-        </div>
-        <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
-        <div class="graph-actions">
-            <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
-            <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
-        </div>
-        <button id="graphUseCurrentMeeting" type="button">Use this Teams meeting</button>
-        <div class="graph-recent-header">
-            <span class="setting-label">Your five recent Teams meetings — choose one to open its transcript</span>
-            <button id="graphRefreshMeetings" type="button" disabled>Refresh</button>
-        </div>
-        <div id="graphRecentMeetings" class="graph-meeting-list" role="list" aria-label="Recent Teams meetings">
-            <p class="small-info-text">Connect Microsoft 365 to find recent meetings.</p>
-        </div>
-        <details class="graph-manual">
-            <summary>Can’t find the meeting? Paste its link</summary>
-            <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
-            <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
-        </details>
-        <details class="graph-manual">
-            <summary>Administrator connection details</summary>
-            <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
-            <div class="setting-item">
-                <label for="graphTenantId" class="setting-label">Directory (tenant) ID</label>
-                <input id="graphTenantId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
-            </div>
-            <div class="setting-item">
-                <label for="graphClientId" class="setting-label">Application (client) ID</label>
-                <input id="graphClientId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
-            </div>
-            <p class="small-info-text" id="graphRedirectUri"></p>
-            <div class="graph-actions">
-                <button id="graphSaveSetup" type="button">Save Microsoft 365 setup</button>
-                <button id="graphClearSetup" type="button">Clear setup</button>
-            </div>
-            <p class="small-info-text" id="graphSetupStatus" role="status" aria-live="polite"></p>
-        </details>
-        <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
-        <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting to retrieve and open its transcript. Teams must have finished producing it.</p>
-    </details>
-
     <div class="settings-container">
         <div class="settings-heading"><h3 class="settings-header">Settings</h3></div>
         <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
 
+        <details class="settings-group" id="graphTranscriptSection" open>
+            <summary>Verified Teams transcripts</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Microsoft-365-Connection" target="_blank" rel="noopener noreferrer" aria-label="Read the Microsoft 365 connection guide in the Better CaptionKeep Wiki">Learn more ↗</a>
+            <div class="graph-hero">
+                <strong>Official words. Verifiable source.</strong>
+                <p class="small-info-text">This is the official tenant copy retained by Microsoft 365 after Teams transcription runs. Importing creates a separate local CaptionKeep copy in this browser; Better CaptionKeep’s developer never receives either copy.</p>
+            </div>
+            <div class="graph-settings-layout">
+                <section class="graph-settings-card" aria-labelledby="graphConnectionHeading">
+                    <h4 id="graphConnectionHeading">Connection and administrator setup</h4>
+                    <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+                    <div class="graph-actions">
+                        <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
+                        <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
+                    </div>
+                    <details class="graph-manual graph-admin-details" id="graphAdminDetails" open>
+                        <summary>Administrator connection details</summary>
+                        <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
+                        <div class="setting-item">
+                            <label for="graphTenantId" class="setting-label">Directory (tenant) ID</label>
+                            <input id="graphTenantId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+                        </div>
+                        <div class="setting-item">
+                            <label for="graphClientId" class="setting-label">Application (client) ID</label>
+                            <input id="graphClientId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+                        </div>
+                        <p class="small-info-text" id="graphRedirectUri"></p>
+                        <div class="graph-actions">
+                            <button id="graphSaveSetup" type="button">Save Microsoft 365 setup</button>
+                            <button id="graphClearSetup" type="button">Clear setup</button>
+                        </div>
+                        <p class="small-info-text" id="graphSetupStatus" role="status" aria-live="polite"></p>
+                    </details>
+                </section>
+                <section class="graph-settings-card" aria-labelledby="graphMeetingHeading">
+                    <h4 id="graphMeetingHeading">Choose a Teams transcript</h4>
+                    <button id="graphUseCurrentMeeting" type="button">Use this Teams meeting</button>
+                    <div class="graph-recent-header">
+                        <span class="setting-label">Your five recent Teams meetings</span>
+                        <button id="graphRefreshMeetings" type="button" disabled>Refresh</button>
+                    </div>
+                    <div id="graphRecentMeetings" class="graph-meeting-list" role="list" aria-label="Recent Teams meetings">
+                        <p class="small-info-text">Connect Microsoft 365 to find recent meetings.</p>
+                    </div>
+                    <details class="graph-manual">
+                        <summary>Can’t find the meeting? Paste its link</summary>
+                        <label for="graphJoinUrl" class="setting-label">Teams meeting join link</label>
+                        <textarea id="graphJoinUrl" rows="2" placeholder="https://teams.microsoft.com/l/meetup-join/…" autocomplete="off" spellcheck="false"></textarea>
+                    </details>
+                    <button id="graphImportButton" type="button" disabled>Import verified transcript</button>
+                    <p class="small-info-text" id="graphImportStatus" role="status" aria-live="polite">Choose a recent meeting to retrieve and open its transcript. Teams must have finished producing it.</p>
+                </section>
+            </div>
+        </details>
+
         <details class="settings-group">
             <summary>Appearance</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#appearance-and-language" target="_blank" rel="noopener noreferrer" aria-label="Read the appearance and language guide in the Better CaptionKeep Wiki">Learn more ↗</a>
+            <div class="setting-item">
+                <label for="uiLocaleSelect" class="setting-label" data-i18n="languageLabel">Language</label>
+                <select id="uiLocaleSelect"></select>
+            </div>
+            <p class="small-info-text">Preview languages use AI-assisted, uncertified translations and always fall back to English.</p>
             <div class="setting-item">
                 <label for="themeSelect" class="setting-label">Theme</label>
                 <select id="themeSelect">
@@ -649,6 +718,7 @@
 
         <details class="settings-group">
             <summary>Speaker aliases</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#speaker-aliases" target="_blank" rel="noopener noreferrer" aria-label="Read the speaker aliases guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div id="speaker-alias-container">
                  <label class="setting-label" style="margin-bottom: 10px;">Speaker Aliases</label>
                  <div id="speaker-alias-list"><p>Start capturing to see the speaker list.</p></div>
@@ -657,6 +727,7 @@
 
         <details class="settings-group">
             <summary>Saving transcripts</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#save-behavior" target="_blank" rel="noopener noreferrer" aria-label="Read the saving and export guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
                 <label for="saveAsType" class="setting-label">How should transcripts save?</label>
                 <select id="saveAsType">
@@ -691,32 +762,19 @@
 
         <details class="settings-group" open>
             <summary>Capture controls</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Getting-Started#capture-controls" target="_blank" rel="noopener noreferrer" aria-label="Read the capture controls guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
                 <label for="trackCaptionsToggle" class="setting-label">Track Live Captions</label>
                 <label class="toggle-switch"><input type="checkbox" id="trackCaptionsToggle" checked><span class="slider"></span></label>
             </div>
             <p class="small-info-text"><strong>Local CaptionKeep copy:</strong> Teams produces the displayed captions; Better CaptionKeep reads them and stores its copy in this browser. Better CaptionKeep does not upload that local copy.</p>
-            <div class="setting-item">
-                <label for="trackAttendeesToggle" class="setting-label">Track Meeting Attendees</label>
-                <label class="toggle-switch"><input type="checkbox" id="trackAttendeesToggle"><span class="slider"></span></label>
-            </div>
-            <p class="small-info-text">Monitor who joins/leaves the meeting and include in exports.</p>
-            
-            <p class="settings-subheader">Automation Settings</p>
-            <div class="setting-item">
-                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Captions and Teams Transcription</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle" checked><span class="slider"></span></label>
-            </div>
-            <p class="small-info-text"><strong>Official tenant copy:</strong> In Teams, Better CaptionKeep also requests transcription. Microsoft notifies participants and stores the official transcript under your organization’s Microsoft 365 controls. Your Teams role or policy can block it; check the capture status for a caution. Other platforms enable captions only.</p>
-            <div class="setting-item">
-                <label for="autoOpenAttendeesToggle" class="setting-label">Auto-open Attendee Panel</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle" checked><span class="slider"></span></label>
-            </div>
-            <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
+            <p class="settings-subheader">Meeting sources</p>
+            <p class="small-info-text"><strong>You choose when they start.</strong> Use the Live Workspace during a meeting to enable live captions, open the Teams attendee panel, or request the official Teams transcript. Opening Better CaptionKeep alone does not trigger any of them.</p>
         </details>
 
         <details class="settings-group">
             <summary>Bring your own AI (BYOAI) and privacy</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Privacy-and-Data-Boundaries#ai-handoff-and-privacy-scrubber" target="_blank" rel="noopener noreferrer" aria-label="Read the AI handoff and privacy guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
                 <label for="autoAISummaryToggle" class="setting-label">Prepare BYOAI handoff</label>
                 <label class="toggle-switch"><input type="checkbox" id="autoAISummaryToggle"><span class="slider"></span></label>
@@ -745,6 +803,28 @@
             </div>
             <p class="small-info-text" id="aiProviderHint" style="display: none;">Review the prompt locally before copying or sharing it. Long transcripts are marked when truncated.</p>
             <p class="small-info-text" id="enterpriseDestinationHint" style="display: none;">Optional: save approved ChatGPT, Claude, and Anthropic Console workspace URLs. Microsoft Copilot opens its official Microsoft 365 chat URL. Always confirm the active organization before pasting.</p>
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                <label for="onTheFlyAiDestination" class="setting-label">On the Fly AI opens</label>
+                <select id="onTheFlyAiDestination">
+                    <option value="chatgpt">ChatGPT — chatgpt.com</option>
+                    <option value="claude">Claude — claude.ai</option>
+                    <option value="copilot">Microsoft Copilot — m365.cloud.microsoft/chat</option>
+                    <option value="gemini">Gemini — gemini.google.com</option>
+                    <option value="claude_console">Claude Console — console.anthropic.com</option>
+                </select>
+                <p class="small-info-text">Used automatically by Research, Explain, and Reply. A saved enterprise ChatGPT or Claude workspace URL takes precedence.</p>
+            </div>
+            <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+                <label for="webmailDestination" class="setting-label">Follow-up email opens in</label>
+                <select id="webmailDestination">
+                    <option value="outlook_work">Outlook work or school — outlook.office.com</option>
+                    <option value="outlook_personal">Outlook.com personal — outlook.live.com</option>
+                    <option value="gmail">Gmail — mail.google.com</option>
+                    <option value="default">Browser/default email app</option>
+                </select>
+                <p class="small-info-text">On the Fly and Evidence Board email actions open a new reviewed draft. Recipients stay blank and nothing is sent automatically.</p>
+                <p class="small-info-text">Suggested sign-in pages: <a href="https://outlook.office.com/mail/" target="_blank" rel="noopener noreferrer">Outlook work or school</a> · <a href="https://outlook.live.com/mail/" target="_blank" rel="noopener noreferrer">Outlook.com</a> · <a href="https://mail.google.com/" target="_blank" rel="noopener noreferrer">Gmail</a></p>
+            </div>
             <div class="setting-item">
                 <label for="profanityFilterToggle" class="setting-label">Profanity filter</label>
                 <label class="toggle-switch"><input type="checkbox" id="profanityFilterToggle"><span class="slider"></span></label>
@@ -759,6 +839,7 @@
 
         <details class="settings-group">
             <summary>Naming and timestamps</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#file-names-and-timestamps" target="_blank" rel="noopener noreferrer" aria-label="Read the file names and timestamps guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
                 <label for="timestampFormat" class="setting-label">Timestamp Format</label>
                 <select id="timestampFormat" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc;">
@@ -777,8 +858,10 @@
                 <p class="small-info-text" id="filenamePreview">Example:</p>
             </div>
         </details>
+
         <details class="settings-group">
             <summary>Configuration portability</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Administrator-Deployment#configuration-portability" target="_blank" rel="noopener noreferrer" aria-label="Read the configuration portability guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <p class="small-info-text">Export user preferences for backup or EUC repackaging. Transcript history is never included.</p>
             <div class="actions-row">
                 <button id="exportConfiguration" type="button">Export settings</button>
@@ -786,6 +869,17 @@
                 <input id="configurationFile" type="file" accept="application/json,.json" hidden>
             </div>
             <p class="small-info-text" id="configurationStatus" role="status" aria-live="polite"></p>
+        </details>
+        <details class="settings-group">
+            <summary>Feedback and support</summary>
+            <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Support" target="_blank" rel="noopener noreferrer" aria-label="Read the support and reporting guide in the Better CaptionKeep Wiki">Learn more ↗</a>
+            <p class="small-info-text">Choose the form that best matches what you want to tell us. GitHub keeps the request trackable so you can follow its status.</p>
+            <div class="actions-row" style="flex-wrap: wrap;">
+                <a class="button-link" target="_blank" rel="noopener noreferrer" href="https://github.com/Mr-GraphnStaff/better-captionkeep/issues/new?template=bug_report.yml">Report a problem</a>
+                <a class="button-link" target="_blank" rel="noopener noreferrer" href="https://github.com/Mr-GraphnStaff/better-captionkeep/issues/new?template=feature_request.yml">Request a feature</a>
+                <a class="button-link" target="_blank" rel="noopener noreferrer" href="https://github.com/Mr-GraphnStaff/better-captionkeep/issues/new?template=localization_report.yml">Improve a translation</a>
+            </div>
+            <p class="small-info-text"><strong>Protect your meeting:</strong> never post transcript text, meeting links, participant names, tenant/account identifiers, credentials, browser history, or private screenshots.</p>
         </details>
     </div>
 </body>

@@ -1,5 +1,11 @@
 # Privacy and Data Boundaries
 
+## AI handoff and Privacy Scrubber
+
+Privacy Scrubber is enabled by default and can mask supported sensitive patterns before copy, export, or an optional AI handoff. The original saved transcript remains unchanged. A scrubbed derivative can still contain sensitive context, and pattern matching is not a compliance guarantee or a replacement for organizational review.
+
+AI handoff is user-directed. On the Fly can copy a bounded cleaned prompt and open the saved AI workspace in one click; it does not place transcript text in an AI-provider URL, paste automatically, or submit for the user. Review/edit remains available for a full local review. When the user explicitly chooses Email, the cleaned subject and body are placed in the saved webmail compose URL or default mail-handler request. Recipients remain blank, and nothing is sent automatically.
+
 ## Local caption capture
 
 - Captions visible in the meeting browser are captured locally.

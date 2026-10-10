@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Simpan kapsyen mesyuarat secara setempat untuk semakan dan eksport peribadi."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Pratonton terjemahan berbantukan AI; tidak diperakui secara profesional. Bahasa Inggeris ialah rujukan untuk privasi, keselamatan dan pentadbiran."
+  },
+  "reportTranslation": {
+    "message": "Laporkan terjemahan ini"
+  },
+  "followBrowserLanguage": {
+    "message": "Ikut bahasa pelayar"
+  },
+  "languageLabel": {
+    "message": "Bahasa"
+  },
+  "settings": {
+    "message": "Tetapan"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Salin transkrip"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Lihat transkrip"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

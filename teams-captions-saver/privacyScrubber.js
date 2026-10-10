@@ -203,7 +203,7 @@
             return next;
         });
         const cleanedMetadata = {...metadata};
-        for (const field of ['meetingTitle', 'providerLabel']) {
+        for (const field of ['meetingTitle', 'providerLabel', 'question']) {
             if (typeof cleanedMetadata[field] === 'string') cleanedMetadata[field] = context.apply(cleanedMetadata[field]);
         }
         if (Array.isArray(cleanedMetadata.warnings)) {
@@ -216,5 +216,7 @@
         });
     }
 
-    globalThis.CaptionKeepPrivacyScrubber = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubReleaseBundle, scrubEvidenceBundle, scrubHandoff, scrubObject, scrubTranscript });
+    const api = Object.freeze({ RULES, PROFANITY, scrub, scrubBundle, scrubReleaseBundle, scrubEvidenceBundle, scrubHandoff, scrubObject, scrubTranscript });
+    globalThis.CaptionKeepPrivacyScrubber = api;
+    if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Meeting-Untertitel lokal erfassen, privat prüfen und exportieren."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "KI-gestützte Übersetzungsvorschau, nicht professionell zertifiziert. Für Datenschutz, Sicherheit und Administration ist Englisch maßgeblich."
+  },
+  "reportTranslation": {
+    "message": "Diese Übersetzung melden"
+  },
+  "followBrowserLanguage": {
+    "message": "Browsersprache verwenden"
+  },
+  "languageLabel": {
+    "message": "Sprache"
+  },
+  "settings": {
+    "message": "Einstellungen"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Transkript kopieren"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Transkript anzeigen"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

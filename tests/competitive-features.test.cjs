@@ -131,6 +131,20 @@ test('All settings shares popup form, is registered for all browser targets, and
     assert(popup.indexOf('href="settings.html"') < popup.indexOf('<nav class="platform-launchers"'));
     assert.equal((popup.match(/href="settings.html"/g) || []).length, 1);
     assert(popup.includes('target="_blank" rel="noopener" aria-describedby="all-settings-description"'));
+    assert(popup.includes('class="graph-manual graph-admin-details" id="graphAdminDetails"'));
+    assert(popup.includes('html:not([data-view="settings"]) .graph-admin-details { display: none; }'));
+    assert(source('settings.js').includes('.hash = location.hash'));
+    const popupScript = source('popup.js');
+    assert(popupScript.includes("document.body.dataset.graphConfigured = String(graphConfigured)"));
+    assert(popupScript.includes("location.hash === '#microsoft365'"));
+    assert.equal((popup.match(/class="settings-help-link"/g) || []).length, 9);
+    assert(!popup.includes('id="assistantBridgeSettings"'));
+    assert(!popup.includes('Privacy-and-Data-Boundaries#evidence-actions'));
+    for (const wikiPage of ['Microsoft-365-Connection', 'Review-Save-and-Export', 'Getting-Started', 'Privacy-and-Data-Boundaries', 'Administrator-Deployment', 'Support']) {
+        assert(popup.includes(`better-captionkeep/wiki/${wikiPage}`), wikiPage);
+    }
+    assert(popup.includes('html[data-view="settings"] .settings-help-link'));
+    assert(popup.includes('target="_blank" rel="noopener noreferrer" aria-label='));
 });
 
 test('translation preserves originals, source IDs and timing; incremental live updates reuse unchanged text', async () => {
@@ -198,4 +212,27 @@ test('subtitle exports preserve imported boundaries and reject invented observat
     assert.throws(() => profiles.createProfile({format:'srt', transcript:[{Text:'Observed', capturedAt:'2026-10-03', Time:'10:00'}]}), /actual media cues/);
     assert.throws(() => profiles.createProfile({format:'vtt', transcript:[{...transcript[0], mediaEndMs:1}]}), /actual media cues/);
     assert.equal(JSON.stringify(transcript), before);
+});
+
+test('popup save failures, Graph busy state and native copy behavior stay guarded', () => {
+    const popup = source('popup.js');
+    assert(popup.includes('await chrome.tabs.sendMessage(tab.id, { message: "return_transcript", format })'));
+    assert(popup.includes('Save failed. Refresh the meeting tab and try again.'));
+    assert(popup.includes('let graphBusy = false;'));
+    assert(/graphJoinUrl\?\.addEventListener\('input',[\s\S]*?markSelectedGraphMeeting\(\);\s*refreshGraphControls\(\);/.test(popup));
+    assert(!/graphJoinUrl\?\.addEventListener\('input',[\s\S]*?markSelectedGraphMeeting\(\);\s*setGraphBusy\(false\);/.test(popup));
+    assert(popup.includes('window.getSelection?.()?.toString().trim()'));
+    assert(popup.includes("!editable && !selection"));
+});
+
+test('popup list choices and split-button menus preserve accessible semantics', () => {
+    const popup = source('popup.js');
+    const html = source('popup.html');
+    assert(popup.includes("item.setAttribute('role', 'listitem')"));
+    assert(!popup.includes("button.setAttribute('role', 'listitem')"));
+    assert(html.includes('aria-label="More copy options" aria-haspopup="menu" aria-expanded="false" aria-controls="copyOptions"'));
+    assert(html.includes('aria-label="More save options" aria-haspopup="menu" aria-expanded="false" aria-controls="saveOptions"'));
+    assert(popup.includes("dropdownButton.setAttribute('aria-expanded', 'true')"));
+    assert(popup.includes("if (e.key !== 'Escape') return;"));
+    assert(popup.includes('if (restoreFocus) dropdownButton.focus();'));
 });

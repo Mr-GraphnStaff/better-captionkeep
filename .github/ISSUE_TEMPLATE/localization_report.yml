@@ -1,0 +1,85 @@
+name: Translation or localization problem
+description: Help improve wording, grammar, tone, layout, or missing text in your language
+title: "[Localization]: "
+labels:
+  - bug
+  - localization
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping Better CaptionKeep speak your language more naturally. Preview translations may be produced with AI assistance and are not certified professional translations. You do not need to be a professional translator to report something that looks wrong or confusing.
+
+        Do not include transcripts, captions, meeting titles or links, participant names, tenant or account identifiers, credentials, browser history, or private screenshots. Use invented example text when context is necessary.
+  - type: input
+    id: locale
+    attributes:
+      label: Language and locale
+      description: Give the language shown in Better CaptionKeep and, if visible, its locale code.
+      placeholder: "For example: Hindi (hi)"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Better CaptionKeep version
+      description: If you cannot find it, enter "Unknown" or leave this blank—we still want the report.
+      placeholder: "For example: 5.4.0"
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did you see the translation?
+      options:
+        - Popup
+        - Side panel / Evidence Board
+        - Transcript viewer
+        - Settings
+        - Help or privacy information
+        - Chrome Web Store listing
+        - Microsoft Edge Add-ons listing
+        - Another surface
+    validations:
+      required: true
+  - type: input
+    id: message_key
+    attributes:
+      label: Message key, if shown
+      description: The translation-report action may fill this in automatically. Leave it blank if unavailable.
+      placeholder: "For example: startMicrosoftTranscript"
+  - type: textarea
+    id: displayed_text
+    attributes:
+      label: Text currently displayed
+      description: Copy only the interface text. Do not include meeting or account content.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What looks wrong or confusing?
+      description: Tell us about the meaning, tone, grammar, clipped layout, text direction, missing text, or cultural context.
+      placeholder: "For example: This sounds like saving a video, but the button only saves the written transcript."
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: How would you say it?
+      description: Optional. Suggest wording that sounds natural to you.
+  - type: input
+    id: layout
+    attributes:
+      label: Browser and layout
+      description: Browser name/version and whether this was a narrow popup, side panel, or full page.
+      placeholder: "For example: Edge 141, narrow side panel"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety and quality check
+      options:
+        - label: I did not include transcript, meeting, participant, tenant, account, credential, browser-history, or other confidential information.
+          required: true
+        - label: I understand this report concerns an AI-assisted preview translation unless the product labels the language as reviewed.
+          required: true
+        - label: I searched existing issues for the same language and wording problem.
+          required: false

@@ -1,27 +1,52 @@
 name: Feature request
-description: Propose an improvement to Better CaptionKeep
+description: Suggest a new capability or a simpler way to accomplish something
 title: "[Feature]: "
 labels:
   - enhancement
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us about the outcome you want. You do not need to design the implementation.
+
+        Please use invented examples and do not include real meeting, participant, tenant, account, or credential information.
+  - type: dropdown
+    id: area
+    attributes:
+      label: What area would this improve?
+      options:
+        - Capturing captions
+        - Transcript review or search
+        - Saving or exporting
+        - Translation or language support
+        - Evidence Board or meeting notes
+        - Microsoft 365 transcript import
+        - Privacy or enterprise controls
+        - Accessibility
+        - Installation, updates, or Store experience
+        - Something else
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
-      label: Problem to solve
-      description: Explain the user problem without including confidential meeting information.
+      label: What are you trying to accomplish?
+      description: Describe the situation and why the current workflow is difficult.
+      placeholder: "For example: I want to pause capture during a confidential section without losing the captions already saved."
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed behavior
-      description: Describe what Better CaptionKeep should do from the user's perspective.
+      label: What would a good result look like?
+      description: Describe the behavior from a user's perspective. A rough idea is enough.
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
+      label: What do you do today?
+      description: Optional. Tell us about a workaround or another product you use.
   - type: dropdown
     id: data_impact
     attributes:
@@ -40,16 +65,14 @@ body:
   - type: textarea
     id: acceptance
     attributes:
-      label: Acceptance criteria
-      description: List observable conditions that would demonstrate the feature works.
-    validations:
-      required: true
+      label: Anything else that would make this useful?
+      description: Optional examples, accessibility needs, managed-policy needs, or limitations to preserve.
   - type: checkboxes
     id: checks
     attributes:
       label: Final check
       options:
         - label: I searched existing issues for the same request.
-          required: true
-        - label: I did not include confidential meeting or account information.
+          required: false
+        - label: I did not include private meeting, participant, tenant, account, credential, or browser-history information.
           required: true

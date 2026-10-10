@@ -61,6 +61,7 @@ jobs:
           )
 
       - name: Attest release provenance
+        id: attest_release
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: |
@@ -68,6 +69,12 @@ jobs:
             dist/prod/release-provenance.json
             dist/prod/SHA256SUMS.txt
             dist/prod/better-captionkeep-sbom.cdx.json
+
+      - name: Preserve offline attestation bundle
+        env:
+          ATTESTATION_BUNDLE: ${{ steps.attest_release.outputs.bundle-path }}
+        shell: bash
+        run: cp -- "$ATTESTATION_BUNDLE" dist/prod/release-attestation.sigstore.json
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -79,6 +86,7 @@ jobs:
             dist/prod/release-provenance.json
             dist/prod/SHA256SUMS.txt
             dist/prod/better-captionkeep-sbom.cdx.json
+            dist/prod/release-attestation.sigstore.json
 
       - name: Create draft GitHub release
         if: github.event_name == 'push'
@@ -92,4 +100,4 @@ jobs:
             echo "Release $RELEASE_TAG already exists; refusing to replace immutable release artifacts."
             exit 1
           fi
-          gh release create "$RELEASE_TAG" dist/prod/better_captionkeep-*.zip dist/prod/release-provenance.json dist/prod/SHA256SUMS.txt dist/prod/better-captionkeep-sbom.cdx.json --draft --verify-tag --title "$title" --generate-notes
+          gh release create "$RELEASE_TAG" dist/prod/better_captionkeep-*.zip dist/prod/release-provenance.json dist/prod/SHA256SUMS.txt dist/prod/better-captionkeep-sbom.cdx.json dist/prod/release-attestation.sigstore.json --draft --verify-tag --title "$title" --generate-notes

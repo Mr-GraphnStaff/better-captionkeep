@@ -7,7 +7,7 @@ parameters:
   - name: releaseTag
     displayName: Published GitHub release tag
     type: string
-    default: v5.3.2
+    default: ''
   - name: chromePrepare
     displayName: Chrome preparation
     type: string
@@ -173,8 +173,22 @@ stages:
                   inputs:
                     artifact: verified-store-release
                     path: $(Pipeline.Workspace)/verified-release
-                - bash: bash deployment/azure/load-store-secrets.sh all
-                  displayName: Load Store credentials from private Key Vault
+                - bash: |
+                    set -euo pipefail
+                    chrome_action='${{ parameters.chromeRelease }}'
+                    edge_action='${{ parameters.edgeRelease }}'
+                    if [[ "$chrome_action" != 'skip' ]] && [[ "$edge_action" != 'skip' ]]; then
+                      store='all'
+                    elif [[ "$chrome_action" != 'skip' ]]; then
+                      store='chrome'
+                    elif [[ "$edge_action" != 'skip' ]]; then
+                      store='edge'
+                    else
+                      echo 'No approved Store action was selected.' >&2
+                      exit 1
+                    fi
+                    bash deployment/azure/load-store-secrets.sh "$store"
+                  displayName: Load only the required Store credentials from private Key Vault
                   env:
                     BCK_VAULT_NAME: $(vaultName)
                 - bash: |

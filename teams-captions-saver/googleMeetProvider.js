@@ -63,7 +63,7 @@
         let sourceAvailable = false;
         let meetingActive = false;
         let meetingEnded = false;
-        let autoEnableCaptions = true;
+        let autoEnableCaptions = false;
         let captionEnableAttempted = false;
         let nextCaptionId = 0;
         let lastEmittedCaption = null;
@@ -198,6 +198,7 @@
             if (nextSource && nextSource !== captionSource) {
                 if (captionSource) preserveRemountCandidate();
                 captionEnableAttempted = true;
+                autoEnableCaptions = false;
                 observeCaptionSource(nextSource);
                 sourceAvailable = true;
                 signal('caption-source-available');
@@ -232,7 +233,9 @@
         }
 
         function setAutoEnableCaptions(enabled) {
-            autoEnableCaptions = enabled !== false;
+            const wasEnabled = autoEnableCaptions;
+            autoEnableCaptions = enabled === true;
+            if (autoEnableCaptions && !wasEnabled && !captionSource) captionEnableAttempted = false;
             if (pageObserver && autoEnableCaptions) reconcile();
         }
 

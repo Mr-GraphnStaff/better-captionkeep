@@ -33,6 +33,19 @@ test('release workflow publishes only the canonical production lane', async () =
   assert(workflow.includes('cd dist/prod'));
   assert(workflow.includes('dist/prod/better_captionkeep-*.zip'));
   assert(workflow.includes('dist/prod/release-provenance.json'));
+  assert(workflow.includes('id: attest_release'));
+  assert(workflow.includes('dist/prod/release-attestation.sigstore.json'));
   assert(!workflow.includes('dist/chrome-store/'));
   assert(!workflow.includes('cd dist\n'));
+});
+
+test('Azure release verification is tokenless and binds offline attestations to the release workflow and tag', async () => {
+  const verifier = await readFile(path.join(__dirname, '..', 'deployment', 'azure', 'download-verified-release.sh'), 'utf8');
+  assert(verifier.includes("'release-attestation.sigstore.json'"));
+  assert(verifier.includes("minimum_gh_version='2.102.0'"));
+  assert(verifier.includes('--bundle "$output_root/store/release-attestation.sigstore.json"'));
+  assert(verifier.includes('--signer-workflow "$repository/.github/workflows/release.yml"'));
+  assert(verifier.includes('--source-ref "refs/tags/$release_tag"'));
+  assert(verifier.includes('--deny-self-hosted-runners'));
+  assert(!verifier.includes('GH_TOKEN'));
 });

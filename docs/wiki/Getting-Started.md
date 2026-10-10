@@ -2,6 +2,10 @@
 
 Better CaptionKeep reads captions already displayed by the supported meeting page. It does not listen to the microphone or record video.
 
+## Capture controls
+
+Open **All Settings → Capture controls** to decide whether Better CaptionKeep stores displayed captions or saves automatically when a meeting ends. During a meeting, open **Live Workspace** to explicitly enable live captions. In Teams, the same side panel has separate actions to open the attendee panel and request the official Microsoft 365 transcript. Opening Better CaptionKeep alone does not trigger any of these meeting controls. Turning caption tracking off stops new local capture without deleting captions already collected. Provider and organization policies may still prevent captions, rosters, or Microsoft 365 transcription from becoming available.
+
 ## Microsoft Teams
 
 1. Join the meeting in Teams on the web or the Teams PWA in a Chromium browser.

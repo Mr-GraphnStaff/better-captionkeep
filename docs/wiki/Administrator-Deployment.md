@@ -11,6 +11,10 @@ This page is the starting point for organizational deployment. Test with synthet
 
 Use Store identities for managed production deployment. Do not force-install a local unpacked identity.
 
+## Configuration portability
+
+Users can export and import bounded Better CaptionKeep preferences from **All Settings → Configuration portability**. Transcript content, Microsoft authentication tokens, and customer tenant/client identifiers are excluded from the portable preference file. Managed browser policy always takes precedence after import. Administrators should distribute policy through the documented Edge or Chrome management path rather than sharing a user preference file as enforcement.
+
 ## Managed policy
 
 Better CaptionKeep supports browser-managed configuration for privacy, retention, export, attendee capture, approved AI destinations, and optional Microsoft 365 transcript import. The repository contains the authoritative [managed schema](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/teams-captions-saver/managed-schema.json), [EUC deployment guide](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/EUC-DEPLOYMENT.md), and [security architecture](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/SECURITY-ARCHITECTURE.md).
@@ -19,7 +23,7 @@ English is the current product interface. Canadian French, Spanish, and Intune-e
 
 ## Microsoft 365 import
 
-Verified Teams Transcript requires an organization-owned single-tenant Entra app registration, the documented delegated Microsoft Graph permissions, tenant consent, exact browser redirect URIs, and Teams transcript API access. Enter the tenant/client IDs locally or deploy all three managed Graph policies; managed values take precedence. It is not enabled by a calendar invitation alone. Edge now publicly serves the corrected 5.3.2 package; Chrome remains on 5.1.0 while its 5.3.2 review continues.
+Verified Teams Transcript requires an organization-owned single-tenant Entra app registration, the documented delegated Microsoft Graph permissions, tenant consent, exact browser redirect URIs, and Teams transcript API access. Enter the tenant/client IDs locally or deploy all three managed Graph policies; managed values take precedence. It is not enabled by a calendar invitation alone. Chrome and Edge publicly serve the corrected 5.3.2 package.
 
 Use [Microsoft 365 connection](Microsoft-365-Connection) for the user workflow and the repository's [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md) for controlled pilot setup.
 

@@ -1,5 +1,13 @@
 # Review, Save, and Export
 
+## Appearance and language
+
+Open **All Settings → Appearance** to choose a theme and interface language. **Follow browser language** uses the browser preference. In the 5.4 development line, non-English interface catalogs are explicitly labeled as uncertified AI-assisted previews until qualified review is recorded; English remains the authoritative privacy, security, and administration reference.
+
+## Speaker aliases
+
+Speaker aliases change how captured speaker labels are presented in reviewed derivatives and exports. They do not rewrite the preserved source evidence. Use aliases only when you can identify the speaker accurately; Better CaptionKeep does not invent missing attribution.
+
 ## Open the transcript
 
 Select **View transcript** during a meeting, or open **History** after the meeting ends. The viewer lets you search the transcript, filter by speaker when attribution is available, copy reviewed text, and reopen saved sessions.
@@ -10,6 +18,10 @@ Select **View transcript** during a meeting, or open **History** after the meeti
 - **Ask me each time** lets you choose a different location for every export.
 
 Advanced download settings can use a Downloads subfolder and, where the browser permits it, remember a dedicated local folder.
+
+## File names and timestamps
+
+**All Settings → Naming and timestamps** controls the export filename pattern and how observed times are displayed. Filename previews are local. Browser-observation times are not media cue boundaries, so Better CaptionKeep does not turn them into invented SRT or WebVTT timing.
 
 ## Export formats
 

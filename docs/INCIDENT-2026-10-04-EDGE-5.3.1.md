@@ -7,7 +7,7 @@
 **Incident tracking:** [Azure Boards bug #297](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/297)<br>
 **Corrective program:** [Azure Boards Feature #298](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_workitems/edit/298), with CAP-08 through CAP-16 tracked as Tasks #299–#307<br>
 **Recovery release:** 5.3.2  
-**Status:** Edge recovery public; incident remains open until Chrome serves 5.3.2 and installed upgrades are verified
+**Status:** Recovery public in Chrome and Edge; installed-upgrade verification remains open
 
 ## Executive summary
 

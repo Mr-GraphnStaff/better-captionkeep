@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "زیرنویس‌های جلسه را برای بررسی و خروجی خصوصی به‌صورت محلی ذخیره کنید."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "پیش‌نمایش ترجمه با کمک هوش مصنوعی و بدون تأیید حرفه‌ای است. متن انگلیسی مرجع حریم خصوصی، امنیت و مدیریت است."
+  },
+  "reportTranslation": {
+    "message": "گزارش این ترجمه"
+  },
+  "followBrowserLanguage": {
+    "message": "پیروی از زبان مرورگر"
+  },
+  "languageLabel": {
+    "message": "زبان"
+  },
+  "settings": {
+    "message": "تنظیمات"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "کپی رونوشت"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "نمایش رونوشت"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

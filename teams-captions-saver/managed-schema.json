@@ -3,6 +3,7 @@
   "properties": {
     "forcePrivacyScrubber": { "type": "boolean" },
     "forceProfanityFilter": { "type": "boolean" },
+    "forceUiLocale": { "type": "string" },
     "forceScrubbedExport": { "type": "boolean" },
     "disableAiHandoff": { "type": "boolean" },
     "disableClipboard": { "type": "boolean" },

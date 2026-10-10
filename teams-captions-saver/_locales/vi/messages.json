@@ -1,0 +1,65 @@
+{
+  "extensionName": {
+    "message": "Better CaptionKeep — Live Meeting Transcript"
+  },
+  "extensionDescription": {
+    "message": "Lưu phụ đề cuộc họp cục bộ để xem xét và xuất riêng tư."
+  },
+  "actionTitle": {
+    "message": "Better CaptionKeep — by Señor Farris"
+  },
+  "localizationQuality": {
+    "message": "preview"
+  },
+  "translationPreviewNotice": {
+    "message": "Bản xem trước dịch thuật có AI hỗ trợ, chưa được chứng nhận chuyên nghiệp. Tiếng Anh là bản tham chiếu cho quyền riêng tư, bảo mật và quản trị."
+  },
+  "reportTranslation": {
+    "message": "Báo cáo bản dịch này"
+  },
+  "followBrowserLanguage": {
+    "message": "Theo ngôn ngữ trình duyệt"
+  },
+  "languageLabel": {
+    "message": "Ngôn ngữ"
+  },
+  "settings": {
+    "message": "Cài đặt"
+  },
+  "appearance": {
+    "message": "Appearance"
+  },
+  "theme": {
+    "message": "Theme"
+  },
+  "copyTranscript": {
+    "message": "Sao chép bản chép lời"
+  },
+  "saveTranscript": {
+    "message": "Save Transcript"
+  },
+  "viewTranscript": {
+    "message": "Xem bản chép lời"
+  },
+  "currentMeeting": {
+    "message": "Current meeting"
+  },
+  "transcript": {
+    "message": "Transcript"
+  },
+  "evidence": {
+    "message": "Evidence"
+  },
+  "privacyScrubber": {
+    "message": "Privacy Scrubber"
+  },
+  "startMicrosoftTranscript": {
+    "message": "Start Microsoft 365 transcript"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "help": {
+    "message": "Help"
+  }
+}

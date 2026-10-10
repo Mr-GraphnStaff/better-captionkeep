@@ -43,6 +43,7 @@ const transcriptArray = [];
 let capturing = false;
 let trackingAllowed = true;
 let attendeesAllowed = true;
+let attendeeCaptureRequested = false;
 let pausedByUser = false;
 let sourceMissingSince = null;
 let leaveRequested = false;
@@ -67,9 +68,7 @@ let wasInMeeting = false;
 let meetingObserver = null;
 let captionsObserver = null;
 let cachedElements = new Map();
-let autoEnableInProgress = false;
-let autoEnableLastAttempt = 0;
-let autoEnableDebounceTimer = null;
+let captionEnableInProgress = false;
 let autoSaveTriggered = false;
 let lastMeetingId = null;
 let timestampPreference = '12hr';
@@ -112,8 +111,10 @@ async function readEffectiveCaptureSettings() {
 async function refreshManagedAttendeeState() {
     const settings = await readEffectiveCaptureSettings();
     attendeesAllowed = settings.trackAttendees !== false;
-    if (!attendeesAllowed) stopAttendeeTracking();
-    else if (isUserInMeeting()) startAttendeeTracking();
+    if (!attendeesAllowed) {
+        attendeeCaptureRequested = false;
+        stopAttendeeTracking();
+    } else if (attendeeCaptureRequested && isUserInMeeting()) startAttendeeTracking();
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -509,14 +510,15 @@ async function tryOpenParticipantPanel() {
 }
 
 async function startAttendeeTracking() {
-    // Check if attendee tracking is enabled
-    const { trackAttendees, autoOpenAttendees } = await readEffectiveCaptureSettings();
+    // Attendee capture is session-scoped and starts only after the user asks
+    // for it from the extension side panel.
+    const { trackAttendees } = await readEffectiveCaptureSettings();
     if (trackAttendees === false) {
         console.log("Attendee tracking is disabled in settings");
         return;
     }
-    
-    if (!attendeesAllowed || attendeeUpdateInterval || attendeeStartTimer) return;
+
+    if (!attendeeCaptureRequested || !attendeesAllowed || attendeeUpdateInterval || attendeeStartTimer) return;
     
     // Reset attendee data for new meeting
     attendeeData = {
@@ -532,13 +534,7 @@ async function startAttendeeTracking() {
     // Initial update after delay
     attendeeStartTimer = setTimeout(async () => {
         attendeeStartTimer = null;
-        if (!attendeesAllowed || !isUserInMeeting()) return;
-        // Only auto-open participant panel if setting is enabled
-        if (autoOpenAttendees !== false) {
-            await tryOpenParticipantPanel();
-        }
-        
-        if (!attendeesAllowed || !isUserInMeeting()) return;
+        if (!attendeeCaptureRequested || !attendeesAllowed || !isUserInMeeting()) return;
         updateAttendeeList();
         
         // Then update every minute
@@ -707,6 +703,7 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
 
     if (!nowInMeeting) {
         wasInMeeting = false;
+        attendeeCaptureRequested = false;
         transcriptionState = 'unchecked';
         transcriptionDetail = 'Teams transcription has not been checked.';
         transcriptionLastAttempt = 0;
@@ -725,12 +722,9 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         lastKnownTeamsJoinUrl = '';
         findCurrentTeamsJoinUrl();
         aiSummaryFeature.reset();
-        // Start attendee tracking when entering meeting
-        startAttendeeTracking();
     }
 
     wasInMeeting = true;
-    await ensureTeamsTranscription(!previouslyInMeeting);
     handleCaptionsStateChange();
 }, 'Meeting state change handler');
 
@@ -763,11 +757,7 @@ const handleCaptionsStateChange = ErrorHandler.wrap(async function() {
         }
         observedElement = null;
         
-        const { autoEnableCaptions } = await chrome.storage.sync.get('autoEnableCaptions');
-        if (autoEnableCaptions !== false) {
-            // Use debounced version to prevent rapid firing
-            debouncedAutoEnableCaptions();
-        }
+        captureState = 'waiting';
     }
 }, 'Captions state change handler');
 
@@ -802,8 +792,6 @@ async function startCaptureSession() {
     const { trackCaptions } = await chrome.storage.sync.get('trackCaptions');
     if (trackCaptions === false) {
         console.log("Caption tracking is disabled in settings");
-        // Still start attendee tracking if captions are disabled
-        startAttendeeTracking();
         return;
     }
     
@@ -827,9 +815,6 @@ async function startCaptureSession() {
     
     // Start periodic backup
     startPeriodicBackup();
-    
-    // Start attendee tracking
-    startAttendeeTracking();
     
     chrome.runtime.sendMessage({ message: "update_badge_status", capturing: true });
     
@@ -1022,52 +1007,37 @@ async function inspectTranscriptionMenu() {
     return {state:'requested', detail:'Teams transcription was requested. Microsoft should notify participants and retain the official transcript in the tenant.'};
 }
 
-async function ensureTeamsTranscription(force = false) {
-    if (!isUserInMeeting() || transcriptionCheckInProgress) return;
-    const { autoEnableCaptions } = await chrome.storage.sync.get('autoEnableCaptions');
-    if (autoEnableCaptions === false) {
-        setTranscriptionState('disabled', 'Local capture is working. Automatic Microsoft 365 transcription is off in CaptionKeep settings.');
-        return;
-    }
-    const now = Date.now();
-    if (!force && now - transcriptionLastAttempt < 60000) return;
+async function requestTeamsTranscription() {
+    if (!isUserInMeeting()) return {ok:false, error:'Join a Teams meeting before requesting the tenant transcript.'};
+    if (transcriptionCheckInProgress) return {ok:false, error:'A Teams transcript request is already in progress.'};
     transcriptionCheckInProgress = true;
-    transcriptionLastAttempt = now;
+    transcriptionLastAttempt = Date.now();
     setTranscriptionState('checking', 'Checking whether Teams transcription is running…');
     try {
         const result = await inspectTranscriptionMenu();
         setTranscriptionState(result.state, result.detail);
+        return {ok:true, ...result};
     } catch (error) {
         setTranscriptionState('unavailable', `Teams transcription could not be verified: ${error.message}`);
+        return {ok:false, error:error.message, state:'unavailable'};
     } finally {
         transcriptionCheckInProgress = false;
     }
 }
 
-async function attemptAutoEnableCaptions() {
-    // Prevent multiple simultaneous auto-enable attempts
-    if (autoEnableInProgress) {
-        console.log("Auto-enable already in progress, skipping...");
-        return;
-    }
-    
-    // Prevent too frequent attempts (min 10 seconds between attempts)
-    const now = Date.now();
-    if (now - autoEnableLastAttempt < 10000) {
-        console.log("Auto-enable attempted too recently, skipping...");
-        return;
-    }
-    
-    autoEnableInProgress = true;
-    autoEnableLastAttempt = now;
+async function requestLiveCaptions() {
+    if (captionEnableInProgress) return {ok:false, error:'A live-caption request is already in progress.'};
+    if (!isUserInMeeting()) return {ok:false, error:'Join a Teams meeting before enabling live captions.'};
+    if (getCachedElement(SELECTORS.CAPTIONS_RENDERER)) return {ok:true, state:'active'};
+
+    captionEnableInProgress = true;
     
     try {
-        console.log("Starting auto-enable captions attempt...");
+        console.log("Starting user-requested live-caption attempt...");
         
         const moreButton = getCachedElement(SELECTORS.MORE_BUTTON);
         if (!moreButton) {
-            console.error("Auto-enable FAILED: Could not find 'More' button.");
-            return;
+            return {ok:false, error:"Teams did not expose the More menu."};
         }
         
         // Check if More menu is already expanded
@@ -1082,13 +1052,13 @@ async function attemptAutoEnableCaptions() {
 
         const langAndSpeechButton = getCachedElement(SELECTORS.LANGUAGE_SPEECH_BUTTON);
         if (!langAndSpeechButton) {
-            console.error("Auto-enable FAILED: Could not find 'Language and speech' menu item.");
+            console.error("Live-caption request failed: Could not find 'Language and speech' menu item.");
             // Close the More menu if we opened it
             const currentExpandedButton = getCachedElement(SELECTORS.MORE_BUTTON_EXPANDED);
             if (currentExpandedButton) {
                 currentExpandedButton.click();
             }
-            return;
+            return {ok:false, error:"Teams did not expose the Language and speech menu."};
         }
         
         console.log("Clicking Language and speech...");
@@ -1101,7 +1071,7 @@ async function attemptAutoEnableCaptions() {
             turnOnCaptionsButton.click();
             await delay(TIMING.BUTTON_CLICK_DELAY);
         } else {
-            console.error("Auto-enable FAILED: Could not find 'Turn on live captions' button.");
+            return {ok:false, error:"Teams did not expose the live-caption control. Captions may already be active or unavailable."};
         }
 
         // Attempt to close the 'More' menu
@@ -1111,22 +1081,14 @@ async function attemptAutoEnableCaptions() {
             finalExpandedButton.click();
         }
         
-        console.log("Auto-enable captions attempt completed.");
+        handleCaptionsStateChange();
+        return {ok:true, state:'requested'};
     } catch (e) {
-        console.error("Error during auto-enable captions attempt:", e);
+        console.error("Error during live-caption request:", e);
+        return {ok:false, error:e.message};
     } finally {
-        autoEnableInProgress = false;
+        captionEnableInProgress = false;
     }
-}
-
-function debouncedAutoEnableCaptions() {
-    if (autoEnableDebounceTimer) {
-        clearTimeout(autoEnableDebounceTimer);
-    }
-    
-    autoEnableDebounceTimer = setTimeout(() => {
-        attemptAutoEnableCaptions();
-    }, 2000); // 2 second debounce to prevent rapid firing
 }
 
 // --- Event-Driven Initialization ---
@@ -1188,13 +1150,7 @@ function cleanupObservers() {
         clearTimeout(captionsStateDebounceTimer);
         captionsStateDebounceTimer = null;
     }
-    if (autoEnableDebounceTimer) {
-        clearTimeout(autoEnableDebounceTimer);
-        autoEnableDebounceTimer = null;
-    }
-    
-    // Reset auto-enable state
-    autoEnableInProgress = false;
+    captionEnableInProgress = false;
     
     // Stop attendee tracking
     stopAttendeeTracking();
@@ -1314,9 +1270,46 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                 sessionId: recordingStartTime?.toISOString(),
                 meetingTitle: meetingTitleOnStart || document.title || 'Microsoft Teams',
                 captureState,
+                isInMeeting: isUserInMeeting(),
+                meetingControls: {
+                    liveCaptions: Boolean(getCachedElement(SELECTORS.CAPTIONS_RENDERER)),
+                    attendees: attendeeCaptureRequested && attendeesAllowed,
+                    attendeeAllowed: attendeesAllowed,
+                    transcriptionState,
+                    transcriptionDetail
+                },
                 transcriptArray: getCleanTranscript()
             });
             break;
+
+        case 'enable_live_captions':
+            requestLiveCaptions().then(sendResponse);
+            return true;
+
+        case 'open_attendee_panel':
+            (async () => {
+                const managed = await CaptionKeepConfiguration.readManaged();
+                if (managed.disableAttendeeCapture === true) {
+                    attendeesAllowed = false;
+                    sendResponse({ok:false, error:'Attendee capture is disabled by your organization.'});
+                    return;
+                }
+                if (!isUserInMeeting()) {
+                    sendResponse({ok:false, error:'Join a Teams meeting before opening the attendee panel.'});
+                    return;
+                }
+                attendeeCaptureRequested = true;
+                attendeesAllowed = true;
+                await chrome.storage.sync.set({trackAttendees:true, autoOpenAttendees:false});
+                const opened = await tryOpenParticipantPanel();
+                await startAttendeeTracking();
+                sendResponse({ok:true, state:'active', opened});
+            })().catch(error => sendResponse({ok:false, error:error.message}));
+            return true;
+
+        case 'request_teams_transcription':
+            requestTeamsTranscription().then(sendResponse);
+            return true;
 
         case 'get_captions_for_viewing':
             flushPendingCaptions();
