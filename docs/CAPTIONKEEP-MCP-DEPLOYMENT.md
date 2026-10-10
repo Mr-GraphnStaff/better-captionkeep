@@ -76,6 +76,24 @@ az deployment group what-if --resource-group <customer-resource-group> --templat
 Run `what-if` and customer security review before deployment. A compiled
 template is not authorization to deploy or evidence that the endpoint is live.
 
+### Low-cost UAT profile
+
+The template defaults to `minReplicas: 0`, so an HTTP-triggered deployment on
+an Azure Container Apps Consumption environment can scale to zero when it is
+not being tested. Set `maxReplicas: 1` in the UAT parameters to bound an
+accidental burst. Expect a cold start on the first request after an idle
+period. Azure can still charge for active compute, outbound data, requests,
+storage, registry, logging, and any supporting resources; scale-to-zero is not
+a guarantee that the complete resource group costs nothing.
+
+Keep this test deployment separate from the private Store release environment.
+Use only synthetic evidence, do not reuse Store credentials or the release Key
+Vault, and remove the UAT resource group when testing is complete. The MCP is
+only the assistant's read-only evidence retrieval path. Testing **Send to my
+assistant** also requires either the local native bridge or a customer-owned
+HTTPS assistant endpoint implementing the bridge protocol; the MCP cannot
+initiate that send by itself.
+
 ## Authentication and network checks
 
 Every request to `/mcp` must present a signed RS256 access token. Validation

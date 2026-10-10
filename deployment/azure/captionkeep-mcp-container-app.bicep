@@ -43,6 +43,11 @@ param requiredScopes string = 'CaptionKeep.Evidence.Read'
 @maxValue(10)
 param maxReplicas int = 3
 
+@description('Minimum replicas. Keep at 0 for on-demand UAT so idle compute scales to zero.')
+@minValue(0)
+@maxValue(10)
+param minReplicas int = 0
+
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
@@ -94,7 +99,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: minReplicas
         maxReplicas: maxReplicas
         rules: [
           {
