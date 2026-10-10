@@ -63,4 +63,5 @@ Any future connected-assistant or MCP work requires a new product decision that
 defines the actual assistant, who operates it, its deployment and cost model,
 authentication, supported AI providers, end-to-end browser behavior, customer
 responsibilities, Store disclosures, and live acceptance evidence before code
-returns to a release branch.
+returns to a release branch. The proposed, non-shipping direction is documented
+in [Unified AI Framework](UNIFIED-AI-FRAMEWORK.md).
