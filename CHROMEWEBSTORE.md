@@ -33,11 +33,11 @@ Every feature included in Better CaptionKeep is available to every user. There i
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-Version 5.3.2 corrects the Store Microsoft 365 configuration defect found after Edge 5.3.1 became public. It also includes the 5.3 All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
+Version 5.3.3 replaces competing live-transcript controls with one Live Workspace in the browser side panel. The full transcript viewer remains available as an intentional expanded view and for completed history. It also removes a popup shortcut that intercepted the standard paste command and moves the complete Microsoft 365 transcript-import workspace to the full-tab All Settings page. This keeps the popup compact and keeps the setup form open while an administrator copies both identifiers. The 5.3 line includes the All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
-The local Evidence Board lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
+The local Live Workspace keeps the live transcript and Evidence Board together beside the meeting. It lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
 
 Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, or an optional AI handoff. AI handoff is review-first: Better CaptionKeep prepares an editable prompt inside the extension and never puts transcript text in a provider URL, pastes it automatically, or submits it for the user.
 
@@ -48,6 +48,8 @@ Version 5.4 is preparing broad AI-assisted interface translation previews and op
 Evidence Actions let the user select specific source-linked captions, review the exact outbound evidence, choose a research scope, and send the approved request only through an enrolled local assistant bridge or an authenticated customer-hosted endpoint. The feature is disabled until configured, defaults to scrubbed evidence, never sends an entire transcript by default, and does not give Better CaptionKeep the customer's model or connector credentials. CaptionKeep's MCP tools are read-only. A Jira, Microsoft 365, or other external change is prepared and confirmed in the customer's own assistant environment; it is never executed silently by the extension.
 
 **On the Fly Research** lets the user highlight exact words in a live captured caption and choose **Research selection**, use a caption's one-click **Research** control, or select several complete captions. The review opens immediately with the selected excerpt bound to its source-caption identifier; unrelated transcript text is not included automatically. A returned cited Research Card can prepare an editable live-chat reply. Better CaptionKeep copies the reviewed draft, but never posts automatically or presses Send for the user.
+
+On the Fly uses the local or customer-hosted assistant enrolled under **All Settings → Customer assistant connection**. It does not use the older ChatGPT or Claude handoff shortcuts.
 
 To begin, open a supported meeting and open Better CaptionKeep. Use **Live Workspace** to choose when live captions start and, in Teams, whether to open the attendee panel or request the official transcript. Use the popup for settings, history, and exports, or keep the Evidence Board beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
 
@@ -88,7 +90,7 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `activeTab` | permissions | Lets the user-invoked popup identify and communicate with the supported meeting tab currently in view. |
 | `storage` | permissions | Stores preferences, managed settings, recovery checkpoints, pending exports, temporary aliases, Evidence Board markers, and user-controlled local transcript history. |
 | `unlimitedStorage` | permissions | Lets the user-controlled local transcript archive grow beyond the default local-storage quota without silently evicting meetings. Explicit user deletion and managed retention remain authoritative. |
-| `sidePanel` | permissions | Displays the local live transcript and Evidence Board beside the supported meeting page. |
+| `sidePanel` | permissions | Displays one unified local Live Workspace for captured captions and source-linked evidence beside the supported meeting page. |
 | `identity` | permissions | Opens interactive Microsoft Entra sign-in with PKCE for the customer-configured tenant when the user chooses Connect Microsoft 365. No shared app or client secret is embedded. |
 | `alarms` | permissions | Wakes the service worker at a bounded interval to recover or poll only user-approved Evidence Action jobs after Manifest V3 suspension. It does not start new actions or collect analytics. |
 | `nativeMessaging` | optional_permissions | Requested only when the user enrolls a customer-installed local assistant bridge. The extension sends only the reviewed Evidence Action to the exact configured native host. |
@@ -163,8 +165,9 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.4.0 | 2026-10-05 | Development: localization framework, reviewed-core plus AI-assisted preview model, managed language selection, private-by-default feedback forms, contextual All Settings Wiki help, accessibility/reliability corrections, and optional review-first Evidence Actions backed by read-only customer-owned MCP deployments. | Development only; not uploaded or submitted |
-| 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Chrome `PENDING_REVIEW`; Edge publicly serving 5.3.2; installed-upgrade verification pending |
+| 5.4.0 | 2026-10-10 | Development: localization previews, explicit meeting-source controls, source-linked On the Fly research, cited live-chat drafts, DAF-TECH parent branding, Trust Center, and new Store artwork. | Development candidate; not uploaded or submitted |
+| 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
+| 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
 | 5.3.0 | 2026-10-03 | Consolidates Verified Teams Transcript, archive/search, corrections, Word export, All settings, Print / PDF, local AI templates, reviewed chat/screenshots, imported-cue SRT/VTT, feature-detected on-device translation, and universal access to every shipped feature. | GitHub release retained for audit, but withdrawn from Store promotion after post-release defects; replacement not yet approved |
 | 5.1.0 | 2026-09-25 | Added Zoom Web support, Evidence Board, improved export behavior, and release hardening. | Published |
@@ -180,7 +183,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 6. Confirm Privacy Scrubber is enabled by default. Optional AI handoff must stop on the internal review page until the reviewer explicitly copies text.
 7. In the Evidence Board, select synthetic captions, choose Research this reference, and verify that the review dialog shows the exact bounded evidence and does not submit anything without an enrolled destination and explicit confirmation.
 8. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
-9. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
+9. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Open All Settings, enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
 
 No developer-operated server, paid subscription, microphone recording, video recording, or shared test account is required for the extension itself.
 
@@ -203,4 +206,4 @@ No developer-operated server, paid subscription, microphone recording, video rec
 
 ### Submission History
 
-Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. Chrome reports `PENDING_REVIEW`. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome public availability and installed-upgrade verification remain open.
+Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome Web Store publicly listed version 5.3.2 as updated October 6, 2026. Installed-upgrade verification remains separate evidence.

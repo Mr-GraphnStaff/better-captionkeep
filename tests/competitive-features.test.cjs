@@ -131,10 +131,9 @@ test('All settings shares popup form, is registered for all browser targets, and
     assert(popup.indexOf('href="settings.html"') < popup.indexOf('<nav class="platform-launchers"'));
     assert.equal((popup.match(/href="settings.html"/g) || []).length, 1);
     assert(popup.includes('target="_blank" rel="noopener" aria-describedby="all-settings-description"'));
-    assert(popup.includes('href="settings.html#microsoft365"'));
     assert(popup.includes('class="graph-manual graph-admin-details" id="graphAdminDetails"'));
     assert(popup.includes('html:not([data-view="settings"]) .graph-admin-details { display: none; }'));
-    assert(source('settings.js').includes('target.hash = location.hash'));
+    assert(source('settings.js').includes('.hash = location.hash'));
     const popupScript = source('popup.js');
     assert(popupScript.includes("document.body.dataset.graphConfigured = String(graphConfigured)"));
     assert(popupScript.includes("location.hash === '#microsoft365'"));

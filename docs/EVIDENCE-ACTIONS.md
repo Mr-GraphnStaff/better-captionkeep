@@ -162,8 +162,11 @@ assistant. The optional 5.4 bridge supplies that initiation path:
 The extension now implements one versioned bridge protocol over both an
 enrolled native-messaging host and an exact customer-approved HTTPS origin.
 Remote enrollment uses authorization code with PKCE, no client secret, and
-session-only tokens. All Settings keeps this advanced setup out of the compact
-popup, requests only the chosen optional permission, and allows managed policy
+session-only tokens. The user configures this path under **All Settings →
+Customer assistant connection**; On the Fly uses that same enrolled connection,
+not the older ChatGPT or Claude handoff links. All Settings keeps this advanced
+setup out of the compact popup, requests only the chosen optional permission,
+and allows managed policy
 to disable Evidence Actions, require scrubbed evidence, restrict intents, or
 lock the enrolled bridge. Reviewed jobs are idempotent and recover after MV3
 service-worker suspension; uncertain submissions reuse the same idempotency

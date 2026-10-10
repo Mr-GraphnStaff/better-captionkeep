@@ -69,7 +69,7 @@ for (const target of ['dev', 'uat', 'prod']) {
     ? 'Better CaptionKeep - Development'
     : target === 'uat'
       ? 'Better CaptionKeep - UAT Release Candidate'
-      : 'Better CaptionKeep';
+      : 'Better CaptionKeep — Live Meeting Transcript';
   const resolvedName = resolveManifestMessage(manifest.name, await readEnglishMessages(root));
   if (resolvedName !== expectedName) throw new Error(`${target} manifest has the wrong lifecycle identity`);
   if (!manifest.key) throw new Error(`${target} manifest must have a stable unpacked identity key`);

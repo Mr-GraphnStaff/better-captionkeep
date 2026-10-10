@@ -31,6 +31,9 @@ test('package builder permits Chromium _locales and rejects Store-reserved _meta
     assert.equal(path.basename(artifact), 'package_test-1.0.0.zip');
     assert((await readFile(artifact)).length > 0);
 
+    const stableArtifact = await packageExtension(source, destination, 'Stable Product');
+    assert.equal(path.basename(stableArtifact), 'stable_product-1.0.0.zip');
+
     await mkdir(path.join(source, '_metadata'));
     await writeFile(path.join(source, '_metadata', 'verified_contents.json'), '{}');
     await assert.rejects(

@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.3.2 Recovery Record
 
-Status: **public in Microsoft Edge Add-ons; Chrome review and installed-upgrade verification remain open.**
+Status: **public in Microsoft Edge Add-ons and Chrome Web Store; installed-upgrade verification remains open.**
 
 ## Incident
 
@@ -55,9 +55,11 @@ The `_metadata/verified_contents.json` file observed in the signed Edge CRX is S
 - Azure Store run 615 proved immutable release verification and successfully prepared the Edge draft. Its Chrome job stopped safely because the publisher initially treated Google's terminal `CANCELLED` 5.3.1 revision as active.
 - PR #71 corrected that release-tool state classifier and added regression coverage: only `PENDING_REVIEW` and `STAGED` are active; `CANCELLED` and `REJECTED` may be replaced.
 - Azure Store run 619 verified the same frozen `v5.3.2` assets, uploaded both drafts, passed the protected production approval, and submitted both existing Store products.
-- Chrome accepted 5.3.2 for review as `PENDING_REVIEW` with automatic publication after approval.
+- Chrome accepted 5.3.2 for review as `PENDING_REVIEW` with automatic publication after approval, and the public listing reported version 5.3.2 updated October 6, 2026.
 - Microsoft completed the Edge submission operation as `Succeeded` and accepted 5.3.2 for certification.
 - At 17:25 UTC on October 4, 2026, Microsoft's public Edge update service returned the signed production CRX for extension `edefcbdhahfolgkoamkbknjppojpaffk`; its root `manifest.json` reports version `5.3.2` and the expected Microsoft Edge Add-ons update URL.
+- On October 6, 2026, the public Chrome Web Store listing began serving version `5.3.2` for extension `nabjdlnkkaonnbnimnmnhjcbigceebml`.
+- At 18:55 UTC on October 6, Google's public extension update service independently returned version `5.3.2`, package size `372880`, and SHA-256 `fc4dc4a94e6e63660c35d3b5d8a043395450702dd27834b2e120bcfc6e245c10` for the production Chrome identity.
 - The private release VM was deallocated after the pipeline completed.
 
-Edge public availability is now independently verified. Chrome still publicly serves 5.1.0, and an existing Edge installation has not yet been observed upgrading from 5.3.1 to 5.3.2. Azure Boards bug #297 therefore remains Active until Chrome serves 5.3.2 and installed-upgrade verification passes.
+Public availability is now independently verified in both Stores. Azure Boards bug #297 remains Active until existing Chrome and Edge installations are observed upgrading from their prior public versions to 5.3.2 and the upgraded extension passes the production smoke test.
