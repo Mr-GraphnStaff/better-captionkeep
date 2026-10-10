@@ -12,7 +12,7 @@
 
     let coordinator = null;
     let trackingAllowed = true;
-    let autoEnableCaptions = true;
+    let liveCaptionsRequested = false;
     let adapterStarted = false;
     const summaryFeature = insights.createAiSummaryFeature({
         storage: chrome.storage.sync,
@@ -24,6 +24,8 @@
     function handleProviderEvent(event) {
         coordinator.handleProviderEvent(event);
         if (event?.type !== 'meeting-ended') return;
+        liveCaptionsRequested = false;
+        adapter.setAutoEnableCaptions(false);
         const state = coordinator.getState();
         summaryFeature.onMeetingEnded({
             transcript: coordinator.getTranscript(),
@@ -47,10 +49,6 @@
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName !== 'sync') return;
-        if (changes.autoEnableCaptions) {
-            autoEnableCaptions = changes.autoEnableCaptions.newValue !== false;
-            adapter.setAutoEnableCaptions(autoEnableCaptions);
-        }
         if (changes.trackCaptions) {
             trackingAllowed = changes.trackCaptions.newValue !== false;
             if (!coordinator) return;
@@ -76,13 +74,12 @@
         await coordinator.restore();
         adapter.restoreState?.(coordinator.getTranscript());
         try {
-            const stored = await chrome.storage.sync.get(['trackCaptions', 'autoEnableCaptions']);
+            const stored = await chrome.storage.sync.get(['trackCaptions']);
             trackingAllowed = stored.trackCaptions !== false;
-            autoEnableCaptions = stored.autoEnableCaptions !== false;
         } catch {
             trackingAllowed = true;
         }
-        adapter.setAutoEnableCaptions(autoEnableCaptions);
+        adapter.setAutoEnableCaptions(false);
         if (trackingAllowed) startAdapter();
         else coordinator.pause();
     }
@@ -114,8 +111,22 @@
                     sessionId: state.recordingStartTime,
                     meetingTitle: document.title || 'Google Meet',
                     captureState: state.captureState,
+                    isInMeeting: adapter.isMeetingPresent(),
+                    meetingControls: {
+                        liveCaptions: Boolean(adapter.getCaptionSource()),
+                        liveCaptionsRequested
+                    },
                     transcriptArray: coordinator.getTranscript()
                 });
+                return false;
+            case 'enable_live_captions':
+                if (!adapter.isMeetingPresent()) {
+                    sendResponse({ok:false, error:'Join a Google Meet meeting before enabling live captions.'});
+                    return false;
+                }
+                liveCaptionsRequested = true;
+                adapter.setAutoEnableCaptions(true);
+                sendResponse({ok:true, state:adapter.getCaptionSource() ? 'active' : 'requested'});
                 return false;
             case 'get_unique_speakers':
                 sendResponse({speakers: coordinator.getSpeakers()});

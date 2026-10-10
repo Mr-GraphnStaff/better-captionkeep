@@ -1,7 +1,6 @@
 // --- Constants for DOM Elements and Data ---
 const UI_ELEMENTS = {
     statusMessage: document.getElementById('status-message'),
-    manualStartInfo: document.getElementById('manual-start-info'),
     copyButton: document.getElementById('copyButton'),
     copyDropdownButton: document.getElementById('copyDropdownButton'),
     copyOptions: document.getElementById('copyOptions'),
@@ -18,11 +17,8 @@ const UI_ELEMENTS = {
     saveBehaviorHint: document.getElementById('saveBehaviorHint'),
     openLastTranscriptFolder: document.getElementById('openLastTranscriptFolder'),
     downloadFolderStatus: document.getElementById('downloadFolderStatus'),
-    autoEnableCaptionsToggle: document.getElementById('autoEnableCaptionsToggle'),
     autoSaveOnEndToggle: document.getElementById('autoSaveOnEndToggle'),
     trackCaptionsToggle: document.getElementById('trackCaptionsToggle'),
-    trackAttendeesToggle: document.getElementById('trackAttendeesToggle'),
-    autoOpenAttendeesToggle: document.getElementById('autoOpenAttendeesToggle'),
     autoAISummaryToggle: document.getElementById('autoAISummaryToggle'),
     privacyScrubberToggle: document.getElementById('privacyScrubberToggle'),
     profanityFilterToggle: document.getElementById('profanityFilterToggle'),
@@ -179,7 +175,7 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
             } else if (transcriptionState === 'unavailable') {
                 status += ` ${transcriptionDetail || 'Local capture is working. An official Microsoft 365 transcript is unavailable for this meeting.'}`;
             } else if (transcriptionState === 'disabled') {
-                status += ` ${transcriptionDetail || 'Local capture is working. Automatic Microsoft 365 transcription is off.'}`;
+                status += ` ${transcriptionDetail || 'Local capture is working. Microsoft 365 transcription was not requested.'}`;
             } else {
                 status += ' Local capture is working. Microsoft 365 transcription has not been verified yet.';
             }
@@ -698,14 +694,11 @@ async function refreshAssistantStatus() {
 
 async function loadSettings() {
     const userSettings = await chrome.storage.sync.get([
-        'autoEnableCaptions',
         'autoSaveOnEnd',
         'defaultSaveFormat',
         'saveAsType',
         'saveLocation',
         'trackCaptions',
-        'trackAttendees',
-        'autoOpenAttendees',
         'autoAISummary',
         'privacyScrubberEnabled',
         'profanityFilterEnabled',
@@ -740,15 +733,8 @@ async function loadSettings() {
     updateGraphSetupControls(settings, locked);
     renderAssistantSetup(settings, locked);
 
-    UI_ELEMENTS.autoEnableCaptionsToggle.checked = settings.autoEnableCaptions !== false;
     UI_ELEMENTS.autoSaveOnEndToggle.checked = !!settings.autoSaveOnEnd;
     UI_ELEMENTS.trackCaptionsToggle.checked = settings.trackCaptions !== false; // Default to true
-    UI_ELEMENTS.trackAttendeesToggle.checked = settings.trackAttendees !== false; // Default to true
-    UI_ELEMENTS.trackAttendeesToggle.disabled = locked.has('trackAttendees');
-    if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-        UI_ELEMENTS.autoOpenAttendeesToggle.checked = settings.autoOpenAttendees !== false;
-        UI_ELEMENTS.autoOpenAttendeesToggle.disabled = !UI_ELEMENTS.trackAttendeesToggle.checked || locked.has('autoOpenAttendees');
-    }
     if (UI_ELEMENTS.autoAISummaryToggle) {
         UI_ELEMENTS.autoAISummaryToggle.checked = !!settings.autoAISummary;
         UI_ELEMENTS.autoAISummaryToggle.disabled = locked.has('autoAISummary');
@@ -799,8 +785,6 @@ async function loadSettings() {
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.value = CaptionKeepTheme.apply(settings.uiTheme);
     }
-    UI_ELEMENTS.manualStartInfo.style.display = settings.autoEnableCaptions !== false ? 'none' : 'block';
-
     const allowedFormats = ['txt', 'md', 'docx'];
     currentDefaultFormat = settings.defaultSaveFormat || 'txt';
     if (!allowedFormats.includes(currentDefaultFormat)) {
@@ -974,42 +958,11 @@ function setupEventListeners() {
 
     UI_ELEMENTS.trackCaptionsToggle.addEventListener('change', (e) => {
         chrome.storage.sync.set({ trackCaptions: e.target.checked });
-        if (!e.target.checked) {
-            UI_ELEMENTS.autoEnableCaptionsToggle.checked = false;
-            UI_ELEMENTS.autoEnableCaptionsToggle.disabled = true;
-            chrome.storage.sync.set({ autoEnableCaptions: false });
-        } else {
-            UI_ELEMENTS.autoEnableCaptionsToggle.disabled = false;
-        }
-    });
-
-    UI_ELEMENTS.autoEnableCaptionsToggle.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ autoEnableCaptions: e.target.checked });
-        UI_ELEMENTS.manualStartInfo.style.display = e.target.checked ? 'none' : 'block';
     });
 
     UI_ELEMENTS.autoSaveOnEndToggle.addEventListener('change', (e) => {
         chrome.storage.sync.set({ autoSaveOnEnd: e.target.checked });
     });
-
-    UI_ELEMENTS.trackAttendeesToggle.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ trackAttendees: e.target.checked });
-        if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-            if (!e.target.checked) {
-                UI_ELEMENTS.autoOpenAttendeesToggle.checked = false;
-                UI_ELEMENTS.autoOpenAttendeesToggle.disabled = true;
-                chrome.storage.sync.set({ autoOpenAttendees: false });
-            } else {
-                UI_ELEMENTS.autoOpenAttendeesToggle.disabled = false;
-            }
-        }
-    });
-
-    if (UI_ELEMENTS.autoOpenAttendeesToggle) {
-        UI_ELEMENTS.autoOpenAttendeesToggle.addEventListener('change', (e) => {
-            chrome.storage.sync.set({ autoOpenAttendees: e.target.checked });
-        });
-    }
 
     if (UI_ELEMENTS.autoAISummaryToggle) {
         UI_ELEMENTS.autoAISummaryToggle.addEventListener('change', (e) => {
@@ -1075,10 +1028,6 @@ function setupEventListeners() {
     if (UI_ELEMENTS.chatgptWorkspaceUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.chatgptWorkspaceUrl, 'chatgpt', 'chatgptWorkspaceUrl');
     if (UI_ELEMENTS.claudeWorkspaceUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.claudeWorkspaceUrl, 'claude', 'claudeWorkspaceUrl');
     if (UI_ELEMENTS.claudeConsoleUrl) configureEnterpriseDestinationInput(UI_ELEMENTS.claudeConsoleUrl, 'claude_console', 'claudeConsoleUrl');
-
-    if (UI_ELEMENTS.trackCaptionsToggle) {
-        UI_ELEMENTS.autoEnableCaptionsToggle.disabled = !UI_ELEMENTS.trackCaptionsToggle.checked;
-    }
 
     UI_ELEMENTS.timestampFormat.addEventListener('change', (e) => {
         chrome.storage.sync.set({ timestampFormat: e.target.value });

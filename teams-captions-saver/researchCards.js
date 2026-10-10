@@ -114,6 +114,33 @@
         return Object.freeze({valid:errors.length === 0, errors:Object.freeze(errors)});
     }
 
+    function toLiveChatDraft(card) {
+        const validation = validateCard(card);
+        if (!validation.valid) throw new TypeError(validation.errors.join(' '));
+        const citations = new Map(card.citations.map(citation => [citation.citationId, citation]));
+        const claims = card.claims.slice(0, 3);
+        const usedCitationIds = [...new Set(claims.flatMap(claim => claim.citationIds))];
+        const lines = [
+            `Research update — ${clean(card.title, 300)}`,
+            ...(card.summary ? ['', clean(card.summary, 1200)] : []),
+            '',
+            ...claims.map(claim => {
+                const labels = claim.citationIds.map(id => clean(citations.get(id)?.sourceLabel, 120) || id);
+                return `• ${clean(claim.text, 1000)} [${labels.join('; ')}]`;
+            }),
+            '',
+            'Sources:',
+            ...usedCitationIds.map(id => {
+                const citation = citations.get(id);
+                const label = clean(citation?.sourceLabel, 180) || id;
+                return citation?.sourceUrl ? `• ${label}: ${citation.sourceUrl}` : `• ${label}`;
+            }),
+            '',
+            'AI-assisted research. Review the cited sources before relying on this reply.'
+        ];
+        return lines.join('\n').slice(0, 4000);
+    }
+
     async function verifyCard(card) {
         const validation = validateCard(card);
         if (!validation.valid) return validation;
@@ -147,7 +174,7 @@
 
     root.CaptionKeepResearchCards = Object.freeze({
         FORMAT, VERSION, STORAGE_KEY, MAX_CARDS, MAX_CLAIMS, MAX_CITATIONS, SOURCE_TYPES,
-        buildCard, sealCard, validateCard, verifyCard, createRepository, canonicalize, sha256Hex
+        buildCard, sealCard, validateCard, verifyCard, createRepository, canonicalize, sha256Hex, toLiveChatDraft
     });
     if (typeof module !== 'undefined' && module.exports) module.exports = root.CaptionKeepResearchCards;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

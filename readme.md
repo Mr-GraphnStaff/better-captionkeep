@@ -1,10 +1,12 @@
 # Better CaptionKeep
 
-**by Señor Farris** — Keep the words. Stay in the conversation.
+**A DAF-TECH Product** — Keep the words. Stay in the conversation.
+
+<img src="branding/daf-tech/daf-tech-sphere.png" alt="DAF-TECH sphere" width="120">
 
 ![Better CaptionKeep by Señor Farris — Scribble, our listening transcript mascot](branding/scribble-concept.png)
 
-[Privacy policy](PRIVACY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
+[Trust Center](docs/TRUST-CENTER.md) · [Privacy policy](PRIVACY.md) · [Report a vulnerability](SECURITY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
@@ -36,13 +38,15 @@ The 5.3 line introduces **Verified Teams Transcript**: a delegated Microsoft Gra
 
 Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) is the frozen Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is now in Development. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
-## Interface previews
+## 5.4 interface previews
 
-These synthetic 5.3 product previews replace the obsolete popup and empty-viewer images previously shown here. They contain no customer meeting, tenant, transcript, or account data. They describe the submitted release and must not be confused with proof of public Store availability.
+These synthetic 5.4 release-candidate previews contain no customer meeting,
+tenant, transcript, or account data. They show the current product story but
+must not be confused with proof of Store approval or public availability.
 
-| Supported meetings | Private review and export |
+| On the Fly research | Explicit meeting controls |
 | --- | --- |
-| <img src="store-assets/5.3/04-three-meeting-platforms.png" alt="Better CaptionKeep support for Microsoft Teams, Google Meet, and Zoom Web" width="600"> | <img src="store-assets/5.3/03-private-review-and-export.png" alt="Better CaptionKeep private transcript review and export" width="600"> |
+| <img src="store-assets/5.4/03-on-the-fly-research.png" alt="Select exact meeting words for source-linked On the Fly research" width="600"> | <img src="store-assets/5.4/02-explicit-meeting-controls.png" alt="User-controlled caption, attendee, and Teams transcript actions" width="600"> |
 
 ## What it does
 
@@ -63,7 +67,7 @@ These synthetic 5.3 product previews replace the obsolete popup and empty-viewer
 - Choose a browser-following or explicit interface language from 38 packaged catalogs. Non-English choices are visibly labeled as uncertified AI-assisted previews and fall back to English; administrators can lock the choice with `forceUiLocale`.
 - Open a focused, plain-language GitHub form for a bug, feature idea, or language correction. The forms warn users not to include transcript text, participant details, meeting links, tenant identifiers, or other private meeting data.
 - When enabled by an organization, find the current or five recent Teams meetings and explicitly import an authorized official transcript with a separate raw source and verifiable local provenance.
-- In Teams, automatically request live captions, the participant roster, and Microsoft 365 transcription. The popup distinguishes the local browser copy from the official tenant-retained transcript and warns when the user’s Teams role, meeting state, or tenant policy prevents transcription from being verified.
+- Choose meeting sources from the Live Workspace side panel. Live captions are never enabled merely because Better CaptionKeep opens; Teams attendee capture and Microsoft 365 transcription each require their own visible user action. The interface distinguishes the local browser copy from the official tenant-retained transcript and reports when role, meeting state, or tenant policy prevents an action.
 
 Better CaptionKeep is BYOAI today: it prepares short local instructions plus a complete, coverage-checked Markdown evidence file and bounded numbered copy chunks. You review the selected privacy mode, included/omitted counts, chunk count, and file size before deciding whether anything leaves the extension. Privacy Scrubber is visible and on by default: it masks supported sensitive patterns consistently across the complete handoff, leaves the saved original unchanged, and requires a second confirmation before unmasked material can be copied. Pattern detection reduces accidental disclosure risk but does not guarantee HIPAA, PCI DSS, or other regulatory compliance. For managed ChatGPT or Claude accounts, first open the approved enterprise workspace and copy its URL into **Settings → Enterprise destinations**. Better CaptionKeep accepts only official HTTPS provider domains, never places transcript text in a provider URL, and asks you to confirm the active workspace before attaching or pasting. Preferences, including enterprise destinations and the selected theme, may use browser sync; see the [privacy policy](PRIVACY.md) for the full data-handling details.
 

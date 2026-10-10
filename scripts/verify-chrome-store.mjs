@@ -35,7 +35,9 @@ const files = await filesUnder(stagedRoot);
 const forbiddenFiles = files.filter(hasForbiddenPathPart);
 
 if (forbiddenFiles.length) throw new Error(`Chrome Store package contains forbidden files: ${forbiddenFiles.join(', ')}`);
-if (resolveManifestMessage(storeManifest.name, englishMessages) !== 'Better CaptionKeep') throw new Error('Chrome Store name must resolve to Better CaptionKeep.');
+if (resolveManifestMessage(storeManifest.name, englishMessages) !== 'Better CaptionKeep — Live Meeting Transcript') {
+  throw new Error('Chrome Store name must resolve to the reviewed Better CaptionKeep listing title.');
+}
 if (/test|development/i.test(`${storeManifest.name} ${storeManifest.version_name ?? ''} ${storeManifest.action?.default_title ?? ''}`)) {
   throw new Error('Chrome Store manifest contains test or development labeling.');
 }

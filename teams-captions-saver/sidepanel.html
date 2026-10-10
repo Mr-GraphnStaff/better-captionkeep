@@ -35,6 +35,18 @@
             </div>
             <p id="meeting-title" class="meeting-title">Open Teams, Meet, or Zoom Web.</p>
             <p id="meeting-provider" class="muted"></p>
+            <div id="meeting-source-controls" class="meeting-source-controls" hidden>
+                <div class="source-control-heading">
+                    <strong>Meeting sources</strong>
+                    <span>Off until you choose them</span>
+                </div>
+                <div class="source-control-actions">
+                    <button id="enable-live-captions" class="primary" type="button">Enable live captions</button>
+                    <button id="open-attendee-panel" type="button" hidden>Open attendee panel</button>
+                    <button id="request-teams-transcription" type="button" hidden>Request Teams transcript</button>
+                </div>
+                <p id="meeting-source-status" class="muted" role="status" aria-live="polite">Opening this panel does not change the meeting.</p>
+            </div>
             <p id="board-status" class="muted" role="status" aria-live="polite"></p>
         </section>
 
@@ -59,15 +71,23 @@
                 <input id="transcript-search" type="search" placeholder="Search transcript" autocomplete="off" aria-label="Search transcript">
                 <span id="transcript-count" class="status-pill">0</span>
             </div>
-            <div class="evidence-action-bar" aria-label="Evidence Actions">
+            <div class="evidence-action-bar" aria-label="On the Fly Research">
                 <span><strong id="selection-count">0</strong> selected</span>
                 <button id="clear-selection" class="text-button" type="button" disabled>Clear</button>
-                <button id="research-selected" class="primary" type="button" disabled>Research this reference</button>
+                <button id="research-selected" class="primary" type="button" disabled>On the Fly Research</button>
                 <button id="prepare-work-item" type="button" disabled>Prepare work item</button>
             </div>
             <ol id="transcript-list" class="transcript-list">
                 <li class="empty">Connect to a supported meeting to see captions.</li>
             </ol>
+            <div id="instant-research-bar" class="instant-research-bar" hidden>
+                <div>
+                    <strong id="instant-research-source">Caption selected</strong>
+                    <span id="instant-research-excerpt"></span>
+                </div>
+                <button id="dismiss-instant-research" class="text-button" type="button">Dismiss</button>
+                <button id="research-text-selection" class="primary" type="button">Research selection</button>
+            </div>
         </section>
 
         <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
@@ -96,13 +116,15 @@
                 <p class="empty">No connector drafts for this meeting yet.</p>
             </div>
         </section>
+        <p class="on-the-fly-signature" aria-label="On the Fly by Better CaptionKeep">On the Fly <span>— catch the claim, keep the source.</span></p>
+        <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>
 
     <dialog id="evidence-action-dialog" aria-labelledby="evidence-action-title">
         <form id="evidence-action-form" method="dialog">
             <div class="dialog-heading">
                 <div>
-                    <h2 id="evidence-action-title">Research this reference</h2>
+                    <h2 id="evidence-action-title">On the Fly Research</h2>
                     <p id="evidence-action-description">Review exactly what will be made available to your assistant.</p>
                 </div>
                 <button id="cancel-evidence-action" class="text-button" type="button" aria-label="Close Evidence Action preview">Close</button>
@@ -148,6 +170,24 @@
             <div class="dialog-actions">
                 <button id="save-evidence-action-draft" class="primary" type="submit">Save reviewed request</button>
                 <button id="send-evidence-action" type="button">Send to my assistant</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="live-chat-dialog" aria-labelledby="live-chat-title">
+        <form method="dialog">
+            <div class="dialog-heading">
+                <div>
+                    <h2 id="live-chat-title">Prepare live-chat reply</h2>
+                    <p>Review and edit the cited research before you speak through the meeting chat.</p>
+                </div>
+                <button id="cancel-live-chat" class="text-button" type="button" aria-label="Close live-chat reply">Close</button>
+            </div>
+            <label for="live-chat-draft">Reply draft</label>
+            <textarea id="live-chat-draft" maxlength="4000" rows="14"></textarea>
+            <p class="boundary-note">Better CaptionKeep does not post automatically. Copy the reviewed reply, paste it into the active meeting chat, and press Send yourself.</p>
+            <div class="dialog-actions">
+                <button id="copy-live-chat" class="primary" type="button">Copy for live chat</button>
             </div>
         </form>
     </dialog>

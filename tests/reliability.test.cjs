@@ -789,7 +789,7 @@ test('Zoom Web adapter uses the live subtitle overlay and reports recoverable so
     adapter.stop();
     assert.equal(adapter.getCaptionSource(),null);
 });
-test('Zoom Web auto-enable opens More, selects English, and confirms the caption dialog',()=>{
+test('Zoom Web enables captions once per explicit side-panel request',()=>{
     const observers=[];
     class FakeObserver { constructor(callback){this.callback=callback;observers.push(this);} observe(){} disconnect(){} }
     const clicks=[];
@@ -820,6 +820,8 @@ test('Zoom Web auto-enable opens More, selects English, and confirms the caption
     vm.runInContext(read('zoomProvider.js'),context);
     const adapter=context.CaptionKeepProviderRegistry.create(pageWindow.location.href,{document:pageDocument,window:pageWindow,MutationObserver:FakeObserver});
     const events=[];adapter.start(event=>events.push(event));
+    assert.deepEqual(clicks,[]);
+    adapter.setAutoEnableCaptions(true);
     assert.deepEqual(clicks,['More meeting control']);
     observers[0].callback();
     assert.deepEqual(clicks,['More meeting control','Show Captions']);
@@ -830,6 +832,14 @@ test('Zoom Web auto-enable opens More, selects English, and confirms the caption
     observers[0].callback();
     assert.equal(adapter.getCaptionSource(),currentSource);
     assert(events.some(event=>event.type==='caption-source-available'));
+    currentSource=null;
+    dialog=null;
+    pageControls=[more];
+    observers[0].callback();
+    assert.equal(clicks.length,4);
+    adapter.setAutoEnableCaptions(true);
+    assert.equal(clicks.at(-1),'More meeting control');
+    assert.equal(clicks.length,5);
 });
 test('Zoom Web manifest scope is exact and reaches the embedded meeting frame',()=>{
     const manifest=JSON.parse(read('manifest.json'));
@@ -934,7 +944,7 @@ test('capture coordinator restores only the same recent meeting and finalizes hi
     assert.equal(messages.filter(message=>message.message==='save_on_leave').length,1);
     assert.equal(data[restored.activeCaptureKey],undefined);
 });
-test('Google Meet auto-enables captions once and respects a later manual disable',()=>{
+test('Google Meet enables captions once per explicit request and respects a later manual disable',()=>{
     const observers=[];
     class FakeObserver {
         constructor(callback){this.callback=callback;observers.push(this);}
@@ -966,6 +976,8 @@ test('Google Meet auto-enables captions once and respects a later manual disable
     source=null;
     observers[0].callback();
     assert.equal(clickCount,1);
+    adapter.setAutoEnableCaptions(true);
+    assert.equal(clickCount,2);
 });
 test('Google Meet caption auto-enable can be disabled before adapter startup',()=>{
     class FakeObserver { constructor(callback){this.callback=callback;} observe(){} disconnect(){} }
@@ -1921,19 +1933,33 @@ test('Graph pilot can capture the active Teams meeting link without new permissi
     assert(popup.includes('id="graphUseCurrentMeeting"'));
     assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
 });
-test('Teams automation requests tenant transcription and distinguishes it from local capture',()=>{
+test('Teams meeting sources require explicit side-panel actions',()=>{
     const content=read('content_script.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
-    assert(content.includes('async function ensureTeamsTranscription'));
+    const sidepanel=read('sidepanel.html');
+    const sidepanelScript=read('sidepanel.js');
+    assert(content.includes('async function requestTeamsTranscription'));
+    assert(content.includes('async function requestLiveCaptions'));
     assert(content.includes('async function inspectTranscriptionMenu'));
     assert(content.includes('/^start transcription$/i'));
     assert(content.includes('/^stop transcription$/i'));
     assert(content.includes('transcriptionState,'));
-    assert(content.includes('autoOpenAttendees !== false'));
+    assert(content.includes("case 'enable_live_captions'"));
+    assert(content.includes("case 'open_attendee_panel'"));
+    assert(content.includes("case 'request_teams_transcription'"));
+    assert(read('googleMeetContentScript.js').includes("case 'enable_live_captions'"));
+    assert(read('zoomContentScript.js').includes("case 'enable_live_captions'"));
+    assert(!content.includes('ensureTeamsTranscription(!previouslyInMeeting)'));
+    assert(!content.includes('debouncedAutoEnableCaptions()'));
     assert(popup.includes('Local CaptionKeep copy:'));
-    assert(popup.includes('Official tenant copy:'));
-    assert(popup.includes('id="autoOpenAttendeesToggle" checked'));
+    assert(popup.includes('You choose when they start.'));
+    assert(!popup.includes('id="autoOpenAttendeesToggle"'));
+    assert(!popup.includes('id="autoEnableCaptionsToggle"'));
+    assert(sidepanel.includes('id="enable-live-captions"'));
+    assert(sidepanel.includes('id="open-attendee-panel"'));
+    assert(sidepanel.includes('id="request-teams-transcription"'));
+    assert(sidepanelScript.includes("runMeetingControl('enable_live_captions'"));
     assert(popupScript.includes("transcriptionState === 'running'"));
     assert(popupScript.includes("transcriptionState === 'requested'"));
     assert(popupScript.includes("transcriptionState === 'unavailable'"));

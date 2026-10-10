@@ -17,6 +17,11 @@
         closePanel: document.getElementById('close-panel'),
         meetingTitle: document.getElementById('meeting-title'),
         meetingProvider: document.getElementById('meeting-provider'),
+        meetingSourceControls: document.getElementById('meeting-source-controls'),
+        meetingSourceStatus: document.getElementById('meeting-source-status'),
+        enableLiveCaptions: document.getElementById('enable-live-captions'),
+        openAttendeePanel: document.getElementById('open-attendee-panel'),
+        requestTeamsTranscription: document.getElementById('request-teams-transcription'),
         latestCaption: document.getElementById('latest-caption'),
         latestMeta: document.getElementById('latest-meta'),
         transcriptTab: document.getElementById('transcript-tab'),
@@ -59,7 +64,16 @@
         actionPreview: document.getElementById('evidence-action-preview'),
         saveActionDraft: document.getElementById('save-evidence-action-draft'),
         sendAction: document.getElementById('send-evidence-action'),
-        cancelAction: document.getElementById('cancel-evidence-action')
+        cancelAction: document.getElementById('cancel-evidence-action'),
+        instantResearchBar: document.getElementById('instant-research-bar'),
+        instantResearchSource: document.getElementById('instant-research-source'),
+        instantResearchExcerpt: document.getElementById('instant-research-excerpt'),
+        researchTextSelection: document.getElementById('research-text-selection'),
+        dismissInstantResearch: document.getElementById('dismiss-instant-research'),
+        liveChatDialog: document.getElementById('live-chat-dialog'),
+        liveChatDraft: document.getElementById('live-chat-draft'),
+        copyLiveChat: document.getElementById('copy-live-chat'),
+        cancelLiveChat: document.getElementById('cancel-live-chat')
     };
     let currentContext = null;
     let allMarkers = [];
@@ -72,6 +86,8 @@
     let enterprisePolicy = {};
     let scrubOptions = {};
     const selectedCaptionIndexes = new Set();
+    const selectedCaptionExcerpts = new Map();
+    let pendingTextSelection = null;
     let actionDraft = null;
     let currentActionIntent = 'research_reference';
 
@@ -314,8 +330,41 @@
             note.className = 'derivative-note';
             note.textContent = `Assistant derivative • sealed ${card.sha256.slice(0, 12)}… • source transcript remains authoritative`;
             article.append(note);
+            const actions = document.createElement('div');
+            actions.className = 'research-card-actions';
+            const prepareChat = document.createElement('button');
+            prepareChat.type = 'button';
+            prepareChat.dataset.liveChatCardId = card.cardId;
+            prepareChat.textContent = 'Prepare live-chat reply';
+            actions.append(prepareChat);
+            article.append(actions);
             elements.researchCardList.append(article);
         }
+    }
+
+    async function openLiveChatDraft(cardId) {
+        await refreshEnterprisePolicy();
+        const card = allResearchCards.find(candidate => candidate.cardId === cardId);
+        if (!card) throw new Error('The cited Research Card is no longer available.');
+        const draft = globalThis.CaptionKeepResearchCards.toLiveChatDraft(card);
+        elements.liveChatDraft.value = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(draft, scrubOptions).text
+            : draft;
+        elements.copyLiveChat.disabled = !!enterprisePolicy.disableClipboard;
+        elements.liveChatDialog.showModal();
+        elements.liveChatDraft.focus();
+    }
+
+    async function copyLiveChatDraft() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableClipboard) throw new Error('Clipboard copy is disabled by your organization.');
+        const draft = enterprisePolicy.forceScrubbedExport
+            ? CaptionKeepPrivacyScrubber.scrub(elements.liveChatDraft.value, scrubOptions).text
+            : elements.liveChatDraft.value;
+        if (!board.cleanInline(draft)) throw new Error('The live-chat reply is empty.');
+        await navigator.clipboard.writeText(draft);
+        elements.liveChatDialog.close();
+        setStatus('Live-chat reply copied. Paste it into the active meeting chat, review it, and press Send yourself.');
     }
 
     async function loadResearchCards() {
@@ -422,8 +471,34 @@
         const tab = await activeMeetingTab();
         if (!tab?.id) throw new Error('No active meeting tab is available.');
         const response = await chrome.tabs.sendMessage(tab.id, {message: 'get_evidence_context'});
-        if (!response?.sessionId) throw new Error('Caption capture has not started in this tab.');
+        if (!response?.providerLabel) throw new Error('This tab is not a supported meeting surface.');
         return {...response, tabId: tab.id};
+    }
+
+    function renderMeetingSourceControls() {
+        const provider = currentContext?.providerLabel || '';
+        const supported = ['Microsoft Teams', 'Google Meet', 'Zoom Web'].includes(provider);
+        const controls = currentContext?.meetingControls || {};
+        const inMeeting = currentContext?.isInMeeting === true;
+        const isTeams = provider === 'Microsoft Teams';
+        elements.meetingSourceControls.hidden = !supported;
+        elements.openAttendeePanel.hidden = !isTeams;
+        elements.requestTeamsTranscription.hidden = !isTeams;
+        elements.enableLiveCaptions.disabled = !inMeeting || controls.liveCaptions === true;
+        elements.enableLiveCaptions.textContent = controls.liveCaptions ? 'Live captions enabled' : 'Enable live captions';
+        elements.openAttendeePanel.disabled = !inMeeting || controls.attendeeAllowed === false || controls.attendees === true;
+        elements.openAttendeePanel.textContent = controls.attendees ? 'Attendee capture enabled' : 'Open attendee panel';
+        elements.requestTeamsTranscription.disabled = !inMeeting || ['checking', 'running', 'requested'].includes(controls.transcriptionState);
+        elements.requestTeamsTranscription.textContent = controls.transcriptionState === 'running'
+            ? 'Teams transcript running'
+            : controls.transcriptionState === 'requested'
+                ? 'Teams transcript requested'
+                : 'Request Teams transcript';
+        if (!inMeeting) elements.meetingSourceStatus.textContent = 'Join the meeting, then choose which meeting sources to enable.';
+        else if (isTeams && controls.transcriptionDetail && controls.transcriptionState !== 'unchecked') {
+            elements.meetingSourceStatus.textContent = controls.transcriptionDetail;
+        } else if (controls.liveCaptions) elements.meetingSourceStatus.textContent = 'Live captions are available for local capture.';
+        else elements.meetingSourceStatus.textContent = 'Opening this panel does not change the meeting.';
     }
 
     function renderContext() {
@@ -432,11 +507,33 @@
         elements.captureState.textContent = currentContext?.captureState || 'Not connected';
         elements.meetingTitle.textContent = currentContext?.meetingTitle || 'Open Teams, Meet, or Zoom Web.';
         elements.meetingProvider.textContent = currentContext?.providerLabel || '';
+        renderMeetingSourceControls();
         elements.latestCaption.textContent = latest?.Text || 'Waiting for a stable captured caption…';
         elements.latestMeta.textContent = latest
             ? `${board.evidenceId(transcript.length - 1)} · ${latest.Time || 'time unavailable'} · ${latest.Name || 'Unknown speaker'}`
             : '';
         elements.markLatest.disabled = !latest;
+    }
+
+    async function runMeetingControl(message, pendingMessage) {
+        const tab = await activeMeetingTab();
+        if (!tab?.id) throw new Error('No active meeting tab is available.');
+        const buttonByMessage = {
+            enable_live_captions: elements.enableLiveCaptions,
+            open_attendee_panel: elements.openAttendeePanel,
+            request_teams_transcription: elements.requestTeamsTranscription
+        };
+        const button = buttonByMessage[message];
+        if (button) button.disabled = true;
+        elements.meetingSourceStatus.textContent = pendingMessage;
+        try {
+            const response = await chrome.tabs.sendMessage(tab.id, {message});
+            if (!response?.ok) throw new Error(response?.error || 'The meeting control was not available.');
+            elements.meetingSourceStatus.textContent = response.detail || 'Request accepted. The meeting remains under your control.';
+            await pollContext();
+        } finally {
+            renderMeetingSourceControls();
+        }
     }
 
     function captionNode(caption, index) {
@@ -461,9 +558,19 @@
         mark.className = 'caption-mark';
         mark.dataset.captionIndex = String(index);
         mark.textContent = 'Mark';
-        heading.append(selectWrap, mark);
+        const research = document.createElement('button');
+        research.type = 'button';
+        research.className = 'caption-research';
+        research.dataset.researchCaptionIndex = String(index);
+        research.textContent = 'Research';
+        research.setAttribute('aria-label', `Research caption ${board.evidenceId(index)}`);
+        const actions = document.createElement('div');
+        actions.className = 'caption-row-actions';
+        actions.append(mark, research);
+        heading.append(selectWrap, actions);
         const text = document.createElement('p');
         text.className = 'caption-text';
+        text.dataset.captionIndex = String(index);
         text.textContent = caption.Text;
         item.append(heading, text);
         return item;
@@ -511,10 +618,20 @@
         return {...currentContext, transcriptArray:cleaned, selectedCaptionIndexes:indexes};
     }
 
+    function actionExcerpts() {
+        return [...selectedCaptionExcerpts.entries()].map(([index, text]) => ({
+            index,
+            text: elements.actionPrivacyMode.value === 'scrubbed'
+                ? CaptionKeepPrivacyScrubber.scrub(text, scrubOptions).text
+                : text
+        }));
+    }
+
     function buildActionDraft() {
         const context = selectedTranscriptContext();
         return evidenceActions.buildEnvelope(context, {
             selectedCaptionIndexes:[...selectedCaptionIndexes],
+            selectedCaptionExcerpts:actionExcerpts(),
             question:elements.actionQuestion.value,
             sourceScope:elements.actionSourceScope.value,
             privacyMode:elements.actionPrivacyMode.value,
@@ -547,10 +664,13 @@
         if (!allowedIntents.includes(intent)) throw new Error('This Evidence Action is not allowed by your organization.');
         currentActionIntent = intent;
         const isConnectorAction = intent === 'prepare_work_item';
-        elements.actionTitle.textContent = isConnectorAction ? 'Prepare a work item' : 'Research this reference';
+        elements.actionTitle.textContent = isConnectorAction ? 'Prepare a work item' : 'On the Fly Research';
         elements.actionDescription.textContent = isConnectorAction
             ? 'Choose the intended destination and review the evidence. Your assistant must already have that connector and must show a separate draft and confirmation before creating anything.'
             : 'Review exactly what will be made available to your assistant.';
+        if (!isConnectorAction && selectedCaptionExcerpts.size) {
+            elements.actionDescription.textContent = 'Review the exact highlighted words and their source caption before they are made available to your assistant.';
+        }
         elements.actionQuestionLabel.textContent = isConnectorAction ? 'What work should be prepared?' : 'What do you want to know?';
         elements.actionQuestion.placeholder = isConnectorAction
             ? 'Describe the issue, task, or follow-up the assistant should draft.'
@@ -595,7 +715,53 @@
 
     function clearSelection() {
         selectedCaptionIndexes.clear();
+        selectedCaptionExcerpts.clear();
         renderTranscript();
+    }
+
+    function dismissInstantResearch() {
+        pendingTextSelection = null;
+        elements.instantResearchBar.hidden = true;
+        window.getSelection()?.removeAllRanges();
+    }
+
+    function captureTextSelection() {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || !selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        const start = range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? range.startContainer
+            : range.startContainer.parentElement;
+        const end = range.endContainer.nodeType === Node.ELEMENT_NODE
+            ? range.endContainer
+            : range.endContainer.parentElement;
+        const startCaption = start?.closest?.('.caption-text[data-caption-index]');
+        const endCaption = end?.closest?.('.caption-text[data-caption-index]');
+        if (!startCaption || startCaption !== endCaption || !elements.transcriptList.contains(startCaption)) return;
+        const index = Number.parseInt(startCaption.dataset.captionIndex, 10);
+        const excerpt = board.cleanInline(selection.toString());
+        const sourceText = board.cleanInline(currentContext?.transcriptArray?.[index]?.Text);
+        if (!Number.isInteger(index) || !excerpt || !sourceText.includes(excerpt)) return;
+        pendingTextSelection = {index, text:excerpt};
+        elements.instantResearchSource.textContent = `Selected from ${board.evidenceId(index)}`;
+        elements.instantResearchExcerpt.textContent = `“${excerpt}”`;
+        elements.instantResearchBar.hidden = false;
+    }
+
+    async function researchCaption(index, excerpt = '') {
+        selectedCaptionIndexes.clear();
+        selectedCaptionExcerpts.clear();
+        selectedCaptionIndexes.add(index);
+        if (excerpt) selectedCaptionExcerpts.set(index, excerpt);
+        renderTranscript();
+        dismissInstantResearch();
+        await openEvidenceAction('research_reference');
+    }
+
+    async function researchTextSelection() {
+        if (!pendingTextSelection) throw new Error('Select text from one captured caption first.');
+        const {index, text} = pendingTextSelection;
+        await researchCaption(index, text);
     }
 
     function markerNode(marker) {
@@ -672,6 +838,8 @@
             if (sessionChanged) {
                 selectedSessionId = next.sessionId;
                 selectedCaptionIndexes.clear();
+                selectedCaptionExcerpts.clear();
+                dismissInstantResearch();
             }
             const reconciliation = board.reconcileMarkers(allMarkers, next);
             if (reconciliation.changed) {
@@ -857,6 +1025,9 @@
     elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
+    elements.enableLiveCaptions.addEventListener('click', () => void runMeetingControl('enable_live_captions', 'Requesting live captions…').catch(error => setStatus(error.message)));
+    elements.openAttendeePanel.addEventListener('click', () => void runMeetingControl('open_attendee_panel', 'Opening the attendee panel…').catch(error => setStatus(error.message)));
+    elements.requestTeamsTranscription.addEventListener('click', () => void runMeetingControl('request_teams_transcription', 'Requesting the tenant transcript…').catch(error => setStatus(error.message)));
     elements.markerList.addEventListener('click', event => {
         const button = event.target.closest('button[data-marker-id]');
         if (button) void deleteMarker(button.dataset.markerId);
@@ -865,11 +1036,20 @@
         const button = event.target.closest('button[data-job-operation]');
         if (button) void performJobAction(button).catch(error => setStatus(error.message));
     });
+    elements.researchCardList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-live-chat-card-id]');
+        if (button) void openLiveChatDraft(button.dataset.liveChatCardId).catch(error => setStatus(error.message));
+    });
     elements.markerSession.addEventListener('change', event => {
         selectedSessionId = event.target.value;
         renderMarkers();
     });
     elements.transcriptList.addEventListener('click', event => {
+        const research = event.target.closest('button[data-research-caption-index]');
+        if (research) {
+            void researchCaption(Number.parseInt(research.dataset.researchCaptionIndex, 10)).catch(error => setStatus(error.message));
+            return;
+        }
         const button = event.target.closest('button[data-caption-index]');
         if (button) void markCaption(Number.parseInt(button.dataset.captionIndex, 10));
     });
@@ -877,10 +1057,17 @@
         const checkbox = event.target.closest('input[data-caption-index]');
         if (!checkbox) return;
         const index = Number.parseInt(checkbox.dataset.captionIndex, 10);
+        selectedCaptionExcerpts.delete(index);
         if (checkbox.checked) selectedCaptionIndexes.add(index);
         else selectedCaptionIndexes.delete(index);
         renderTranscript();
     });
+    elements.transcriptList.addEventListener('mouseup', captureTextSelection);
+    elements.transcriptList.addEventListener('keyup', captureTextSelection);
+    elements.researchTextSelection.addEventListener('click', () => void researchTextSelection().catch(error => setStatus(error.message)));
+    elements.dismissInstantResearch.addEventListener('click', dismissInstantResearch);
+    elements.copyLiveChat.addEventListener('click', () => void copyLiveChatDraft().catch(error => setStatus(error.message)));
+    elements.cancelLiveChat.addEventListener('click', () => elements.liveChatDialog.close());
     elements.clearSelection.addEventListener('click', clearSelection);
     elements.researchSelected.addEventListener('click', () => void openEvidenceAction('research_reference').catch(error => setStatus(error.message)));
     elements.prepareWorkItem.addEventListener('click', () => void openEvidenceAction('prepare_work_item').catch(error => setStatus(error.message)));

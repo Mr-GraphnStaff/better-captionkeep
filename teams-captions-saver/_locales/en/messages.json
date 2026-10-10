@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "Better CaptionKeep"
+    "message": "Better CaptionKeep — Live Meeting Transcript"
   },
   "extensionDescription": {
-    "message": "Capture meeting captions locally for private review and export."
+    "message": "Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked On the Fly AI research and cited evidence."
   },
   "actionTitle": {
     "message": "Better CaptionKeep — by Señor Farris"

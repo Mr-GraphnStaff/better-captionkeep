@@ -16,8 +16,11 @@ customer's model, integration platform, or transcript warehouse.
 
 The core interaction is:
 
-1. The user selects one or more caption cues in the side panel.
-2. The user chooses **Research this reference**.
+1. During the meeting, the user highlights exact words in one caption and
+   chooses **Research selection**, uses the caption's one-click **Research**
+   control, or selects multiple complete caption cues.
+2. Better CaptionKeep binds the selected excerpt or captions to their source
+   caption identifiers and opens **Research this reference** immediately.
 3. Better CaptionKeep previews the exact selected text, minimal adjacent
    context, destination, research scope, and optional question.
 4. The user approves the handoff.
@@ -26,6 +29,10 @@ The core interaction is:
 6. A cited Research Card returns as a derivative linked to the immutable source
    caption IDs.
 7. The user may pin, copy, or export the card through the Evidence Board.
+8. **On the Fly Research** can prepare a short, cited live-chat reply from the
+   card. Better CaptionKeep copies only the reviewed draft; the user pastes it
+   into the active meeting chat and presses Send. The extension never posts
+   automatically under the user's identity.
 
 ## Read-only MCP surface
 

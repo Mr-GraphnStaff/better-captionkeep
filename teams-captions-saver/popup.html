@@ -521,7 +521,8 @@
     .brand { display: flex; align-items: center; gap: 10px; }
         .brand img { flex-shrink: 0; }
         .brand h2 { font-size: 19px; line-height: 1.2; }
-        .signature { margin: 4px 0 0; font-size: 12px; color: #087f8c; }
+        .signature { display: flex; align-items: center; gap: 5px; margin: 4px 0 0; font-size: 12px; color: #087f8c; font-weight: 650; }
+        .signature img { width: 18px; height: 18px; }
         .enterprise-destinations { display: grid; gap: 7px; width: 100%; }
         .workspace-url-label { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--ck-text); }
         .enterprise-destinations input { width: 100%; box-sizing: border-box; padding: 7px; border: 1px solid var(--ck-border); border-radius: 5px; font-size: 12px; }
@@ -539,7 +540,7 @@
 </head>
 
 <body data-graph-configured="unknown">
-    <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature">by Señor Farris</p></div></header>
+    <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p></div></header>
     <p class="subtitle">Keep the words. Stay in the conversation.</p>
 
     <a class="all-settings-link" href="settings.html" target="_blank" rel="noopener" aria-describedby="all-settings-description">
@@ -743,23 +744,8 @@
                 <label class="toggle-switch"><input type="checkbox" id="trackCaptionsToggle" checked><span class="slider"></span></label>
             </div>
             <p class="small-info-text"><strong>Local CaptionKeep copy:</strong> Teams produces the displayed captions; Better CaptionKeep reads them and stores its copy in this browser. Better CaptionKeep does not upload that local copy.</p>
-            <div class="setting-item">
-                <label for="trackAttendeesToggle" class="setting-label">Track Meeting Attendees</label>
-                <label class="toggle-switch"><input type="checkbox" id="trackAttendeesToggle"><span class="slider"></span></label>
-            </div>
-            <p class="small-info-text">Monitor who joins/leaves the meeting and include in exports.</p>
-            
-            <p class="settings-subheader">Automation Settings</p>
-            <div class="setting-item">
-                <label for="autoEnableCaptionsToggle" class="setting-label">Auto-enable Captions and Teams Transcription</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoEnableCaptionsToggle" checked><span class="slider"></span></label>
-            </div>
-            <p class="small-info-text"><strong>Official tenant copy:</strong> In Teams, Better CaptionKeep also requests transcription. Microsoft notifies participants and stores the official transcript under your organization’s Microsoft 365 controls. Your Teams role or policy can block it; check the capture status for a caution. Other platforms enable captions only.</p>
-            <div class="setting-item">
-                <label for="autoOpenAttendeesToggle" class="setting-label">Auto-open Attendee Panel</label>
-                <label class="toggle-switch"><input type="checkbox" id="autoOpenAttendeesToggle" checked><span class="slider"></span></label>
-            </div>
-            <p class="small-info-text">Automatically open roster panel for attendee tracking (requires "Track Meeting Attendees" to be enabled).</p>
+            <p class="settings-subheader">Meeting sources</p>
+            <p class="small-info-text"><strong>You choose when they start.</strong> Open Live Workspace during a meeting to enable live captions, open the Teams attendee panel, or request the official Teams transcript. Opening Better CaptionKeep alone does not trigger any of them.</p>
         </details>
 
         <details class="settings-group">

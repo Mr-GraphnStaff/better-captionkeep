@@ -1,8 +1,10 @@
 # Chrome Web Store Listing — Better CaptionKeep
 
+Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.md).
+
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-05
+> Last Updated: 2026-10-10
 
 > Development metadata version: **5.4.0**. This value initializes the
 > `release/5.4` validation contract; it is not evidence that 5.4.0 was uploaded,
@@ -11,19 +13,21 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
+**A DAF-TECH Product.** The DAF-TECH sphere is the parent-brand mark; Scribble remains the Better CaptionKeep product icon.
+
 ## Store Listing
 
 **Extension Name**
 
-Better CaptionKeep
+Better CaptionKeep — Live Meeting Transcript
 
 **Short Description**
 
-Capture meeting captions locally for private review and export.
+Local live meeting transcripts for Teams, Google Meet, and Zoom, with source-linked On the Fly AI research and cited evidence.
 
 **Detailed Description**
 
-Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. In Teams, it can request captions, the participant roster, and Microsoft 365 transcription while clearly distinguishing the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
+Better CaptionKeep preserves meeting captions from Microsoft Teams, Google Meet, and Zoom Web as a private, readable transcript. Opening the extension does not change the meeting. The user explicitly enables live captions from Live Workspace; Teams attendee capture and Microsoft 365 transcription each have their own visible action. The interface clearly distinguishes the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
 
 Every feature included in Better CaptionKeep is available to every user. There is no paid tier, subscription, activation, or license key. Organization-managed security settings and Microsoft authorization requirements can still control how features operate in a managed environment.
 
@@ -43,13 +47,15 @@ Version 5.4 is preparing broad AI-assisted interface translation previews and op
 
 Evidence Actions let the user select specific source-linked captions, review the exact outbound evidence, choose a research scope, and send the approved request only through an enrolled local assistant bridge or an authenticated customer-hosted endpoint. The feature is disabled until configured, defaults to scrubbed evidence, never sends an entire transcript by default, and does not give Better CaptionKeep the customer's model or connector credentials. CaptionKeep's MCP tools are read-only. A Jira, Microsoft 365, or other external change is prepared and confirmed in the customer's own assistant environment; it is never executed silently by the extension.
 
-To begin, open a supported meeting, turn on captions, and open Better CaptionKeep. Use the popup for settings, history, and exports, or open the Evidence Board beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
+**On the Fly Research** lets the user highlight exact words in a live captured caption and choose **Research selection**, use a caption's one-click **Research** control, or select several complete captions. The review opens immediately with the selected excerpt bound to its source-caption identifier; unrelated transcript text is not included automatically. A returned cited Research Card can prepare an editable live-chat reply. Better CaptionKeep copies the reviewed draft, but never posts automatically or presses Send for the user.
+
+To begin, open a supported meeting and open Better CaptionKeep. Use **Live Workspace** to choose when live captions start and, in Teams, whether to open the attendee panel or request the official transcript. Use the popup for settings, history, and exports, or keep the Evidence Board beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
 
 Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
 
 **Category**
 
-Productivity
+Workflow & Planning
 
 **Single Purpose**
 
@@ -64,13 +70,13 @@ English
 | Asset | Dimensions | Status | Filename |
 | --- | --- | --- | --- |
 | Store Icon | 128×128 PNG | Ready | `teams-captions-saver/icons/scribble-128.png` |
-| Screenshot 1 | 1280×800 PNG | Needs 5.4 update | `store-assets/5.3/01-verified-teams-transcript.png` |
-| Screenshot 2 | 1280×800 PNG | Needs 5.4 update | `store-assets/5.3/02-local-evidence-board.png` |
-| Screenshot 3 | 1280×800 PNG | Needs 5.4 update | `store-assets/5.3/03-private-review-and-export.png` |
-| Screenshot 4 | 1280×800 PNG | Needs 5.4 update | `store-assets/5.3/04-three-meeting-platforms.png` |
-| Screenshot 5 | 1280×800 PNG | Needs 5.4 update | `store-assets/5.3/05-enterprise-controls.png` |
-| Small Promo Tile | 440×280 PNG | Ready | `store-assets/5.3/small-promotional-tile.png` |
-| Marquee Promo Tile | 1400×560 PNG | Ready | `store-assets/5.3/large-promotional-tile.png` |
+| Screenshot 1 | 1280×800 PNG | Ready | `store-assets/5.4/01-three-meeting-platforms.png` |
+| Screenshot 2 | 1280×800 PNG | Ready | `store-assets/5.4/02-explicit-meeting-controls.png` |
+| Screenshot 3 | 1280×800 PNG | Ready | `store-assets/5.4/03-on-the-fly-research.png` |
+| Screenshot 4 | 1280×800 PNG | Ready | `store-assets/5.4/04-cited-live-chat-reply.png` |
+| Screenshot 5 | 1280×800 PNG | Ready | `store-assets/5.4/05-enterprise-controls.png` |
+| Small Promo Tile | 440×280 PNG | Ready | `store-assets/5.4/small-promotional-tile.png` |
+| Marquee Promo Tile | 1400×560 PNG | Ready | `store-assets/5.4/large-promotional-tile.png` |
 
 All artwork uses synthetic meetings and identities. Never substitute real participant names, meeting links, tenant identifiers, or transcript content.
 

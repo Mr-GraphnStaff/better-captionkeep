@@ -24,22 +24,48 @@
         return parsed.toISOString();
     }
 
-    function normalizeCaption(entry, index) {
+    function normalizeCaption(entry, index, excerpt = '') {
         const evidenceId = cleanInline(entry?.evidenceId, `C${String(index + 1).padStart(4, '0')}`, 80);
-        const text = cleanInline(entry?.Text ?? entry?.text, '', MAX_CAPTION_TEXT);
-        if (!text) throw new TypeError(`Selected caption ${evidenceId} has no text.`);
-        return Object.freeze({
+        const sourceText = cleanInline(entry?.Text ?? entry?.text, '', MAX_CAPTION_TEXT);
+        if (!sourceText) throw new TypeError(`Selected caption ${evidenceId} has no text.`);
+        const selectedText = cleanInline(excerpt, '', MAX_CAPTION_TEXT);
+        const excerptStart = selectedText ? sourceText.indexOf(selectedText) : -1;
+        if (selectedText && excerptStart < 0) {
+            throw new TypeError(`Selected text for ${evidenceId} no longer matches the captured caption.`);
+        }
+        const normalized = {
             evidenceId,
             sourceKey: cleanInline(entry?.key ?? entry?.sourceKey, `caption-${index + 1}`, 200),
             speaker: cleanInline(entry?.Name ?? entry?.speaker, 'Unknown speaker', 200),
             time: cleanInline(entry?.Time ?? entry?.time, 'time unavailable', 100),
             capturedAt: cleanInline(entry?.capturedAt, '', 100) || null,
-            text
-        });
+            text: selectedText || sourceText
+        };
+        if (selectedText) {
+            normalized.selection = Object.freeze({
+                kind: 'excerpt',
+                start: excerptStart,
+                end: excerptStart + selectedText.length
+            });
+        }
+        return Object.freeze(normalized);
     }
 
-    function selectedCaptions(context, indexes) {
+    function selectedCaptionExcerpts(value) {
+        const excerpts = new Map();
+        for (const item of Array.isArray(value) ? value : []) {
+            if (!Number.isInteger(item?.index)) throw new TypeError('Selected caption excerpt index is invalid.');
+            const text = cleanInline(item?.text, '', MAX_CAPTION_TEXT);
+            if (!text) throw new TypeError('Selected caption excerpt has no text.');
+            if (excerpts.has(item.index)) throw new TypeError('A caption can have only one selected excerpt.');
+            excerpts.set(item.index, text);
+        }
+        return excerpts;
+    }
+
+    function selectedCaptions(context, indexes, excerptInput = []) {
         const transcript = Array.isArray(context?.transcriptArray) ? context.transcriptArray : [];
+        const excerpts = selectedCaptionExcerpts(excerptInput);
         const unique = [...new Set(Array.isArray(indexes) ? indexes : [])]
             .filter(Number.isInteger)
             .sort((left, right) => left - right);
@@ -47,9 +73,12 @@
         if (unique.length > MAX_SELECTED_CAPTIONS) {
             throw new RangeError(`Select no more than ${MAX_SELECTED_CAPTIONS} captions for one Evidence Action.`);
         }
+        for (const index of excerpts.keys()) {
+            if (!unique.includes(index)) throw new TypeError('Selected caption excerpt is not part of the Evidence Action selection.');
+        }
         return Object.freeze(unique.map(index => {
             if (index < 0 || index >= transcript.length) throw new RangeError('A selected caption is no longer available.');
-            return normalizeCaption(transcript[index], index);
+            return normalizeCaption(transcript[index], index, excerpts.get(index));
         }));
     }
 
@@ -89,7 +118,7 @@
                 meetingTitle: cleanInline(context.meetingTitle, 'Meeting', 300),
                 providerLabel: cleanInline(context.providerLabel, 'Meeting platform', 100)
             }),
-            selectedCaptions: selectedCaptions(context, options.selectedCaptionIndexes),
+            selectedCaptions: selectedCaptions(context, options.selectedCaptionIndexes, options.selectedCaptionExcerpts),
             approvedContext: normalizeContext(options.approvedContext),
             trust: Object.freeze({
                 captionContent: 'untrusted_data',
@@ -168,6 +197,7 @@
         normalizeCaption,
         previewText,
         sealEnvelope,
+        selectedCaptionExcerpts,
         selectedCaptions,
         sha256Hex,
         validateEnvelope

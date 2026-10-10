@@ -360,6 +360,10 @@ test('Research Cards are sealed derivatives whose claims require valid citations
   assert.equal((await cards.verifyCard({...card, summary:'Tampered after sealing'})).valid, false);
   assert.match(card.sha256, /^[a-f0-9]{64}$/);
   assert.match(card.provenance.sourceTranscriptAuthority, /transcript remains authoritative/);
+  const liveChatDraft = cards.toLiveChatDraft(card);
+  assert.match(liveChatDraft, /Research update — Policy research/);
+  assert.match(liveChatDraft, /Public policy: https:\/\/example\.test\/policy/);
+  assert.match(liveChatDraft, /Review the cited sources/);
   assert.throws(() => cards.buildCard(job, {
     claims:[{text:'Unsupported claim', citationIds:['missing']}],
     citations:[{citationId:'meeting-1', sourceType:'meeting_caption', evidenceId:'C0001'}]
@@ -506,6 +510,10 @@ test('Evidence Board loads the Evidence Actions module and exposes a reviewed re
   assert(html.includes('id="evidence-job-list"'));
   assert(html.includes('id="send-evidence-action"'));
   assert(html.includes('id="research-selected"'));
+  assert(html.includes('id="research-text-selection"'));
+  assert(html.includes('id="instant-research-bar"'));
+  assert(html.includes('id="live-chat-dialog"'));
+  assert(html.includes('id="copy-live-chat"'));
   assert(html.includes('id="evidence-action-dialog"'));
   assert(script.includes('globalThis.CaptionKeepEvidenceActions'));
   assert(script.includes('evidenceActions.buildEnvelope'));
@@ -514,4 +522,30 @@ test('Evidence Board loads the Evidence Actions module and exposes a reviewed re
   assert(script.includes('CaptionKeepConnectorActionDrafts'));
   assert(script.includes("'evidence_action_cancel'"));
   assert(script.includes('evidenceActionDraftV1'));
+  assert(script.includes('selectedCaptionExcerpts'));
+  assert(script.includes('captureTextSelection'));
+  assert(script.includes('toLiveChatDraft'));
+  assert(script.includes('Prepare live-chat reply'));
+});
+
+test('Evidence Actions bind a highlighted excerpt to its authoritative source caption', () => {
+  const actions = loadEvidenceActions();
+  const envelope = actions.buildEnvelope(meeting(), {
+    selectedCaptionIndexes:[0],
+    selectedCaptionExcerpts:[{index:0, text:'regulation 42'}],
+    createId:()=> 'action-excerpt',
+    now:()=> new Date('2026-10-10T14:01:00Z')
+  });
+  assert.equal(envelope.selectedCaptions[0].text, 'regulation 42');
+  assert.equal(envelope.selectedCaptions[0].selection.kind, 'excerpt');
+  assert.equal(envelope.selectedCaptions[0].selection.start, 9);
+  assert.equal(envelope.selectedCaptions[0].selection.end, 22);
+  assert.throws(() => actions.buildEnvelope(meeting(), {
+    selectedCaptionIndexes:[0],
+    selectedCaptionExcerpts:[{index:0, text:'invented text'}]
+  }), /no longer matches the captured caption/);
+  assert.throws(() => actions.buildEnvelope(meeting(), {
+    selectedCaptionIndexes:[0],
+    selectedCaptionExcerpts:[{index:1, text:'admin account'}]
+  }), /not part of the Evidence Action selection/);
 });
