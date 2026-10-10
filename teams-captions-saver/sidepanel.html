@@ -11,6 +11,7 @@
     <script src="localization.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
+    <script src="aiTaskFramework.js" defer></script>
     <script src="sidepanel.js" defer></script>
 </head>
 <body>
@@ -58,6 +59,18 @@
             </div>
             <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
             <p id="latest-meta" class="muted"></p>
+            <section class="on-the-fly-card" aria-labelledby="on-the-fly-heading">
+                <img src="icons/on-the-fly-orb.png" alt="" width="72" height="72">
+                <div>
+                    <h2 id="on-the-fly-heading">On the Fly</h2>
+                    <p>Select words in any captured caption, or use a whole caption. Review exactly what will be shared before opening your AI.</p>
+                </div>
+            </section>
+            <div id="on-the-fly-bar" class="instant-research-bar" hidden>
+                <div><strong id="on-the-fly-label">Selected meeting text</strong><span id="on-the-fly-preview"></span></div>
+                <button id="clear-on-the-fly" type="button">Clear</button>
+                <button id="review-on-the-fly" class="primary" type="button">Choose task</button>
+            </div>
             <div class="mark-controls">
                 <select id="marker-kind" aria-label="Marker type"></select>
                 <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off">
@@ -79,7 +92,7 @@
             <div class="actions">
                 <button id="copy-board" disabled>Copy</button>
                 <button id="download-board" disabled>Markdown</button>
-                <button id="email-board" disabled>Email brief</button>
+                <button id="email-board" disabled>Email follow-up</button>
                 <button id="download-bundle" disabled>Provenance JSON</button>
             </div>
             <ol id="marker-list" class="marker-list">
@@ -88,5 +101,22 @@
         </section>
         <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>
+    <dialog id="on-the-fly-dialog" aria-labelledby="on-the-fly-dialog-title">
+        <form method="dialog">
+            <div class="dialog-heading">
+                <div><h2 id="on-the-fly-dialog-title">On the Fly</h2><p>One reviewed handoff for research, replies, and follow-up.</p></div>
+            </div>
+            <label for="on-the-fly-task">What should your AI do?</label>
+            <select id="on-the-fly-task"></select>
+            <label for="on-the-fly-question">Optional question or direction</label>
+            <textarea id="on-the-fly-question" maxlength="1000" rows="3" placeholder="What should I know about this?"></textarea>
+            <p id="on-the-fly-evidence" class="boundary-note"></p>
+            <p class="boundary-note">Nothing is sent automatically. The next screen shows the complete prompt before you copy it or open an AI workspace.</p>
+            <div class="dialog-actions">
+                <button id="cancel-on-the-fly" type="button">Cancel</button>
+                <button id="prepare-on-the-fly" class="primary" type="button">Review handoff</button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>

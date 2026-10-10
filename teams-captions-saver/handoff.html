@@ -28,8 +28,8 @@
         input:focus-visible + .slider { outline: 3px solid var(--ck-primary); outline-offset: 3px; }
         textarea { box-sizing: border-box; width: 100%; min-height: 320px; resize: vertical; padding: 14px; border: 1px solid var(--ck-border); border-radius: 12px; color: var(--ck-text); background: var(--ck-surface); font: 14px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
         .actions, #providers { display: flex; flex-wrap: wrap; gap: 12px; }
-        button, a.provider-link { box-sizing: border-box; min-height: 42px; padding: 9px 14px; border: 1px solid var(--ck-border); border-radius: 9px; color: var(--ck-text); background: var(--ck-surface); font: inherit; text-decoration: none; cursor: pointer; }
-        button.primary, a.provider-link { color: var(--ck-bg); background: var(--ck-primary); border-color: var(--ck-primary); }
+        button, .provider-link { box-sizing: border-box; min-height: 42px; padding: 9px 14px; border: 1px solid var(--ck-border); border-radius: 9px; color: var(--ck-text); background: var(--ck-surface); font: inherit; text-decoration: none; cursor: pointer; }
+        button.primary, .provider-link { color: var(--ck-bg); background: var(--ck-primary); border-color: var(--ck-primary); }
         button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 3px solid var(--ck-primary); outline-offset: 2px; }
         #providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); }
         .provider-card { display: grid; align-content: start; gap: 10px; padding: 16px; border: 1px solid var(--ck-border); border-radius: 12px; background: var(--ck-surface); }
@@ -48,6 +48,7 @@
     <script src="configuration.js" defer></script>
     <script src="localization.js" defer></script>
     <script src="aiDestinations.js" defer></script>
+    <script src="aiTaskFramework.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="promptTemplates.js" defer></script>
     <script src="handoffPackage.js" defer></script>
@@ -56,8 +57,8 @@
 <body>
 <main>
     <header>
-        <h1>Review your AI handoff</h1>
-        <p class="intro">Review or remove sensitive details before copying. Opening an assistant does not send this transcript—you decide whether to paste or attach it there.</p>
+        <h1 id="handoffTitle">Review your AI handoff</h1>
+        <p id="handoffIntro" class="intro">Review or remove sensitive details before copying. Opening an assistant does not send this transcript—you decide whether to paste or attach it there.</p>
     </header>
     <section class="workspace-warning" aria-labelledby="workspaceWarningTitle">
         <h2 id="workspaceWarningTitle">Confirm the destination workspace</h2>
@@ -97,7 +98,7 @@
         <button id="discard">Discard handoff</button>
     </div>
     <p id="status" role="status" aria-live="polite"></p>
-    <section aria-labelledby="coverageTitle">
+    <section id="coverageSection" aria-labelledby="coverageTitle">
         <h2 id="coverageTitle">Complete evidence coverage</h2>
         <div class="coverage">
             <div><strong id="coverageCaptions">0 / 0</strong>captions included</div>
@@ -107,7 +108,7 @@
             <div><strong id="coveragePrivacy">Loading</strong>privacy mode</div>
         </div>
     </section>
-    <section aria-labelledby="chunkTitle">
+    <section id="chunkSection" aria-labelledby="chunkTitle">
         <h2 id="chunkTitle">Bounded copy chunks</h2>
         <p class="intro">Use these numbered chunks when an attachment is unavailable. Copy them in order; long captions retain their caption ID and part number.</p>
         <div class="chunk-controls">

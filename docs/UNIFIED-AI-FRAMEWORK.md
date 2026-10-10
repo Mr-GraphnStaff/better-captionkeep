@@ -1,6 +1,6 @@
 # Unified AI Framework
 
-Status: **Proposed architecture; not a shipping 5.4 capability**
+Status: **On the Fly workspace-adapter foundation implemented for 5.4; automatic return remains future work**
 
 Last updated: 2026-10-10
 
@@ -11,9 +11,10 @@ AI task. Ordinary users must not deploy Azure resources, run an MCP server,
 install a native bridge, enter an API endpoint, or obtain an API key.
 
 The default path is **Use my AI**: the extension prepares a bounded, reviewed
-prompt and opens the user's chosen AI workspace with that prompt preloaded when
-the provider supports it. The user remains signed in through the provider's
-normal browser session and decides whether to send the prompt.
+prompt, copies it only after an explicit user action, and opens the user's
+chosen AI workspace. The user remains signed in through the provider's normal
+browser session, confirms the workspace, pastes, reviews, and decides whether
+to send the prompt.
 
 MCP is not an assistant and is not part of this default path. It may be used
 later behind a DAF-TECH or customer-managed gateway when a task needs governed
@@ -140,8 +141,8 @@ separate assistant product.
 1. Select caption text or one or more source-linked captions.
 2. Choose **On the Fly** and a task such as Research, Explain, or Draft reply.
 3. Review the exact excerpt, question, privacy mode, and destination.
-4. Open the chosen AI workspace with the prompt preloaded when supported.
-5. Review and send inside the AI workspace.
+4. Explicitly choose **Copy + open** for an approved AI workspace.
+5. Confirm the workspace, paste, review, and send inside the AI workspace.
 
 With the zero-infrastructure workspace path, the result stays in the user's AI
 workspace. Returning a cited answer automatically to the Evidence panel is a
@@ -211,10 +212,11 @@ possible, but it is not free at scale and must be budgeted as a product service.
 
 ## Release sequence
 
-1. Restore a provider-adapter registry while preserving the earlier Anthropic
-   organization setting as migration input; replace the retired Workbench URL
-   with a current, live-tested workspace or packaged page-fill adapter.
-2. Add On the Fly selection actions that create bounded reviewed prompts.
+1. **Implemented:** provider destination registry with validated HTTPS
+   destinations and no prompt content in navigation URLs.
+2. **Implemented:** On the Fly text/caption selection actions and bounded,
+   source-linked reviewed prompts for research, explanation, live reply, and
+   follow-up email drafting.
 3. Live-test each provider adapter in clean Chrome and Edge profiles, including
    the correct enterprise workspace and prompt preload behavior.
 4. Add feature-detected on-device tasks without changing the external-workspace

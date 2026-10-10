@@ -54,6 +54,10 @@ main { padding: 0; }
 .meeting-source-controls [role="status"] { margin: 8px 0 0; }
 .on-the-fly-signature { margin: 16px 12px 8px; color: var(--ck-primary); font-weight: 750; text-align: center; }
 .on-the-fly-signature span { color: var(--ck-text-muted); font-weight: 500; }
+.on-the-fly-card { display: flex; align-items: center; gap: 12px; margin: 12px 0; padding: 12px; border: 1px solid color-mix(in srgb, var(--ck-primary) 65%, var(--ck-border)); border-radius: 14px; background: linear-gradient(135deg, var(--ck-surface), var(--ck-surface-soft)); box-shadow: 0 10px 28px rgb(0 0 0 / 16%); }
+.on-the-fly-card img { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 6px 12px rgb(0 210 190 / 24%)); }
+.on-the-fly-card h2 { color: var(--ck-primary); font-size: 17px; }
+.on-the-fly-card p { margin: 4px 0 0; color: var(--ck-text-muted); }
 .daf-tech-signature { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 12px 14px; color: var(--ck-text-muted); font-size: 12px; font-weight: 650; }
 .daf-tech-signature img { width: 24px; height: 24px; }
 

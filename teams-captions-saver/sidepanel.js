@@ -35,7 +35,18 @@
         downloadBoard: document.getElementById('download-board'),
         emailBoard: document.getElementById('email-board'),
         downloadBundle: document.getElementById('download-bundle'),
-        openTranscript: document.getElementById('open-transcript')
+        openTranscript: document.getElementById('open-transcript'),
+        onTheFlyBar: document.getElementById('on-the-fly-bar'),
+        onTheFlyLabel: document.getElementById('on-the-fly-label'),
+        onTheFlyPreview: document.getElementById('on-the-fly-preview'),
+        clearOnTheFly: document.getElementById('clear-on-the-fly'),
+        reviewOnTheFly: document.getElementById('review-on-the-fly'),
+        onTheFlyDialog: document.getElementById('on-the-fly-dialog'),
+        onTheFlyTask: document.getElementById('on-the-fly-task'),
+        onTheFlyQuestion: document.getElementById('on-the-fly-question'),
+        onTheFlyEvidence: document.getElementById('on-the-fly-evidence'),
+        cancelOnTheFly: document.getElementById('cancel-on-the-fly'),
+        prepareOnTheFly: document.getElementById('prepare-on-the-fly')
     };
     let currentContext = null;
     let allMarkers = [];
@@ -44,6 +55,7 @@
     let transcriptSignature = '';
     let enterprisePolicy = {};
     let scrubOptions = {};
+    let onTheFlyEvidence = null;
 
     async function refreshEnterprisePolicy() {
         const user = await chrome.storage.sync.get(['profanityFilterEnabled', 'customScrubTerms']);
@@ -215,13 +227,83 @@
         mark.className = 'caption-mark';
         mark.dataset.captionIndex = String(index);
         mark.textContent = 'Mark';
-        heading.append(meta, mark);
+        const onTheFly = document.createElement('button');
+        onTheFly.type = 'button';
+        onTheFly.className = 'caption-research';
+        onTheFly.dataset.onTheFlyIndex = String(index);
+        onTheFly.textContent = 'On the Fly';
+        const actions = document.createElement('div');
+        actions.className = 'caption-row-actions';
+        actions.append(mark, onTheFly);
+        heading.append(meta, actions);
         const text = document.createElement('p');
         text.className = 'caption-text';
         text.dataset.captionIndex = String(index);
         text.textContent = caption.Text;
         item.append(heading, text);
         return item;
+    }
+
+    function selectForOnTheFly(captionIndex, selectedText = '') {
+        const caption = currentContext?.transcriptArray?.[captionIndex];
+        const text = board.cleanInline(selectedText || caption?.Text);
+        if (!caption || !text) return;
+        onTheFlyEvidence = {
+            evidenceId: board.evidenceId(captionIndex),
+            speaker: caption.Name || 'Unknown speaker',
+            time: caption.Time || 'time unavailable',
+            text
+        };
+        elements.onTheFlyLabel.textContent = `${onTheFlyEvidence.evidenceId} · ${onTheFlyEvidence.speaker}`;
+        elements.onTheFlyPreview.textContent = text;
+        elements.onTheFlyBar.hidden = false;
+        setStatus('On the Fly selection is local. Choose a task when ready.');
+    }
+
+    function clearOnTheFly() {
+        onTheFlyEvidence = null;
+        elements.onTheFlyBar.hidden = true;
+        elements.onTheFlyQuestion.value = '';
+    }
+
+    function openOnTheFlyDialog() {
+        if (!onTheFlyEvidence) return;
+        elements.onTheFlyEvidence.textContent = `${onTheFlyEvidence.evidenceId} · ${onTheFlyEvidence.time} · ${onTheFlyEvidence.speaker}\n“${onTheFlyEvidence.text}”`;
+        elements.onTheFlyDialog.showModal();
+    }
+
+    async function prepareOnTheFly() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
+        const settings = await chrome.storage.sync.get('aiSummaryProviders');
+        const providers = Array.isArray(settings.aiSummaryProviders) && settings.aiSummaryProviders.length
+            ? settings.aiSummaryProviders
+            : ['chatgpt', 'claude', 'copilot', 'gemini'];
+        const handoffId = `handoff_${crypto.randomUUID()}`;
+        const taskId = elements.onTheFlyTask.value;
+        await chrome.storage.local.set({
+            [handoffId]: {
+                mode: 'on_the_fly',
+                taskId,
+                question: board.cleanInline(elements.onTheFlyQuestion.value),
+                evidence: [onTheFlyEvidence],
+                transcript: [{
+                    Time: onTheFlyEvidence.time,
+                    Name: onTheFlyEvidence.speaker,
+                    Text: onTheFlyEvidence.text
+                }],
+                providers,
+                meetingTitle: currentContext?.meetingTitle || 'Meeting',
+                providerLabel: currentContext?.providerLabel || 'Meeting platform',
+                sessionId: currentContext?.sessionId || '',
+                warnings: ['Selected meeting text only. Nothing has been sent.']
+            }
+        });
+        elements.onTheFlyDialog.close();
+        await chrome.tabs.create({url: chrome.runtime.getURL(`handoff.html?id=${encodeURIComponent(handoffId)}`)});
+        clearOnTheFly();
+        setStatus('Review opened. Nothing is sent until you choose to copy it.');
     }
 
     function renderTranscript() {
@@ -456,7 +538,7 @@
         const link = document.createElement('a');
         link.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         link.click();
-        setStatus('Email draft opened. Review the brief and choose recipients before sending.');
+        setStatus('Follow-up opened in your default mail app. Review the brief and choose recipients before sending.');
     }
 
     async function downloadBundle() {
@@ -492,6 +574,13 @@
         elements.markerKind.append(option);
     }
 
+    for (const [taskId, task] of Object.entries(CaptionKeepAiTasks.TASKS)) {
+        const option = document.createElement('option');
+        option.value = taskId;
+        option.textContent = task.label;
+        elements.onTheFlyTask.append(option);
+    }
+
     elements.markLatest.addEventListener('click', () => void markLatest());
     elements.closePanel.addEventListener('click', () => void closePanel().catch(error => setStatus(error.message)));
     elements.copyBoard.addEventListener('click', () => void copyBoard().catch(error => setStatus(error.message)));
@@ -499,6 +588,10 @@
     elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
+    elements.clearOnTheFly.addEventListener('click', clearOnTheFly);
+    elements.reviewOnTheFly.addEventListener('click', openOnTheFlyDialog);
+    elements.cancelOnTheFly.addEventListener('click', () => elements.onTheFlyDialog.close());
+    elements.prepareOnTheFly.addEventListener('click', () => void prepareOnTheFly().catch(error => setStatus(error.message)));
     elements.enableLiveCaptions.addEventListener('click', () => void runMeetingControl('enable_live_captions', 'Requesting live captions…').catch(error => setStatus(error.message)));
     elements.openAttendeePanel.addEventListener('click', () => void runMeetingControl('open_attendee_panel', 'Opening the attendee panel…').catch(error => setStatus(error.message)));
     elements.requestTeamsTranscription.addEventListener('click', () => void runMeetingControl('request_teams_transcription', 'Requesting the tenant transcript…').catch(error => setStatus(error.message)));
@@ -511,8 +604,18 @@
         renderMarkers();
     });
     elements.transcriptList.addEventListener('click', event => {
-        const button = event.target.closest('button[data-caption-index]');
-        if (button) void markCaption(Number.parseInt(button.dataset.captionIndex, 10));
+        const markButton = event.target.closest('button[data-caption-index]');
+        if (markButton) void markCaption(Number.parseInt(markButton.dataset.captionIndex, 10));
+        const onTheFlyButton = event.target.closest('button[data-on-the-fly-index]');
+        if (onTheFlyButton) selectForOnTheFly(Number.parseInt(onTheFlyButton.dataset.onTheFlyIndex, 10));
+    });
+    elements.transcriptList.addEventListener('mouseup', event => {
+        const textNode = event.target.closest('.caption-text');
+        if (!textNode) return;
+        const selection = window.getSelection();
+        const text = board.cleanInline(selection?.toString());
+        if (!text || !selection?.rangeCount || !textNode.contains(selection.anchorNode) || !textNode.contains(selection.focusNode)) return;
+        selectForOnTheFly(Number.parseInt(textNode.dataset.captionIndex, 10), text);
     });
     elements.transcriptSearch.addEventListener('input', renderTranscript);
     elements.transcriptTab.addEventListener('click', () => switchView('transcript'));

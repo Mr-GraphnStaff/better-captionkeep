@@ -135,7 +135,7 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
     'store-assets/5.4/01-three-meeting-platforms.png',
     'store-assets/5.4/02-explicit-meeting-controls.png',
     'store-assets/5.4/03-on-the-fly-research.png',
-    'store-assets/5.4/04-cited-live-chat-reply.png',
+    'store-assets/5.4/04-reviewed-ai-handoff.png',
     'store-assets/5.4/05-enterprise-controls.png',
     'store-assets/5.4/small-promotional-tile.png',
     'store-assets/5.4/large-promotional-tile.png',

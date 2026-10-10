@@ -41,6 +41,8 @@ The local Live Workspace keeps the live transcript and Evidence Board together b
 
 Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, or an optional AI handoff. AI handoff is review-first: Better CaptionKeep prepares an editable prompt inside the extension and never puts transcript text in a provider URL, pastes it automatically, or submits it for the user.
 
+On the Fly turns highlighted meeting words or a whole caption into a bounded, source-linked task: research with sources, explain in context, draft a live reply, or draft a follow-up email. The user reviews the complete prompt, then chooses **Copy + open** for ChatGPT, Claude, Microsoft Copilot, or Gemini. Results stay in that AI workspace; the extension does not claim an automatic assistant return channel.
+
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
 Version 5.4 is preparing broad AI-assisted interface translation previews. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
@@ -69,7 +71,7 @@ English
 | Screenshot 1 | 1280×800 PNG | Ready | `store-assets/5.4/01-three-meeting-platforms.png` |
 | Screenshot 2 | 1280×800 PNG | Ready | `store-assets/5.4/02-explicit-meeting-controls.png` |
 | Screenshot 3 | 1280×800 PNG | Ready | `store-assets/5.4/03-on-the-fly-research.png` |
-| Screenshot 4 | 1280×800 PNG | Ready | `store-assets/5.4/04-cited-live-chat-reply.png` |
+| Screenshot 4 | 1280×800 PNG | Ready | `store-assets/5.4/04-reviewed-ai-handoff.png` |
 | Screenshot 5 | 1280×800 PNG | Ready | `store-assets/5.4/05-enterprise-controls.png` |
 | Small Promo Tile | 440×280 PNG | Ready | `store-assets/5.4/small-promotional-tile.png` |
 | Marquee Promo Tile | 1400×560 PNG | Ready | `store-assets/5.4/large-promotional-tile.png` |
@@ -172,7 +174,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 4. Open the transcript viewer; search, copy, and export the phrase as TXT or Markdown.
 5. Open the Evidence Board, mark a caption, and verify its source-linked brief without modifying the transcript.
 6. Confirm Privacy Scrubber is enabled by default. Optional AI handoff must stop on the internal review page until the reviewer explicitly copies text.
-7. In the Evidence Board, select synthetic captions, choose Research this reference, and verify that the review dialog shows the exact bounded evidence and does not submit anything without an enrolled destination and explicit confirmation.
+7. In the live transcript, highlight synthetic caption words and choose On the Fly. Verify the task dialog and handoff page show only the bounded evidence, then verify **Copy + open** copies but does not paste or submit the prompt.
 8. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
 9. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Open All Settings, enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
 

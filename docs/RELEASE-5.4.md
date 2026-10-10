@@ -6,12 +6,11 @@ Last updated: 2026-10-10
 ## Release decision
 
 Version 5.4 is limited to capabilities that can be demonstrated directly in
-the extension without a missing customer service. Connected-assistant,
-automatic research, MCP, Research Card, and connector-action experiments were
-removed from the release surface on October 10, 2026. Git history preserves the
-research for a later roadmap and architecture decision, but it is not a 5.4
-feature and must not appear in Store copy, screenshots, permissions, settings,
-release bundles, or acceptance claims.
+the extension without a missing customer service. On the Fly is included as a
+bounded, reviewed workspace handoff: select meeting evidence, choose a task,
+review the exact prompt, then explicitly copy and open the user's existing AI
+workspace. Automatic research, result return, MCP, Research Cards, and
+connector execution remain outside the release.
 
 No Azure MCP or assistant service was deployed for 5.4.
 
@@ -24,9 +23,12 @@ No Azure MCP or assistant service was deployed for 5.4.
   user choices when the provider supports them.
 - The local Evidence Board continues to mark captured captions and export
   source-linked Markdown and provenance JSON.
-- The existing reviewed copy/handoff experience for user-selected AI web
-  destinations remains separate from the Evidence Board and does not claim an
-  automatic assistant round trip.
+- On the Fly accepts highlighted words or a whole source-linked caption for
+  Research with sources, Explain in context, Draft a live reply, or Draft a
+  follow-up email. It opens the reviewed AI handoff and never places evidence
+  in a provider URL or submits a prompt.
+- **Email follow-up** opens the user's default mail handler with a local
+  evidence brief, no recipients, and no automatic send.
 - DAF-TECH parent branding and the reviewed sphere asset remain.
 - Packaged language catalogs remain uncertified AI-assisted previews with
   English fallback and a privacy-preserving correction form.
@@ -35,11 +37,11 @@ No Azure MCP or assistant service was deployed for 5.4.
 
 ## Explicitly excluded
 
-- Send to my assistant.
+- Connected “Send to my assistant” or automatic assistant result return.
 - Assistant endpoint or native-host enrollment.
 - Automatic research or automatic return of cited results.
 - CaptionKeep MCP server or Azure MCP deployment.
-- Research Cards and live-chat drafts derived from assistant output.
+- Research Cards or live-chat drafts returned automatically from assistant output.
 - Jira, Azure DevOps, Microsoft 365, Planner, email, or other connector actions.
 - Publisher-hosted transcription, AI, analytics, or transcript storage.
 

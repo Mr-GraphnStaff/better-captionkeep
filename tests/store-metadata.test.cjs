@@ -109,11 +109,12 @@ test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () =>
   for (const screenshot of [
     '01-three-meeting-platforms.png',
     '02-explicit-meeting-controls.png',
+    '03-on-the-fly-research.png',
+    '04-reviewed-ai-handoff.png',
     '05-enterprise-controls.png',
   ]) {
     assert.deepEqual(pngDimensions(`store-assets/5.4/${screenshot}`), [1280, 800]);
   }
-  assert.equal(fs.existsSync(path.join(__dirname, '..', 'store-assets/5.4/03-on-the-fly-research.png')), false);
   assert.equal(fs.existsSync(path.join(__dirname, '..', 'store-assets/5.4/04-cited-live-chat-reply.png')), false);
   assert.deepEqual(pngDimensions('store-assets/5.4/small-promotional-tile.png'), [440, 280]);
   assert.deepEqual(pngDimensions('store-assets/5.4/large-promotional-tile.png'), [1400, 560]);

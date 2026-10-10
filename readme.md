@@ -12,7 +12,7 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or 
 
 > **Current install status — October 7, 2026:** Microsoft Edge Add-ons and Chrome Web Store both publicly serve `5.3.2`. The public update services independently returned version 5.3.2 for both production identities. Version `5.3.3` is a local hotfix candidate for the popup reliability fixes described below; it has not been submitted or published. Azure Boards bug #297 remains active until existing Chrome and Edge installations upgrade from their prior public versions and the upgraded extension passes the production smoke test.
 
-> **Development status:** Work on `5.4` began October 4, 2026 under the governed launch-mode rule. It does not alter the frozen 5.3.2 submission. Development includes one-package managed language selection and 38 interface catalogs, explicit user-controlled meeting-source actions, DAF-TECH parent branding, and refreshed Store materials. English is the reviewed source; every non-English catalog remains a clearly labeled, uncertified AI-assisted preview until a qualified reviewer approves it. Live browser and deployment validation remain open. Connected-assistant, MCP, automatic research, and connector-action experiments are excluded from this release. The [Unified AI Framework](docs/UNIFIED-AI-FRAMEWORK.md) defines the proposed zero-infrastructure provider-adapter direction; it is design work, not a shipping capability. See the [5.4 development record](docs/RELEASE-5.4.md).
+> **Development status:** Work on `5.4` began October 4, 2026 under the governed launch-mode rule. It does not alter the frozen 5.3.2 submission. Development includes one-package managed language selection and 38 interface catalogs, explicit user-controlled meeting-source actions, DAF-TECH parent branding, On the Fly reviewed AI tasks, and refreshed Store materials. English is the reviewed source; every non-English catalog remains a clearly labeled, uncertified AI-assisted preview until a qualified reviewer approves it. Live browser and deployment validation remain open. Connected-assistant result return, MCP, publisher-hosted AI, and connector execution are excluded. The [Unified AI Framework](docs/UNIFIED-AI-FRAMEWORK.md) defines the implemented zero-infrastructure workspace-adapter foundation and its future governed-gateway boundary. See the [5.4 development record](docs/RELEASE-5.4.md).
 
 ### Current 5.3 capabilities
 
@@ -50,6 +50,10 @@ must not be confused with proof of Store approval or public availability.
 | --- | --- |
 | <img src="store-assets/5.4/01-three-meeting-platforms.png" alt="Local caption capture for Microsoft Teams, Google Meet, and Zoom Web" width="600"> | <img src="store-assets/5.4/02-explicit-meeting-controls.png" alt="User-controlled caption, attendee, and Teams transcript actions" width="600"> |
 
+| On the Fly selected research | Review-first AI handoff |
+| --- | --- |
+| <img src="store-assets/5.4/03-on-the-fly-research.png" alt="On the Fly selected meeting evidence for a reviewed research request" width="600"> | <img src="store-assets/5.4/04-reviewed-ai-handoff.png" alt="Review-first Copy and Open AI workspace handoff" width="600"> |
+
 ## What it does
 
 - Capture displayed Teams, Google Meet, and Zoom Web captions and available speaker information; Zoom Web uses explicit `Unknown speaker` attribution when its subtitle overlay does not expose a name.
@@ -63,6 +67,7 @@ must not be confused with proof of Store approval or public availability.
 - Recover an interrupted Google Meet capture from a recent local checkpoint for the same meeting page, then commit it to local history once the meeting ends.
 - See capture health in the popup, including the number of caption lines and how recently the last caption arrived.
 - Prepare evidence-backed meeting notes with caption IDs for decisions, actions, risks, and unanswered questions before any optional AI handoff.
+- Use **On the Fly** on highlighted meeting words or a full caption to prepare a source-linked research, explanation, live-reply, or follow-up task. Review the complete prompt, then explicitly copy and open ChatGPT, Claude, Microsoft Copilot, or Gemini. Better CaptionKeep never submits it.
 - Open a slim Chrome or Edge Evidence Board beside the meeting, search the captured transcript, and mark any caption as a decision, action item, question, risk, follow-up, or important moment. Markers stay local, retain their source caption ID, and export as Markdown or provenance JSON without modifying the raw transcript. A reviewed email action opens the user's mail composer without choosing recipients or sending automatically.
 - Export/import user preferences or let administrators enforce selected controls through managed browser policy.
 - Choose a browser-following or explicit interface language from 38 packaged catalogs. Non-English choices are visibly labeled as uncertified AI-assisted previews and fall back to English; administrators can lock the choice with `forceUiLocale`.
