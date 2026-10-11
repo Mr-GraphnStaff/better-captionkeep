@@ -22,7 +22,7 @@ parameters:
     displayName: Chrome approved action
     type: string
     default: skip
-    values: [skip, submit-auto, submit-staged, publish-staged]
+    values: [skip, cancel-review, submit-auto, submit-staged, publish-staged]
   - name: edgeRelease
     displayName: Edge approved action
     type: string
@@ -195,6 +195,7 @@ stages:
                     set -euo pipefail
                     case '${{ parameters.chromeRelease }}' in
                       skip) exit 0 ;;
+                      cancel-review) action='cancel-submission' ;;
                       submit-auto) action='submit-existing-auto' ;;
                       submit-staged) action='submit-existing-staged' ;;
                       publish-staged) action='publish-staged' ;;
