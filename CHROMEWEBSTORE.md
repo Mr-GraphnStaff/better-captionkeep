@@ -6,10 +6,11 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Last Updated: 2026-10-10
 
-> Frozen metadata version: **5.4.0**. Azure Store Release run 716 submitted the
-> verified package on October 10, 2026. Chrome accepted it for review and Edge
-> accepted it for certification. Microsoft Edge Add-ons publicly served 5.4.0
-> later that day; Chrome 5.4.0 remains in review.
+> Frozen package version: **5.4.0**. Azure Store Release run 716 submitted the
+> verified package on October 10, 2026. Microsoft Edge Add-ons publicly served
+> 5.4.0 later that day. Azure run 726 then cancelled Chrome's pending review so
+> the stale Store listing could be replaced before resubmission; Chrome 5.4.0 is
+> currently a draft and Chrome continues to serve 5.3.3 publicly.
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -64,7 +65,7 @@ Every feature included in Better CaptionKeep is available to every user. There i
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-Version 5.3.3 replaces competing live-transcript controls with one Live Workspace in the browser side panel. The full transcript viewer remains available as an intentional expanded view and for completed history. It also removes a popup shortcut that intercepted the standard paste command and moves the complete Microsoft 365 transcript-import workspace to the full-tab All Settings page. This keeps the popup compact and keeps the setup form open while an administrator copies both identifiers. The 5.3 line includes the All Settings tab, Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and on-device transcript translation where supported. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
+Version 5.4 puts the live transcript and Evidence Board together in one browser side panel, adds On the Fly BYOAI actions, and makes every meeting source an explicit user choice. The full transcript viewer remains available as an intentional expanded view and for completed history. All Settings keeps customer-owned Microsoft 365 setup visible while an administrator enters both identifiers. Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and feature-detected on-device translation remain available. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
@@ -189,7 +190,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Edge; Chrome `PENDING_REVIEW`; Edge post-upgrade functional smoke pending |
+| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Edge; Chrome draft after run 726 cancelled the stale-listing review; Edge post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
@@ -233,4 +234,6 @@ Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was
 
 Azure Store Release run 716 submitted the immutable 5.4.0 packages on October 10, 2026. Chrome accepted the update for review with state `PENDING_REVIEW`; Microsoft accepted the Edge update for certification after the submission operation returned `Succeeded`. At submission time, public listing and installed-upgrade verification were still open.
 
-Later on October 10, the public Microsoft Edge Add-ons listing served version 5.4.0. A managed Edge installation received the update but reproduced the Store-generated `_metadata` warning tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820). The immutable submitted ZIP contains no `_metadata` entry. Edge public availability is verified; post-upgrade functional smoke testing remains open. Chrome public availability remains open.
+After the public Store pages exposed stale version-5-era marketing, Azure Store Release run 726 used Chrome's official `cancelSubmission` operation on October 10, 2026. Its preflight recorded `published=PUBLISHED/5.3.3` and `submitted=PENDING_REVIEW/5.4.0`; Chrome then returned the 5.4.0 submission to draft without uploading or replacing the immutable package. The corrected DAF-TECH listing copy and artwork must be applied in the Chrome Developer Dashboard before the existing draft is resubmitted.
+
+Later on October 10, the public Microsoft Edge Add-ons listing served version 5.4.0. A managed Edge installation received the update but reproduced the Store-generated `_metadata` warning tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820). The immutable submitted ZIP contains no `_metadata` entry. Edge public availability is verified; post-upgrade functional smoke testing remains open. Chrome public 5.4.0 availability remains open while the corrected draft is prepared.
