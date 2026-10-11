@@ -21,6 +21,11 @@ approval. `submit-staged` holds an approved revision until `publish-staged` is
 run. Store listing, privacy, distribution, artwork, and visibility remain
 explicit Dashboard controls.
 
+`cancel-review` uses the official Chrome Web Store API v2 cancellation method
+to return an active pending review to draft state. Use it only when the current
+submission must be corrected; it does not modify the public version or upload a
+new package.
+
 `store-metadata/chrome.json` is the repository contract for Chrome permissions,
 hosts, supported providers, single-purpose wording, privacy URL, and disclosure
 text. `npm run store:metadata:check` compares that contract to the Chrome Store

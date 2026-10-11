@@ -174,6 +174,7 @@ export async function main(options = {}) {
   const action = env.CHROME_ACTION || 'preflight';
   const allowedActions = [
     'preflight',
+    'cancel-submission',
     'upload-only',
     'submit-staged',
     'submit-auto',
@@ -202,6 +203,26 @@ export async function main(options = {}) {
   if (action === 'preflight') {
     console.log('Chrome credentials, publisher ID, extension ID, and read-only status access are valid.');
     return initialStatus;
+  }
+
+  if (action === 'cancel-submission') {
+    if (!isActiveSubmission(initialStatus)) {
+      throw new Error('Chrome has no active submission to cancel');
+    }
+    console.log('Cancelling the active Chrome Web Store submission');
+    const cancelResponse = await fetchImpl(`${API_ROOT}/v2/${resourceName}:cancelSubmission`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!cancelResponse.ok) {
+      throw new Error(
+        `Chrome submission cancellation failed with HTTP ${cancelResponse.status}: ${await responseDetails(cancelResponse)}`,
+      );
+    }
+    console.log('Chrome cancelled the active submission and returned it to draft state.');
+    await writeStepSummary(env, ['', '- Result: active Chrome submission cancelled; revision returned to draft']);
+    return;
   }
 
   if (action === 'publish-staged') {

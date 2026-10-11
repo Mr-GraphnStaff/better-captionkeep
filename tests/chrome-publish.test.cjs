@@ -167,3 +167,47 @@ test('Chrome submits an existing verified draft when fetchStatus omits completed
     },
   });
 });
+
+test('Chrome cancels an active review without uploading or publishing', async () => {
+  const { main } = await import('../scripts/chrome-publish.mjs');
+  const requests = [];
+  const fetchImpl = async (url, options = {}) => {
+    requests.push({ url: String(url), method: options.method || 'GET' });
+    if (String(url).includes('oauth2.googleapis.com/token')) {
+      return new Response(JSON.stringify({ access_token: 'access-token' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (String(url).endsWith(':fetchStatus')) {
+      return new Response(JSON.stringify({
+        itemId: 'nabjdlnkkaonnbnimnmnhjcbigceebml',
+        submittedItemRevisionStatus: {
+          state: 'PENDING_REVIEW',
+          distributionChannels: [{ crxVersion: '5.4.0' }],
+        },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(null, { status: 200 });
+  };
+
+  await main({
+    env: {
+      CHROME_ACTION: 'cancel-submission',
+      CHROME_CLIENT_ID: 'client-id',
+      CHROME_CLIENT_SECRET: 'client-secret',
+      CHROME_REFRESH_TOKEN: 'refresh-token',
+      CHROME_PUBLISHER_ID: 'publisher-id',
+      CHROME_EXTENSION_ID: 'nabjdlnkkaonnbnimnmnhjcbigceebml',
+    },
+    fetchImpl,
+  });
+
+  assert.deepEqual(requests.at(-1), {
+    url: 'https://chromewebstore.googleapis.com/v2/publishers/publisher-id/items/nabjdlnkkaonnbnimnmnhjcbigceebml:cancelSubmission',
+    method: 'POST',
+  });
+});
