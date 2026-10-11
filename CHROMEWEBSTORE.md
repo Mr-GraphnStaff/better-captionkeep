@@ -8,8 +8,8 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Frozen metadata version: **5.4.0**. Azure Store Release run 716 submitted the
 > verified package on October 10, 2026. Chrome accepted it for review and Edge
-> accepted it for certification; neither response is evidence that 5.4.0 is
-> publicly available.
+> accepted it for certification. Microsoft Edge Add-ons publicly served 5.4.0
+> later that day; Chrome 5.4.0 remains in review.
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -189,7 +189,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Frozen and submitted: Chrome `PENDING_REVIEW`; Edge accepted for certification; not yet verified public |
+| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Edge; Chrome `PENDING_REVIEW`; Edge post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
@@ -231,4 +231,6 @@ No developer-operated server, paid subscription, microphone recording, video rec
 
 Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome Web Store publicly listed version 5.3.2 as updated October 6, 2026. Installed-upgrade verification remains separate evidence.
 
-Azure Store Release run 716 submitted the immutable 5.4.0 packages on October 10, 2026. Chrome accepted the update for review with state `PENDING_REVIEW`; Microsoft accepted the Edge update for certification after the submission operation returned `Succeeded`. Public listing and installed-upgrade verification remain open.
+Azure Store Release run 716 submitted the immutable 5.4.0 packages on October 10, 2026. Chrome accepted the update for review with state `PENDING_REVIEW`; Microsoft accepted the Edge update for certification after the submission operation returned `Succeeded`. At submission time, public listing and installed-upgrade verification were still open.
+
+Later on October 10, the public Microsoft Edge Add-ons listing served version 5.4.0. A managed Edge installation received the update but reproduced the Store-generated `_metadata` warning tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820). The immutable submitted ZIP contains no `_metadata` entry. Edge public availability is verified; post-upgrade functional smoke testing remains open. Chrome public availability remains open.
