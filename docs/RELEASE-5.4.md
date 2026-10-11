@@ -1,6 +1,6 @@
 # Better CaptionKeep 5.4 release record
 
-Status: **Frozen and submitted; Store review/certification in progress**
+Status: **Frozen; public in Edge; Chrome review in progress**
 Last updated: 2026-10-10
 
 ## Release decision
@@ -25,7 +25,15 @@ Store Release run **716** submitted the verified packages on October 10, 2026:
 - Chrome ZIP SHA-256: `71B9E7A7BC504BEED19FE53A0B0E92CB2DB7E7CCB1E8BD1A30D7F0904291D39D`.
 - Edge ZIP SHA-256: `EF52646237380B6812091ABE90E9C8D7775879506C671DE7061E23CDAFF83CD7`.
 
-These are submission states, not proof that either Store publicly serves 5.4.0.
+Microsoft's public Edge Add-ons listing independently served version 5.4.0 as
+updated October 10, 2026. Chrome remained on public 5.3.3 with 5.4.0 in review.
+A managed Edge installation received 5.4.0 when the user selected **Update**,
+but Edge again reported its Store-generated `_metadata` directory as a reserved
+path. The submitted Edge ZIP has zero `_metadata` entries, and the vendor issue
+is tracked in
+[MicrosoftEdge-Extensions #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820).
+Edge public availability is verified; its post-upgrade functional smoke test
+remains open.
 
 ## Included development scope
 

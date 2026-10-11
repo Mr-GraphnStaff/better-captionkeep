@@ -5,8 +5,8 @@ Last verified: **October 10, 2026**.
 | Channel | Version | Status |
 | --- | --- | --- |
 | Chrome Web Store | 5.3.3 public; 5.4.0 in review | Azure Store Release run 716 submitted the verified 5.4.0 package. Google accepted it with state `PENDING_REVIEW`; this is not evidence of public availability. |
-| Microsoft Edge Add-ons | 5.3.3 public; 5.4.0 in certification | Azure Store Release run 716 submitted the verified 5.4.0 package. Microsoft accepted it for certification; this is not evidence of public availability. |
-| Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Store approval, public availability, and installed-upgrade verification remain open. |
+| Microsoft Edge Add-ons | 5.4.0 public; post-upgrade smoke pending | Microsoft's public listing served version 5.4.0 as updated October 10, 2026. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
+| Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Edge is public; Chrome approval/publication and both installed-upgrade smoke tests remain open. |
 | Active development release | None | Version 5.4.0 is frozen at Production commit `515819599bcd0c9e3d6d97852d36ef3517e68ac8`. New product work must use a later development lane. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
@@ -50,7 +50,15 @@ Azure run **716** downloaded and reverified those immutable assets, passed the
 protected Production approval, submitted Chrome for immediate publication
 after review, and submitted Edge for Microsoft certification. Chrome returned
 `PENDING_REVIEW`; the Edge certification submission operation returned
-`Succeeded`. Neither response means that 5.4.0 is public yet.
+`Succeeded`.
+
+Later on October 10, Microsoft's public Edge Add-ons listing independently
+served **Version 5.4.0** with an **Updated October 10, 2026** date. A managed
+Edge installation also received 5.4.0 after the user selected **Update**, but
+Edge again displayed the Store-generated `_metadata` reserved-name warning
+tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820).
+The immutable submitted ZIP contains no `_metadata` entry. Public availability
+is verified; successful post-upgrade functional smoke testing remains open.
 
 The product owner accepted clean UAT and explicitly authorized an early
 full-pipeline release. The normal unchanged 48-hour observation window was
