@@ -18,7 +18,7 @@ Store installation provides a stable extension identity and automatic updates.
 3. Confirm **Add extension**.
 4. Open Edge's Extensions menu and show Better CaptionKeep on the toolbar if desired.
 
-Current status on October 10, 2026: Microsoft Edge Add-ons publicly serves **5.4.0**; Chrome publicly serves **5.3.3** while 5.4.0 remains in review. A managed Edge installation received 5.4.0, but Edge displayed the vendor `_metadata` warning tracked in Microsoft issue #820 during the update. The post-upgrade functional smoke test therefore remains open. See [Release status](Release-Status).
+Current status on October 12, 2026: Chrome Web Store and Microsoft Edge Add-ons both publicly serve **5.4.0**. Chrome shows the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade smoke verification remain open for Chrome. A managed Edge installation received 5.4.0, but Edge displayed the vendor `_metadata` warning tracked in Microsoft issue #820 during the update, so its functional smoke verification also remains open. See [Release status](Release-Status).
 
 ## After installation
 

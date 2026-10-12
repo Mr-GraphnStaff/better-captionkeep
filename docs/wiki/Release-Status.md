@@ -1,12 +1,12 @@
 # Release Status
 
-Last verified: **October 10, 2026**.
+Last verified: **October 12, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.3.3 public; 5.4.0 in review | Azure Store Release run 716 submitted the verified 5.4.0 package. Google accepted it with state `PENDING_REVIEW`; this is not evidence of public availability. |
+| Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
 | Microsoft Edge Add-ons | 5.4.0 public; post-upgrade smoke pending | Microsoft's public listing served version 5.4.0 as updated October 10, 2026. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
-| Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Edge is public; Chrome approval/publication and both installed-upgrade smoke tests remain open. |
+| Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
 | Active development release | None | Version 5.4.0 is frozen at Production commit `515819599bcd0c9e3d6d97852d36ef3517e68ac8`. New product work must use a later development lane. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
@@ -51,6 +51,13 @@ protected Production approval, submitted Chrome for immediate publication
 after review, and submitted Edge for Microsoft certification. Chrome returned
 `PENDING_REVIEW`; the Edge certification submission operation returned
 `Succeeded`.
+
+After the product owner corrected the Chrome listing, Azure run **731**
+reverified and resubmitted the unchanged package for automatic publication.
+On October 12, Google's official listing was verified serving **Version 5.4.0**
+with an **Updated October 11, 2026** date, the corrected product title, and the
+BYOAI summary. Chrome public availability is verified; successful
+existing-install upgrade and post-upgrade functional smoke testing remain open.
 
 Later on October 10, Microsoft's public Edge Add-ons listing independently
 served **Version 5.4.0** with an **Updated October 10, 2026** date. A managed
