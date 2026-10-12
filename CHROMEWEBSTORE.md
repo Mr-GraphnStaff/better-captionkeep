@@ -4,14 +4,15 @@ Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-10
+> Last Updated: 2026-10-12
 
 > Frozen package version: **5.4.0**. Azure Store Release run 716 submitted the
 > verified package on October 10, 2026. Microsoft Edge Add-ons publicly served
 > 5.4.0 later that day. Azure run 726 cancelled Chrome's original pending review
 > so the stale Store listing could be replaced. After the corrected DAF-TECH
-> listing was saved, run 731 resubmitted the unchanged 5.4.0 package; Chrome now
-> reports `PENDING_REVIEW` while continuing to serve 5.3.3 publicly.
+> listing was saved, run 731 resubmitted the unchanged 5.4.0 package. The public
+> Chrome Web Store now serves 5.4.0 with the corrected title and BYOAI summary;
+> installed-upgrade and post-upgrade smoke verification remain open.
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
@@ -191,7 +192,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Edge; corrected Chrome listing `PENDING_REVIEW` after run 731; Edge post-upgrade functional smoke pending |
+| 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Chrome and Edge; installed-upgrade and post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
 | 5.3.1 | 2026-10-04 | Corrected unpacked production identity but shipped an inert Store Graph configuration. | Public in Edge with Microsoft 365 defect; Chrome review cancelled and replaced by the 5.3.2 submission |
@@ -237,6 +238,6 @@ Azure Store Release run 716 submitted the immutable 5.4.0 packages on October 10
 
 After the public Store pages exposed stale version-5-era marketing, Azure Store Release run 726 used Chrome's official `cancelSubmission` operation on October 10, 2026. Its preflight recorded `published=PUBLISHED/5.3.3` and `submitted=PENDING_REVIEW/5.4.0`; Chrome then returned the 5.4.0 submission to draft without uploading or replacing the immutable package. The corrected DAF-TECH listing copy and artwork must be applied in the Chrome Developer Dashboard before the existing draft is resubmitted.
 
-After the product owner saved the corrected description, five screenshots, small promotional tile, and marquee tile, Azure Store Release run 731 reverified and re-uploaded the same immutable 5.4.0 Chrome ZIP, passed the protected Production approval, and submitted the corrected draft for automatic publication after review. Chrome accepted it with state `PENDING_REVIEW`; public Chrome remains 5.3.3 until that review completes.
+After the product owner saved the corrected description, five screenshots, small promotional tile, and marquee tile, Azure Store Release run 731 reverified and re-uploaded the same immutable 5.4.0 Chrome ZIP, passed the protected Production approval, and submitted the corrected draft for automatic publication after review. On October 12, the official Chrome Web Store listing was verified serving **Version 5.4.0**, **Updated October 11, 2026**, the corrected title **Better CaptionKeep — Live Meeting Transcript**, and the BYOAI summary. Chrome public availability is verified; successful existing-install upgrade and post-upgrade functional smoke testing remain open.
 
-Later on October 10, the public Microsoft Edge Add-ons listing served version 5.4.0. A managed Edge installation received the update but reproduced the Store-generated `_metadata` warning tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820). The immutable submitted ZIP contains no `_metadata` entry. Edge public availability is verified; post-upgrade functional smoke testing remains open. Chrome public 5.4.0 availability remains open while the corrected submission is reviewed.
+Later on October 10, the public Microsoft Edge Add-ons listing served version 5.4.0. A managed Edge installation received the update but reproduced the Store-generated `_metadata` warning tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820). The immutable submitted ZIP contains no `_metadata` entry. Edge public availability is verified; post-upgrade functional smoke testing remains open. The Edge listing's separate DAF-TECH marketing refresh also remains in Microsoft review.
