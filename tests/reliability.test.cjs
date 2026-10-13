@@ -918,6 +918,7 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     messageHandler({message:'get_status'},null,response=>{status=response;});
     assert.equal(status.capturing,true);
     assert.equal(status.captionCount,1);
+    assert(messages.some(message=>message.message==='update_badge_status'&&message.capturing===true));
     let viewer;
     messageHandler({message:'viewer_ready'},null,response=>{viewer=response;});
     assert.equal(viewer.streaming,true);
@@ -937,6 +938,7 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     messageHandler({message:'viewer_ready'},null,response=>{viewer=response;});
     assert.equal(viewer.streaming,false);
     assert.equal(adapter.stopped,true);
+    assert(messages.some(message=>message.message==='update_badge_status'&&message.capturing===false));
     storageListeners[0]({trackCaptions:{newValue:true}},'sync');
     assert.equal(adapter.startCount,2);
 });
@@ -1861,6 +1863,7 @@ test('live captions default on while advanced Teams meeting sources remain expli
     const popupScript=read('popup.js');
     const sidepanel=read('sidepanel.html');
     const sidepanelScript=read('sidepanel.js');
+    const serviceWorker=read('service_worker.js');
     assert(content.includes('async function requestTeamsTranscription'));
     assert(content.includes('async function requestLiveCaptions'));
     assert(content.includes('async function inspectTranscriptionMenu'));
@@ -1875,6 +1878,8 @@ test('live captions default on while advanced Teams meeting sources remain expli
     assert(!content.includes('ensureTeamsTranscription(!previouslyInMeeting)'));
     assert(!content.includes('debouncedAutoEnableCaptions()'));
     assert(content.includes('if (trackingAllowed) void requestLiveCaptions()'));
+    assert(serviceWorker.includes('sender.tab?.id ?? message.tabId'));
+    assert(serviceWorker.includes('chrome.action.setBadgeText({ ...target'));
     assert(popup.includes('Live captions start automatically.'));
     assert(popup.includes('every supported meeting starts live transcript capture'));
     assert(!popup.includes('id="autoOpenAttendeesToggle"'));

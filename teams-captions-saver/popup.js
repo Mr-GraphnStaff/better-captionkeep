@@ -308,6 +308,9 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
     const { statusMessage } = UI_ELEMENTS;
     const { trackCaptions, trackAttendees } = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees']);
     updateV6State({capturing, captionCount, isInMeeting, captureState, checkpointError, trackingAllowed:trackCaptions !== false});
+    if (Number.isInteger(currentMeetingTab?.id)) {
+        chrome.runtime.sendMessage({message:'update_badge_status', capturing:trackCaptions !== false && capturing, tabId:currentMeetingTab.id}).catch(() => {});
+    }
     
     if (checkpointError || captureState === 'source unavailable') {
         statusMessage.textContent = checkpointError || 'Caption source unavailable — capture may be incomplete. Existing text is preserved.';

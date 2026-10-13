@@ -402,13 +402,14 @@ async function createViewerTab(transcriptArray, sender, message) {
     await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?payload=${key}`)});
 }
 
-function updateBadge(isCapturing) {
+function updateBadge(isCapturing, tabId) {
+    const target = Number.isInteger(tabId) ? {tabId} : {};
     if (isCapturing) {
-        chrome.action.setBadgeText({ text: 'ON' });
-        chrome.action.setBadgeBackgroundColor({ color: '#28a745' }); // Green
+        chrome.action.setBadgeText({ ...target, text: 'ON' });
+        chrome.action.setBadgeBackgroundColor({ ...target, color: '#28a745' }); // Green
     } else {
-        chrome.action.setBadgeText({ text: 'OFF' });
-        chrome.action.setBadgeBackgroundColor({ color: '#6c757d' }); // Grey
+        chrome.action.setBadgeText({ ...target, text: 'OFF' });
+        chrome.action.setBadgeBackgroundColor({ ...target, color: '#6c757d' }); // Grey
     }
 }
 
@@ -829,7 +830,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
             
             case 'update_badge_status':
-                updateBadge(message.capturing);
+                updateBadge(message.capturing, sender.tab?.id ?? message.tabId);
                 // Reset auto-save state when starting a new capture session
                 if (message.capturing) {
                     lastAutoSaveId = null;

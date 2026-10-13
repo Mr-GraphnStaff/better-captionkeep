@@ -25,8 +25,17 @@
         sendMessage: message => chrome.runtime.sendMessage(message)
     });
 
+    function updateCaptureBadge() {
+        const state = coordinator?.getState();
+        chrome.runtime.sendMessage({
+            message:'update_badge_status',
+            capturing:trackingAllowed && state?.captureState === 'capturing'
+        }).catch(() => {});
+    }
+
     function handleProviderEvent(event) {
         coordinator.handleProviderEvent(event);
+        updateCaptureBadge();
         if (event?.type !== 'meeting-ended') return;
         liveCaptionsRequested = false;
         adapter.setAutoEnableCaptions(trackingAllowed);
@@ -64,6 +73,7 @@
                 adapter.setAutoEnableCaptions(false);
                 stopAdapter('paused');
             }
+            updateCaptureBadge();
         }
     });
 
@@ -90,6 +100,7 @@
         adapter.setAutoEnableCaptions(trackingAllowed);
         if (trackingAllowed) startAdapter();
         else coordinator.pause();
+        updateCaptureBadge();
     }
 
     window.addEventListener('pagehide', () => {
