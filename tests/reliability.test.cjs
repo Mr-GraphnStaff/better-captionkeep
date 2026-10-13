@@ -1754,8 +1754,9 @@ test('all target manifests expose the local Evidence Board through the side pane
     const statusCard=popup.slice(popup.indexOf('class="v6-status-card'));
     assert(statusCard.indexOf('id="sessionHistory"') < statusCard.indexOf('</section>'));
     assert(popup.includes('id="v6-status-orbit"'));
-    assert(popup.includes('Keep this meeting'));
-    assert(popupScript.includes("UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting'"));
+    assert(popupScript.includes("UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Open Live Workspace'"));
+    assert(popupScript.includes("UI_ELEMENTS.v6ReadyTitle.textContent = ready"));
+    assert(popupScript.includes("? 'Live transcript is on'"));
     assert(!popup.includes('id="viewButton"'));
     assert(!popupScript.includes('Ctrl/Cmd + V for view'));
     assert(popup.includes('browserCompat.js'));
@@ -1855,13 +1856,38 @@ test('popup uses compact native quick-start actions for all three meeting platfo
     assert(popup.includes('href="https://meet.new"'));
     assert(popup.includes('aria-label="Start a new Google Meet meeting">Start meeting</a>'));
     assert(script.includes('getActiveMeetingTab'));
-    assert(script.includes("paused ? 'Resume live transcript' : isInMeeting ? 'Start captions now'"));
+    assert(script.includes("paused ? 'Resume live transcript' : isInMeeting ? 'Turn on meeting captions'"));
+    assert(script.includes("document.documentElement.dataset.meetingState = isInMeeting ? 'active' : 'inactive'"));
+    assert(v6Styles.includes('html[data-meeting-state="active"] .platform-launchers'));
     assert(script.includes("{message:'enable_live_captions'}"));
     assert(script.includes('Meeting found · live transcript is starting'));
     assert(script.includes('https:\\/\\/meet\\.google\\.com'));
     assert(script.includes('https:\\/\\/app\\.zoom\\.us\\/wc'));
     assert(script.includes("textContent = 'Open Teams, Zoom Web, or Google Meet to begin.'"));
     assert(!script.includes('open a Teams tab</a>'));
+});
+test('6.0 UX blockers stay covered by structural regression contracts',()=>{
+    const popup=read('popup.html');
+    const popupStyles=read('popup-v6.css');
+    const popupScript=read('popup.js');
+    const viewer=read('viewer.html');
+    const handoff=read('handoff.html');
+    const handoffScript=read('handoff.js');
+    assert(popup.includes('html[data-view="settings"] .popup-main > :not(.settings-container)'));
+    assert(!popup.includes('html[data-view="settings"] body > :not(.settings-container)'));
+    assert(popupStyles.includes('box-sizing: border-box;'));
+    assert(popupStyles.includes('overflow-y: auto;'));
+    assert(popupStyles.includes(':root[data-theme="light"] .v6-status-card'));
+    for(const id of ['graphTranscriptSection','appearance-settings','speaker-settings','saving-settings','capture-settings','intelligence-settings','privacy-settings','naming-settings','portability-settings','support-settings']) {
+        assert(popup.includes(`href="#${id}"`));
+    }
+    assert(read('settingsView.js').includes("target instanceof HTMLDetailsElement"));
+    assert(viewer.includes('<summary>More transcript tools</summary>'));
+    assert(viewer.includes('id="copy-all-btn-primary"'));
+    assert(viewer.includes('id="save-all-btn-primary"'));
+    assert(handoff.includes('id="handoff-workspace" hidden'));
+    assert(handoff.includes('id="handoff-empty"'));
+    assert(handoffScript.includes("showHandoffEmpty('No AI handoff is ready'"));
 });
 test('Graph pilot can capture the active Teams meeting link without new permissions',()=>{
     const content=read('content_script.js');

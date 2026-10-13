@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakerFiltersContainer = document.getElementById('speaker-filters');
     const copyAllBtn = document.getElementById('copy-all-btn');
     const saveAllBtn = document.getElementById('save-all-btn');
+    const copyAllPrimaryBtn = document.getElementById('copy-all-btn-primary');
+    const saveAllPrimaryBtn = document.getElementById('save-all-btn-primary');
     const printPdfBtn = document.getElementById('print-pdf-btn');
     const exportFormat = document.getElementById('viewer-export-format');
     const historyBtn = document.getElementById('history-btn');
@@ -556,6 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         copyAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableClipboard;
         saveAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
+        copyAllPrimaryBtn.disabled = copyAllBtn.disabled;
+        saveAllPrimaryBtn.disabled = saveAllBtn.disabled;
         printPdfBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
         
         // Update titles with count
@@ -565,6 +569,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveAllBtn.title = hasVisibleCaptions 
             ? `Save ${visibleCount} visible caption(s) as file`
             : 'No visible captions to save';
+        copyAllPrimaryBtn.title = copyAllBtn.title;
+        saveAllPrimaryBtn.title = saveAllBtn.title;
     }
 
     function debouncedApplyFilters() {
@@ -685,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await navigator.clipboard.writeText(textToCopy);
             showButtonSuccess(copyAllBtn, 'Copied!', 'Copy All');
+            showButtonSuccess(copyAllPrimaryBtn, 'Copied!', 'Copy transcript');
             showNotification(`Copied ${visibleCaptions.length} caption(s)${output.replacements.length ? ` with ${output.replacements.length} detail(s) masked` : ''}`, 'success');
         } catch (err) {
             console.error('Failed to copy transcript: ', err);
@@ -845,6 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
         captionsContainer.addEventListener('click', event => handleCorrectionClick(event).catch(error => showNotification(error.message, 'warning')));
         copyAllBtn.addEventListener('click', handleCopyAllClick);
         saveAllBtn.addEventListener('click', handleSaveAllClick);
+        copyAllPrimaryBtn.addEventListener('click', handleCopyAllClick);
+        saveAllPrimaryBtn.addEventListener('click', handleSaveAllClick);
         printPdfBtn.addEventListener('click', handlePrintPdfClick);
         document.getElementById('meeting-extras-btn').addEventListener('click', async () => {
             try {

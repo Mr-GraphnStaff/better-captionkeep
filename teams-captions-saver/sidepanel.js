@@ -222,8 +222,15 @@
         const latest = transcript.at(-1);
         const rawCaptureState = currentContext?.captureState || 'not connected';
         const ready = rawCaptureState === 'capturing';
+        const paused = rawCaptureState === 'paused';
+        const failed = rawCaptureState === 'source unavailable';
         document.body.classList.toggle('capture-ready', ready);
-        elements.captureState.textContent = ready ? 'Ready' : 'Not ready';
+        document.body.classList.toggle('capture-paused', paused);
+        document.body.classList.toggle('capture-error', failed);
+        elements.captureState.textContent = ready ? 'Live'
+            : failed ? 'Needs attention'
+                : paused ? 'Off'
+                    : ['ended', 'meeting ended'].includes(rawCaptureState) ? 'Ended' : 'Connecting';
         elements.captureState.title = rawCaptureState;
         elements.meetingTitle.textContent = currentContext?.meetingTitle || 'Open Teams, Meet, or Zoom Web.';
         elements.meetingProvider.textContent = currentContext?.providerLabel

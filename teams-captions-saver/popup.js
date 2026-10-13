@@ -204,22 +204,30 @@ function updateV6State({capturing = false, isInMeeting = false, captureState = '
     if (!UI_ELEMENTS.v6StatusOrbit) return;
     const ready = trackingAllowed && isInMeeting && capturing && !checkpointError && captureState !== 'source unavailable';
     const paused = isInMeeting && !trackingAllowed;
-    currentMeetingStatus = {capturing, isInMeeting, captureState, checkpointError, captionCount, trackingAllowed, ready};
-    UI_ELEMENTS.v6StatusOrbit.classList.toggle('not-ready', !ready);
-    UI_ELEMENTS.v6StatusBand.textContent = ready ? 'Ready' : paused ? 'Paused' : isInMeeting ? 'Starting' : 'Not ready';
-    UI_ELEMENTS.v6ProviderState.textContent = ready ? 'Ready' : paused ? 'Paused by you' : isInMeeting ? 'Starting' : 'Not ready';
-    UI_ELEMENTS.v6ProviderState.classList.toggle('ready', ready);
+    const errored = isInMeeting && !!checkpointError;
+    const visualState = ready ? 'ready' : errored ? 'error' : paused ? 'paused' : isInMeeting ? 'starting' : 'unavailable';
+    currentMeetingStatus = {capturing, isInMeeting, captureState, checkpointError, captionCount, trackingAllowed, ready, errored};
+    document.documentElement.dataset.meetingState = isInMeeting ? 'active' : 'inactive';
+    UI_ELEMENTS.v6StatusOrbit.classList.remove('ready', 'starting', 'paused', 'error', 'unavailable', 'not-ready');
+    UI_ELEMENTS.v6StatusOrbit.classList.add(visualState);
+    UI_ELEMENTS.v6StatusBand.textContent = ready ? 'Live' : errored ? 'Attention' : paused ? 'Off' : isInMeeting ? 'Starting' : 'Waiting';
+    UI_ELEMENTS.v6ProviderState.textContent = ready ? 'Live' : errored ? 'Needs attention' : paused ? 'Off by you' : isInMeeting ? 'Starting' : 'Waiting';
+    UI_ELEMENTS.v6ProviderState.classList.remove('ready', 'starting', 'paused', 'error');
+    if (visualState !== 'unavailable') UI_ELEMENTS.v6ProviderState.classList.add(visualState);
     UI_ELEMENTS.v6ProviderDetail.textContent = ready
         ? `${captionCount} ${captionCount === 1 ? 'caption' : 'captions'} preserved`
-        : paused ? 'Live transcript capture is off in Settings'
+        : errored ? 'The last capture checkpoint failed'
+            : paused ? 'Live transcript capture is off in Settings'
             : isInMeeting ? 'Meeting found · live transcript is starting' : 'Open or join a supported meeting';
     UI_ELEMENTS.v6ReadyTitle.textContent = ready
-        ? 'Keep this meeting?'
+        ? 'Live transcript is on'
+        : errored ? 'Capture needs attention'
         : paused ? 'Live transcript is paused'
             : isInMeeting ? 'Starting live transcript…' : 'Open a meeting to begin';
     UI_ELEMENTS.liveWorkspaceButton.disabled = !isInMeeting;
-    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting'
-        : paused ? 'Resume live transcript' : isInMeeting ? 'Start captions now' : 'Waiting for a meeting';
+    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Open Live Workspace'
+        : errored ? 'Try live transcript again'
+            : paused ? 'Resume live transcript' : isInMeeting ? 'Turn on meeting captions' : 'Waiting for a meeting';
     UI_ELEMENTS.openLastTranscriptButton.disabled = captionCount < 1 && !hasSavedSessions;
 }
 
@@ -1518,10 +1526,9 @@ async function initializePopup() {
     if (isFullSettingsPage) {
         document.querySelector('.settings-header').textContent = 'All settings';
         document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
-        if (location.hash === '#microsoft365' && UI_ELEMENTS.graphAdminDetails) {
+        if ((location.hash === '#microsoft365' || location.hash === '#graphTranscriptSection') && UI_ELEMENTS.graphAdminDetails) {
             UI_ELEMENTS.graphTranscriptSection.open = true;
             UI_ELEMENTS.graphAdminDetails.open = true;
-            UI_ELEMENTS.graphAdminDetails.scrollIntoView({block:'start'});
         }
     }
     await loadSettings();

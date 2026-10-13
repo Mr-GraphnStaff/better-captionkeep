@@ -123,10 +123,8 @@
         }
 
         .controls {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
             gap: 12px;
-            align-items: center;
             padding: 18px 30px;
             margin: 0 0 24px;
             border-bottom: 1px solid var(--border-color);
@@ -136,6 +134,11 @@
             z-index: 20;
             box-shadow: 0 8px 16px color-mix(in srgb, var(--ck-bg) 80%, transparent);
         }
+        .controls-primary { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 12px; align-items: center; }
+        .primary-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .more-tools { border: 1px solid var(--ck-border); border-radius: 10px; background: var(--ck-surface-soft); }
+        .more-tools > summary { cursor: pointer; padding: 10px 12px; color: var(--ck-text); font-weight: 700; list-style-position: inside; }
+        .more-tools-panel { display: grid; gap: 12px; padding: 0 12px 12px; }
         
         #print-output { display: none; }
         @media print {
@@ -152,6 +155,7 @@
 
         .export-controls {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             align-items: center;
         }
@@ -364,6 +368,7 @@
             .viewer-header { padding: 22px 20px; }
             .viewer-brand img { width: 54px; height: 54px; }
             .controls { padding: 16px 20px; position: static; }
+            .controls-primary { grid-template-columns: 1fr; }
             .viewer-body { padding: 0 20px 20px; }
             .export-controls { width: 100%; flex-wrap: wrap; }
             #search-box { width: 100%; }
@@ -496,10 +501,22 @@
             </div>
         </header>
         <div class="controls" aria-label="Transcript tools">
+                <div class="controls-primary">
                 <input type="search" id="search-box" placeholder="Search transcript..." aria-label="Search transcript">
                 <div id="speaker-filters" class="speaker-filters">
                     <button id="show-all-btn" class="active" aria-label="Show all speakers">Show All</button>
                 </div>
+                </div>
+                <div class="primary-actions" aria-label="Primary transcript actions">
+                    <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
+                        <input type="checkbox" id="scrub-output-toggle" checked> Clean sensitive details
+                    </label>
+                    <button id="copy-all-btn-primary" class="export-btn" type="button">Copy transcript</button>
+                    <button id="save-all-btn-primary" class="export-btn" type="button">Save transcript</button>
+                </div>
+                <details class="more-tools">
+                    <summary>More transcript tools</summary>
+                    <div class="more-tools-panel">
                 <div class="correction-controls" aria-label="Transcript correction tools">
                     <label for="transcript-version">View</label>
                     <select id="transcript-version">
@@ -510,9 +527,6 @@
                     <span id="correction-status" class="correction-note" role="status"></span>
                 </div>
                 <div class="export-controls">
-                    <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
-                        <input type="checkbox" id="scrub-output-toggle" checked> Scrubby outputs
-                    </label>
                     <button id="copy-all-btn" class="export-btn" title="Copy visible transcript to clipboard">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
@@ -544,6 +558,8 @@
                         History
                     </button>
                 </div>
+                    </div>
+                </details>
         </div>
         <div class="viewer-body">
             <main id="captions-container">

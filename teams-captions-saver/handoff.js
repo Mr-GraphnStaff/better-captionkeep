@@ -10,6 +10,10 @@ const saveEvidenceButton = document.getElementById('saveEvidence');
 const copyChunkButton = document.getElementById('copyChunk');
 const previousChunkButton = document.getElementById('previousChunk');
 const nextChunkButton = document.getElementById('nextChunk');
+const handoffWorkspace = document.getElementById('handoff-workspace');
+const handoffEmpty = document.getElementById('handoff-empty');
+const handoffEmptyTitle = document.getElementById('handoff-empty-title');
+const handoffEmptyDetail = document.getElementById('handoff-empty-detail');
 let sourceData = null;
 let currentPackage = null;
 let currentChunk = 0;
@@ -30,6 +34,18 @@ const templateStatus = document.getElementById('template-status');
 const templateApply = document.getElementById('template-apply');
 const templateSave = document.getElementById('template-save');
 const templateDelete = document.getElementById('template-delete');
+
+function showHandoffWorkspace() {
+    handoffEmpty.hidden = true;
+    handoffWorkspace.hidden = false;
+}
+
+function showHandoffEmpty(title, detail) {
+    handoffWorkspace.hidden = true;
+    handoffEmpty.hidden = false;
+    handoffEmptyTitle.textContent = title;
+    handoffEmptyDetail.textContent = detail;
+}
 
 function selectTemplate() {
     const template = [...CaptionKeepPromptTemplates.BUILT_INS, ...customTemplates].find(item => item.id === templateSelect.value);
@@ -274,6 +290,7 @@ document.getElementById('discard').onclick = async () => {
     copyChunkButton.disabled = true;
     saveEvidenceButton.disabled = true;
     statusBox.textContent = 'Handoff discarded. Temporary evidence was removed.';
+    showHandoffEmpty('Handoff discarded', 'The temporary local handoff was removed. Return to a transcript or the Live Workspace when you want to prepare another one.');
 };
 
 function renderProvider(providerKey, settings) {
@@ -364,9 +381,11 @@ function renderProvider(providerKey, settings) {
             }
         }
         for (const provider of sourceData.providers) renderProvider(provider, effectivePolicy.settings);
+        showHandoffWorkspace();
         await chrome.storage.local.remove(id);
     } catch (error) {
         if (id?.startsWith('handoff_')) await chrome.storage.local.remove(id).catch(() => {});
         statusBox.textContent = error.message;
+        showHandoffEmpty('No AI handoff is ready', `${error.message}. Return to a transcript or the Live Workspace and choose an AI action to prepare one.`);
     }
 })();

@@ -22,7 +22,7 @@
         .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
         .all-settings-arrow { font-size: 1.5rem; }
         html[data-view="settings"] body { width: min(100%, 1180px); margin: 0 auto; padding: 28px; }
-        html[data-view="settings"] body > :not(.settings-container):not(.brand):not(.settings-page-intro):not(.settings-command-center) { display: none !important; }
+        html[data-view="settings"] .popup-main > :not(.settings-container):not(.brand):not(.settings-page-intro):not(.settings-command-center) { display: none !important; }
         html[data-view="settings"] .settings-container { margin-top: 0; }
         html[data-view="settings"] .settings-header { font-size: 28px; }
         html[data-view="settings"] .settings-intro,
@@ -577,7 +577,7 @@
         <div><p class="settings-eyebrow">6.0 control room</p><h1 id="settings-command-title">Simple in front. Powerful back here.</h1><p>Configure capture, meeting intelligence, privacy, destinations, enterprise sources, exports, and diagnostics without crowding the everyday meeting button.</p></div>
         <div class="settings-health" aria-label="Product boundaries"><span><strong>Local core</strong>Always available</span><span><strong>Source preserved</strong>Derivatives stay separate</span><span><strong>Managed ready</strong>Policy wins</span></div>
         <nav class="settings-cockpit-nav" aria-label="Settings sections">
-            <a href="#capture-settings">Capture</a><a href="#intelligence-settings">Meeting intelligence</a><a href="#privacy-settings">Privacy &amp; AI</a><a href="#saving-settings">Saving</a><a href="#graphTranscriptSection">Microsoft 365</a><a href="#appearance-settings">Appearance</a><a href="#support-settings">Support</a>
+            <a href="#graphTranscriptSection">Microsoft 365</a><a href="#appearance-settings">Appearance</a><a href="#speaker-settings">Speakers</a><a href="#saving-settings">Saving</a><a href="#capture-settings">Capture</a><a href="#intelligence-settings">Meeting intelligence</a><a href="#privacy-settings">Privacy &amp; AI</a><a href="#naming-settings">Naming</a><a href="#portability-settings">Portability</a><a href="#support-settings">Support</a>
         </nav>
     </section>
 
@@ -589,13 +589,13 @@
             <span class="v6-provider-copy"><strong id="v6-provider-name">Checking this tab</strong><span id="v6-provider-detail">Looking for a supported meeting</span></span>
             <span id="v6-provider-state" class="v6-provider-state">Checking</span>
         </div>
-        <div id="v6-status-orbit" class="v6-status-orbit not-ready" aria-hidden="true">
+        <div id="v6-status-orbit" class="v6-status-orbit unavailable" aria-hidden="true">
             <img src="icons/daf-tech-sphere.png" alt="">
-            <span id="v6-status-band">Not ready</span>
+            <span id="v6-status-band">Checking</span>
         </div>
         <h1 id="v6-ready-title">Checking this meeting…</h1>
         <p id="status-message" role="status" aria-live="polite">Checking status…</p>
-        <button id="liveWorkspaceButton" class="v6-primary-action" type="button" disabled>Keep this meeting</button>
+        <button id="liveWorkspaceButton" class="v6-primary-action" type="button" disabled>Waiting for a meeting</button>
         <button id="openLastTranscriptButton" class="v6-secondary-action" type="button" disabled>Open last live transcript</button>
         <nav class="platform-launchers" aria-label="Open a meeting platform">
             <div class="platform-card">

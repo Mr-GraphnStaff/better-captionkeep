@@ -43,3 +43,10 @@ Its first independent feature was **Save As (choose download location)**; the cu
 - Suggestions must include **file and function name** for edits.
 - All changes should preserve extension stability.
 - Legal notice: the original MIT license and attribution must remain intact.
+
+## Project-local product skills
+
+- Use `.agents/skills/better-captionkeep-ux-designer/SKILL.md` when reviewing flows, interface states, terminology, hierarchy, accessibility, or release UX acceptance.
+- Use `.agents/skills/better-captionkeep-ui-engineer/SKILL.md` when implementing or verifying interface changes.
+- Use `.agents/skills/better-captionkeep-qa-engineer/SKILL.md` when designing or executing functional, visual, accessibility, upgrade, failure, or cross-browser testing and release evidence.
+- For a UX finding that proceeds to code, apply the UX skill first to establish observable acceptance criteria, then the UI engineering skill to implement it, and finally the QA skill to verify the corrected build independently.

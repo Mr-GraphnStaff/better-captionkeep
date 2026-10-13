@@ -83,6 +83,30 @@ body.v6-surface .provider-link:hover {
     color: var(--ck-text-muted);
 }
 
+:root[data-theme="light"] body.v6-surface {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgb(0 127 140 / 12%), transparent 34%),
+        repeating-radial-gradient(ellipse at 50% 18%, transparent 0 62px, rgb(0 127 140 / 4%) 63px 64px, transparent 66px 102px),
+        var(--ck-bg) !important;
+}
+
+:root[data-theme="light"] .v6-page-shell,
+:root[data-theme="light"] body.v6-surface > main,
+:root[data-theme="light"] body.v6-surface > .container {
+    border-color: rgb(0 91 84 / 25%);
+    background: var(--ck-surface) !important;
+    box-shadow: inset 0 0 48px rgb(0 127 140 / 4%), 0 18px 46px rgb(16 42 59 / 16%);
+}
+
+:root[data-theme="light"] .v6-page-brand,
+:root[data-theme="light"] body.v6-surface .viewer-header {
+    border-bottom-color: rgb(0 91 84 / 20%);
+    background: linear-gradient(90deg, #d8eeea, #f8fbfa);
+}
+
+:root[data-theme="light"] .v6-page-brand h1,
+:root[data-theme="light"] body.v6-surface .viewer-header h1 { color: var(--ck-text); }
+
 @media (max-width: 620px) {
     body.v6-surface { padding: 8px; }
     .v6-page-shell,
