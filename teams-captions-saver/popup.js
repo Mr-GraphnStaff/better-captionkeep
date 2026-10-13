@@ -86,6 +86,8 @@ let currentEnterprisePolicy = {};
 let graphConnected = false;
 let graphConfigured = false;
 let graphBusy = false;
+let currentMeetingTab = null;
+let currentMeetingStatus = {};
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -196,21 +198,51 @@ function setV6Provider(tab) {
     UI_ELEMENTS.v6ProviderMark.className = `v6-provider-mark ${provider.className}`.trim();
 }
 
-function updateV6State({capturing = false, isInMeeting = false, captureState = '', checkpointError = '', captionCount = 0} = {}) {
+function updateV6State({capturing = false, isInMeeting = false, captureState = '', checkpointError = '', captionCount = 0, trackingAllowed = true} = {}) {
     if (!UI_ELEMENTS.v6StatusOrbit) return;
-    const ready = isInMeeting && capturing && !checkpointError && captureState !== 'source unavailable';
+    const ready = trackingAllowed && isInMeeting && capturing && !checkpointError && captureState !== 'source unavailable';
+    const paused = isInMeeting && !trackingAllowed;
+    currentMeetingStatus = {capturing, isInMeeting, captureState, checkpointError, captionCount, trackingAllowed, ready};
     UI_ELEMENTS.v6StatusOrbit.classList.toggle('not-ready', !ready);
-    UI_ELEMENTS.v6StatusBand.textContent = ready ? 'Ready' : 'Not ready';
-    UI_ELEMENTS.v6ProviderState.textContent = ready ? 'Ready' : 'Not ready';
+    UI_ELEMENTS.v6StatusBand.textContent = ready ? 'Ready' : paused ? 'Paused' : isInMeeting ? 'Starting' : 'Not ready';
+    UI_ELEMENTS.v6ProviderState.textContent = ready ? 'Ready' : paused ? 'Paused by you' : isInMeeting ? 'Starting' : 'Not ready';
     UI_ELEMENTS.v6ProviderState.classList.toggle('ready', ready);
     UI_ELEMENTS.v6ProviderDetail.textContent = ready
         ? `${captionCount} ${captionCount === 1 ? 'caption' : 'captions'} preserved`
-        : isInMeeting ? 'Captions are not available yet' : 'Open or join a supported meeting';
+        : paused ? 'Live transcript capture is off in Settings'
+            : isInMeeting ? 'Meeting found · live transcript is starting' : 'Open or join a supported meeting';
     UI_ELEMENTS.v6ReadyTitle.textContent = ready
         ? 'Keep this meeting?'
-        : isInMeeting ? 'Captions aren’t ready' : 'Open a meeting to begin';
+        : paused ? 'Live transcript is paused'
+            : isInMeeting ? 'Starting live transcript…' : 'Open a meeting to begin';
     UI_ELEMENTS.liveWorkspaceButton.disabled = !isInMeeting;
-    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting' : isInMeeting ? 'Open meeting controls' : 'Waiting for a meeting';
+    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting' : paused ? 'Resume live transcript' : isInMeeting ? 'Start captions now' : 'Waiting for a meeting';
+}
+
+async function enableCaptionsFromPopup() {
+    const tab = currentMeetingTab || await getActiveMeetingTab();
+    if (!tab?.id) throw new Error('Return to the active meeting tab and try again.');
+    UI_ELEMENTS.liveWorkspaceButton.disabled = true;
+    UI_ELEMENTS.liveWorkspaceButton.textContent = 'Starting live transcript…';
+    if (currentMeetingStatus.trackingAllowed === false) {
+        await chrome.storage.sync.set({trackCaptions:true});
+        currentMeetingStatus.trackingAllowed = true;
+    }
+    const response = await chrome.tabs.sendMessage(tab.id, {message:'enable_live_captions'});
+    if (!response?.ok) throw new Error(response?.error || 'The meeting did not expose its caption control.');
+    UI_ELEMENTS.statusMessage.textContent = response.state === 'active'
+        ? 'Captions are on. Better CaptionKeep is connecting to the caption stream.'
+        : 'Live transcript requested. The meeting may take a moment to expose its caption stream.';
+    UI_ELEMENTS.statusMessage.style.color = 'var(--ck-warning)';
+    UI_ELEMENTS.liveWorkspaceButton.textContent = 'Caption request sent';
+    setTimeout(async () => {
+        try {
+            const status = await chrome.tabs.sendMessage(tab.id, {message:'get_status'});
+            if (status) await updateStatusUI(status);
+        } catch (error) {
+            console.debug('[Better CaptionKeep] Caption status refresh is waiting for the meeting:', error.message);
+        }
+    }, 800);
 }
 
 // --- Error Handling ---
@@ -275,7 +307,7 @@ async function getScrubOptions() {
 async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError, transcriptionState, transcriptionDetail }) {
     const { statusMessage } = UI_ELEMENTS;
     const { trackCaptions, trackAttendees } = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees']);
-    updateV6State({capturing, captionCount, isInMeeting, captureState, checkpointError});
+    updateV6State({capturing, captionCount, isInMeeting, captureState, checkpointError, trackingAllowed:trackCaptions !== false});
     
     if (checkpointError || captureState === 'source unavailable') {
         statusMessage.textContent = checkpointError || 'Caption source unavailable — capture may be incomplete. Existing text is preserved.';
@@ -928,11 +960,20 @@ function setupEventListeners() {
     });
     UI_ELEMENTS.liveWorkspaceButton?.addEventListener('click', async () => {
         try {
+            if (currentMeetingStatus.isInMeeting && !currentMeetingStatus.ready) {
+                await enableCaptionsFromPopup();
+                return;
+            }
             await CaptionKeepBrowserCompat.openWorkspace();
             window.close();
         } catch (error) {
-            console.error('[Better CaptionKeep] Could not open the live workspace:', error);
-            chrome.tabs.create({url: chrome.runtime.getURL('sidepanel.html')});
+            console.error('[Better CaptionKeep] Primary meeting action failed:', error);
+            UI_ELEMENTS.statusMessage.textContent = error.message;
+            UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
+            UI_ELEMENTS.liveWorkspaceButton.disabled = false;
+            UI_ELEMENTS.liveWorkspaceButton.textContent = currentMeetingStatus.isInMeeting && !currentMeetingStatus.ready
+                ? currentMeetingStatus.trackingAllowed === false ? 'Resume live transcript' : 'Start captions now'
+                : 'Keep this meeting';
         }
     });
     UI_ELEMENTS.settingsOpenWorkspace?.addEventListener('click', async () => {
@@ -1462,6 +1503,7 @@ async function initializePopup() {
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();
+    currentMeetingTab = tab;
     setV6Provider(tab);
     if (!tab) {
         UI_ELEMENTS.statusMessage.textContent = 'Open Teams, Zoom Web, or Google Meet to begin.';

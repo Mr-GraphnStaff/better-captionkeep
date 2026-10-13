@@ -30,6 +30,8 @@ templates, and every advanced control.
 - The DAF-TECH sphere is the structural visual language, not a decorative badge.
 - One primary popup action, a clear green/red ready state, and direct Teams,
   Meet, and Zoom Web launchers.
+- Live transcript capture starts on for every supported meeting; the user can
+  pause it explicitly from Settings and resume it without losing prior text.
 - A unified workspace with Transcript, Moments, Live Notes, Evidence, Templates,
   and Ask views. Only the most common view is prominent; the rest remain quiet
   until chosen.

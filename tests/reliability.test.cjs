@@ -804,7 +804,7 @@ test('Google Meet enables captions once per explicit request and respects a late
     let clickCount=0;
     let source=null;
     const captionButton={
-        getAttribute:name=>name==='aria-label'?'Turn on captions':null,
+        getAttribute:name=>name==='aria-label'?'Turn on captions (c)':null,
         click(){clickCount++;}
     };
     const pageWindow={location:{href:'https://meet.google.com/abc-defg-hij'},addEventListener(){},removeEventListener(){}};
@@ -911,6 +911,7 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     vm.runInContext(read('transcriptInsights.js'),context);
     vm.runInContext(read('googleMeetContentScript.js'),context);
     await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(adapter.autoEnableCaptions,true);
     providerEventHandler({type:'caption-source-available'});
     providerEventHandler({type:'caption-upsert',caption:{Name:'Tester',Text:'Synthetic words',Time:'08:12',capturedAt:'2026-09-14T13:12:00Z',key:'meet-1'}});
     let status;
@@ -1833,6 +1834,9 @@ test('popup uses compact native quick-start actions for all three meeting platfo
     assert(popup.includes('href="https://meet.new"'));
     assert(popup.includes('aria-label="Start a new Google Meet meeting">Start meeting</a>'));
     assert(script.includes('getActiveMeetingTab'));
+    assert(script.includes("paused ? 'Resume live transcript' : isInMeeting ? 'Start captions now'"));
+    assert(script.includes("{message:'enable_live_captions'}"));
+    assert(script.includes('Meeting found · live transcript is starting'));
     assert(script.includes('https:\\/\\/meet\\.google\\.com'));
     assert(script.includes('https:\\/\\/app\\.zoom\\.us\\/wc'));
     assert(script.includes("textContent = 'Open Teams, Zoom Web, or Google Meet to begin.'"));
@@ -1851,7 +1855,7 @@ test('Graph pilot can capture the active Teams meeting link without new permissi
     assert(popup.includes('id="graphUseCurrentMeeting"'));
     assert(popupScript.includes('populateCurrentTeamsMeeting(tab, true)'));
 });
-test('Teams meeting sources require explicit side-panel actions',()=>{
+test('live captions default on while advanced Teams meeting sources remain explicit',()=>{
     const content=read('content_script.js');
     const popup=read('popup.html');
     const popupScript=read('popup.js');
@@ -1870,8 +1874,9 @@ test('Teams meeting sources require explicit side-panel actions',()=>{
     assert(read('zoomContentScript.js').includes("case 'enable_live_captions'"));
     assert(!content.includes('ensureTeamsTranscription(!previouslyInMeeting)'));
     assert(!content.includes('debouncedAutoEnableCaptions()'));
-    assert(popup.includes('Local CaptionKeep copy:'));
-    assert(popup.includes('You choose when they start.'));
+    assert(content.includes('if (trackingAllowed) void requestLiveCaptions()'));
+    assert(popup.includes('Live captions start automatically.'));
+    assert(popup.includes('every supported meeting starts live transcript capture'));
     assert(!popup.includes('id="autoOpenAttendeesToggle"'));
     assert(!popup.includes('id="autoEnableCaptionsToggle"'));
     assert(sidepanel.includes('id="enable-live-captions"'));

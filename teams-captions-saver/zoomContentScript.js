@@ -29,7 +29,7 @@
         coordinator.handleProviderEvent(event);
         if (event?.type !== 'meeting-ended') return;
         liveCaptionsRequested = false;
-        adapter.setAutoEnableCaptions(false);
+        adapter.setAutoEnableCaptions(trackingAllowed);
         const state = coordinator.getState();
         summaryFeature.onMeetingEnded({
             transcript: coordinator.getTranscript(),
@@ -58,8 +58,12 @@
             if (!coordinator) return;
             if (trackingAllowed) {
                 coordinator.resume();
+                adapter.setAutoEnableCaptions(true);
                 startAdapter();
-            } else stopAdapter('paused');
+            } else {
+                adapter.setAutoEnableCaptions(false);
+                stopAdapter('paused');
+            }
         }
     });
 
@@ -83,7 +87,7 @@
         } catch {
             trackingAllowed = true;
         }
-        adapter.setAutoEnableCaptions(false);
+        adapter.setAutoEnableCaptions(trackingAllowed);
         if (trackingAllowed) startAdapter();
         else coordinator.pause();
     }

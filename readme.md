@@ -8,7 +8,7 @@
 
 [Trust Center](docs/TRUST-CENTER.md) · [Privacy policy](PRIVACY.md) · [Report a vulnerability](SECURITY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
+Save live captions from Microsoft Teams, Google Meet, and Zoom Web in Chrome or Microsoft Edge, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme. Scribble is our listening transcript mascot.
 
 > **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).
 
@@ -127,7 +127,7 @@ To inspect the promoted production build locally, choose **Load unpacked** and s
 1. Open Microsoft Edge and visit `edge://extensions`.
 2. Enable Developer mode.
 3. Choose **Load unpacked** and select `dist/uat`.
-4. Open Microsoft Teams in Edge and enable live captions during a meeting.
+4. Open a supported meeting. Better CaptionKeep requests live captions automatically unless **Live transcript capture** is switched off.
 
 After the project folder move, reload the extension from its new location if needed.
 

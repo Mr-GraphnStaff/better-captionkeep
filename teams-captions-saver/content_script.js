@@ -133,6 +133,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             persistBackup();
             chrome.runtime.sendMessage({message:'update_badge_status', capturing:false}).catch(() => {});
         } else {
+            void requestLiveCaptions().catch(error => console.warn('[Better CaptionKeep] Live captions could not be resumed:', error));
             handleCaptionsStateChange();
         }
     }
@@ -722,6 +723,7 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         lastKnownTeamsJoinUrl = '';
         findCurrentTeamsJoinUrl();
         aiSummaryFeature.reset();
+        if (trackingAllowed) void requestLiveCaptions().catch(error => console.warn('[Better CaptionKeep] Live captions could not start automatically:', error));
     }
 
     wasInMeeting = true;

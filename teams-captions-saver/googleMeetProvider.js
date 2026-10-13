@@ -161,7 +161,12 @@
         function requestCaptionEnable() {
             if (!autoEnableCaptions || captionSource || captionEnableAttempted) return false;
             const control = Array.from(pageDocument.querySelectorAll?.('button, [role="button"]') || [])
-                .find(element => element.getAttribute?.('aria-label') === CAPTION_ENABLE_LABEL);
+                .find(element => {
+                    const label = String(element.getAttribute?.('aria-label') || element.getAttribute?.('data-tooltip') || element.textContent || '')
+                        .replace(/\s+/g, ' ').trim().toLowerCase();
+                    const target = CAPTION_ENABLE_LABEL.toLowerCase();
+                    return label === target || label.startsWith(`${target} `) || label.startsWith(`${target} (`);
+                });
             if (!control) return false;
             captionEnableAttempted = true;
             control.click();
