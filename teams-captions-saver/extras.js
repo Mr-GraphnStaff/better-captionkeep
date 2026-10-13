@@ -1,10 +1,12 @@
 const params = new URL(location.href).searchParams;
-const elements = Object.fromEntries(['meeting','capture-chat','load-extras','chat','screenshot','image-confirm','save','discard','export','delete','status'].map(id => [id, document.getElementById(id)]));
+const elements = Object.fromEntries(['meeting','capture-chat','load-extras','chat','screenshot','image-confirm','moment-note-section','moment-note','save','discard','export','delete','status'].map(id => [id, document.getElementById(id)]));
 let context = null;
 let pendingImage = '';
 let capturedMessages = [];
 let capturedPreview = '';
 let pendingKey = params.get('pending');
+let pendingMoment = null;
+let savedArtifactId = '';
 const tabId = Number(params.get('tab'));
 const historical = params.get('historical') === 'true';
 
@@ -59,14 +61,41 @@ listen('save', async () => {
     const messages = elements.chat.value === capturedPreview ? capturedMessages
         : [{speaker:'Manually attached chat (reviewed)', text:elements.chat.value, time:'', links:[]}];
     const extras = CaptionKeepMeetingExtras.normalize({messages:elements.chat.value.trim() ? messages : [], screenshot:pendingImage});
-    await worker({message:'save_meeting_extras', extras});
-    elements.status.textContent = 'Reviewed extras saved locally with this meeting. Spoken transcript was not changed.';
+    const artifact = pendingMoment ? CaptionKeepDerivedArtifacts.normalize({
+        id: pendingMoment.artifactId,
+        kind: 'moment',
+        sessionId: context.sessionId,
+        sourceTranscriptSha256: pendingMoment.sourceTranscriptSha256,
+        sourceCaptionCount: pendingMoment.sourceCaptionCount,
+        sourceRevision: pendingMoment.sourceRevision,
+        sourceKeys: pendingMoment.sourceKeys,
+        evidenceIds: pendingMoment.evidenceIds,
+        createdAt: pendingMoment.capturedAt,
+        createdBy: 'user',
+        generator: 'capture-moment-v1',
+        status: 'user-confirmed',
+        payload: {
+            screenshotIncluded: Boolean(pendingImage),
+            screenshot: pendingImage,
+            note: String(elements['moment-note'].value || '').trim().slice(0, 1000),
+            reviewedChatMessageCount: messages.length,
+            storage: 'meeting-extras'
+        }
+    }) : null;
+    await worker({message:'save_meeting_extras', extras, artifact});
+    savedArtifactId = artifact?.id || '';
+    pendingMoment = null;
+    elements.status.textContent = artifact
+        ? `Moment kept locally with a transcript fingerprint ${artifact.sourceTranscriptSha256.slice(0, 12)}…. The spoken transcript was not changed.`
+        : 'Reviewed extras saved locally with this meeting. Spoken transcript was not changed.';
 });
 listen('discard', async () => {
     pendingImage = '';
     elements.screenshot.hidden = true;
     elements.screenshot.removeAttribute('src');
     elements['image-confirm'].checked = false;
+    pendingMoment = null;
+    elements['moment-note-section'].hidden = true;
     if (pendingKey?.startsWith('extras_preview_')) await chrome.storage.session.remove(pendingKey);
     elements.status.textContent = 'Screenshot preview discarded. Saved extras were not changed.';
 });
@@ -81,7 +110,8 @@ listen('export', async () => {
 });
 listen('delete', async () => {
     if (!confirm('Delete saved chat and screenshot extras for this meeting? The spoken transcript is not affected.')) return;
-    await worker({message:'delete_meeting_extras'});
+    await worker({message:'delete_meeting_extras', artifactId:savedArtifactId});
+    savedArtifactId = '';
     preview({});
     elements.status.textContent = 'Saved meeting extras deleted.';
 });
@@ -98,7 +128,11 @@ listen('delete', async () => {
         if (pendingKey?.startsWith('extras_preview_')) {
             const pending = (await chrome.storage.session.get(pendingKey))[pendingKey];
             await chrome.storage.session.remove(pendingKey);
-            if (pending?.sessionId === context.sessionId) preview({...CaptionKeepMeetingExtras.normalize({messages:capturedMessages}), screenshot:pending.screenshot});
+            if (pending?.sessionId === context.sessionId) {
+                pendingMoment = pending;
+                elements['moment-note-section'].hidden = false;
+                preview({...CaptionKeepMeetingExtras.normalize({messages:capturedMessages}), screenshot:pending.screenshot});
+            }
         }
         for (const id of ['load-extras','save','export','delete']) elements[id].disabled = false;
         elements['capture-chat'].disabled = !params.has('tab');

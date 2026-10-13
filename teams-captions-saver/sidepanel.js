@@ -18,9 +18,15 @@
         latestCaption: document.getElementById('latest-caption'),
         latestMeta: document.getElementById('latest-meta'),
         transcriptTab: document.getElementById('transcript-tab'),
+        momentsTab: document.getElementById('moments-tab'),
+        notesTab: document.getElementById('notes-tab'),
         evidenceTab: document.getElementById('evidence-tab'),
+        askTab: document.getElementById('ask-tab'),
         transcriptView: document.getElementById('transcript-view'),
+        momentsView: document.getElementById('moments-view'),
+        notesView: document.getElementById('notes-view'),
         evidenceView: document.getElementById('evidence-view'),
+        askView: document.getElementById('ask-view'),
         transcriptCount: document.getElementById('transcript-count'),
         transcriptSearch: document.getElementById('transcript-search'),
         transcriptList: document.getElementById('transcript-list'),
@@ -36,6 +42,23 @@
         emailBoard: document.getElementById('email-board'),
         downloadBundle: document.getElementById('download-bundle'),
         openTranscript: document.getElementById('open-transcript'),
+        captureMoment: document.getElementById('capture-moment'),
+        captureMomentSecondary: document.getElementById('capture-moment-secondary'),
+        momentCount: document.getElementById('moment-count'),
+        momentList: document.getElementById('moment-list'),
+        noteCount: document.getElementById('note-count'),
+        notesDraft: document.getElementById('notes-draft'),
+        notesList: document.getElementById('notes-list'),
+        generateNotes: document.getElementById('generate-notes'),
+        saveNotes: document.getElementById('save-notes'),
+        clearNotes: document.getElementById('clear-notes'),
+        askQuestion: document.getElementById('ask-question'),
+        prepareQuestion: document.getElementById('prepare-question'),
+        answerCount: document.getElementById('answer-count'),
+        answerDraft: document.getElementById('answer-draft'),
+        answerList: document.getElementById('answer-list'),
+        saveAnswer: document.getElementById('save-answer'),
+        clearAnswer: document.getElementById('clear-answer'),
         onTheFlyBar: document.getElementById('on-the-fly-bar'),
         onTheFlyLabel: document.getElementById('on-the-fly-label'),
         onTheFlyPreview: document.getElementById('on-the-fly-preview'),
@@ -57,6 +80,7 @@
     let enterpriseLocked = new Set();
     let scrubOptions = {};
     let onTheFlyEvidence = null;
+    let derivedArtifacts = [];
 
     async function refreshEnterprisePolicy() {
         const user = await chrome.storage.sync.get([
@@ -79,13 +103,19 @@
     }
 
     function switchView(view) {
-        const showEvidence = view === 'evidence';
-        elements.transcriptView.hidden = showEvidence;
-        elements.evidenceView.hidden = !showEvidence;
-        elements.transcriptTab.classList.toggle('active', !showEvidence);
-        elements.evidenceTab.classList.toggle('active', showEvidence);
-        elements.transcriptTab.setAttribute('aria-selected', String(!showEvidence));
-        elements.evidenceTab.setAttribute('aria-selected', String(showEvidence));
+        const views = {
+            transcript: [elements.transcriptTab, elements.transcriptView],
+            moments: [elements.momentsTab, elements.momentsView],
+            notes: [elements.notesTab, elements.notesView],
+            evidence: [elements.evidenceTab, elements.evidenceView],
+            ask: [elements.askTab, elements.askView]
+        };
+        for (const [name, [tab, panel]] of Object.entries(views)) {
+            const active = name === view;
+            panel.hidden = !active;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-selected', String(active));
+        }
     }
 
     function selectedMarkers() {
@@ -139,17 +169,7 @@
     }
 
     async function closePanel() {
-        const tab = await activeMeetingTab();
-        if (!tab?.windowId) throw new Error('No active browser window is available.');
-        if (typeof chrome.sidePanel.close === 'function') {
-            await chrome.sidePanel.close({windowId: tab.windowId});
-            return;
-        }
-
-        // Chrome/Edge versions before sidePanel.close() can close a global panel
-        // by disabling it. The popup re-enables it before the next explicit open.
-        await chrome.sidePanel.setOptions({enabled: false});
-        window.close();
+        await CaptionKeepBrowserCompat.closeWorkspace();
     }
 
     async function requestContext() {
@@ -189,15 +209,26 @@
     function renderContext() {
         const transcript = currentContext?.transcriptArray || [];
         const latest = transcript.at(-1);
-        elements.captureState.textContent = currentContext?.captureState || 'Not connected';
+        const rawCaptureState = currentContext?.captureState || 'not connected';
+        const ready = rawCaptureState === 'capturing';
+        document.body.classList.toggle('capture-ready', ready);
+        elements.captureState.textContent = ready ? 'Ready' : 'Not ready';
+        elements.captureState.title = rawCaptureState;
         elements.meetingTitle.textContent = currentContext?.meetingTitle || 'Open Teams, Meet, or Zoom Web.';
-        elements.meetingProvider.textContent = currentContext?.providerLabel || '';
+        elements.meetingProvider.textContent = currentContext?.providerLabel
+            ? `${currentContext.providerLabel} · ${rawCaptureState}`
+            : '';
         renderMeetingSourceControls();
         elements.latestCaption.textContent = latest?.Text || 'Waiting for a stable captured caption…';
         elements.latestMeta.textContent = latest
             ? `${board.evidenceId(transcript.length - 1)} · ${latest.Time || 'time unavailable'} · ${latest.Name || 'Unknown speaker'}`
             : '';
         elements.markLatest.disabled = !latest;
+        elements.captureMoment.disabled = !currentContext?.isInMeeting;
+        elements.captureMomentSecondary.disabled = !currentContext?.isInMeeting;
+        elements.generateNotes.disabled = !transcript.length;
+        elements.saveNotes.disabled = !transcript.length;
+        elements.prepareQuestion.disabled = !transcript.length;
     }
 
     async function runMeetingControl(message, pendingMessage) {
@@ -463,6 +494,7 @@
             currentContext = next;
             if (sessionChanged) {
                 selectedSessionId = next.sessionId;
+                await loadDerivedArtifacts();
             }
             const reconciliation = board.reconcileMarkers(allMarkers, next);
             if (reconciliation.changed) {
@@ -480,7 +512,9 @@
             setStatus('');
         } catch (error) {
             currentContext = null;
+            derivedArtifacts = [];
             renderContext();
+            renderDerivedArtifacts();
             transcriptSignature = '';
             renderTranscript();
             renderMarkers();
@@ -546,6 +580,265 @@
         const bytes = new TextEncoder().encode(value);
         const digest = await crypto.subtle.digest('SHA-256', bytes);
         return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function derivedRequest(message, extra = {}) {
+        if (!currentContext?.sessionId) throw new Error('Connect to a captured meeting first.');
+        const response = await chrome.runtime.sendMessage({message, sessionId:currentContext.sessionId, historical:false, ...extra});
+        if (!response?.ok) throw new Error(response?.error || 'The meeting artifact request failed.');
+        return response;
+    }
+
+    function artifactTime(value) {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.valueOf()) ? 'time unavailable' : parsed.toLocaleString();
+    }
+
+    function artifactDeleteButton(artifact) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.artifactId = artifact.id;
+        button.setAttribute('aria-label', `Delete ${artifact.kind} created ${artifactTime(artifact.createdAt)}`);
+        button.textContent = 'Delete';
+        return button;
+    }
+
+    function renderDerivedArtifacts() {
+        const moments = derivedArtifacts.filter(item => item.kind === 'moment' && item.status !== 'deleted');
+        const notes = derivedArtifacts.filter(item => item.kind === 'live-notes' && item.status !== 'deleted');
+        const answers = derivedArtifacts.filter(item => item.kind === 'answer' && item.status !== 'deleted');
+        elements.momentCount.textContent = String(moments.length);
+        elements.noteCount.textContent = String(notes.length);
+        elements.answerCount.textContent = String(answers.length);
+        elements.momentList.replaceChildren();
+        if (!moments.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No Moments kept for this meeting.';
+            elements.momentList.append(empty);
+        } else {
+            for (const artifact of [...moments].reverse()) {
+                const item = document.createElement('li');
+                item.className = 'moment-card artifact-card';
+                if (artifact.payload.screenshot) {
+                    const image = document.createElement('img');
+                    image.src = artifact.payload.screenshot;
+                    image.alt = artifact.payload.note || 'Reviewed meeting Moment';
+                    item.append(image);
+                }
+                const content = document.createElement('div');
+                const header = document.createElement('div');
+                header.className = 'artifact-card-header';
+                const title = document.createElement('strong');
+                title.textContent = artifact.payload.note || 'Meeting Moment';
+                header.append(title, artifactDeleteButton(artifact));
+                const meta = document.createElement('p');
+                meta.className = 'artifact-meta';
+                meta.textContent = `${artifactTime(artifact.createdAt)} · ${artifact.sourceCaptionCount} captions · ${artifact.sourceTranscriptSha256.slice(0, 12)}…`;
+                const refs = document.createElement('p');
+                refs.className = 'artifact-meta';
+                refs.textContent = artifact.evidenceIds.length ? `Evidence: ${artifact.evidenceIds.join(', ')}` : 'No Evidence Board markers linked.';
+                content.append(header, meta, refs);
+                item.append(content);
+                elements.momentList.append(item);
+            }
+        }
+        elements.notesList.replaceChildren();
+        if (!notes.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No reviewed notes kept for this meeting.';
+            elements.notesList.append(empty);
+        } else {
+            for (const artifact of [...notes].reverse()) {
+                const item = document.createElement('li');
+                item.className = 'artifact-card';
+                const header = document.createElement('div');
+                header.className = 'artifact-card-header';
+                const title = document.createElement('strong');
+                title.textContent = `Reviewed notes · ${artifactTime(artifact.createdAt)}`;
+                header.append(title, artifactDeleteButton(artifact));
+                const body = document.createElement('p');
+                body.className = 'note-body';
+                body.textContent = artifact.payload.text || '';
+                const meta = document.createElement('p');
+                meta.className = 'artifact-meta';
+                meta.textContent = `Citations: ${artifact.evidenceIds.join(', ')} · transcript ${artifact.sourceTranscriptSha256.slice(0, 12)}…`;
+                const promote = document.createElement('div');
+                promote.className = 'artifact-promote-actions';
+                for (const [kind, label] of [['Decision', 'Citations → Decisions'], ['Action item', 'Citations → Actions']]) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.promoteArtifactId = artifact.id;
+                    button.dataset.promoteKind = kind;
+                    button.textContent = label;
+                    promote.append(button);
+                }
+                item.append(header, body, meta, promote);
+                elements.notesList.append(item);
+            }
+        }
+        elements.answerList.replaceChildren();
+        if (!answers.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No reviewed answers kept for this meeting.';
+            elements.answerList.append(empty);
+        } else {
+            for (const artifact of [...answers].reverse()) {
+                const item = document.createElement('li');
+                item.className = 'artifact-card answer-card';
+                const header = document.createElement('div');
+                header.className = 'artifact-card-header';
+                const title = document.createElement('strong');
+                title.textContent = artifact.payload.question || 'Transcript question';
+                header.append(title, artifactDeleteButton(artifact));
+                const body = document.createElement('p');
+                body.className = 'note-body';
+                body.textContent = artifact.payload.text || '';
+                const meta = document.createElement('p');
+                meta.className = 'artifact-meta';
+                meta.textContent = `${artifactTime(artifact.createdAt)} · Citations: ${artifact.evidenceIds.join(', ')} · transcript ${artifact.sourceTranscriptSha256.slice(0, 12)}…`;
+                item.append(header, body, meta);
+                elements.answerList.append(item);
+            }
+        }
+    }
+
+    async function loadDerivedArtifacts() {
+        if (!currentContext?.sessionId) {
+            derivedArtifacts = [];
+            renderDerivedArtifacts();
+            return;
+        }
+        const response = await derivedRequest('get_derived_artifacts');
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        renderDerivedArtifacts();
+    }
+
+    async function deleteDerivedArtifact(artifactId) {
+        const response = await derivedRequest('delete_derived_artifact', {artifactId});
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        renderDerivedArtifacts();
+        setStatus('Derived artifact deleted. The source transcript was not changed.');
+    }
+
+    async function promoteArtifactCitations(artifactId, kind) {
+        const artifact = derivedArtifacts.find(item => item.id === artifactId && item.kind === 'live-notes');
+        if (!artifact) throw new Error('The reviewed notes artifact is no longer available.');
+        if (!board.MARKER_KINDS.includes(kind)) throw new Error('Choose a supported Evidence marker type.');
+        const transcript = currentContext?.transcriptArray || [];
+        let added = 0;
+        for (const evidenceId of artifact.evidenceIds) {
+            const captionIndex = Number.parseInt(evidenceId.slice(1), 10) - 1;
+            const caption = transcript[captionIndex];
+            if (!caption) continue;
+            const alreadyMarked = allMarkers.some(marker => marker.sessionId === currentContext.sessionId
+                && marker.kind === kind && marker.sourceKey === caption.key);
+            if (alreadyMarked) continue;
+            allMarkers.push(board.createMarker(currentContext, {
+                captionIndex,
+                kind,
+                note:`Promoted from reviewed Live Notes ${artifact.id}.`
+            }));
+            added += 1;
+        }
+        if (!added) throw new Error(`Every cited caption is already marked as ${kind.toLowerCase()}.`);
+        selectedSessionId = currentContext.sessionId;
+        await saveMarkers();
+        renderMarkers();
+        setStatus(`${added} cited caption${added === 1 ? '' : 's'} promoted to ${kind.toLowerCase()} evidence.`);
+    }
+
+    async function saveReviewedNotes() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        const transcript = currentContext?.transcriptArray || [];
+        if (!transcript.length) throw new Error('Capture at least one caption before keeping notes.');
+        const text = elements.notesDraft.value.trim();
+        const evidenceIds = CaptionKeepDerivedArtifacts.assertCitations(text, transcript.length);
+        const sourceIndexes = evidenceIds.map(id => Number.parseInt(id.slice(1), 10) - 1);
+        const artifact = CaptionKeepDerivedArtifacts.normalize({
+            kind:'live-notes',
+            sessionId:currentContext.sessionId,
+            sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(currentContext)),
+            sourceCaptionCount:transcript.length,
+            sourceRevision:`${transcript.length}:${transcript.at(-1)?.key || ''}`,
+            sourceKeys:sourceIndexes.map(index => transcript[index]?.key).filter(Boolean),
+            evidenceIds,
+            createdBy:'user',
+            generator:'reviewed-live-notes-v1',
+            status:'user-confirmed',
+            payload:{text}
+        });
+        const response = await derivedRequest('save_derived_artifact', {artifact});
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        elements.notesDraft.value = '';
+        renderDerivedArtifacts();
+        setStatus(`Reviewed notes kept with ${evidenceIds.length} source citation${evidenceIds.length === 1 ? '' : 's'}.`);
+    }
+
+    async function saveReviewedAnswer() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        const transcript = currentContext?.transcriptArray || [];
+        if (!transcript.length) throw new Error('Capture at least one caption before keeping an answer.');
+        const question = board.cleanInline(elements.askQuestion.value);
+        if (!question) throw new Error('Enter the question this answer responds to.');
+        const text = elements.answerDraft.value.trim();
+        const evidenceIds = CaptionKeepDerivedArtifacts.assertCitations(text, transcript.length);
+        const sourceIndexes = evidenceIds.map(id => Number.parseInt(id.slice(1), 10) - 1);
+        const artifact = CaptionKeepDerivedArtifacts.normalize({
+            kind:'answer',
+            sessionId:currentContext.sessionId,
+            sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(currentContext)),
+            sourceCaptionCount:transcript.length,
+            sourceRevision:`${transcript.length}:${transcript.at(-1)?.key || ''}`,
+            sourceKeys:sourceIndexes.map(index => transcript[index]?.key).filter(Boolean),
+            evidenceIds,
+            createdBy:'user',
+            generator:'reviewed-transcript-answer-v1',
+            status:'user-confirmed',
+            payload:{question, text}
+        });
+        const response = await derivedRequest('save_derived_artifact', {artifact});
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        elements.answerDraft.value = '';
+        renderDerivedArtifacts();
+        setStatus(`Reviewed answer kept with ${evidenceIds.length} source citation${evidenceIds.length === 1 ? '' : 's'}.`);
+    }
+
+    async function openTranscriptHandoff(mode, question = '') {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        const transcript = currentContext?.transcriptArray || [];
+        if (!transcript.length) throw new Error('Capture at least one caption first.');
+        const settings = await chrome.storage.sync.get('aiSummaryProviders');
+        const providers = Array.isArray(settings.aiSummaryProviders) && settings.aiSummaryProviders.length
+            ? settings.aiSummaryProviders
+            : ['chatgpt', 'claude', 'copilot', 'gemini'];
+        const handoffId = `handoff_${crypto.randomUUID()}`;
+        await chrome.storage.local.set({
+            [handoffId]: {
+                mode,
+                taskId:mode === 'live_notes' ? 'live_notes' : 'transcript_qa',
+                question:board.cleanInline(question),
+                evidence:transcript.map((caption, index) => ({
+                    evidenceId:board.evidenceId(index),
+                    speaker:caption.Name || 'Unknown speaker',
+                    time:caption.Time || 'time unavailable',
+                    text:caption.Text || ''
+                })),
+                transcript:transcript.map(caption => ({Time:caption.Time, Name:caption.Name, Text:caption.Text})),
+                providers,
+                meetingTitle:currentContext.meetingTitle || 'Meeting',
+                providerLabel:currentContext.providerLabel || 'Meeting platform',
+                sessionId:currentContext.sessionId,
+                warnings:['Transcript snapshot only. Nothing has been sent.', `Snapshot contains ${transcript.length} captions.`]
+            }
+        });
+        await chrome.tabs.create({url:chrome.runtime.getURL(`handoff.html?id=${encodeURIComponent(handoffId)}`)});
+        setStatus(mode === 'live_notes' ? 'Cited notes handoff opened for review.' : 'Transcript question opened for review.');
     }
 
     function safeExportTitle() {
@@ -633,6 +926,48 @@
         await chrome.tabs.sendMessage(tab.id, {message: 'get_captions_for_viewing'});
     }
 
+    async function captureMoment() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        if (enterprisePolicy.forceScrubbedExport || enterprisePolicy.disableFileExport) {
+            throw new Error('Capture Moment is unavailable under your organization’s export/privacy policy.');
+        }
+        const tab = await activeMeetingTab();
+        if (!tab?.id || tab.id !== currentContext?.tabId || !currentContext?.sessionId) {
+            throw new Error('Return to the active captured meeting before creating a moment.');
+        }
+        const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {format: 'png'});
+        const [after] = await chrome.tabs.query({active: true, currentWindow: true});
+        if (after?.id !== tab.id || after?.url !== tab.url || after?.pendingUrl) {
+            throw new Error('The active tab changed or navigated. The moment was discarded.');
+        }
+        if (screenshot.length > 6000000) throw new Error('This moment is too large. Reduce the browser window and try again.');
+        const transcript = currentContext.transcriptArray || [];
+        const transcriptSha256 = await sha256Hex(board.canonicalTranscript(currentContext));
+        const sourceKeys = transcript.slice(-12).map(caption => caption.key).filter(Boolean);
+        const evidenceIds = selectedMarkers().slice(-12).map(marker => marker.evidenceId).filter(Boolean);
+        const pendingKey = `extras_preview_${crypto.randomUUID()}`;
+        await chrome.storage.session.set({[pendingKey]: {
+            artifactId: `moment-${crypto.randomUUID()}`,
+            sessionId: currentContext.sessionId,
+            screenshot,
+            sourceTranscriptSha256: transcriptSha256,
+            sourceCaptionCount: transcript.length,
+            sourceRevision: `${transcript.length}:${transcript.at(-1)?.key || ''}`,
+            sourceKeys,
+            evidenceIds,
+            capturedAt: new Date().toISOString()
+        }});
+        const query = new URLSearchParams({tab: String(tab.id), pending: pendingKey, mode: 'moment'});
+        try {
+            await chrome.tabs.create({url: chrome.runtime.getURL(`extras.html?${query}`)});
+            setStatus('Moment captured locally. Review it before keeping it.');
+        } catch (error) {
+            await chrome.storage.session.remove(pendingKey);
+            throw error;
+        }
+    }
+
     for (const kind of board.MARKER_KINDS) {
         const option = document.createElement('option');
         option.value = kind;
@@ -654,6 +989,36 @@
     elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
+    elements.captureMoment.addEventListener('click', () => void captureMoment().catch(error => setStatus(error.message)));
+    elements.captureMomentSecondary.addEventListener('click', () => void captureMoment().catch(error => setStatus(error.message)));
+    elements.generateNotes.addEventListener('click', () => void openTranscriptHandoff('live_notes').catch(error => setStatus(error.message)));
+    elements.saveNotes.addEventListener('click', () => void saveReviewedNotes().catch(error => setStatus(error.message)));
+    elements.clearNotes.addEventListener('click', () => {
+        elements.notesDraft.value = '';
+        setStatus('Notes draft cleared. Saved notes were not changed.');
+    });
+    elements.prepareQuestion.addEventListener('click', () => void openTranscriptHandoff('transcript_qa', elements.askQuestion.value)
+        .catch(error => setStatus(error.message)));
+    elements.saveAnswer.addEventListener('click', () => void saveReviewedAnswer().catch(error => setStatus(error.message)));
+    elements.clearAnswer.addEventListener('click', () => {
+        elements.answerDraft.value = '';
+        setStatus('Answer draft cleared. Saved answers were not changed.');
+    });
+    elements.momentList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+    });
+    elements.notesList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+        const promote = event.target.closest('button[data-promote-artifact-id]');
+        if (promote) void promoteArtifactCitations(promote.dataset.promoteArtifactId, promote.dataset.promoteKind)
+            .catch(error => setStatus(error.message));
+    });
+    elements.answerList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+    });
     elements.clearOnTheFly.addEventListener('click', clearOnTheFly);
     elements.reviewOnTheFly.addEventListener('click', openOnTheFlyDialog);
     elements.onTheFlyBar.addEventListener('click', event => {
@@ -691,12 +1056,20 @@
     });
     elements.transcriptSearch.addEventListener('input', renderTranscript);
     elements.transcriptTab.addEventListener('click', () => switchView('transcript'));
+    elements.momentsTab.addEventListener('click', () => switchView('moments'));
+    elements.notesTab.addEventListener('click', () => switchView('notes'));
     elements.evidenceTab.addEventListener('click', () => switchView('evidence'));
+    elements.askTab.addEventListener('click', () => switchView('ask'));
     chrome.tabs.onActivated.addListener(() => void pollContext());
     chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
         if (changeInfo.status === 'complete') void pollContext();
     });
     chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && currentContext?.sessionId
+            && changes[CaptionKeepDerivedArtifacts.storageKey(currentContext.sessionId)]) {
+            void loadDerivedArtifacts().catch(error => setStatus(error.message));
+            return;
+        }
         if (areaName !== 'managed') return;
         void (async () => {
             await refreshEnterprisePolicy();

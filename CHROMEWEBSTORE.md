@@ -4,7 +4,14 @@ Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-12
+> Last Updated: 2026-10-13
+
+> Development package version: **6.0.0** on `codex/6.0`. This is an unpacked
+> development line, not a Store submission or release candidate. It introduces
+> the dark DAF-TECH operational shell, a single-decision popup, direct platform
+> launchers, and the renamed
+> Meeting Receipt workspace while retaining the existing local capture and
+> evidence engine.
 
 > Frozen package version: **5.4.0**. Azure Store Release run 716 submitted the
 > verified package on October 10, 2026. Microsoft Edge Add-ons publicly served
@@ -192,6 +199,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
+| 6.0.0 | 2026-10-13 | Introduces the dark DAF-TECH operational shell, one-button meeting entry, direct Teams/Meet/Zoom launchers, ready/not-ready state, and Meeting Receipt workspace over the existing local capture, archive, Evidence Board, export, privacy, and BYOAI capabilities. | Development only on `codex/6.0`; not submitted, certified, or published |
 | 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Chrome and Edge; installed-upgrade and post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |

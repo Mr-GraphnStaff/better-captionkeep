@@ -21,6 +21,8 @@ let handoffReady = false;
 let customTemplates = [];
 let appliedInstructions = '';
 let onTheFlyMode = false;
+let transcriptQaMode = false;
+let liveNotesMode = false;
 const templateSelect = document.getElementById('template-select');
 const templateName = document.getElementById('template-name');
 const templateInstructions = document.getElementById('template-instructions');
@@ -154,7 +156,7 @@ function renderPackage() {
         warnings:metadata.warnings,
         privacyMode
     });
-    if (onTheFlyMode) {
+    if (onTheFlyMode || transcriptQaMode) {
         const selectedEvidence = transcript.map((caption, index) => ({
             evidenceId: sourceData.evidence?.[index]?.evidenceId || `selection-${index + 1}`,
             speaker: caption.Name,
@@ -319,6 +321,8 @@ function renderProvider(providerKey, settings) {
         effectivePolicy = await readPolicy();
         if (effectivePolicy.settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
         onTheFlyMode = sourceData.mode === 'on_the_fly';
+        transcriptQaMode = sourceData.mode === 'transcript_qa';
+        liveNotesMode = sourceData.mode === 'live_notes';
         if (onTheFlyMode) {
             const selectedTask = CaptionKeepAiTasks.task(sourceData.taskId);
             document.getElementById('handoffTitle').textContent = `On the Fly — ${selectedTask.label}`;
@@ -328,6 +332,13 @@ function renderProvider(providerKey, settings) {
             document.getElementById('chunkSection').hidden = true;
             saveEvidenceButton.hidden = true;
             promptBox.style.minHeight = '430px';
+        } else if (transcriptQaMode) {
+            document.getElementById('handoffTitle').textContent = 'Ask this transcript';
+            document.getElementById('handoffIntro').textContent = 'Review the complete transcript-bound question. The requested answer must cite caption IDs or state that the transcript does not establish it.';
+            document.getElementById('template-tools').hidden = true;
+        } else if (liveNotesMode) {
+            document.getElementById('handoffTitle').textContent = 'Generate cited Live Notes';
+            document.getElementById('handoffIntro').textContent = 'Review the complete transcript snapshot and notes instructions. Nothing is sent until you choose and confirm an AI workspace.';
         }
         scrubOptions = {
             profanityFilterEnabled:!!effectivePolicy.settings.profanityFilterEnabled,
@@ -341,10 +352,16 @@ function renderProvider(providerKey, settings) {
         const storedTemplates = await chrome.storage.local.get(CaptionKeepPromptTemplates.STORAGE_KEY);
         customTemplates = CaptionKeepPromptTemplates.sanitize(storedTemplates[CaptionKeepPromptTemplates.STORAGE_KEY]);
         handoffReady = true;
-        if (!onTheFlyMode) {
+        if (!onTheFlyMode && !transcriptQaMode) {
             templateApply.disabled = false;
             templateSave.disabled = false;
-            renderTemplates();
+            renderTemplates(liveNotesMode ? 'minutes' : undefined);
+            if (liveNotesMode) {
+                const template = CaptionKeepPromptTemplates.BUILT_INS.find(item => item.id === 'minutes');
+                appliedInstructions = `${CaptionKeepAiTasks.task('live_notes').instruction}\n\n${template.instructions}`;
+                promptBox.value = CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions);
+                templateStatus.textContent = 'Cited Live Notes instructions are applied. Review the complete prompt before copying.';
+            }
         }
         for (const provider of sourceData.providers) renderProvider(provider, effectivePolicy.settings);
         await chrome.storage.local.remove(id);

@@ -11,17 +11,19 @@
     <script src="localization.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
+    <script src="derivedArtifacts.js" defer></script>
     <script src="aiTaskFramework.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="webMailDestinations.js" defer></script>
+    <script src="browserCompat.js" defer></script>
     <script src="sidepanel.js" defer></script>
 </head>
 <body>
     <header class="brand">
-        <img src="icons/scribble-128.png" width="48" height="48" alt="">
+        <img src="icons/daf-tech-sphere.png" width="48" height="48" alt="">
         <div class="brand-copy">
-            <h1>Live Workspace</h1>
-            <p>Transcript and evidence in one place.</p>
+            <h1>Better CaptionKeep</h1>
+            <p>Meeting Receipt</p>
         </div>
         <button id="close-panel" class="close-panel" type="button" aria-label="Close live workspace" title="Close live workspace">Close</button>
     </header>
@@ -51,13 +53,19 @@
 
         <nav class="workspace-tabs" aria-label="Live workspace views">
             <button id="transcript-tab" class="workspace-tab active" type="button" aria-selected="true">Live transcript</button>
+            <button id="moments-tab" class="workspace-tab" type="button" aria-selected="false">Moments <span id="moment-count">0</span></button>
+            <button id="notes-tab" class="workspace-tab" type="button" aria-selected="false">Notes <span id="note-count">0</span></button>
             <button id="evidence-tab" class="workspace-tab" type="button" aria-selected="false">Evidence <span id="marker-count">0</span></button>
+            <button id="ask-tab" class="workspace-tab" type="button" aria-selected="false">Ask <span id="answer-count">0</span></button>
         </nav>
 
         <section id="transcript-view" class="workspace-view" aria-labelledby="latest-heading">
             <div class="section-heading">
                 <h2 id="latest-heading">Captured captions</h2>
-                <button id="open-transcript" class="text-button" type="button">Open full transcript</button>
+                <div class="section-actions">
+                    <button id="capture-moment" class="moment-button" type="button">Capture Moment</button>
+                    <button id="open-transcript" class="text-button" type="button">Full transcript</button>
+                </div>
             </div>
             <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
             <p id="latest-meta" class="muted"></p>
@@ -93,6 +101,20 @@
             </ol>
         </section>
 
+        <section id="moments-view" class="workspace-view" aria-labelledby="moments-heading" hidden>
+            <div class="section-heading"><div><h2 id="moments-heading">Captured Moments</h2><p class="muted">Reviewed local images bound to this transcript snapshot.</p></div><button id="capture-moment-secondary" class="moment-button" type="button">Capture Moment</button></div>
+            <ol id="moment-list" class="artifact-list"><li class="empty">No Moments kept for this meeting.</li></ol>
+        </section>
+
+        <section id="notes-view" class="workspace-view" aria-labelledby="notes-heading" hidden>
+            <div class="section-heading"><div><h2 id="notes-heading">Live Notes</h2><p class="muted">Generate a cited draft, review it, then keep it separately from the transcript.</p></div><button id="generate-notes" class="primary" type="button">Generate notes now</button></div>
+            <label for="notes-draft">Reviewed notes draft</label>
+            <textarea id="notes-draft" rows="10" maxlength="100000" placeholder="Paste or write notes with caption citations such as C0001."></textarea>
+            <div class="artifact-actions"><button id="save-notes" class="primary" type="button">Keep reviewed notes</button><button id="clear-notes" type="button">Clear draft</button></div>
+            <p class="muted">Every saved draft must cite caption IDs that exist in the current snapshot.</p>
+            <ol id="notes-list" class="artifact-list"><li class="empty">No reviewed notes kept for this meeting.</li></ol>
+        </section>
+
         <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
             <h2 id="markers-heading">Evidence markers</h2>
             <label for="marker-session">Evidence board</label>
@@ -106,6 +128,20 @@
             <ol id="marker-list" class="marker-list">
                 <li class="empty">No markers for this meeting yet.</li>
             </ol>
+        </section>
+        <section id="ask-view" class="workspace-view" aria-labelledby="ask-heading" hidden>
+            <h2 id="ask-heading">Ask this transcript</h2>
+            <p class="muted">The reviewed handoff is bound to the transcript snapshot visible now. Keep the answer only after checking every citation.</p>
+            <label for="ask-question">Question</label>
+            <textarea id="ask-question" rows="4" maxlength="1000" placeholder="What decision was made, and who owns the next step?"></textarea>
+            <button id="prepare-question" class="primary" type="button">Review question handoff</button>
+            <div class="answer-review">
+                <label for="answer-draft">Reviewed answer</label>
+                <textarea id="answer-draft" rows="9" maxlength="100000" placeholder="Paste the reviewed answer here. Include caption citations such as C0001."></textarea>
+                <div class="artifact-actions"><button id="save-answer" class="primary" type="button">Keep reviewed answer</button><button id="clear-answer" type="button">Clear draft</button></div>
+                <p class="muted">Saved answers remain separate from the source transcript and require valid caption citations.</p>
+            </div>
+            <ol id="answer-list" class="artifact-list"><li class="empty">No reviewed answers kept for this meeting.</li></ol>
         </section>
         <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>

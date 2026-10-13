@@ -1,5 +1,5 @@
 importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'graphRuntimeConfig.js');
+    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'derivedArtifacts.js', 'graphRuntimeConfig.js');
 let historyQueue = Promise.resolve();
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
@@ -484,6 +484,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
         'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
         'get_meeting_extras','save_meeting_extras','delete_meeting_extras',
+        'get_derived_artifacts','save_derived_artifact','delete_derived_artifact',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
         'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
     if (!handled.has(message?.message)) return false;
@@ -491,6 +492,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
         'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_disconnect',
         'graph_list_recent_meetings','graph_import_transcript','get_meeting_extras','save_meeting_extras','delete_meeting_extras'];
+    extensionPageOnly.push('get_derived_artifacts','save_derived_artifact','delete_derived_artifact');
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
@@ -623,6 +625,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     await correctionAuthority(message.sessionId, message.historical);
                     const key = CaptionKeepMeetingExtras.storageKey(message.sessionId);
                     if (message.message === 'delete_meeting_extras') {
+                        if (message.artifactId) {
+                            const artifactKey = CaptionKeepDerivedArtifacts.storageKey(message.sessionId);
+                            const storedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(
+                                (await chrome.storage.local.get(artifactKey))[artifactKey]);
+                            await chrome.storage.local.set({
+                                [artifactKey]: storedArtifacts.filter(item => item.id !== String(message.artifactId))
+                            });
+                        }
                         await chrome.storage.local.remove(key);
                         return {};
                     }
@@ -656,8 +666,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (policy.settings.forceScrubbedExport) extras.screenshot = '';
                     extras = CaptionKeepMeetingExtras.merge(previous, extras);
                     if (policy.settings.forceScrubbedExport) extras.screenshot = '';
-                    await chrome.storage.local.set({[key]:extras});
-                    return {extras};
+                    const update = {[key]:extras};
+                    let artifact = null;
+                    if (message.artifact) {
+                        artifact = CaptionKeepDerivedArtifacts.normalize(message.artifact);
+                        if (artifact.sessionId !== String(message.sessionId || '').trim()) {
+                            throw new Error('Moment source does not match the active meeting.');
+                        }
+                        if (policy.settings.forceScrubbedExport || policy.settings.privacyScrubberEnabled !== false) {
+                            artifact.payload.note = CaptionKeepPrivacyScrubber.scrub(artifact.payload.note || '', {
+                                profanityFilterEnabled:!!policy.settings.profanityFilterEnabled,
+                                customTerms:policy.settings.customScrubTerms || []
+                            }).text;
+                        }
+                        const artifactKey = CaptionKeepDerivedArtifacts.storageKey(artifact.sessionId);
+                        const storedArtifacts = (await chrome.storage.local.get(artifactKey))[artifactKey];
+                        update[artifactKey] = CaptionKeepDerivedArtifacts.upsert(storedArtifacts, artifact);
+                        // The first-class Moment owns its reviewed image. Legacy extras retain
+                        // chat only so deleting a Moment removes its image without ambiguity.
+                        if (artifact.kind === 'moment') {
+                            extras.screenshot = '';
+                            update[key] = extras;
+                        }
+                    }
+                    await chrome.storage.local.set(update);
+                    return {extras, artifact};
+                });
+                historyQueue = operation.catch(() => {});
+                return await operation;
+            }
+            case 'get_derived_artifacts':
+            case 'save_derived_artifact':
+            case 'delete_derived_artifact': {
+                const operation = historyQueue.then(async () => {
+                    const requireSource = message.message === 'save_derived_artifact';
+                    await correctionAuthority(message.sessionId, message.historical, requireSource);
+                    const key = CaptionKeepDerivedArtifacts.storageKey(message.sessionId);
+                    const stored = CaptionKeepDerivedArtifacts.normalizeCollection((await chrome.storage.local.get(key))[key]);
+                    if (message.message === 'get_derived_artifacts') return {artifacts:stored};
+                    if (message.message === 'delete_derived_artifact') {
+                        const artifacts = stored.filter(item => item.id !== String(message.artifactId || ''));
+                        await chrome.storage.local.set({[key]:artifacts});
+                        return {artifacts};
+                    }
+                    const artifact = CaptionKeepDerivedArtifacts.normalize(message.artifact);
+                    if (artifact.sessionId !== String(message.sessionId || '').trim()) throw new Error('Artifact source does not match the active meeting.');
+                    const artifacts = CaptionKeepDerivedArtifacts.upsert(stored, artifact);
+                    await chrome.storage.local.set({[key]:artifacts});
+                    return {artifact, artifacts};
                 });
                 historyQueue = operation.catch(() => {});
                 return await operation;

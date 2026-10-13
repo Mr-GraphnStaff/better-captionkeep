@@ -1688,8 +1688,10 @@ test('extension pages use only packaged scripts and settings use progressive dis
         }
     }
     const popup=read('popup.html');
-    assert(popup.includes('<details class="settings-group" open>'));
-    for(const section of ['Appearance','Speaker aliases','Saving transcripts','Bring your own AI (BYOAI) and privacy','Naming and timestamps','Configuration portability']) {
+    assert(popup.includes('id="capture-settings" open'));
+    assert(popup.includes('class="settings-cockpit-nav"'));
+    assert(popup.includes('Simple in front. Powerful back here.'));
+    for(const section of ['Appearance','Speaker aliases','Saving transcripts','Capture controls','Meeting intelligence','Bring your own AI (BYOAI) and privacy','Naming and timestamps','Configuration portability']) {
         assert(popup.includes(`<summary>${section}</summary>`));
     }
     assert(!popup.includes('id="assistantBridgeSettings"'));
@@ -1730,14 +1732,25 @@ test('all target manifests expose the local Evidence Board through the side pane
     }
     const popup=read('popup.html');const popupScript=read('popup.js');
     assert(popup.includes('id="liveWorkspaceButton"'));
-    assert.equal((popup.match(/Open Live Workspace/g) || []).length,1);
+    const statusCard=popup.slice(popup.indexOf('class="v6-status-card'));
+    assert(statusCard.indexOf('id="sessionHistory"') < statusCard.indexOf('</section>'));
+    assert(popup.includes('id="v6-status-orbit"'));
+    assert(popup.includes('Keep this meeting'));
+    assert(popupScript.includes("UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting'"));
     assert(!popup.includes('id="viewButton"'));
     assert(!popupScript.includes('Ctrl/Cmd + V for view'));
-    assert(popupScript.includes('chrome.sidePanel.open'));
-    assert(popupScript.includes("chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'})"));
+    assert(popup.includes('browserCompat.js'));
+    assert(popupScript.includes('CaptionKeepBrowserCompat.openWorkspace()'));
+    const browserCompat=read('browserCompat.js');
+    assert(browserCompat.includes('api.sidePanel?.open'));
+    assert(browserCompat.includes('api.sidebarAction?.open'));
+    assert(browserCompat.includes("api.runtime.getURL('sidepanel.html')"));
     const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
     assert(sidepanel.includes('>Live transcript</button>'));
-    assert(sidepanel.includes('>Open full transcript</button>'));
+    assert(sidepanel.includes('>Full transcript</button>'));
+    assert(sidepanel.includes('id="capture-moment"'));
+    for(const id of ['moments-tab','notes-tab','ask-tab','moment-list','notes-draft','prepare-question','answer-draft','save-answer','answer-list']) assert(sidepanel.includes(`id="${id}"`));
+    assert(sidepanel.includes('derivedArtifacts.js'));
     const viewerScript=read('viewer.js');
     assert(!viewerScript.includes('choose View Transcript'));
     assert(viewerScript.includes('choose Open Live Workspace, then select Open full transcript'));
@@ -1745,15 +1758,63 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanel.includes('id="transcript-search"'));
     assert(sidepanel.includes('id="email-board"'));
     assert(sidepanel.includes('id="download-bundle"'));
-    assert(sidepanelScript.includes("typeof chrome.sidePanel.close === 'function'"));
-    assert(sidepanelScript.includes('chrome.sidePanel.setOptions({enabled: false})'));
+    assert(sidepanel.includes('browserCompat.js'));
+    assert(sidepanelScript.includes('CaptionKeepBrowserCompat.closeWorkspace()'));
+    assert(browserCompat.includes('api.sidebarAction?.close'));
+    assert(browserCompat.includes('api.sidePanel?.close'));
     assert(sidepanelScript.includes("crypto.subtle.digest('SHA-256'"));
+    assert(sidepanelScript.includes('chrome.tabs.captureVisibleTab'));
+    assert(sidepanelScript.includes('sourceTranscriptSha256'));
+    assert(sidepanelScript.includes('enterprisePolicy.forceScrubbedExport'));
+    assert(sidepanelScript.includes("openTranscriptHandoff('live_notes')"));
+    assert(sidepanelScript.includes("openTranscriptHandoff('transcript_qa'"));
+    assert(sidepanelScript.includes('CaptionKeepDerivedArtifacts.assertCitations'));
+    assert(sidepanelScript.includes('reviewed-transcript-answer-v1'));
+    assert(sidepanelScript.includes("kind:'answer'"));
+    assert(sidepanelScript.includes('promoteArtifactCitations'));
+    assert(sidepanelScript.includes('Citations → Decisions'));
+    assert(sidepanelScript.includes('Citations → Actions'));
+    const extrasScript=read('extras.js');const worker=read('service_worker.js');
+    assert(extrasScript.includes("artifactId:savedArtifactId"));
+    assert(worker.includes("storedArtifacts.filter(item => item.id !== String(message.artifactId))"));
+    assert(worker.includes("artifact.payload.note = CaptionKeepPrivacyScrubber.scrub"));
+    for(const message of ['get_derived_artifacts','save_derived_artifact','delete_derived_artifact']) assert(worker.includes(message));
     assert(sidepanelScript.includes('CaptionKeepWebMail.compose'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions)'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions)'));
 });
+test('6.0 build system stages every committed browser target with native workspace adaptation',()=>{
+    const packageJson=JSON.parse(readProject('package.json'));
+    const builder=readProject('scripts/build-browser-targets.mjs');
+    const roadmap=readProject('docs/ROADMAP-6.0.md');
+    assert.equal(packageJson.scripts['build:browsers'],'node scripts/build-browser-targets.mjs browsers');
+    for(const browser of ['chrome','edge','brave','opera','firefox','safari']) {
+        assert(builder.includes(`'${browser}'`),`${browser} must be an explicit build target`);
+        assert(roadmap.includes(browser === 'safari' ? 'Safari' : browser[0].toUpperCase()+browser.slice(1)));
+    }
+    assert(builder.includes("manifest.sidebar_action"));
+    assert(builder.includes("background = {scripts: ['service_worker.js']}"));
+    assert(builder.includes("strict_min_version: '140.0'"));
+    assert(builder.includes("strict_min_version: '142.0'"));
+    assert(builder.includes("required: ['none']"));
+    assert(builder.includes("preferred_environment: ['service_worker', 'document']"));
+});
+test('6.0 release controls require Store package and storefront parity',()=>{
+    const process=readProject('docs/RELEASE_PROCESS.md');
+    const release=readProject('docs/RELEASE-6.0.md');
+    const assets=readProject('store-assets/6.0/README.md');
+    assert(process.includes('Listing synchronized'));
+    assert(process.includes('Edge Update REST API'));
+    assert(process.includes('stale storefront content is not release-complete'));
+    assert(release.includes('store-assets/6.0/'));
+    assert(release.includes('product-metadata endpoint'));
+    assert(release.includes('Google Chrome'));
+    assert(release.includes('Apple Safari on macOS'));
+    assert(assets.includes('Partner Center'));
+    assert(assets.includes('SHA-256'));
+});
 test('popup uses compact native quick-start actions for all three meeting platforms',()=>{
-    const popup=read('popup.html');const script=read('popup.js');
+    const popup=read('popup.html');const script=read('popup.js');const v6Styles=read('popup-v6.css');
     assert(popup.includes('class="platform-launchers"'));
     assert.equal((popup.match(/class="platform-launcher"/g)||[]).length,3);
     assert.equal((popup.match(/class="platform-start"/g)||[]).length,3);
@@ -1762,6 +1823,10 @@ test('popup uses compact native quick-start actions for all three meeting platfo
     assert(popup.includes('href="https://app.zoom.us/wc"'));
     assert(popup.includes('aria-label="Open Zoom Web"'));
     assert(popup.includes('href="https://zoom.new"'));
+    assert(popup.indexOf('aria-label="Open Microsoft Teams"') < popup.indexOf('aria-label="Open Google Meet"'));
+    assert(popup.indexOf('aria-label="Open Google Meet"') < popup.indexOf('aria-label="Open Zoom Web"'));
+    assert(v6Styles.includes('html:not([data-view="settings"]) .platform-launchers'));
+    assert(v6Styles.includes('html:not([data-view="settings"]) .platform-start { display: none; }'));
     assert(popup.includes('aria-label="Start a new Zoom meeting">New meeting</a>'));
     assert(popup.includes('href="https://meet.google.com"'));
     assert(popup.includes('aria-label="Open Google Meet"'));
@@ -1851,7 +1916,8 @@ test('Graph controls remain available in every lane but render only in All Setti
     assert(popup.includes('id="graphClientId"'));
     assert(popup.includes('Save Microsoft 365 setup'));
     assert(popup.includes('href="settings.html"'));
-    assert(popup.includes('Open every setting in a full browser tab'));
+    assert(popup.includes('class="v6-settings-link"'));
+    assert(popup.includes('aria-label="Open all settings"'));
     assert(!popup.includes('graph-settings-link'));
     assert(popup.includes('#graphTranscriptSection { display: none; }'));
     assert(popup.includes('html[data-view="settings"] #graphTranscriptSection { display: block; }'));

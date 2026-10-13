@@ -15,15 +15,18 @@ const DEV_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAos0GuSScxwgzbTlJj4+
 const UAT_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmSxpyAJ/mAN0vL+TWksWy3QEdjWiO7F440uqHoPX7tYFX0kVNMMp9Xgl6juMKX47ANPBZjwWhSRc8uZlaneF/lYooxKV3vee/uH5YaBLzQ60ejLr1XZb4jOsOhM3Xz+aaKDPfSDx4epZHZKGZ92XgSNjEuafdkT/4TMCqyYjQm/eeqCjLBA4ktHTXG5R313nrEh+DzEqX+tXArlDYmXPnxDsycqVjZmqfXTfMBzsmaDFgmu7zbp04wZToHIGKg4u/KPYrhe3cmn5Na29V/rbl1LoRl0r/fskAa6aP6srVQeSUd8K9c6OoSNyElhWv0HsWAut9QCVaEa5PjiqQUy0ZwIDAQAB';
 const PROD_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypItlpcGeN7eROd+0GuGk5yMLmka719pWqHFcBjbUP+a7L+yUetQIOCAvHLZfFPgZQ+3MuOUg8IYBpWlhyD8T500jvCFPJ38G8T5cpKv7WsOM8c9r4gZ5HQuvHkbh2+swvfiNhDD1F87kZil31wKjJIzAvR2GXKQy4ladRRLU0RxLpw9Ch45DiloWEM+TixVyoufwHPQboO2uR8nn/+TqfWiSu8/AQtVhgHG64N5mXRa53en5bRM5GBkfrHExoQ9+HDiJSxoieIYp4r9DfNZzn/Ji59FN+lthcf3vmHKi2e9fRg3lqEVy8MVTGSjUbZxlAuSlrcihSxJhKGJ9OzCnQIDAQAB';
 const defaultTargets = ['dev', 'uat', 'prod'];
+const certifiedBrowserTargets = ['chrome', 'edge', 'brave', 'opera', 'firefox', 'safari'];
 const targetManifests = new Map([
   ['dev', path.join(sourceDir, 'manifest.json')],
   ['uat', path.join(sourceDir, 'manifest.json')],
   ['prod', path.join(manifestsDir, 'manifest.chrome-store.json')],
-  ['chrome-store', path.join(manifestsDir, 'manifest.chrome-store.json')]
+  ['chrome-store', path.join(manifestsDir, 'manifest.chrome-store.json')],
+  ...certifiedBrowserTargets.map(target => [target, path.join(manifestsDir, 'manifest.chrome-store.json')])
 ]);
 
 function selectTargets(requestedTarget) {
   if (!requestedTarget) return defaultTargets;
+  if (requestedTarget === 'browsers') return certifiedBrowserTargets;
   if (!targetManifests.has(requestedTarget)) {
     throw new Error(`Unsupported browser target: ${requestedTarget}`);
   }
@@ -37,7 +40,9 @@ async function stageTarget(target) {
       ? uatDir
       : target === 'prod'
         ? prodDir
-        : path.join(prodDir, 'chrome-store-unpacked');
+        : target === 'chrome-store'
+          ? path.join(prodDir, 'chrome-store-unpacked')
+          : path.join(prodDir, `${target}-unpacked`);
   const manifestPath = targetManifests.get(target);
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 
@@ -61,6 +66,41 @@ async function stageTarget(target) {
   }
   if (target === 'prod') {
     manifest.key = PROD_KEY;
+  }
+  if (target === 'firefox') {
+    manifest.permissions = manifest.permissions.filter(permission => permission !== 'sidePanel');
+    delete manifest.side_panel;
+    delete manifest.storage;
+    delete manifest.key;
+    manifest.background = {scripts: ['service_worker.js']};
+    manifest.sidebar_action = {
+      default_title: '__MSG_extensionName__',
+      default_panel: 'sidepanel.html',
+      default_icon: manifest.icons
+    };
+    manifest.browser_specific_settings = {
+      gecko: {
+        id: 'better-captionkeep@daf-tech.com',
+        strict_min_version: '140.0',
+        data_collection_permissions: {
+          required: ['none']
+        }
+      },
+      gecko_android: {
+        strict_min_version: '142.0'
+      }
+    };
+  }
+  if (target === 'safari') {
+    manifest.permissions = manifest.permissions.filter(permission => permission !== 'sidePanel');
+    delete manifest.side_panel;
+    delete manifest.storage;
+    delete manifest.key;
+    manifest.background = {
+      scripts: ['service_worker.js'],
+      service_worker: 'service_worker.js',
+      preferred_environment: ['service_worker', 'document']
+    };
   }
   await writeFile(
     path.join(targetDir, 'manifest.json'),

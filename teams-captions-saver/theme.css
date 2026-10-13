@@ -1,19 +1,19 @@
 :root {
-    color-scheme: light;
-    --ck-bg: #f7f8f5;
-    --ck-surface: #ffffff;
-    --ck-surface-soft: #fafafa;
-    --ck-field: #ffffff;
-    --ck-text: #142b3b;
-    --ck-text-muted: #5c6770;
-    --ck-border: #d8dfe1;
-    --ck-primary: #087f8c;
-    --ck-primary-hover: #065e68;
-    --ck-success: #107c41;
-    --ck-warning: #8a6500;
-    --ck-danger: #c9363e;
-    --ck-overlay: rgba(7, 28, 44, 0.5);
-    --ck-shadow: 0 4px 14px rgba(20, 43, 59, 0.1);
+    color-scheme: dark;
+    --ck-bg: #03100e;
+    --ck-surface: #071b18;
+    --ck-surface-soft: #0d2a26;
+    --ck-field: #061714;
+    --ck-text: #f1f8f6;
+    --ck-text-muted: #abc1bc;
+    --ck-border: #31534e;
+    --ck-primary: #64cbc6;
+    --ck-primary-hover: #86ddd8;
+    --ck-success: #71d69a;
+    --ck-warning: #f3c86a;
+    --ck-danger: #ff777f;
+    --ck-overlay: rgba(0, 7, 6, 0.76);
+    --ck-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
 
     /* Backward-compatible aliases used by the transcript viewer. */
     --primary-color: var(--ck-primary);

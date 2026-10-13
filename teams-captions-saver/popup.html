@@ -22,7 +22,7 @@
         .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
         .all-settings-arrow { font-size: 1.5rem; }
         html[data-view="settings"] body { width: min(100%, 1180px); margin: 0 auto; padding: 28px; }
-        html[data-view="settings"] body > :not(.settings-container):not(.brand):not(.settings-page-intro) { display: none !important; }
+        html[data-view="settings"] body > :not(.settings-container):not(.brand):not(.settings-page-intro):not(.settings-command-center) { display: none !important; }
         html[data-view="settings"] .settings-container { margin-top: 0; }
         html[data-view="settings"] .settings-header { font-size: 28px; }
         html[data-view="settings"] .settings-intro,
@@ -553,49 +553,82 @@
         .enterprise-destinations input:invalid { border-color: var(--ck-danger) !important; }
     </style>
     <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="popup-v6.css">
     <script src="theme.js" defer></script>
     <script src="graphRuntimeConfig.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="localization.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
+    <script src="promptTemplates.js" defer></script>
+    <script src="browserCompat.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
 <body data-graph-configured="unknown">
-    <header class="brand"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p></div></header>
-    <p class="subtitle">Keep the words. Stay in the conversation.</p>
-
-    <a class="all-settings-link" href="settings.html" target="_blank" rel="noopener" aria-describedby="all-settings-description">
-        <span class="all-settings-icon" aria-hidden="true">⚙</span>
-        <span class="all-settings-copy"><strong>All Settings</strong><small id="all-settings-description">Open every setting in a full browser tab</small></span>
-        <span class="all-settings-arrow" aria-hidden="true">↗</span>
-    </a>
-
-    <nav class="platform-launchers" aria-label="Start a meeting">
-        <div class="platform-card">
-            <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
-                <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
-            </a>
-            <a class="platform-start" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams to Meet now">Meet now</a>
-        </div>
-        <div class="platform-card">
-            <a class="platform-launcher" href="https://app.zoom.us/wc" target="_blank" rel="noopener" aria-label="Open Zoom Web">
-                <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
-            </a>
-            <a class="platform-start" href="https://zoom.new" target="_blank" rel="noopener" aria-label="Start a new Zoom meeting">New meeting</a>
-        </div>
-        <div class="platform-card">
-            <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
-                <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
-            </a>
-            <a class="platform-start" href="https://meet.new" target="_blank" rel="noopener" aria-label="Start a new Google Meet meeting">Start meeting</a>
-        </div>
-    </nav>
+    <header class="brand v6-popup-only">
+        <img src="icons/daf-tech-sphere.png" width="44" height="44" alt="">
+        <div class="v6-brand-copy"><h2>Better CaptionKeep</h2><p>Meeting record</p></div>
+        <a class="v6-settings-link" href="settings.html" target="_blank" rel="noopener" aria-label="Open all settings"><span aria-hidden="true">⚙</span></a>
+    </header>
+    <header class="brand settings-page-intro"><img src="icons/scribble-128.png" width="56" height="56" alt="Scribble, the listening transcript mascot"><div><h2>Better CaptionKeep</h2><p class="signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p></div></header>
+    <p class="subtitle settings-page-intro">Keep the words. Stay in the conversation.</p>
+    <section class="settings-command-center all-settings-only" aria-labelledby="settings-command-title">
+        <div><p class="settings-eyebrow">6.0 control room</p><h1 id="settings-command-title">Simple in front. Powerful back here.</h1><p>Configure capture, meeting intelligence, privacy, destinations, enterprise sources, exports, and diagnostics without crowding the everyday meeting button.</p></div>
+        <div class="settings-health" aria-label="Product boundaries"><span><strong>Local core</strong>Always available</span><span><strong>Source preserved</strong>Derivatives stay separate</span><span><strong>Managed ready</strong>Policy wins</span></div>
+        <nav class="settings-cockpit-nav" aria-label="Settings sections">
+            <a href="#capture-settings">Capture</a><a href="#intelligence-settings">Meeting intelligence</a><a href="#privacy-settings">Privacy &amp; AI</a><a href="#saving-settings">Saving</a><a href="#graphTranscriptSection">Microsoft 365</a><a href="#appearance-settings">Appearance</a><a href="#support-settings">Support</a>
+        </nav>
+    </section>
 
     <p id="manual-start-info" class="info-text">If captions do not start automatically, turn on CC in the meeting to begin capturing.</p>
 
-    <p id="status-message" role="status" aria-live="polite">Checking status...</p>
+    <section class="v6-status-card v6-popup-only" aria-labelledby="v6-ready-title">
+        <div class="v6-provider-row">
+            <span id="v6-provider-mark" class="v6-provider-mark" aria-hidden="true">•</span>
+            <span class="v6-provider-copy"><strong id="v6-provider-name">Checking this tab</strong><span id="v6-provider-detail">Looking for a supported meeting</span></span>
+            <span id="v6-provider-state" class="v6-provider-state">Checking</span>
+        </div>
+        <div id="v6-status-orbit" class="v6-status-orbit not-ready" aria-hidden="true">
+            <img src="icons/daf-tech-sphere.png" alt="">
+            <span id="v6-status-band">Not ready</span>
+        </div>
+        <h1 id="v6-ready-title">Checking this meeting…</h1>
+        <p id="status-message" role="status" aria-live="polite">Checking status…</p>
+        <button id="liveWorkspaceButton" class="v6-primary-action" type="button" disabled>Keep this meeting</button>
+        <nav class="platform-launchers" aria-label="Open a meeting platform">
+            <div class="platform-card">
+                <a class="platform-launcher" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams">
+                    <span class="platform-mark teams" aria-hidden="true">T</span><span class="platform-name">Teams</span>
+                </a>
+                <a class="platform-start" href="https://teams.microsoft.com" target="_blank" rel="noopener" aria-label="Open Microsoft Teams to Meet now">Meet now</a>
+            </div>
+            <div class="platform-card">
+                <a class="platform-launcher" href="https://meet.google.com" target="_blank" rel="noopener" aria-label="Open Google Meet">
+                    <span class="platform-mark meet" aria-hidden="true">M</span><span class="platform-name">Meet</span>
+                </a>
+                <a class="platform-start" href="https://meet.new" target="_blank" rel="noopener" aria-label="Start a new Google Meet meeting">Start meeting</a>
+            </div>
+            <div class="platform-card">
+                <a class="platform-launcher" href="https://app.zoom.us/wc" target="_blank" rel="noopener" aria-label="Open Zoom Web">
+                    <span class="platform-mark zoom" aria-hidden="true">Z</span><span class="platform-name">Zoom</span>
+                </a>
+                <a class="platform-start" href="https://zoom.new" target="_blank" rel="noopener" aria-label="Start a new Zoom meeting">New meeting</a>
+            </div>
+        </nav>
+        <div class="v6-local-note"><span aria-hidden="true">⌂</span><p><strong>Stays on this device</strong><span>No meeting bot or Better CaptionKeep account.</span></p></div>
+        <!-- Session History -->
+        <div id="sessionHistory" class="button-container" style="margin-top: 10px; display: none;">
+            <button id="historyButton" style="background-color: #6c757d; flex-grow: 1; border-radius: 6px;">
+                📁 View Previous Sessions
+            </button>
+        </div>
+        <div id="sessionList" style="display: none; margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px;">
+            <div style="text-align: center; color: #999;">Loading sessions...</div>
+        </div>
+    </section>
+
+    <p id="status-message-settings" class="settings-page-intro" role="status" aria-live="polite">Open a supported meeting to see capture status in the extension popup.</p>
 
     <div class="button-container">
         <div class="split-button" id="copy-container">
@@ -620,28 +653,15 @@
         </div>
     </div>
     <div class="button-container">
-         <button id="liveWorkspaceButton" type="button">Open Live Workspace</button>
-    </div>
-    <div class="button-container">
         <button id="meetingExtrasButton" type="button">Chat &amp; links</button>
         <button id="meetingScreenshotButton" type="button">Screenshot</button>
     </div>
     
-    <!-- Session History -->
-    <div id="sessionHistory" class="button-container" style="margin-top: 10px; display: none;">
-        <button id="historyButton" style="background-color: #6c757d; flex-grow: 1; border-radius: 6px;">
-            📁 View Previous Sessions
-        </button>
-    </div>
-    <div id="sessionList" style="display: none; margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px;">
-        <div style="text-align: center; color: #999;">Loading sessions...</div>
-    </div>
-
     <div class="settings-container">
         <div class="settings-heading"><h3 class="settings-header">Settings</h3></div>
         <p class="settings-intro">Your everyday controls stay up front. Open a section only when you need it.</p>
 
-        <details class="settings-group" id="graphTranscriptSection" open>
+        <details class="settings-group" id="graphTranscriptSection">
             <summary>Verified Teams transcripts</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Microsoft-365-Connection" target="_blank" rel="noopener noreferrer" aria-label="Read the Microsoft 365 connection guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="graph-hero">
@@ -696,7 +716,7 @@
             </div>
         </details>
 
-        <details class="settings-group">
+        <details class="settings-group" id="appearance-settings">
             <summary>Appearance</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#appearance-and-language" target="_blank" rel="noopener noreferrer" aria-label="Read the appearance and language guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
@@ -716,7 +736,7 @@
             <p class="small-info-text">Applies to the popup, transcript viewer, exports, and AI handoff.</p>
         </details>
 
-        <details class="settings-group">
+        <details class="settings-group" id="speaker-settings">
             <summary>Speaker aliases</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#speaker-aliases" target="_blank" rel="noopener noreferrer" aria-label="Read the speaker aliases guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div id="speaker-alias-container">
@@ -725,7 +745,7 @@
             </div>
         </details>
 
-        <details class="settings-group">
+        <details class="settings-group" id="saving-settings">
             <summary>Saving transcripts</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#save-behavior" target="_blank" rel="noopener noreferrer" aria-label="Read the saving and export guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
@@ -760,7 +780,7 @@
             <p class="small-info-text">Only use this if a save needs recovery or you want to grant access to a folder outside browser Downloads.</p>
         </details>
 
-        <details class="settings-group" open>
+        <details class="settings-group" id="capture-settings" open>
             <summary>Capture controls</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Getting-Started#capture-controls" target="_blank" rel="noopener noreferrer" aria-label="Read the capture controls guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
@@ -772,7 +792,38 @@
             <p class="small-info-text"><strong>You choose when they start.</strong> Use the Live Workspace during a meeting to enable live captions, open the Teams attendee panel, or request the official Teams transcript. Opening Better CaptionKeep alone does not trigger any of them.</p>
         </details>
 
-        <details class="settings-group">
+        <details class="settings-group" id="intelligence-settings" open>
+            <summary>Meeting intelligence</summary>
+            <p class="small-info-text">These tools live in the workspace, not the everyday popup. Every result is stored separately from the source transcript.</p>
+            <div class="intelligence-grid">
+                <article><strong>Capture Moment</strong><p>Keep a reviewed image with its transcript fingerprint and nearby evidence.</p></article>
+                <article><strong>Live Notes</strong><p>Generate a cited draft, review it, then retain it as a separate local artifact.</p></article>
+                <article><strong>Templates</strong><p>Reuse local instructions without storing meeting content inside the template.</p></article>
+                <article><strong>Ask</strong><p>Ask the current transcript snapshot; answers must cite it or admit the answer is absent.</p></article>
+            </div>
+            <div class="template-workbench">
+                <h4>Local meeting templates</h4>
+                <p class="small-info-text">Built-ins are read-only. Save changes to a built-in as a new local template; no transcript content belongs here.</p>
+                <label for="intelligenceTemplateSelect" class="setting-label">Template</label>
+                <select id="intelligenceTemplateSelect"></select>
+                <label for="intelligenceTemplateName" class="setting-label">Name</label>
+                <input id="intelligenceTemplateName" type="text" maxlength="80" autocomplete="off">
+                <label for="intelligenceTemplateInstructions" class="setting-label">Reusable instructions</label>
+                <textarea id="intelligenceTemplateInstructions" rows="7" maxlength="4000" placeholder="Describe the output and citation rules. Do not paste meeting content or secrets."></textarea>
+                <div class="actions-row template-actions">
+                    <button id="intelligenceTemplateSave" type="button">Save local template</button>
+                    <button id="intelligenceTemplateDelete" type="button" disabled>Delete</button>
+                    <button id="intelligenceTemplateExport" type="button">Export</button>
+                    <button id="intelligenceTemplateImport" type="button">Import</button>
+                    <input id="intelligenceTemplateFile" type="file" accept="application/json,.json" hidden>
+                </div>
+                <p id="intelligenceTemplateStatus" class="small-info-text" role="status" aria-live="polite"></p>
+            </div>
+            <button id="settingsOpenWorkspace" type="button">Open the Live Workspace</button>
+            <p class="small-info-text">Nothing is submitted to an AI service automatically. Your approved workspace opens only after the review screen.</p>
+        </details>
+
+        <details class="settings-group" id="privacy-settings">
             <summary>Bring your own AI (BYOAI) and privacy</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Privacy-and-Data-Boundaries#ai-handoff-and-privacy-scrubber" target="_blank" rel="noopener noreferrer" aria-label="Read the AI handoff and privacy guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
@@ -837,7 +888,7 @@
             </div>
         </details>
 
-        <details class="settings-group">
+        <details class="settings-group" id="naming-settings">
             <summary>Naming and timestamps</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Review-Save-and-Export#file-names-and-timestamps" target="_blank" rel="noopener noreferrer" aria-label="Read the file names and timestamps guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <div class="setting-item">
@@ -859,7 +910,7 @@
             </div>
         </details>
 
-        <details class="settings-group">
+        <details class="settings-group" id="portability-settings">
             <summary>Configuration portability</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Administrator-Deployment#configuration-portability" target="_blank" rel="noopener noreferrer" aria-label="Read the configuration portability guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <p class="small-info-text">Export user preferences for backup or EUC repackaging. Transcript history is never included.</p>
@@ -870,7 +921,7 @@
             </div>
             <p class="small-info-text" id="configurationStatus" role="status" aria-live="polite"></p>
         </details>
-        <details class="settings-group">
+        <details class="settings-group" id="support-settings">
             <summary>Feedback and support</summary>
             <a class="settings-help-link" href="https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Support" target="_blank" rel="noopener noreferrer" aria-label="Read the support and reporting guide in the Better CaptionKeep Wiki">Learn more ↗</a>
             <p class="small-info-text">Choose the form that best matches what you want to tell us. GitHub keeps the request trackable so you can follow its status.</p>

@@ -126,11 +126,12 @@ test('All settings shares popup form, is registered for all browser targets, and
     }
     assert(source('settings.js').includes('popup.html?view=settings'));
     const popup = source('popup.html');
-    assert(popup.includes('<strong>All Settings</strong>'));
-    assert(popup.includes('Open every setting in a full browser tab'));
+    assert(popup.includes('aria-label="Open all settings"'));
+    assert(popup.includes('class="v6-settings-link"'));
+    assert(popup.includes('<span aria-hidden="true">⚙</span>'));
     assert(popup.indexOf('href="settings.html"') < popup.indexOf('<nav class="platform-launchers"'));
     assert.equal((popup.match(/href="settings.html"/g) || []).length, 1);
-    assert(popup.includes('target="_blank" rel="noopener" aria-describedby="all-settings-description"'));
+    assert(popup.includes('target="_blank" rel="noopener" aria-label="Open all settings"'));
     assert(popup.includes('class="graph-manual graph-admin-details" id="graphAdminDetails"'));
     assert(popup.includes('html:not([data-view="settings"]) .graph-admin-details { display: none; }'));
     assert(source('settings.js').includes('.hash = location.hash'));

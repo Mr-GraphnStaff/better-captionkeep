@@ -50,6 +50,7 @@ class SessionManager {
         const correctionSessionId = includeCorrections && (metadata?.sourceSessionId || metadata?.id);
         if (correctionSessionId) {
             keys.push(`meeting_extras_${encodeURIComponent(String(correctionSessionId).trim())}`);
+            keys.push(`derived_artifacts_${encodeURIComponent(String(correctionSessionId).trim())}`);
             const encoded = encodeURIComponent(String(correctionSessionId).trim()).replace(/%/g, '_').slice(0, 240);
             if (encoded) keys.push(`transcript_corrections_${encoded}`);
         }
@@ -236,7 +237,9 @@ class SessionManager {
                 const encoded = encodeURIComponent(String(value).trim()).replace(/%/g, '_').slice(0, 240);
                 return encoded ? `transcript_corrections_${encoded}` : null;
             }).filter(Boolean);
-            await chrome.storage.local.remove([sessionId, ...correctionKeys, `meeting_extras_${encodeURIComponent(String(stableId).trim())}`]);
+            await chrome.storage.local.remove([sessionId, ...correctionKeys,
+                `meeting_extras_${encodeURIComponent(String(stableId).trim())}`,
+                `derived_artifacts_${encodeURIComponent(String(stableId).trim())}`]);
             if (chrome.storage.session) await chrome.storage.session.remove(correctionKeys);
             return;
         }
@@ -433,7 +436,8 @@ class SessionManager {
             await this.deleteSession(session.id);
         }
         const data = await chrome.storage.local.get(null);
-        const orphanCorrections = Object.keys(data).filter(key => key.startsWith('transcript_corrections_') || key.startsWith('meeting_extras_'));
+        const orphanCorrections = Object.keys(data).filter(key => key.startsWith('transcript_corrections_')
+            || key.startsWith('meeting_extras_') || key.startsWith('derived_artifacts_'));
         if (orphanCorrections.length) await chrome.storage.local.remove(orphanCorrections);
         
         await chrome.storage.local.set({ 'session_index': [] });
