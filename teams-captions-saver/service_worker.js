@@ -413,6 +413,11 @@ function updateBadge(isCapturing, tabId) {
     }
 }
 
+function clearBadge(tabId) {
+    if (!Number.isInteger(tabId)) return;
+    chrome.action.setBadgeText({tabId, text:''}).catch(() => {});
+}
+
 // --- Event Listeners ---
 // Helper function to chunk arrays
 function chunkArray(array, chunkSize) {
@@ -466,6 +471,14 @@ chrome.runtime.onStartup.addListener(() => {
     updateBadge(false);
     cleanupViewerPayloads().catch(() => {});
     queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
+});
+
+// A tab-scoped action badge survives top-level navigation unless it is
+// explicitly cleared. Remove stale meeting state as soon as any tab begins
+// navigating; a supported meeting content script will publish the fresh state
+// after it loads.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === 'loading') clearBadge(tabId);
 });
 
 chrome.storage.onChanged.addListener((_changes, areaName) => {

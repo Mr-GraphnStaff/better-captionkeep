@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root,file),'utf8');
 const readProject = file => fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const clone = data => JSON.parse(JSON.stringify(data));
 function harness() {
-    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[]; const importedScripts=[];
+    const data = {}; const sessionData = {}; const managedData = {}; const callbacks=[]; const messages=[]; const tabs=[]; const tabUpdateListeners=[]; const badgeUpdates=[]; const importedScripts=[];
     const area = {
         async get(keys) { if (keys===null) return clone(data); const out={}; for(const k of (Array.isArray(keys)?keys:[keys])) if(k in data)out[k]=clone(data[k]); return out; },
         async set(values) {
@@ -40,14 +40,25 @@ function harness() {
             return {ok:true};
         },
             onInstalled:{addListener(){}},onStartup:{addListener(){}},onMessage:{addListener(fn){chrome.listener=fn;}}},
-        tabs:{create:async tab=>tabs.push(tab),query:async()=>[]},action:{setBadgeText(){},setBadgeBackgroundColor(){}}};
+        tabs:{create:async tab=>tabs.push(tab),query:async()=>[],onUpdated:{addListener(fn){tabUpdateListeners.push(fn);}}},
+        action:{setBadgeText(update){badgeUpdates.push(update);return Promise.resolve();},setBadgeBackgroundColor(){return Promise.resolve();}}};
     const document={hidden:false,title:'Synthetic meeting',body:{},querySelector:()=>null,contains:()=>true,addEventListener(){}};
     const context=vm.createContext({chrome,document,crypto:webcrypto,Blob,URL,TextEncoder,Uint8Array,btoa,atob,console:{log(){},warn(){},error(){}},
         window:{location:{href:'https://teams.microsoft.com/'},addEventListener(){}},
         setInterval:()=>1,clearInterval(){},setTimeout:()=>1,clearTimeout(){},MutationObserver:class{observe(){} disconnect(){}},
         importScripts(...names){for(const name of names) { importedScripts.push(name); vm.runInContext(read(name),context); }}});
-    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,importedScripts,run:code=>vm.runInContext(code,context)};
+    return {data,sessionData,managedData,area,chrome,context,document,callbacks,messages,tabs,tabUpdateListeners,badgeUpdates,importedScripts,run:code=>vm.runInContext(code,context)};
 }
+
+test('top-level navigation clears stale tab-scoped capture badges',()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    assert.equal(h.tabUpdateListeners.length,1);
+    h.tabUpdateListeners[0](27,{status:'loading'},{id:27});
+    assert.equal(h.badgeUpdates.at(-1).tabId,27);
+    assert.equal(h.badgeUpdates.at(-1).text,'');
+    h.tabUpdateListeners[0](27,{status:'complete'},{id:27});
+    assert.equal(h.badgeUpdates.length,1);
+});
 
 test('all shipped scripts parse',()=>{
     for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))) new vm.Script(read(name),{filename:name});
