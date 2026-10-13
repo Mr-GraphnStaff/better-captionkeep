@@ -13,6 +13,9 @@
     "build": "node scripts/package-extension.mjs teams-captions-saver dist/prod better_captionkeep",
     "build:targets": "node scripts/build-browser-targets.mjs",
     "build:browsers": "node scripts/build-browser-targets.mjs browsers",
+    "package:browsers": "node scripts/package-browser-release.mjs",
+    "test:browser-surfaces": "node scripts/browser-surface-smoke.mjs",
+    "store:assets:render": "node scripts/render-store-assets.mjs",
     "build:dev": "node scripts/build-browser-targets.mjs dev",
     "build:uat": "node scripts/build-browser-targets.mjs uat",
     "build:prod": "node scripts/build-browser-targets.mjs prod",
@@ -23,7 +26,7 @@
     "build:intune:chrome": "node scripts/build-intune-bundle.mjs deployment/intune/profile.chrome.json dist/prod/intune-chrome chrome",
     "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json dist/prod/intune-local-only edge",
     "store:metadata:check": "node scripts/check-store-metadata.mjs",
-    "release:candidate": "npm test && npm run lint && npm run audit:surfaces && npm run security:audit && npm run store:metadata:check && npm run clean:dist && npm run build:targets && npm run build && npm run build:chrome-store && npm run build:intune && node scripts/verify-release.mjs",
+    "release:candidate": "npm test && npm run lint && npm run audit:surfaces && npm run security:audit && npm run store:metadata:check && npm run clean:dist && npm run build:targets && npm run build:browsers && npm run package:browsers && npm run test:browser-surfaces && npm run build && npm run build:chrome-store && npm run build:intune && node scripts/verify-release.mjs",
     "publish:edge": "node scripts/edge-publish.mjs",
     "publish:chrome": "node scripts/chrome-publish.mjs"
   },

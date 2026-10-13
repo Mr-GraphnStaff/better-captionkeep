@@ -119,3 +119,21 @@ test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () =>
   assert.deepEqual(pngDimensions('store-assets/5.4/small-promotional-tile.png'), [440, 280]);
   assert.deepEqual(pngDimensions('store-assets/5.4/large-promotional-tile.png'), [1400, 560]);
 });
+
+test('6.0 Store artwork has exact listing dimensions and pending owner approval', () => {
+  for (const screenshot of [
+    '01-one-button-meeting.png',
+    '02-rolling-live-notes.png',
+    '03-capture-moment.png',
+    '04-meeting-receipt.png',
+    '05-advanced-settings.png',
+  ]) {
+    assert.deepEqual(pngDimensions(`store-assets/6.0/${screenshot}`), [1280, 800]);
+  }
+  assert.deepEqual(pngDimensions('store-assets/6.0/small-promotional-tile.png'), [440, 280]);
+  assert.deepEqual(pngDimensions('store-assets/6.0/marquee-promotional-tile.png'), [1400, 560]);
+  const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-assets/6.0/manifest.json'), 'utf8'));
+  assert.equal(assetManifest.version, '6.0.0');
+  assert.equal(assetManifest.approval, 'pending release-owner review');
+  assert.equal(assetManifest.artifacts.length, 7);
+});

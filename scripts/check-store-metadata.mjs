@@ -131,14 +131,14 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
     }
   }
   for (const asset of [
-    'teams-captions-saver/icons/scribble-128.png',
-    'store-assets/5.4/01-three-meeting-platforms.png',
-    'store-assets/5.4/02-explicit-meeting-controls.png',
-    'store-assets/5.4/03-on-the-fly-research.png',
-    'store-assets/5.4/04-reviewed-ai-handoff.png',
-    'store-assets/5.4/05-enterprise-controls.png',
-    'store-assets/5.4/small-promotional-tile.png',
-    'store-assets/5.4/large-promotional-tile.png',
+    'teams-captions-saver/icons/sphere-128.png',
+    'store-assets/6.0/01-one-button-meeting.png',
+    'store-assets/6.0/02-rolling-live-notes.png',
+    'store-assets/6.0/03-capture-moment.png',
+    'store-assets/6.0/04-meeting-receipt.png',
+    'store-assets/6.0/05-advanced-settings.png',
+    'store-assets/6.0/small-promotional-tile.png',
+    'store-assets/6.0/marquee-promotional-tile.png',
   ]) {
     if (!dossier.includes(asset)) throw new Error(`CHROMEWEBSTORE.md is missing Store asset: ${asset}`);
   }

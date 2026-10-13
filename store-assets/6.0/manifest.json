@@ -1,0 +1,49 @@
+{
+  "version": "6.0.0",
+  "generatedAt": "2026-10-13T17:17:50.186Z",
+  "approval": "pending release-owner review",
+  "artifacts": [
+    {
+      "file": "01-one-button-meeting.png",
+      "dimensions": "1280x800",
+      "bytes": 422482,
+      "sha256": "DC27DA66CECFE7B2AFFB419BAB72971A25E6B6369B7C9B1152CF8E485B845384"
+    },
+    {
+      "file": "02-rolling-live-notes.png",
+      "dimensions": "1280x800",
+      "bytes": 378390,
+      "sha256": "905B5857C710377A93D878A8C9F9C954DEA919DE49A2A3CE39F946293828498D"
+    },
+    {
+      "file": "03-capture-moment.png",
+      "dimensions": "1280x800",
+      "bytes": 425480,
+      "sha256": "2B283BBDB548A9FA98CA72D1447F5A9E078C670D360DCBD0B3DA1699DE7BD203"
+    },
+    {
+      "file": "04-meeting-receipt.png",
+      "dimensions": "1280x800",
+      "bytes": 376221,
+      "sha256": "5870C9EB934C4308CAFA8A3FAC6CE18455D0F7B469E8160A0C27CA7657E57D60"
+    },
+    {
+      "file": "05-advanced-settings.png",
+      "dimensions": "1280x800",
+      "bytes": 383243,
+      "sha256": "D26DB35EF4E26100AA56E889CB6D341A00D00014C131FDAFD59FB29B5FD4B985"
+    },
+    {
+      "file": "small-promotional-tile.png",
+      "dimensions": "440x280",
+      "bytes": 81497,
+      "sha256": "DC41BEE358C5C88D80E9CD944D26A83FAD5F47D9BF998ACB3A23A4569E280B1E"
+    },
+    {
+      "file": "marquee-promotional-tile.png",
+      "dimensions": "1400x560",
+      "bytes": 414636,
+      "sha256": "3E615B1EEC915BDBE412B7D8C1CE6A87A835FCBCA055BE7CAADF827086BA3C68"
+    }
+  ]
+}

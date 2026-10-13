@@ -11,8 +11,8 @@ const prodDir = path.join(distDir, 'prod');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
 
 function hasForbiddenPathPart(file) {
-  return file.split('/').some((part, index) =>
-    forbidden.test(part) && !(index === 0 && part === '_locales')
+  return file.split('/').some(part =>
+    forbidden.test(part) && part !== '_locales'
   );
 }
 const expectedLifecycleIds = new Map([
@@ -101,6 +101,23 @@ artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(st
 const chromeStoreZipName = `better_captionkeep-chrome-${sourceManifest.version}.zip`;
 const chromeStoreZipPath = path.join(prodDir, chromeStoreZipName);
 artifacts.push({ target: 'chrome-store', path: chromeStoreZipName, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
+
+const browserPackageDir = path.join(prodDir, 'browser-packages');
+for (const browser of ['chrome', 'edge', 'brave', 'opera', 'firefox', 'safari']) {
+  const name = `better-captionkeep-${browser}-${sourceManifest.version}.zip`;
+  const filePath = path.join(browserPackageDir, name);
+  artifacts.push({
+    target: `${browser}-browser-package`,
+    path: `browser-packages/${name}`,
+    bytes: (await stat(filePath)).size,
+    sha256: await sha256(filePath)
+  });
+}
+
+for (const name of [`better-captionkeep-${sourceManifest.version}.cdx.json`, 'browser-package-hashes.json', 'browser-certification.json']) {
+  const filePath = path.join(prodDir, name);
+  artifacts.push({ target: 'release-evidence', path: name, bytes: (await stat(filePath)).size, sha256: await sha256(filePath) });
+}
 
 const intuneDir = path.join(prodDir, 'intune-edge');
 for (const name of ['edge-extension-settings.json', 'edge-extension-force-install.txt', 'managed-policy.json', 'detect-managed-policy.ps1', 'remediate-managed-policy.ps1']) {

@@ -3,17 +3,23 @@
 This directory is the controlled handoff for Store listing material. It must be
 complete and reviewed before 6.0 promotion.
 
-Required final artifacts:
+Generated artifacts:
 
-- Five current product screenshots for the certified 6.0 interface.
+- Five synthetic-data product screenshots for the 6.0 interface, each 1280 by
+  800 pixels.
 - Chrome small promotional tile, 440 by 280 pixels.
 - Chrome marquee promotional tile, 1400 by 560 pixels.
 - Edge-compatible screenshots and promotional artwork required by Partner
   Center at submission time.
 - Approved title, short description, full description, privacy answers,
   certification notes, and browser-support wording.
-- A manifest containing filenames, dimensions, SHA-256 hashes, approval date,
-  and approving release owner.
+- `manifest.json` containing filenames, dimensions, SHA-256 hashes, and a
+  deliberately pending release-owner approval field.
+
+Run `npm run store:assets:render` to regenerate the seven PNG files and their
+manifest from `source.html`. The artwork uses only synthetic meeting content.
+Do not change the approval field until the frozen candidate has been visually
+reviewed by the release owner.
 
 The Microsoft Edge Update REST API cannot upload or modify this listing
 metadata. The reviewed bundle must be entered in Partner Center and the

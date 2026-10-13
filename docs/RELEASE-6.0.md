@@ -2,16 +2,27 @@
 
 ## Status
 
-Version 6.0 is active development on `codex/6.0`. It is not a release
-candidate, certified browser build, Store submission, or public release.
+Version 6.0 is feature-complete working development on `codex/6.0`. It is not
+yet a frozen release candidate, certified six-browser build, Store submission,
+or public release.
 
 The executable scope and gate sequence are maintained in
 [`ROADMAP-6.0.md`](ROADMAP-6.0.md).
 
 The working product applies the dark DAF-TECH theme to the real Manifest V3
-popup and side panel, keeps one primary **Keep this meeting** action, restores
-direct Teams, Meet, and Zoom launchers, and preserves the existing local
-capture, Meeting Receipt, Evidence Board, export, privacy, and BYOAI engine.
+popup, side panel, viewer, export, handoff, extras, and platform guidance;
+keeps one primary **Keep this meeting** action; restores direct Teams, Meet,
+and Zoom launchers; and preserves the existing local capture, Meeting Receipt,
+Evidence Board, export, privacy, and BYOAI engine. Rolling Live Notes are
+bounded, cited, pauseable, restart-safe, and locally revisioned.
+
+The automated release path now builds and packages all six browser targets,
+records SHA-256 hashes, emits a CycloneDX SBOM and provenance, renders the
+versioned Store art bundle, and creates a browser/provider certification record.
+On the current Windows host, isolated renderer smoke passed in installed Chrome,
+Edge, Brave, and Firefox. This is not provider certification. Opera is not
+installed and Safari/macOS is unavailable on this host; both remain explicit
+external live-test gates.
 
 ## Browser commitment
 

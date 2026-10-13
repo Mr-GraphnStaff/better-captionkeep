@@ -41,7 +41,7 @@ Better CaptionKeep is a private meeting note taker and live transcript tool for 
 
 **Bring Your Own AI (BYOAI)**
 
-Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly turns selected meeting words into one-click Research, Explain, Reply, or Email outcomes. AI actions copy a bounded prompt and open the user's saved AI workspace; the user still pastes, reviews, and sends. Email opens a prefilled, recipient-free draft in the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. **Review/edit** remains available when more control is needed. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways; the 5.4 Store artifact claims only the workspace handoff that can be demonstrated today.
+Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly turns selected meeting words into one-click Research, Explain, Reply, or Email outcomes. AI actions copy a bounded prompt and open the user's saved AI workspace; the user still pastes, reviews, and sends. Email opens a prefilled, recipient-free draft in the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. **Review/edit** remains available when more control is needed. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways. Version 6.0 claims only the workspace handoff, cited local derivatives, and controls demonstrated in the frozen candidate.
 
 **What you get**
 
@@ -68,13 +68,13 @@ Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have
 - Source-linked evidence and immutable caption references instead of an untraceable AI summary.
 - Customer-controlled Microsoft 365 and AI destinations, with managed policy for organizational deployment.
 
-Opening the extension does not change the meeting. The user explicitly enables live captions from Live Workspace; Teams attendee capture and Microsoft 365 transcription each have their own visible action. The interface clearly distinguishes the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
+Live transcript capture starts on for supported meeting pages and can be paused or resumed explicitly without losing already captured text. Teams attendee capture and Microsoft 365 transcription remain separate visible actions. The interface clearly distinguishes the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
 
 Every feature included in Better CaptionKeep is available to every user. There is no paid tier, subscription, activation, or license key. Organization-managed security settings and Microsoft authorization requirements can still control how features operate in a managed environment.
 
 Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
 
-Version 5.4 puts the live transcript and Evidence Board together in one browser side panel, adds On the Fly BYOAI actions, and makes every meeting source an explicit user choice. The full transcript viewer remains available as an intentional expanded view and for completed history. All Settings keeps customer-owned Microsoft 365 setup visible while an administrator enters both identifiers. Word exports, Print / PDF through the browser dialog, local reusable AI task templates, user-reviewed meeting chat and screenshot attachments, and feature-detected on-device translation remain available. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
+Version 6.0 introduces the dark sphere interface, a one-button meeting decision, a persistent Transcript/Moments/Live Notes/Evidence/Ask workspace, restart-safe cited Rolling Notes, Capture Moment review, local Meeting Receipts, transcript-bound Q&A, and the advanced All Settings cockpit. The full transcript viewer remains available for live and completed history. Word exports, Print / PDF through the browser dialog, local reusable meeting templates, user-reviewed meeting chat and screenshot attachments, and feature-detected on-device translation remain available. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
 
 Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
 
@@ -108,14 +108,14 @@ English
 
 | Asset | Dimensions | Status | Filename |
 | --- | --- | --- | --- |
-| Store Icon | 128×128 PNG | Ready | `teams-captions-saver/icons/scribble-128.png` |
-| Screenshot 1 | 1280×800 PNG | Ready | `store-assets/5.4/01-three-meeting-platforms.png` |
-| Screenshot 2 | 1280×800 PNG | Ready | `store-assets/5.4/02-explicit-meeting-controls.png` |
-| Screenshot 3 | 1280×800 PNG | Ready | `store-assets/5.4/03-on-the-fly-research.png` |
-| Screenshot 4 | 1280×800 PNG | Ready | `store-assets/5.4/04-reviewed-ai-handoff.png` |
-| Screenshot 5 | 1280×800 PNG | Ready | `store-assets/5.4/05-enterprise-controls.png` |
-| Small Promo Tile | 440×280 PNG | Ready | `store-assets/5.4/small-promotional-tile.png` |
-| Marquee Promo Tile | 1400×560 PNG | Ready | `store-assets/5.4/large-promotional-tile.png` |
+| Store Icon | 128×128 PNG | Ready | `teams-captions-saver/icons/sphere-128.png` |
+| Screenshot 1 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/01-one-button-meeting.png` |
+| Screenshot 2 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/02-rolling-live-notes.png` |
+| Screenshot 3 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/03-capture-moment.png` |
+| Screenshot 4 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/04-meeting-receipt.png` |
+| Screenshot 5 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/05-advanced-settings.png` |
+| Small Promo Tile | 440×280 PNG | Generated; owner review pending | `store-assets/6.0/small-promotional-tile.png` |
+| Marquee Promo Tile | 1400×560 PNG | Generated; owner review pending | `store-assets/6.0/marquee-promotional-tile.png` |
 
 All artwork uses synthetic meetings and identities. Never substitute real participant names, meeting links, tenant identifiers, or transcript content.
 
