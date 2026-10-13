@@ -158,6 +158,9 @@
             case 'get_captions_for_viewing': {
                 const transcriptArray = coordinator.getTranscript();
                 if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'display_captions', sessionId: state.recordingStartTime, meetingTitle: document.title || 'Zoom meeting', transcriptArray});
+                sendResponse(transcriptArray.length > 0
+                    ? {ok:true, opened:true, captionCount:transcriptArray.length}
+                    : {ok:false, opened:false, captionCount:0, error:'No captions have been captured yet.'});
                 return false;
             }
             case 'get_zoom_diagnostic':

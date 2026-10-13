@@ -162,6 +162,22 @@ html:not([data-view="settings"]) .brand.v6-popup-only {
 }
 .v6-primary-action:hover:not(:disabled) { background: linear-gradient(135deg, #74d8d4, #4cbab7) !important; }
 .v6-primary-action:disabled { border-color: #713439; background: #4a2024 !important; color: #d9aeb1 !important; box-shadow: none; }
+.v6-secondary-action {
+    width: 100%;
+    min-height: 34px;
+    margin-top: 7px;
+    border: 0;
+    background: transparent !important;
+    color: #a9c0bc !important;
+    font-size: 12px;
+    font-weight: 700;
+}
+.v6-secondary-action:hover:not(:disabled) { color: #eef9f7 !important; text-decoration: underline; }
+.v6-secondary-action:disabled {
+    background: transparent !important;
+    color: #5f7470 !important;
+    opacity: 0.75;
+}
 
 html:not([data-view="settings"]) .platform-launchers {
     display: grid;

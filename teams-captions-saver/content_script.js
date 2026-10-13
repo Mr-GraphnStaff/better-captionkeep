@@ -1321,10 +1321,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                     sessionId:recordingStartTime?.toISOString(), meetingTitle:meetingTitleOnStart,
                     transcriptArray: getCleanTranscript()
                 });
+                sendResponse({ok:true, opened:true, captionCount:transcriptArray.length});
             } else {
-                alert("No captions were captured. Please ensure captions are turned on in the meeting.");
+                sendResponse({ok:false, opened:false, captionCount:0, error:'No captions have been captured yet.'});
             }
-            break;
+            return false;
 
         case 'get_unique_speakers':
             const speakers = [...new Set(transcriptArray.map(item => item.Name))];

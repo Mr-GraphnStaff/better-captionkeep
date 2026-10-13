@@ -8,6 +8,7 @@ const UI_ELEMENTS = {
     saveDropdownButton: document.getElementById('saveDropdownButton'),
     saveOptions: document.getElementById('saveOptions'),
     liveWorkspaceButton: document.getElementById('liveWorkspaceButton'),
+    openLastTranscriptButton: document.getElementById('openLastTranscriptButton'),
     settingsOpenWorkspace: document.getElementById('settingsOpenWorkspace'),
     intelligenceTemplateSelect: document.getElementById('intelligenceTemplateSelect'),
     intelligenceTemplateName: document.getElementById('intelligenceTemplateName'),
@@ -88,6 +89,7 @@ let graphConfigured = false;
 let graphBusy = false;
 let currentMeetingTab = null;
 let currentMeetingStatus = {};
+let hasSavedSessions = false;
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -216,7 +218,23 @@ function updateV6State({capturing = false, isInMeeting = false, captureState = '
         : paused ? 'Live transcript is paused'
             : isInMeeting ? 'Starting live transcript…' : 'Open a meeting to begin';
     UI_ELEMENTS.liveWorkspaceButton.disabled = !isInMeeting;
-    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting' : paused ? 'Resume live transcript' : isInMeeting ? 'Start captions now' : 'Waiting for a meeting';
+    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Keep this meeting'
+        : paused ? 'Resume live transcript' : isInMeeting ? 'Start captions now' : 'Waiting for a meeting';
+    UI_ELEMENTS.openLastTranscriptButton.disabled = captionCount < 1 && !hasSavedSessions;
+}
+
+async function openLastLiveTranscript() {
+    if (currentMeetingTab?.id && currentMeetingStatus.captionCount > 0) {
+        const response = await chrome.tabs.sendMessage(currentMeetingTab.id, {message:'get_captions_for_viewing'});
+        if (!response?.ok) throw new Error(response?.error || 'The live transcript could not be opened.');
+        window.close();
+        return;
+    }
+    const sessions = await new SessionManager().getSessionIndex();
+    const latest = sessions[0];
+    if (!latest?.id) throw new Error('No live or saved transcript is available yet.');
+    await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?session=${encodeURIComponent(latest.id)}`)});
+    window.close();
 }
 
 async function enableCaptionsFromPopup() {
@@ -979,6 +997,10 @@ function setupEventListeners() {
                 : 'Keep this meeting';
         }
     });
+    UI_ELEMENTS.openLastTranscriptButton?.addEventListener('click', () => void openLastLiveTranscript().catch(error => {
+        UI_ELEMENTS.statusMessage.textContent = error.message;
+        UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
+    }));
     UI_ELEMENTS.settingsOpenWorkspace?.addEventListener('click', async () => {
         try {
             await CaptionKeepBrowserCompat.openWorkspace();
@@ -1295,6 +1317,9 @@ async function initializeSessionHistory() {
         // Check if we have saved sessions and update button text
         const sessionManager = new SessionManager();
         const sessions = await sessionManager.getSessionIndex();
+        hasSavedSessions = Boolean(sessions?.length);
+        const liveCaptionCount = Number(currentMeetingStatus.captionCount) || 0;
+        UI_ELEMENTS.openLastTranscriptButton.disabled = liveCaptionCount < 1 && !hasSavedSessions;
         
         if (sessions && sessions.length > 0) {
             UI_ELEMENTS.historyButton.textContent = `Open Meeting Receipts (${sessions.length}) →`;

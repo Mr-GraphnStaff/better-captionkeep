@@ -1735,6 +1735,8 @@ test('all target manifests expose the local Evidence Board through the side pane
     }
     const popup=read('popup.html');const popupScript=read('popup.js');
     assert(popup.includes('id="liveWorkspaceButton"'));
+    assert(popup.includes('id="openLastTranscriptButton"'));
+    assert(popup.includes('Open last live transcript'));
     const statusCard=popup.slice(popup.indexOf('class="v6-status-card'));
     assert(statusCard.indexOf('id="sessionHistory"') < statusCard.indexOf('</section>'));
     assert(popup.includes('id="v6-status-orbit"'));
@@ -1744,6 +1746,9 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(!popupScript.includes('Ctrl/Cmd + V for view'));
     assert(popup.includes('browserCompat.js'));
     assert(popupScript.includes('CaptionKeepBrowserCompat.openWorkspace()'));
+    assert(popupScript.includes('async function openLastLiveTranscript()'));
+    assert(popupScript.includes("{message:'get_captions_for_viewing'}"));
+    assert(popupScript.includes('sessions[0]'));
     const browserCompat=read('browserCompat.js');
     assert(browserCompat.includes('api.sidePanel?.open'));
     assert(browserCompat.includes('api.sidebarAction?.open'));
