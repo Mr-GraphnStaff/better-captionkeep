@@ -52,6 +52,14 @@
         generateNotes: document.getElementById('generate-notes'),
         saveNotes: document.getElementById('save-notes'),
         clearNotes: document.getElementById('clear-notes'),
+        rollingNotesState: document.getElementById('rolling-notes-state'),
+        rollingNotesToggle: document.getElementById('rolling-notes-toggle'),
+        rollingNotesUpdate: document.getElementById('rolling-notes-update'),
+        rollingNotesInterval: document.getElementById('rolling-notes-interval'),
+        rollingNotesStatus: document.getElementById('rolling-notes-status'),
+        rollingNotesDraft: document.getElementById('rolling-notes-draft'),
+        rollingNotesReview: document.getElementById('rolling-notes-review'),
+        rollingNotesRevisions: document.getElementById('rolling-notes-revisions'),
         askQuestion: document.getElementById('ask-question'),
         prepareQuestion: document.getElementById('prepare-question'),
         answerCount: document.getElementById('answer-count'),
@@ -81,6 +89,8 @@
     let scrubOptions = {};
     let onTheFlyEvidence = null;
     let derivedArtifacts = [];
+    let rollingNotesState = null;
+    let rollingNotesBusy = false;
 
     async function refreshEnterprisePolicy() {
         const user = await chrome.storage.sync.get([
@@ -115,6 +125,7 @@
             panel.hidden = !active;
             tab.classList.toggle('active', active);
             tab.setAttribute('aria-selected', String(active));
+            tab.tabIndex = active ? 0 : -1;
         }
     }
 
@@ -229,6 +240,100 @@
         elements.generateNotes.disabled = !transcript.length;
         elements.saveNotes.disabled = !transcript.length;
         elements.prepareQuestion.disabled = !transcript.length;
+        renderRollingNotes();
+    }
+
+    function rollingNotesEmptyState() {
+        return CaptionKeepRollingNotes.emptyState(currentContext?.sessionId || 'unavailable');
+    }
+
+    function renderRollingNotes() {
+        const state = rollingNotesState || rollingNotesEmptyState();
+        const hasMeeting = Boolean(currentContext?.sessionId);
+        const hasTranscript = Boolean(currentContext?.transcriptArray?.length);
+        const label = !state.enabled ? 'Off' : state.paused ? 'Paused' : state.failureCount >= 3 ? 'Needs attention' : 'Running';
+        elements.rollingNotesState.textContent = label;
+        elements.rollingNotesToggle.disabled = !hasMeeting || rollingNotesBusy;
+        elements.rollingNotesToggle.textContent = !state.enabled ? 'Start rolling notes' : state.paused ? 'Resume rolling notes' : 'Pause rolling notes';
+        elements.rollingNotesUpdate.disabled = !hasTranscript || !state.enabled || rollingNotesBusy;
+        elements.rollingNotesInterval.disabled = !hasMeeting || rollingNotesBusy;
+        elements.rollingNotesInterval.value = String(state.intervalMs);
+        elements.rollingNotesDraft.value = state.draft;
+        elements.rollingNotesReview.disabled = !state.draft;
+        const status = state.lastError
+            ? `${state.lastError} (${state.failureCount}/3 attempts)`
+            : state.lastUpdatedAt
+                ? `Last updated ${artifactTime(state.lastUpdatedAt)} · ${state.processedCaptionCount} captions processed.`
+                : state.enabled ? 'Waiting for enough new captions.' : 'Start when you want local rolling evidence notes.';
+        elements.rollingNotesStatus.textContent = status;
+        elements.rollingNotesRevisions.replaceChildren();
+        if (!state.revisions.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No rolling updates yet.';
+            elements.rollingNotesRevisions.append(empty);
+            return;
+        }
+        for (const revision of [...state.revisions].reverse()) {
+            const item = document.createElement('li');
+            item.textContent = `${artifactTime(revision.createdAt)} · ${revision.evidenceIds[0]}–${revision.evidenceIds.at(-1)}`;
+            elements.rollingNotesRevisions.append(item);
+        }
+    }
+
+    async function saveRollingNotesState() {
+        if (!currentContext?.sessionId || !rollingNotesState) return;
+        await chrome.storage.local.set({
+            [CaptionKeepRollingNotes.storageKey(currentContext.sessionId)]:rollingNotesState
+        });
+    }
+
+    async function loadRollingNotesState() {
+        if (!currentContext?.sessionId) {
+            rollingNotesState = null;
+            renderRollingNotes();
+            return;
+        }
+        const key = CaptionKeepRollingNotes.storageKey(currentContext.sessionId);
+        const stored = await chrome.storage.local.get(key);
+        rollingNotesState = CaptionKeepRollingNotes.normalizeState(stored[key], currentContext.sessionId);
+        renderRollingNotes();
+    }
+
+    async function updateRollingNotes({force = false} = {}) {
+        if (rollingNotesBusy || !currentContext?.sessionId || !rollingNotesState?.enabled) return;
+        const transcript = currentContext.transcriptArray || [];
+        if (!transcript.length) return;
+        if (!force && rollingNotesState.lastUpdatedAt
+            && Date.now() - Date.parse(rollingNotesState.lastUpdatedAt) < rollingNotesState.intervalMs) return;
+        rollingNotesBusy = true;
+        renderRollingNotes();
+        try {
+            const result = CaptionKeepRollingNotes.update(transcript, rollingNotesState, {force});
+            rollingNotesState = result.state;
+            if (result.changed || result.reason === 'duplicate' || result.reason === 'empty') await saveRollingNotesState();
+        } catch (error) {
+            rollingNotesState = CaptionKeepRollingNotes.recordFailure(rollingNotesState, error);
+            await saveRollingNotesState().catch(() => {});
+        } finally {
+            rollingNotesBusy = false;
+            renderRollingNotes();
+        }
+    }
+
+    async function toggleRollingNotes() {
+        if (!currentContext?.sessionId) throw new Error('Connect to a captured meeting first.');
+        if (!rollingNotesState) await loadRollingNotesState();
+        if (!rollingNotesState.enabled) {
+            rollingNotesState = {...rollingNotesState, enabled:true, paused:false, failureCount:0, lastError:''};
+            await saveRollingNotesState();
+            await updateRollingNotes({force:true});
+            return;
+        }
+        rollingNotesState = {...rollingNotesState, paused:!rollingNotesState.paused, failureCount:0, lastError:''};
+        await saveRollingNotesState();
+        if (!rollingNotesState.paused) await updateRollingNotes({force:true});
+        renderRollingNotes();
     }
 
     async function runMeetingControl(message, pendingMessage) {
@@ -495,6 +600,7 @@
             if (sessionChanged) {
                 selectedSessionId = next.sessionId;
                 await loadDerivedArtifacts();
+                await loadRollingNotesState();
             }
             const reconciliation = board.reconcileMarkers(allMarkers, next);
             if (reconciliation.changed) {
@@ -509,12 +615,15 @@
                 renderTranscript();
             }
             if (sessionChanged || reconciliation.changed) renderMarkers();
+            await updateRollingNotes();
             setStatus('');
         } catch (error) {
             currentContext = null;
             derivedArtifacts = [];
+            rollingNotesState = null;
             renderContext();
             renderDerivedArtifacts();
+            renderRollingNotes();
             transcriptSignature = '';
             renderTranscript();
             renderMarkers();
@@ -997,6 +1106,27 @@
         elements.notesDraft.value = '';
         setStatus('Notes draft cleared. Saved notes were not changed.');
     });
+    elements.rollingNotesToggle.addEventListener('click', () => void toggleRollingNotes().catch(error => {
+        elements.rollingNotesStatus.textContent = error.message;
+    }));
+    elements.rollingNotesUpdate.addEventListener('click', () => void updateRollingNotes({force:true}).catch(error => {
+        elements.rollingNotesStatus.textContent = error.message;
+    }));
+    elements.rollingNotesInterval.addEventListener('change', () => void (async () => {
+        if (!rollingNotesState) return;
+        rollingNotesState = CaptionKeepRollingNotes.normalizeState({
+            ...rollingNotesState,
+            intervalMs:Number(elements.rollingNotesInterval.value)
+        }, currentContext?.sessionId);
+        await saveRollingNotesState();
+        renderRollingNotes();
+    })().catch(error => { elements.rollingNotesStatus.textContent = error.message; }));
+    elements.rollingNotesReview.addEventListener('click', () => {
+        if (!rollingNotesState?.draft) return;
+        elements.notesDraft.value = rollingNotesState.draft;
+        elements.notesDraft.focus();
+        setStatus('Rolling notes copied into the reviewed draft. Edit and keep only after checking the citations.');
+    });
     elements.prepareQuestion.addEventListener('click', () => void openTranscriptHandoff('transcript_qa', elements.askQuestion.value)
         .catch(error => setStatus(error.message)));
     elements.saveAnswer.addEventListener('click', () => void saveReviewedAnswer().catch(error => setStatus(error.message)));
@@ -1060,6 +1190,16 @@
     elements.notesTab.addEventListener('click', () => switchView('notes'));
     elements.evidenceTab.addEventListener('click', () => switchView('evidence'));
     elements.askTab.addEventListener('click', () => switchView('ask'));
+    document.querySelector('.workspace-tabs').addEventListener('keydown', event => {
+        const tabs = [elements.transcriptTab, elements.momentsTab, elements.notesTab, elements.evidenceTab, elements.askTab];
+        const currentIndex = tabs.indexOf(document.activeElement);
+        if (currentIndex < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+            : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        tabs[nextIndex].click();
+        tabs[nextIndex].focus();
+    });
     chrome.tabs.onActivated.addListener(() => void pollContext());
     chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
         if (changeInfo.status === 'complete') void pollContext();

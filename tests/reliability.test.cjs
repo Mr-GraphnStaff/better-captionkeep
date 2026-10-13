@@ -1014,8 +1014,9 @@ test('theme selection is normalized, applied, and synced',async()=>{
 test('viewer includes branded header and purposeful empty state',()=>{
     const html=read('viewer.html');
     const script=read('viewer.js');
-    assert(html.includes('Better CaptionKeep · by Señor Farris'));
-    assert(html.includes('Scribble, the Better CaptionKeep listening mascot'));
+    assert(html.includes('Better CaptionKeep 6.0'));
+    assert(html.includes('icons/daf-tech-sphere.png'));
+    assert(html.includes('Meeting Transcript'));
     assert(html.includes('class="viewer-state"'));
     assert(script.includes('function renderViewerState'));
     assert(script.includes('Ready when your meeting is'));
@@ -1165,10 +1166,12 @@ test('session deletion removes its corrections but keeps the shared dictionary',
     h.data.session_index=[{id:'session-delete',sourceSessionId:'capture-delete',storagePrefix:'generation-delete',chunkCount:1}];
     h.data['generation-delete_chunk_0']=[{key:'c1',Text:'raw'}];
     h.data['transcript_corrections_capture-delete']={records:{c1:{originalText:'raw',replacementText:'corrected'}}};
+    h.data['rolling_notes_capture-delete']={enabled:true,draft:'[C0001] local rolling note'};
     h.data.terminology_dictionary_v1={entries:[{term:'raw',replacement:'preferred'}]};
     await h.run('new SessionManager(true)').deleteSession('session-delete');
     assert.equal(h.data['generation-delete_chunk_0'],undefined);
     assert.equal(h.data['transcript_corrections_capture-delete'],undefined);
+    assert.equal(h.data['rolling_notes_capture-delete'],undefined);
     assert(h.data.terminology_dictionary_v1);
 });
 test('archive search supports Unicode phrases, filters, ordering, and corrupt-session recovery',async()=>{
@@ -1990,12 +1993,13 @@ test('every service worker loads an inert Store-safe Graph configuration without
     development.run(read('service_worker.js'));
     assert(development.importedScripts.includes('graphRuntimeConfig.js'));
 });
-test('unsupported platform launchers open a bounded 5.0 coming-soon page',()=>{
+test('platform guidance reflects the supported 6.0 meeting surfaces',()=>{
     const html=read('platform-coming-soon.html');const script=read('platform-coming-soon.js');
-    assert(html.includes('Better CaptionKeep 5.0'));
-    assert(script.includes("zoom: 'Zoom'"));
+    assert(html.includes('Better CaptionKeep 6.0'));
+    assert(script.includes("zoom: 'Zoom Web'"));
     assert(script.includes("meet: 'Google Meet'"));
-    assert(script.includes("UPCOMING_PLATFORMS[key] || 'More meeting platforms'"));
+    assert(script.includes("SUPPORTED_PLATFORMS[key] || 'This meeting platform'"));
+    assert(script.includes('live transcript capture starts automatically'));
     assert(!html.includes('http://') && !html.includes('https://'));
 });
 async function contentHarness() {

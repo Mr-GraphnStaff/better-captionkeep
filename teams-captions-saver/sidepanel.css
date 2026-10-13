@@ -124,6 +124,24 @@ button.primary { background: var(--ck-primary); color: #fff; border-color: var(-
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .artifact-actions { display: flex; gap: 8px; margin-top: 8px; }
 .artifact-actions button { width: auto; }
+.rolling-notes-card {
+    display: grid;
+    gap: 9px;
+    margin: 14px 0;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--ck-primary) 45%, var(--ck-border));
+    border-radius: 12px;
+    background: linear-gradient(145deg, rgb(14 46 41 / 88%), rgb(4 22 19 / 96%));
+}
+.rolling-notes-card h3 { margin: 0; font-size: 14px; }
+.rolling-notes-card p { margin: 3px 0 0; }
+.rolling-note-controls { display: grid; grid-template-columns: auto auto minmax(100px, 1fr); gap: 7px; align-items: end; }
+.rolling-note-controls button { width: auto; white-space: nowrap; }
+.rolling-note-controls label { grid-column: 3; grid-row: 1; margin: 0 0 35px; font-size: 11px; color: var(--ck-text-muted); }
+.rolling-note-controls select { grid-column: 3; grid-row: 1; margin-top: 18px; }
+#rolling-notes-draft { min-height: 120px; font-family: ui-monospace, "Cascadia Mono", monospace; font-size: 12px; }
+.rolling-revision-list { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.rolling-revision-list li { padding: 7px 9px; border-left: 3px solid var(--ck-primary); background: var(--ck-surface-soft); }
 .artifact-list { display: grid; gap: 9px; margin: 12px 0 0; padding: 0; list-style: none; }
 .artifact-list > li { padding: 10px; border: 1px solid var(--ck-border); border-radius: 10px; background: var(--ck-surface-soft); }
 .artifact-list > .empty { color: var(--ck-text-muted); text-align: center; }
@@ -244,6 +262,8 @@ dialog form { padding: 16px; }
     .instant-research-bar > div { grid-column: 1; }
     .instant-research-bar .primary { width: auto; }
     .dialog-grid { grid-template-columns: 1fr; }
+    .rolling-note-controls { grid-template-columns: 1fr 1fr; }
+    .rolling-note-controls label, .rolling-note-controls select { grid-column: 1 / -1; grid-row: auto; margin: 0; }
 }
 
 /* 6.0 operational shell — the approved sphere becomes the structure while the

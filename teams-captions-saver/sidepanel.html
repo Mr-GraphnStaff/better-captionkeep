@@ -12,6 +12,7 @@
     <script src="privacyScrubber.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
     <script src="derivedArtifacts.js" defer></script>
+    <script src="rollingNotes.js" defer></script>
     <script src="aiTaskFramework.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="webMailDestinations.js" defer></script>
@@ -51,15 +52,15 @@
             <p id="board-status" class="muted" role="status" aria-live="polite"></p>
         </section>
 
-        <nav class="workspace-tabs" aria-label="Live workspace views">
-            <button id="transcript-tab" class="workspace-tab active" type="button" aria-selected="true">Live transcript</button>
-            <button id="moments-tab" class="workspace-tab" type="button" aria-selected="false">Moments <span id="moment-count">0</span></button>
-            <button id="notes-tab" class="workspace-tab" type="button" aria-selected="false">Notes <span id="note-count">0</span></button>
-            <button id="evidence-tab" class="workspace-tab" type="button" aria-selected="false">Evidence <span id="marker-count">0</span></button>
-            <button id="ask-tab" class="workspace-tab" type="button" aria-selected="false">Ask <span id="answer-count">0</span></button>
+        <nav class="workspace-tabs" aria-label="Live workspace views" role="tablist">
+            <button id="transcript-tab" class="workspace-tab active" type="button" role="tab" aria-controls="transcript-view" aria-selected="true">Live transcript</button>
+            <button id="moments-tab" class="workspace-tab" type="button" role="tab" aria-controls="moments-view" aria-selected="false" tabindex="-1">Moments <span id="moment-count">0</span></button>
+            <button id="notes-tab" class="workspace-tab" type="button" role="tab" aria-controls="notes-view" aria-selected="false" tabindex="-1">Notes <span id="note-count">0</span></button>
+            <button id="evidence-tab" class="workspace-tab" type="button" role="tab" aria-controls="evidence-view" aria-selected="false" tabindex="-1">Evidence <span id="marker-count">0</span></button>
+            <button id="ask-tab" class="workspace-tab" type="button" role="tab" aria-controls="ask-view" aria-selected="false" tabindex="-1">Ask <span id="answer-count">0</span></button>
         </nav>
 
-        <section id="transcript-view" class="workspace-view" aria-labelledby="latest-heading">
+        <section id="transcript-view" class="workspace-view" role="tabpanel" aria-labelledby="transcript-tab" tabindex="0">
             <div class="section-heading">
                 <h2 id="latest-heading">Captured captions</h2>
                 <div class="section-actions">
@@ -89,7 +90,7 @@
             </div>
             <div class="mark-controls">
                 <select id="marker-kind" aria-label="Marker type"></select>
-                <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off">
+                <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off" aria-label="Optional evidence marker note">
                 <button id="mark-latest" class="primary" disabled>Mark latest</button>
             </div>
             <div class="search-row">
@@ -101,13 +102,33 @@
             </ol>
         </section>
 
-        <section id="moments-view" class="workspace-view" aria-labelledby="moments-heading" hidden>
+        <section id="moments-view" class="workspace-view" role="tabpanel" aria-labelledby="moments-tab" tabindex="0" hidden>
             <div class="section-heading"><div><h2 id="moments-heading">Captured Moments</h2><p class="muted">Reviewed local images bound to this transcript snapshot.</p></div><button id="capture-moment-secondary" class="moment-button" type="button">Capture Moment</button></div>
             <ol id="moment-list" class="artifact-list"><li class="empty">No Moments kept for this meeting.</li></ol>
         </section>
 
-        <section id="notes-view" class="workspace-view" aria-labelledby="notes-heading" hidden>
+        <section id="notes-view" class="workspace-view" role="tabpanel" aria-labelledby="notes-tab" tabindex="0" hidden>
             <div class="section-heading"><div><h2 id="notes-heading">Live Notes</h2><p class="muted">Generate a cited draft, review it, then keep it separately from the transcript.</p></div><button id="generate-notes" class="primary" type="button">Generate notes now</button></div>
+            <section class="rolling-notes-card" aria-labelledby="rolling-notes-heading">
+                <div class="section-heading">
+                    <div><h3 id="rolling-notes-heading">Rolling notes</h3><p class="muted">Local, extractive updates from new caption batches. Nothing is sent anywhere.</p></div>
+                    <span id="rolling-notes-state" class="status-pill">Off</span>
+                </div>
+                <div class="rolling-note-controls">
+                    <button id="rolling-notes-toggle" class="primary" type="button">Start rolling notes</button>
+                    <button id="rolling-notes-update" type="button" disabled>Update now</button>
+                    <label for="rolling-notes-interval">Update interval</label>
+                    <select id="rolling-notes-interval">
+                        <option value="30000">30 seconds</option>
+                        <option value="60000">1 minute</option>
+                        <option value="120000">2 minutes</option>
+                    </select>
+                </div>
+                <p id="rolling-notes-status" class="muted" role="status" aria-live="polite">Start when you want local rolling evidence notes.</p>
+                <textarea id="rolling-notes-draft" rows="8" readonly aria-label="Rolling notes draft"></textarea>
+                <div class="artifact-actions"><button id="rolling-notes-review" type="button" disabled>Review this draft</button></div>
+                <details><summary>Rolling revision history</summary><ol id="rolling-notes-revisions" class="rolling-revision-list"><li class="empty">No rolling updates yet.</li></ol></details>
+            </section>
             <label for="notes-draft">Reviewed notes draft</label>
             <textarea id="notes-draft" rows="10" maxlength="100000" placeholder="Paste or write notes with caption citations such as C0001."></textarea>
             <div class="artifact-actions"><button id="save-notes" class="primary" type="button">Keep reviewed notes</button><button id="clear-notes" type="button">Clear draft</button></div>
@@ -115,7 +136,7 @@
             <ol id="notes-list" class="artifact-list"><li class="empty">No reviewed notes kept for this meeting.</li></ol>
         </section>
 
-        <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
+        <section id="evidence-view" class="workspace-view" role="tabpanel" aria-labelledby="evidence-tab" tabindex="0" hidden>
             <h2 id="markers-heading">Evidence markers</h2>
             <label for="marker-session">Evidence board</label>
             <select id="marker-session" aria-label="Choose an evidence board"></select>
@@ -129,7 +150,7 @@
                 <li class="empty">No markers for this meeting yet.</li>
             </ol>
         </section>
-        <section id="ask-view" class="workspace-view" aria-labelledby="ask-heading" hidden>
+        <section id="ask-view" class="workspace-view" role="tabpanel" aria-labelledby="ask-tab" tabindex="0" hidden>
             <h2 id="ask-heading">Ask this transcript</h2>
             <p class="muted">The reviewed handoff is bound to the transcript snapshot visible now. Keep the answer only after checking every citation.</p>
             <label for="ask-question">Question</label>

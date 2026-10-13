@@ -1,5 +1,7 @@
 /* Better CaptionKeep 6.0 compact popup. The full settings page reuses the
    existing form and is intentionally excluded from these presentation rules. */
+.popup-main { background: transparent !important; box-shadow: none !important; }
+
 html:not([data-view="settings"]) body {
     position: relative;
     width: 364px;

@@ -3,11 +3,13 @@
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Capture Moment — Better CaptionKeep</title>
     <link rel="stylesheet" href="theme.css">
-    <style>body {max-width:900px;margin:24px auto;padding:20px;font:16px/1.6 system-ui;color:var(--ck-text);background:var(--ck-bg)} textarea {width:100%;box-sizing:border-box;min-height:200px} img {max-width:100%;border:1px solid var(--ck-border)} button {padding:10px;margin:6px} #status {min-height:24px}</style>
+    <style>body {font:16px/1.6 system-ui;color:var(--ck-text);background:var(--ck-bg)} textarea {width:100%;box-sizing:border-box;min-height:200px} img {max-width:100%;border:1px solid var(--ck-border)} button {padding:10px;margin:6px} #status {min-height:24px}</style>
+    <link rel="stylesheet" href="surface-v6.css"><script src="theme.js" defer></script>
     <script src="configuration.js" defer></script><script src="localization.js" defer></script><script src="privacyScrubber.js" defer></script>
     <script src="meetingExtras.js" defer></script><script src="derivedArtifacts.js" defer></script><script src="extras.js" defer></script>
-</head><body>
-    <h1>Capture Moment</h1><p id="meeting"></p>
+</head><body class="v6-surface"><main class="v6-page-shell">
+    <header class="v6-page-brand"><img src="icons/daf-tech-sphere.png" alt=""><div><p class="v6-eyebrow">Better CaptionKeep 6.0</p><h1>Capture Moment</h1><p id="meeting"></p></div></header>
+    <div class="v6-page-content">
     <p>Review a local meeting moment and its supporting chat before keeping it. A moment never changes the spoken transcript and nothing is sent to a service.</p>
     <button id="capture-chat" disabled>Capture loaded meeting chat</button>
     <button id="load-extras" disabled>Reload saved extras</button>
@@ -19,4 +21,5 @@
     <div id="moment-note-section" hidden><label for="moment-note"><strong>Moment note or alt text</strong></label><textarea id="moment-note" maxlength="1000" aria-label="Moment note or alt text" placeholder="Why this moment matters, or what the image shows"></textarea></div>
     <div><button id="save" disabled>Keep this moment locally</button><button id="discard">Discard moment</button><button id="export" disabled>Export chat TXT</button><button id="delete" disabled>Delete saved moment</button></div>
     <p id="status" role="status" aria-live="polite">Loading meeting context…</p>
+    </div></main>
 </body></html>

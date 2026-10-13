@@ -44,6 +44,7 @@
         #chunk { min-height: 240px; }
         @media (max-width: 560px) { body { padding: 22px 14px 40px; } }
     </style>
+    <link rel="stylesheet" href="surface-v6.css">
     <script src="theme.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="localization.js" defer></script>
@@ -54,12 +55,14 @@
     <script src="handoffPackage.js" defer></script>
     <script src="handoff.js" defer></script>
 </head>
-<body>
+<body class="v6-surface">
 <main>
-    <header>
-        <h1 id="handoffTitle">Review your BYOAI handoff</h1>
-        <p id="handoffIntro" class="intro">Review or remove sensitive details before copying. Better CaptionKeep does not require a DAF-TECH AI service; you decide whether to share this with the AI workspace your organization already provides.</p>
+    <header class="v6-page-brand">
+        <img src="icons/daf-tech-sphere.png" alt="">
+        <div><p class="v6-eyebrow">Better CaptionKeep 6.0</p><h1 id="handoffTitle">Review your BYOAI handoff</h1>
+        <p id="handoffIntro" class="intro">Review or remove sensitive details before copying. You decide whether to share this with the AI workspace your organization already provides.</p></div>
     </header>
+    <div class="v6-page-content">
     <section class="workspace-warning" aria-labelledby="workspaceWarningTitle">
         <h2 id="workspaceWarningTitle">Confirm your BYOAI destination</h2>
         <p>AI assistants can keep personal and enterprise workspaces in the same browser session. Before pasting, confirm the opened page shows the organization approved for this meeting.</p>
@@ -123,6 +126,7 @@
         <h2 id="providerTitle">Choose your approved AI workspace</h2>
         <div id="providers"></div>
     </section>
+    </div>
 </main>
 </body>
 </html>

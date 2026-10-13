@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const archiveSearchPrevious = document.getElementById('archiveSearchPrevious');
     const archiveSearchNext = document.getElementById('archiveSearchNext');
     const closeModal = document.querySelector('.close-modal');
+    let historyReturnFocus = null;
     const transcriptVersion = document.getElementById('transcript-version');
     const dictionaryBtn = document.getElementById('dictionary-btn');
     const dictionaryDialog = document.getElementById('dictionary-dialog');
@@ -867,12 +868,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('clearArchiveSearch').addEventListener('click', clearArchiveSearch);
         archiveSearchPrevious.addEventListener('click', () => changeArchiveSearchPage(-1));
         archiveSearchNext.addEventListener('click', () => changeArchiveSearchPage(1));
-        closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
+        closeModal.addEventListener('click', hideSessionHistory);
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
-                sessionModal.style.display = 'none';
+                hideSessionHistory();
             }
         });
+        sessionModal.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                hideSessionHistory();
+            }
+        });
+    }
+
+    function hideSessionHistory() {
+        sessionModal.style.display = 'none';
+        historyReturnFocus?.focus();
+        historyReturnFocus = null;
     }
     
     // --- Session History Functions ---
@@ -882,7 +895,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Session history is disabled by your organization.', 'warning');
             return;
         }
+        historyReturnFocus = document.activeElement;
         sessionModal.style.display = 'block';
+        closeModal.focus();
         await loadSessionHistory();
     }
     
@@ -1032,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
             history.replaceState(null, '', next);
             
             // Close modal
-            sessionModal.style.display = 'none';
+            hideSessionHistory();
             
             // Load the transcript
             historical = true;
