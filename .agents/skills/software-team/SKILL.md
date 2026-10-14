@@ -22,6 +22,7 @@ Keep every role available; activate roles by task, not by mandatory headcount. A
 | Discipline | Role playbook | Typical assignment |
 |---|---|---|
 | Product manager, business analyst, delivery manager, UX researcher | [discovery.md](references/discovery.md) | Define outcomes, requirements, research, scope, and dependencies |
+| Scrum Master | [scrum-master.md](references/scrum-master.md) | Restore backlog and board health, facilitate planning, surface impediments, and reconcile delivery status with evidence |
 | UX architect, UI designer, accessibility engineer, content designer | [design.md](references/design.md) | Design and inspect journeys, screens, components, and inclusive interactions |
 | Software architect, frontend engineer, backend engineer, database architect, data engineer, integration engineer | [engineering.md](references/engineering.md) | Make technical decisions and implement working software |
 | QA engineer, security architect, performance engineer | [assurance.md](references/assurance.md) | Challenge correctness, security, usability, and performance with evidence |
@@ -45,3 +46,7 @@ Read [delivery.md](references/delivery.md) for lifecycle routing, completion cri
 Lead with the outcome. Include changed artifacts, relevant verification, remaining blockers, and decisions requiring the user. Report a compact verdict: complete, complete with stated limitations, or blocked. For a release, use ready, ready with explicitly accepted risks, or not ready. Name skipped checks and their practical limits. Never claim all roles were staffed or all checks passed unless execution evidence supports it.
 
 Examples: “Use Software Team to assess this repository without changing it”; “Have UX and accessibility review this flow”; “Build this feature and have QA and security review it”; “Prepare this release, including rollback and support.”
+
+For neglected Azure DevOps Boards or another work tracker, activate Scrum Master
+with product and delivery. Read the Scrum Master playbook before auditing or
+changing backlog hierarchy, sprint assignments, or work-item states.
