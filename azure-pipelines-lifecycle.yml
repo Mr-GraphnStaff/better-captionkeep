@@ -31,10 +31,10 @@ stages:
               steps:
                 - checkout: self
                   clean: true
-                - task: NodeTool@0
+                - task: UseNode@1
                   inputs:
-                    versionSpec: 20.x
-                  displayName: Use Node.js 20
+                    version: '22.x'
+                  displayName: Use Node.js 22
                 - bash: npm ci
                   displayName: Install locked dependencies
                 - bash: npm test
@@ -60,10 +60,10 @@ stages:
               steps:
                 - checkout: self
                   clean: true
-                - task: NodeTool@0
+                - task: UseNode@1
                   inputs:
-                    versionSpec: 20.x
-                  displayName: Use Node.js 20
+                    version: '22.x'
+                  displayName: Use Node.js 22
                 - bash: npm ci
                   displayName: Install locked dependencies
                 - bash: npm run release:candidate

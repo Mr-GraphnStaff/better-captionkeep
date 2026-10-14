@@ -3,6 +3,8 @@
 Assessment date: 2026-10-14. Working development, not release approval.
 Scope: the complete [6.0 roadmap](../ROADMAP-6.0.md), including the lightweight
 front door and powerful back door. No feature is removed or waived here.
+The lead subsequently explicitly included opt-in Bring Your Own MCP in 6.0;
+its [UX contract](BYOMCP-UX-6.0.md) is design work, not an implemented claim.
 
 ## Highest launch risks
 
@@ -68,6 +70,7 @@ actual result, and sanitized evidence for each row. A missing prerequisite is
 | Ask | Answer binds to original question/source snapshot, not newer captions or another meeting. Exact unsupported-answer result allowed; invented citations rejected. |
 | Moments/Evidence | Review PNG before retaining, attach optional description/note, export/delete, follow exact nearby citations. Mark/unmark/delete and reviewed promotion retain source lineage. |
 | Privacy/enterprise | Scrub actual outputs; managed denial overrides optional allowance. Local Core works without identity/license services. Tenant sign-in/import requires its own authorized test environment and is not covered by local synthetic render evidence. |
+| Bring Your Own MCP (lead-approved 6.0 scope) | Disabled by default; enroll a user-owned destination and review tool inventory. Explicit selected-evidence preview/submission; source-bound returned result verified before pinning. Denial/cancel/disconnect never disables Core. Remote HTTP and installed local bridge are separately tested; no automatic transcript sending or publisher-hosted assistant. See the design contract; implementation acceptance is open. |
 | Archive/delete/upgrade | Search and reopen older Receipts; delete source and associated excerpts/snapshots. Upgrade existing installation preserving supported preferences/archive; record real distribution-channel result. |
 | Appearance/language | Default dark DAF sphere stays consistent; light/system/slate/high-contrast and OS theme change remain readable. Long names/Unicode/RTL and translated copy do not overflow or reverse citation meaning. |
 

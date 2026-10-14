@@ -166,6 +166,7 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
   const profile = await mkdtemp(path.join(os.tmpdir(), 'captionkeep-surface-'));
   let child;
   let cdp;
+  let startupStderr = '';
   // Serving the exact packaged files avoids file:// fetch restrictions in the
   // localization and dynamically loaded archive modules.
   const server = createServer(async (request,response) => {
@@ -182,16 +183,17 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
   try {
     child = spawn(binary, ['--headless=new','--disable-gpu','--no-first-run',
       '--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],
-      {windowsHide:true,stdio:'ignore'});
+      {windowsHide:true,stdio:['ignore','ignore','pipe']});
+    child.stderr.on('data', bytes => {startupStderr = (startupStderr + bytes.toString('utf8')).slice(-8192);});
     let launchError;
     child.on('error', error => { launchError = error; });
     let port;
-    for (let attempt = 0; attempt < 100; attempt++) {
+    for (let attempt = 0; attempt < 300; attempt++) {
       if (launchError) throw launchError;
-      if (child.exitCode !== null) throw new Error(`Browser exited before debugging connection: ${child.exitCode}`);
+      if (child.exitCode !== null || child.signalCode) throw new Error(`Browser exited before debugging connection: code=${child.exitCode}; signal=${child.signalCode || 'none'}`);
       try { port = (await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]; break; } catch { await delay(100); }
     }
-    if (!port) throw new Error('Browser did not open a debugging connection.');
+    if (!port) throw new Error('Browser did not open a debugging connection within the 30-second startup budget.');
     const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
     const page = targets.find(target => target.type === 'page');
     if (!page?.webSocketDebuggerUrl) throw new Error('Browser page debugging target is unavailable.');
@@ -244,6 +246,13 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
       }
     }
     return {checks};
+  } catch (error) {
+    if (!cdp) {
+      const reason = startupStderr.replaceAll(profile,'[profile]').replaceAll(os.homedir(),'[home]')
+        .replace(/[\u0000-\u001f\u007f]/g,' ').replace(/https?:\/\/[^\s]+/g,'[url]').slice(-2400);
+      throw new Error(`${error.message}; browser startup code=${child?.exitCode ?? 'running'}; signal=${child?.signalCode || 'none'}; stderr=${reason || '[no stderr captured]'}`, {cause:error});
+    }
+    throw error;
   } finally {
     cdp?.close();
     if (child && child.exitCode === null) {

@@ -36,10 +36,10 @@ function pipeConnection(child) {
   child.once('exit', () => terminate(new Error('Isolated browser exited.')));
   return {
     exceptions,
-    send(method, params = {}, sessionId) {
+    send(method, params = {}, sessionId, timeoutMs = 15000) {
       return new Promise((resolve, reject) => {
         const id = ++sequence;
-        const timer = setTimeout(() => {pending.delete(id); reject(new Error(`Browser command timed out: ${method}`));}, 15000);
+        const timer = setTimeout(() => {pending.delete(id); reject(new Error(`Browser command timed out: ${method}`));}, timeoutMs);
         pending.set(id, {resolve, reject, timer});
         child.stdio[3].write(JSON.stringify({id,method,params,...(sessionId ? {sessionId} : {})}) + '\0');
       });
@@ -94,12 +94,16 @@ export async function runLoadedExtension(binary, sourceDirectory, {screenshot,br
   const workerSha256 = createHash('sha256').update(await readFile(path.join(extension, 'service_worker.js'))).digest('hex');
   let child;
   let connection;
+  let startupStderr = '';
+  let browserReady = false;
   try {
     child = spawn(binary, ['--headless=new','--no-first-run','--no-default-browser-check','--disable-background-networking',
       '--enable-unsafe-extension-debugging','--remote-debugging-pipe',`--user-data-dir=${profile}`,'about:blank'],
-    {windowsHide:true,stdio:['ignore','ignore','ignore','pipe','pipe']});
+    {windowsHide:true,stdio:['ignore','ignore','pipe','pipe','pipe']});
+    child.stderr.on('data', bytes => {startupStderr = (startupStderr + bytes.toString('utf8')).slice(-8192);});
     connection = pipeConnection(child);
-    const browser = await connection.send('Browser.getVersion');
+    const browser = await connection.send('Browser.getVersion', {}, undefined, 30000);
+    browserReady = true;
     const loaded = await connection.send('Extensions.loadUnpacked', {path:extension});
     if (!loaded.id) throw new Error('Browser did not return an unpacked extension identity.');
     const target = await connection.send('Target.createTarget', {url:`chrome-extension://${loaded.id}/popup.html?view=settings`});
@@ -133,10 +137,17 @@ export async function runLoadedExtension(binary, sourceDirectory, {screenshot,br
       : execFileSync(binary,['--version'],{encoding:'utf8',timeout:10000}).trim();
     return {...result,browser:browserName,browserVersion:brandedVersion,engineVersion:browser.product,workerSha256,operatingSystem:`${os.type()} ${os.release()}`,
       testedAt:new Date().toISOString(),scope:'Actual unpacked extension APIs and worker with synthetic legacy archive, recovery, preferences, source deletion, marker replay, and native discard metadata. No live meeting providers or store-installed upgrade were exercised.'};
+  } catch (error) {
+    if (!browserReady) {
+      const reason = startupStderr.replaceAll(temporary,'[temporary]').replaceAll(os.homedir(),'[home]')
+        .replace(/[\u0000-\u001f\u007f]/g,' ').replace(/https?:\/\/[^\s]+/g,'[url]').slice(-2400);
+      throw new Error(`${error.message}; native browser startup code=${child?.exitCode ?? 'running'}; signal=${child?.signalCode || 'none'}; stderr=${reason || '[no stderr captured]'}`, {cause:error});
+    }
+    throw error;
   } finally {
-    if (child && child.exitCode === null) {
-      try {await connection?.send('Browser.close');} catch {}
-      if (child.exitCode === null) {
+    if (child && child.exitCode === null && !child.signalCode) {
+      if (browserReady) {try {await connection?.send('Browser.close');} catch {}}
+      if (child.exitCode === null && !child.signalCode) {
         const exited = new Promise(resolve => child.once('exit', resolve));
         child.kill();
         await Promise.race([exited,new Promise(resolve => setTimeout(resolve,3000))]);

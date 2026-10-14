@@ -76,6 +76,21 @@ documented October 13 fixes. Issues remain open with local/deployed/live distinc
 The lead authorized pushing this branch and opening a **draft** PR after checks.
 No merge, Store submission or public 6.0 certification is authorized or implied.
 
+The integrated work was committed as 99e2648 and pushed to `codex/6.0`.
+Draft PR #137 is open and attached to the task. Managed-locale defect #136 was
+subsequently repaired with independent ten-test acceptance and pushed as 42d706f;
+the full local gate passed 358 tests plus the packaging/runtime/source-parity
+checks. Protected Linux validation revealed a Chrome debugging startup failure;
+the actual Azure lifecycle run 741 separately revealed stale Node 20 selection.
+Both findings remain under #105; startup diagnostics and Azure runtime correction
+are being retested. CI success is not implied by the local pass.
+
+The lead also explicitly required BYOMCP before 6.0 release, clarifying this is
+user-owned MCP rather than publisher-hosted AI. Roadmap gate 15, the new draft
+ADR and UX/assurance contracts preserve that requirement. It is not implemented
+or approved by inclusion alone. Remote placement, native enrollment, credentials,
+aggregate job quota and resolved-address/resource authorization require review.
+
 ### Latest user-directed workspace iteration
 
 The user's live meeting screenshot identified excessive chrome competing with
