@@ -107,6 +107,13 @@ body.v6-surface .provider-link:hover {
 :root[data-theme="light"] .v6-page-brand h1,
 :root[data-theme="light"] body.v6-surface .viewer-header h1 { color: var(--ck-text); }
 
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) body.v6-surface { background: var(--ck-bg) !important; }
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .v6-page-shell,
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) body.v6-surface > main,
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) body.v6-surface > .container { background: var(--ck-surface) !important; border-color: var(--ck-border); }
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .v6-page-brand,
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .viewer-header { background: var(--ck-surface-soft); }
+
 @media (max-width: 620px) {
     body.v6-surface { padding: 8px; }
     .v6-page-shell,

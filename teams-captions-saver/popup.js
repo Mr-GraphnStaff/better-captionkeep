@@ -189,9 +189,7 @@ async function importMeetingTemplates(file) {
     const parsed = JSON.parse(await file.text());
     const imported = CaptionKeepPromptTemplates.sanitize(parsed?.templates);
     if (!imported.length) throw new Error('No valid local templates were found in that file.');
-    const merged = new Map(customMeetingTemplates.map(template => [template.id, template]));
-    for (const template of imported) merged.set(template.id, template);
-    customMeetingTemplates = CaptionKeepPromptTemplates.sanitize([...merged.values()]);
+    customMeetingTemplates = CaptionKeepPromptTemplates.mergeImported(customMeetingTemplates, imported);
     await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
     renderMeetingTemplates(imported[0].id);
     UI_ELEMENTS.intelligenceTemplateStatus.textContent = `${imported.length} template${imported.length === 1 ? '' : 's'} imported locally.`;

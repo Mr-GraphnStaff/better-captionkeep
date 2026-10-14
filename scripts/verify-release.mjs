@@ -4,6 +4,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
+import {verifyPackageSource} from './verify-package-source.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
@@ -81,6 +82,9 @@ for (const target of ['dev', 'uat', 'prod']) {
     throw new Error('prod manifest contains non-production lifecycle labeling');
   }
   const graphConfig = await readFile(path.join(root, 'graphRuntimeConfig.js'), 'utf8');
+  await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {
+    directory:root, allowedDifferences:target === 'prod' ? ['manifest.json'] : ['manifest.json','graphRuntimeConfig.js']
+  });
   if (target === 'prod' && graphConfig !== storeGraphConfig) {
     throw new Error('prod Microsoft 365 configuration differs from the Store source');
   }
@@ -96,16 +100,19 @@ if (new Set(lifecycleKeys).size !== lifecycleKeys.length) {
 
 const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;
 const storeZipPath = path.join(prodDir, storeZipName);
+await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPath:storeZipPath});
 artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(storeZipPath)).size, sha256: await sha256(storeZipPath) });
 
 const chromeStoreZipName = `better_captionkeep-chrome-${sourceManifest.version}.zip`;
 const chromeStoreZipPath = path.join(prodDir, chromeStoreZipName);
+await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPath:chromeStoreZipPath});
 artifacts.push({ target: 'chrome-store', path: chromeStoreZipName, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
 
 const browserPackageDir = path.join(prodDir, 'browser-packages');
 for (const browser of ['chrome', 'edge', 'brave', 'opera', 'firefox', 'safari']) {
   const name = `better-captionkeep-${browser}-${sourceManifest.version}.zip`;
   const filePath = path.join(browserPackageDir, name);
+  await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPath:filePath});
   artifacts.push({
     target: `${browser}-browser-package`,
     path: `browser-packages/${name}`,

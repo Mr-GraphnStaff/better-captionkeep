@@ -92,10 +92,18 @@ class SessionManager {
 
     async removeTemporaryArtifacts(identities, preserve = new Set()) {
         if (!chrome.storage.session) return;
-        const keys = identities.filter(id => !preserve.has(String(id)))
-            .flatMap(id => this.sessionKeys({id}))
-            .filter(key => /^(?:transcript_corrections_|meeting_extras_|derived_artifacts_|rolling_notes_)/.test(key));
+        const keys = this.temporaryArtifactKeys(identities.filter(id => !preserve.has(String(id))));
         if (keys.length) await chrome.storage.session.remove([...new Set(keys)]);
+    }
+
+    temporaryArtifactKeys(identities) {
+        return identities.flatMap(id => {
+            const encoded = encodeURIComponent(String(id).trim());
+            return [...this.sessionKeys({id}).filter(key =>
+                /^(?:transcript_corrections_|meeting_extras_|derived_artifacts_|rolling_notes_)/.test(key)),
+                `review_source_live_notes_${encoded}`, `review_source_transcript_qa_${encoded}`,
+                `handoff_template_${encoded}`];
+        });
     }
 
     ownedGenerationKeys(sessionId, data, prefix = '') {
@@ -564,9 +572,10 @@ class SessionManager {
         await this.removeEvidenceMarkers([], {clearAll:true, preserve:active});
         if (chrome.storage.session) {
             const temporary = await chrome.storage.session.get(null);
-            const preserveKeys = new Set([...temporaryActive].flatMap(id => this.sessionKeys({id})));
+            const preserveKeys = new Set(this.temporaryArtifactKeys([...temporaryActive]));
             const expiredKeys = Object.keys(temporary).filter(key =>
-                /^(?:transcript_corrections_|meeting_extras_|derived_artifacts_|rolling_notes_)/.test(key) && !preserveKeys.has(key));
+                /^(?:transcript_corrections_|meeting_extras_|derived_artifacts_|rolling_notes_|review_source_(?:live_notes|transcript_qa)_|handoff_template_)/.test(key)
+                && !preserveKeys.has(key));
             if (expiredKeys.length) await chrome.storage.session.remove(expiredKeys);
         }
         

@@ -44,7 +44,19 @@ Its first independent feature was **Save As (choose download location)**; the cu
 - All changes should preserve extension stability.
 - Legal notice: the original MIT license and attribution must remain intact.
 
-## Project-local product skills
+## Transparent defect tracking
+
+Every confirmed defect found during project work must be documented in the
+project's GitHub issues, including defects already fixed locally. Search existing
+issues first and add evidence to the matching record instead of duplicating it.
+Include affected version, synthetic reproduction or precise source evidence,
+impact, fix/test status, and remaining acceptance. Link the public issue to the
+corresponding Azure Boards work item. Do not close a defect solely because local
+unit tests pass or imply an unpublished local fix is deployed. Never publish
+credentials, private tenant identifiers, meeting content or unsanitized screenshots.
+Clearly distinguish confirmed bugs, hypotheses, and feature requests.
+
+## Project-local product skill routing
 
 - Use `.agents/skills/software-team/SKILL.md` when the user invokes `$software-team` or requests coordinated multidisciplinary delivery. Read its coordination and relevant role playbooks, use the existing 6.0 roadmap and release evidence, and keep the user as team lead. The full portable package is stored with this repository.
 - Use `.agents/skills/better-captionkeep-ux-designer/SKILL.md` when reviewing flows, interface states, terminology, hierarchy, accessibility, or release UX acceptance.

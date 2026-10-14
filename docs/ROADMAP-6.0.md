@@ -118,15 +118,15 @@ provider smoke matrix, version/OS record, and evidence.
 | 1 | 6.0 popup visual language and one-button meeting decision | Implemented; live UAT open |
 | 2 | Persistent workspace visual conversion | Implemented; live responsive UAT open |
 | 3 | Full remaining-surface UI conversion | Implemented; live responsive UAT open |
-| 4 | Shared cited-derivative/provenance foundation | Implemented for Moments and reviewed Notes; expansion open |
+| 4 | Shared cited-derivative/provenance foundation | Implemented for Moments and reviewed Notes/Answers; original-request binding under review; live acceptance open |
 | 5 | Capture Moment product workflow | Working local path; live browser UAT open |
 | 6 | Manual cited Live Notes | Working reviewed handoff, local cited-note retention, and user-directed Evidence promotion; live UAT open |
 | 7 | Rolling Live Notes | Implemented with bounded deltas, pause/resume, update-now, retry limits, idempotency, and restart-safe revision history; live UAT open |
-| 8 | User meeting templates/prompts | Working local Settings workbench and handoff application; revision hardening open |
+| 8 | User meeting templates/prompts | Local Settings workbench, versioned built-ins/custom revisions and duplication implemented; workspace selection/safety hardening under review; live acceptance open |
 | 9 | Transcript Q&A | Working snapshot-bound reviewed handoff plus local cited-answer retention; live UAT open |
 | 10 | Six browser-specific build/runtime targets | Implemented; native validation open |
 | 11 | Accessibility, privacy, security, and failure hardening | Automated seven-surface audit, extension validation, tests, and dependency audit pass; manual assistive-technology and live failure UAT open |
-| 12 | Separate six-browser/provider certification | Packages built for all six; Windows renderer smoke passed in Chrome, Edge, Brave, and Firefox; provider certification, Opera, and Safari/macOS remain open |
+| 12 | Separate six-browser/provider certification | Packages built for all six; asserted Windows renderer checks passed in Chrome, Edge and Brave; Firefox screenshot captured only; all live provider certification, Opera, and Safari/macOS remain open |
 | 13 | Frozen storefront bundle and release candidate | Reproducible screenshots, promotional art, six browser packages, hashes, SBOM, and provenance automation implemented; owner approval and candidate freeze open |
 | 14 | Controlled promotion, public parity, and upgrade smoke | Open |
 

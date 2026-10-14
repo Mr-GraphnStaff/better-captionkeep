@@ -57,11 +57,17 @@ test('archive deletion erases source-bound excerpts while preserving other meeti
 
 test('explicit deletion also erases temporary derivatives for that source', async () => {
     const h = harness({session_index:[metadata('archive', 'source')], archive_chunk_0:[{}]},
-        {rolling_notes_source:{draft:'temporary'}, derived_artifacts_source:[{}], rolling_notes_other:{draft:'keep'}});
+        {rolling_notes_source:{draft:'temporary'}, derived_artifacts_source:[{}], rolling_notes_other:{draft:'keep'},
+            review_source_live_notes_source:{context:{sessionId:'source'}}, review_source_transcript_qa_source:{context:{sessionId:'source'}},
+            handoff_template_source:{templateSnapshot:{id:'synthetic'}}, review_source_live_notes_other:{context:{sessionId:'other'}}});
     await h.manager().deleteSession('archive');
     assert.equal(h.sessionData.rolling_notes_source, undefined);
     assert.equal(h.sessionData.derived_artifacts_source, undefined);
     assert(h.sessionData.rolling_notes_other);
+    assert.equal(h.sessionData.review_source_live_notes_source, undefined);
+    assert.equal(h.sessionData.review_source_transcript_qa_source, undefined);
+    assert.equal(h.sessionData.handoff_template_source, undefined);
+    assert(h.sessionData.review_source_live_notes_other);
 });
 
 test('expiry and maximum-history pruning erase excerpts only for pruned sources', async () => {

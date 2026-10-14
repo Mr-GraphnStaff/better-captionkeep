@@ -3,7 +3,7 @@
 
     const STORAGE_KEY = 'uiTheme';
     const DEFAULT_THEME = 'captionkeep';
-    const VALID_THEMES = new Set(['captionkeep', 'light', 'midnight', 'system']);
+    const VALID_THEMES = new Set(['captionkeep', 'light', 'midnight', 'slate', 'high-contrast', 'system']);
     const systemAppearance = globalThis.matchMedia?.('(prefers-color-scheme: dark)');
     let preference = DEFAULT_THEME;
 

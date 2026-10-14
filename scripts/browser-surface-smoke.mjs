@@ -4,25 +4,22 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import {runChromiumSurface} from './rendered-surface-checks.mjs';
+import {installedBrowsers} from './browser-platform.mjs';
+import {runLoadedExtension} from './loaded-extension-checks.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const prodDir = path.join(projectRoot, 'dist', 'prod');
 const evidenceDir = path.join(prodDir, 'certification-evidence');
 const recordPath = path.join(prodDir, 'browser-certification.json');
 
-const definitions = [
-  {browser: 'chrome', binary: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', chromium: true},
-  {browser: 'edge', binary: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', chromium: true},
-  {browser: 'brave', binary: path.join(process.env.LOCALAPPDATA || '', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'), chromium: true},
-  {browser: 'opera', binary: path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Opera', 'opera.exe'), chromium: true},
-  {browser: 'firefox', binary: 'C:\\Program Files\\Mozilla Firefox\\firefox.exe', chromium: false}
-];
+const definitions = await installedBrowsers();
 
 async function exists(file) {
   try { await access(file); return true; } catch { return false; }
 }
 
 function version(binary) {
+  if (process.platform !== 'win32') return execFileSync(binary, ['--version'], {encoding:'utf8',timeout:10000}).trim();
   const quoted = binary.replaceAll("'", "''");
   return execFileSync('powershell.exe', [
     '-NoProfile', '-Command',
@@ -33,12 +30,13 @@ function version(binary) {
 await mkdir(evidenceDir, {recursive: true});
 const record = JSON.parse(await readFile(recordPath, 'utf8'));
 let failed = false;
+let renderedBrowsers = 0;
 
 for (const definition of definitions) {
   const entry = record.browsers.find(item => item.browser === definition.browser);
   if (!entry) continue;
-  if (!await exists(definition.binary)) {
-    entry.surfaceSmoke = {status: 'not-run', reason: 'Browser is not installed on this Windows host.'};
+  if (!definition.binary) {
+    entry.surfaceSmoke = {status: 'not-run', reason: `Browser is not installed on this ${os.type()} host.`};
     continue;
   }
   const screenshot = path.join(evidenceDir, `${definition.browser}-settings-surface.png`);
@@ -62,14 +60,26 @@ for (const definition of definitions) {
       evidence: `certification-evidence/${path.basename(screenshot)}`
     };
     if (entry.surfaceSmoke.status === 'failed') failed = true;
+    if (entry.surfaceSmoke.status === 'passed') renderedBrowsers += 1;
+    if (definition.chromium && rendered) {
+      const nativeResult = await runLoadedExtension(definition.binary, path.join(prodDir, `${definition.browser}-unpacked`), {
+        browserName:definition.browser, screenshot:path.join(evidenceDir, `${definition.browser}-loaded-extension.png`)
+      });
+      const evidence = `${definition.browser}-loaded-extension.json`;
+      await writeFile(path.join(evidenceDir,evidence),JSON.stringify(nativeResult,null,2)+'\n');
+      entry.loadedExtensionSmoke = {status:'passed',...nativeResult,evidence:`certification-evidence/${evidence}`};
+    } else entry.loadedExtensionSmoke = {status:'not-run',reason:'Native-extension runtime checks are available only for Chromium targets in this tool.'};
   } catch (error) {
     failed = true;
     entry.surfaceSmoke = {status: 'failed', reason: String(error.message || error).slice(0, 500)};
+    entry.loadedExtensionSmoke = {status:'failed',reason:String(error.message || error).slice(0,500)};
   }
 }
 
 const safari = record.browsers.find(item => item.browser === 'safari');
-if (safari) safari.surfaceSmoke = {status: 'not-run', reason: 'Safari/macOS is unavailable on this Windows host.'};
+if (safari) safari.surfaceSmoke = {status: 'not-run', reason: process.platform === 'darwin'
+  ? 'Safari native-extension validation requires its separate macOS test workflow.' : `Safari/macOS is unavailable on this ${os.type()} host.`};
+if (!renderedBrowsers) {failed = true; console.error('No installed Chromium browser completed rendered assertions.');}
 await writeFile(recordPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 console.log(`Updated ${path.relative(projectRoot, recordPath)} with separate installed-browser surface-smoke evidence.`);
 if (failed) process.exitCode = 1;

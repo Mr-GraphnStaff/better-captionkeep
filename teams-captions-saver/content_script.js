@@ -7,6 +7,7 @@ const TIMING = {
     TOOLTIP_DISPLAY_DURATION: 1500,
     ATTENDEE_UPDATE_INTERVAL: 60000, // Check attendees every minute
     INITIAL_ATTENDEE_DELAY: 1500, // Wait 1.5s after meeting start before first check
+    LEAVE_INTENT_LIFETIME: 15000,
 };
 
 const SELECTORS = {
@@ -48,11 +49,17 @@ let attendeeCaptureRequested = false;
 let pausedByUser = false;
 let sourceMissingSince = null;
 let leaveRequested = false;
+let leaveRequestedAt = 0;
 let stateCheckRunning = false;
 let attendeeStartTimer = null;
 let captureState = 'idle';
 let lastPublishedBadgeState = null;
+let badgePublicationRevision = 0;
+let lastPublishedProtectionState = null;
+let lastPublishedProtectionSessionId = '';
+let protectionPublicationRevision = 0;
 let checkpointError = '';
+let backupWriteQueue = Promise.resolve();
 let transcriptionState = 'unchecked';
 let transcriptionDetail = 'Teams transcription has not been checked.';
 let transcriptionCheckInProgress = false;
@@ -385,11 +392,27 @@ const isUserInMeeting = () => Boolean(
 );
 
 function publishCaptureBadge() {
+    publishCaptureTabProtection();
     const live = capturing && trackingAllowed && isUserInMeeting()
         && Boolean(getLiveMeetingElement(SELECTORS.CAPTIONS_RENDERER));
     if (live === lastPublishedBadgeState) return;
     lastPublishedBadgeState = live;
-    chrome.runtime.sendMessage({message:'update_badge_status', capturing:live}).catch(() => {});
+    const revision = ++badgePublicationRevision;
+    chrome.runtime.sendMessage({message:'update_badge_status', capturing:live}).catch(() => {
+        if (revision === badgePublicationRevision) lastPublishedBadgeState = null;
+    });
+}
+
+function publishCaptureTabProtection(active = capturing && trackingAllowed) {
+    if (active === lastPublishedProtectionState && documentSessionId === lastPublishedProtectionSessionId) return;
+    lastPublishedProtectionState = active;
+    lastPublishedProtectionSessionId = documentSessionId;
+    const revision = ++protectionPublicationRevision;
+    chrome.runtime.sendMessage({message:'set_capture_tab_protection', active, sessionId:documentSessionId}).then(result => {
+        if (result?.ok === false && revision === protectionPublicationRevision) lastPublishedProtectionState = null;
+    }).catch(() => {
+        if (revision === protectionPublicationRevision) lastPublishedProtectionState = null;
+    });
 }
 
 // --- Core Logic ---
@@ -581,7 +604,8 @@ function stopAttendeeTracking() {
     }
 }
 
-async function getAttendeeReport() {
+async function getAttendeeReport(snapshot = null) {
+    const captured = snapshot || snapshotAttendeeData();
     // Check if attendee tracking is enabled
     const { trackAttendees } = await readEffectiveCaptureSettings();
     if (trackAttendees === false) {
@@ -589,16 +613,16 @@ async function getAttendeeReport() {
     }
     
     const report = {
-        meetingStartTime: attendeeData.meetingStartTime,
-        lastUpdated: attendeeData.lastUpdated,
-        totalUniqueAttendees: attendeeData.allAttendees.size,
-        currentAttendeeCount: attendeeData.currentAttendees.size,
-        attendeeList: Array.from(attendeeData.allAttendees),
-        currentAttendees: Array.from(attendeeData.currentAttendees.entries()).map(([name, role]) => ({
+        meetingStartTime: captured.meetingStartTime,
+        lastUpdated: captured.lastUpdated,
+        totalUniqueAttendees: captured.allAttendees.length,
+        currentAttendeeCount: captured.currentAttendees.length,
+        attendeeList: captured.allAttendees,
+        currentAttendees: captured.currentAttendees.map(([name, role]) => ({
             name,
             role
         })),
-        attendeeHistory: attendeeData.attendeeHistory
+        attendeeHistory: captured.attendeeHistory
     };
     
     console.log("[Teams Caption Saver] Attendee report generated:", {
@@ -658,6 +682,14 @@ function setupCaptionsObserver() {
 
 const checkMeetingState = ErrorHandler.wrap(async function() {
     const previouslyInMeeting = wasInMeeting;
+    // A canceled Leave dialog must not make a later DOM remount look like an
+    // explicit exit. Expire intent only with positive live in-call controls;
+    // a hidden window or missing controls cannot clear a real exit.
+    if (leaveRequested && leaveRequestedAt && Date.now() - leaveRequestedAt >= TIMING.LEAVE_INTENT_LIFETIME
+        && getLiveMeetingElement(SELECTORS.LEAVE_BUTTONS)) {
+        leaveRequested = false;
+        leaveRequestedAt = 0;
+    }
     const nowInMeeting = isUserInMeeting();
     // Do not advertise ON during the recovery grace period or async exports.
     publishCaptureBadge();
@@ -743,6 +775,7 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         return;
     } else if (!previouslyInMeeting && nowInMeeting) {
         leaveRequested = false;
+        leaveRequestedAt = 0;
         // Reset auto-save state when joining a new meeting
         console.log("Meeting transition detected: Out -> In. Resetting auto-save state.");
         autoSaveTriggered = false;
@@ -832,6 +865,13 @@ async function startCaptureSession() {
 
     console.log("New caption session detected. Starting capture.");
     if (!pausedByUser && !restoredFromCheckpoint) {
+        documentSessionId = crypto.randomUUID();
+        const sessionId = documentSessionId;
+        queueBackupWrite(async () => {
+            if (ACTIVE_CAPTURE_KEY && sessionId === documentSessionId) await chrome.storage.local.remove(ACTIVE_CAPTURE_KEY);
+        }).catch(error => {
+            if (sessionId === documentSessionId) checkpointError = 'Recovery reset failed: ' + error.message;
+        });
         captionBuffer?.reset();
         transcriptArray.length = 0;
         meetingTitleOnStart = document.title;
@@ -854,18 +894,41 @@ async function startCaptureSession() {
     ensureObserverIsActive();
 }
 
-async function persistBackup() {
-    if (!ACTIVE_CAPTURE_KEY || !transcriptArray.length) return;
-    try {
-        const snapshot = {
-            transcript: getCleanTranscript(), meetingTitle: meetingTitleOnStart,
+function snapshotAttendeeData() {
+    return {...attendeeData, allAttendees:[...attendeeData.allAttendees],
+        currentAttendees:[...attendeeData.currentAttendees].map(entry => [...entry]),
+        attendeeHistory:attendeeData.attendeeHistory.map(item => ({...item}))};
+}
+
+function captureBackupSnapshot() {
+    return {
+            transcript: getCleanTranscript().map(caption => ({...caption})), meetingTitle: meetingTitleOnStart,
             recordingStartTime: recordingStartTime?.toISOString(), lastBackup: new Date().toISOString(),
             documentSessionId, pageUrl: window.location.href, surfaceId: captureSurfaceId,
-            attendeeData: { ...attendeeData, allAttendees:[...attendeeData.allAttendees], currentAttendees:[...attendeeData.currentAttendees] }
-        };
-        await chrome.storage.local.set({ [`backup_${documentSessionId}`]: snapshot, [ACTIVE_CAPTURE_KEY]: snapshot });
-        checkpointError = '';
-    } catch (error) { checkpointError = 'Recovery save failed: ' + error.message; }
+            attendeeData:snapshotAttendeeData()
+    };
+}
+
+async function persistBackup(snapshot = captureBackupSnapshot()) {
+    if (!ACTIVE_CAPTURE_KEY || !snapshot.transcript.length) return;
+    try {
+        await queueBackupWrite(async () => {
+            const values = {[`backup_${snapshot.documentSessionId}`]:snapshot};
+            // Old completed snapshots retain their own recovery backup, but
+            // cannot publish over a newer meeting's active checkpoint.
+            if (snapshot.documentSessionId === documentSessionId) values[ACTIVE_CAPTURE_KEY] = snapshot;
+            await chrome.storage.local.set(values);
+        });
+        if (snapshot.documentSessionId === documentSessionId) checkpointError = '';
+    } catch (error) {
+        if (snapshot.documentSessionId === documentSessionId) checkpointError = 'Recovery save failed: ' + error.message;
+    }
+}
+
+function queueBackupWrite(operation) {
+    const request = backupWriteQueue.catch(() => {}).then(operation);
+    backupWriteQueue = request.catch(() => {});
+    return request;
 }
 
 async function restoreActiveCapture() {
@@ -933,7 +996,8 @@ function stopCaptureSession() {
     }
     
     if (transcriptArray.length > 0) {
-        persistBackup().then(() => saveToSessionHistory());
+        const completed = captureBackupSnapshot();
+        persistBackup(completed).then(() => saveToSessionHistory(completed));
     }
 
     // Stop attendee tracking
@@ -943,26 +1007,33 @@ function stopCaptureSession() {
 }
 
 // Save current transcript to session history
-async function saveToSessionHistory() {
-    if (transcriptArray.length === 0) return;
+async function saveToSessionHistory(snapshot = captureBackupSnapshot()) {
+    if (snapshot.transcript.length === 0) return;
     
     try {
         // Use message passing to save session (content scripts can't import modules)
-        const attendeeReport = await getAttendeeReport();
+        const attendeeReport = await getAttendeeReport(snapshot.attendeeData);
         const result = await chrome.runtime.sendMessage({
             message: "save_session_history",
-            backupKey: `backup_${documentSessionId}`,
-            recordingStartTime: recordingStartTime?.toISOString(),
-            transcriptArray: transcriptArray,
-            meetingTitle: meetingTitleOnStart || 'Untitled Meeting',
+            backupKey: `backup_${snapshot.documentSessionId}`,
+            recordingStartTime: snapshot.recordingStartTime,
+            transcriptArray: snapshot.transcript,
+            meetingTitle: snapshot.meetingTitle || 'Untitled Meeting',
             attendeeReport: attendeeReport
         });
         
         if (!result?.ok) throw new Error(result?.error || 'History save failed');
-        await chrome.storage.local.remove(ACTIVE_CAPTURE_KEY);
-        checkpointError = '';
+        if (snapshot.documentSessionId === documentSessionId) {
+            await queueBackupWrite(async () => {
+                const active = (await chrome.storage.local.get(ACTIVE_CAPTURE_KEY))[ACTIVE_CAPTURE_KEY];
+                if (snapshot.documentSessionId === documentSessionId && active?.documentSessionId === snapshot.documentSessionId) {
+                    await chrome.storage.local.remove(ACTIVE_CAPTURE_KEY);
+                }
+            });
+            if (snapshot.documentSessionId === documentSessionId) checkpointError = '';
+        }
     } catch (error) {
-        checkpointError = 'History save failed: ' + error.message;
+        if (snapshot.documentSessionId === documentSessionId) checkpointError = 'History save failed: ' + error.message;
     }
 }
 
@@ -1148,6 +1219,7 @@ function initializeEventDrivenSystem() {
     document.addEventListener('click', event => {
         if (event.target.closest?.(SELECTORS.LEAVE_BUTTONS)) {
             leaveRequested = true;
+            leaveRequestedAt = Date.now();
             persistBackup();
         }
     }, true);
@@ -1160,6 +1232,7 @@ function initializeEventDrivenSystem() {
 
 // --- Memory Leak Prevention ---
 function cleanupObservers() {
+    publishCaptureTabProtection(false);
     flushPendingCaptions();
     if (observer) {
         observer.disconnect();
@@ -1252,6 +1325,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                 const { trackCaptions } = await chrome.storage.sync.get('trackCaptions');
                 const attendeeReport = await getAttendeeReport();
                 sendResponse({
+                    captureSessionActive: trackCaptions !== false && capturing,
+                    captureSessionId: documentSessionId,
                     capturing: trackCaptions !== false && capturing && isUserInMeeting()
                         && Boolean(getLiveMeetingElement(SELECTORS.CAPTIONS_RENDERER)),
                     captureState, checkpointError,

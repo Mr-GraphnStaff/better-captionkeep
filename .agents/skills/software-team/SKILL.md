@@ -23,6 +23,7 @@ Keep every role available; activate roles by task, not by mandatory headcount. A
 |---|---|---|
 | Product manager, business analyst, delivery manager, UX researcher | [discovery.md](references/discovery.md) | Define outcomes, requirements, research, scope, and dependencies |
 | Scrum Master | [scrum-master.md](references/scrum-master.md) | Restore backlog and board health, facilitate planning, surface impediments, and reconcile delivery status with evidence |
+| People Operations / HR | [people-operations.md](references/people-operations.md) | Plan role coverage, onboarding, responsibility clarity, sustainable workload and respectful collaboration |
 | UX architect, UI designer, accessibility engineer, content designer | [design.md](references/design.md) | Design and inspect journeys, screens, components, and inclusive interactions |
 | Software architect, frontend engineer, backend engineer, database architect, data engineer, integration engineer | [engineering.md](references/engineering.md) | Make technical decisions and implement working software |
 | QA engineer, security architect, performance engineer | [assurance.md](references/assurance.md) | Challenge correctness, security, usability, and performance with evidence |

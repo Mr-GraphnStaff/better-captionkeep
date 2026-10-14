@@ -15,6 +15,7 @@
     <script src="rollingNotes.js" defer></script>
     <script src="rollingNotesStore.js" defer></script>
     <script src="aiTaskFramework.js" defer></script>
+    <script src="promptTemplates.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="webMailDestinations.js" defer></script>
     <script src="browserCompat.js" defer></script>
@@ -25,7 +26,7 @@
         <img src="icons/daf-tech-sphere.png" width="48" height="48" alt="">
         <div class="brand-copy">
             <h1>Better CaptionKeep</h1>
-            <p>Meeting Receipt</p>
+            <p>Live workspace</p>
         </div>
         <button id="close-panel" class="close-panel" type="button" aria-label="Close live workspace" title="Close live workspace">Close</button>
     </header>
@@ -54,53 +55,51 @@
         </section>
 
         <nav class="workspace-tabs" aria-label="Live workspace views" role="tablist">
-            <button id="transcript-tab" class="workspace-tab active" type="button" role="tab" aria-controls="transcript-view" aria-selected="true">Live transcript</button>
-            <button id="moments-tab" class="workspace-tab" type="button" role="tab" aria-controls="moments-view" aria-selected="false" tabindex="-1">Moments <span id="moment-count">0</span></button>
+            <button id="transcript-tab" class="workspace-tab active" type="button" role="tab" aria-controls="transcript-view" aria-selected="true">Transcript</button>
             <button id="notes-tab" class="workspace-tab" type="button" role="tab" aria-controls="notes-view" aria-selected="false" tabindex="-1">Notes <span id="note-count">0</span></button>
+            <button id="moments-tab" class="workspace-tab" type="button" role="tab" aria-controls="moments-view" aria-selected="false" tabindex="-1">Moments <span id="moment-count">0</span></button>
             <button id="evidence-tab" class="workspace-tab" type="button" role="tab" aria-controls="evidence-view" aria-selected="false" tabindex="-1">Evidence <span id="marker-count">0</span></button>
+            <button id="templates-tab" class="workspace-tab" type="button" role="tab" aria-controls="templates-view" aria-selected="false" tabindex="-1">Templates</button>
             <button id="ask-tab" class="workspace-tab" type="button" role="tab" aria-controls="ask-view" aria-selected="false" tabindex="-1">Ask <span id="answer-count">0</span></button>
         </nav>
 
         <section id="transcript-view" class="workspace-view" role="tabpanel" aria-labelledby="transcript-tab" tabindex="0">
             <div class="section-heading">
-                <h2 id="latest-heading">Captured captions</h2>
+                <h2 id="latest-heading">Conversation</h2>
                 <div class="section-actions">
                     <button id="capture-moment" class="moment-button" type="button">Capture Moment</button>
                     <button id="open-transcript" class="text-button" type="button">Full transcript</button>
                 </div>
             </div>
-            <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
-            <p id="latest-meta" class="muted"></p>
-            <section class="on-the-fly-card" aria-labelledby="on-the-fly-heading">
-                <img src="icons/on-the-fly-orb.png" alt="" width="72" height="72">
-                <div>
-                    <h2 id="on-the-fly-heading">On the Fly</h2>
-                    <p>Select meeting words, then research, explain, reply, or open a follow-up in webmail. Use Review/edit only when you need more control.</p>
+            <p id="latest-caption" class="conversation-empty">Waiting for a stable captured caption…</p>
+            <p id="latest-meta" hidden></p>
+            <div class="conversation-toolbar">
+                <div class="search-row">
+                    <input id="transcript-search" type="search" placeholder="Find in this meeting" autocomplete="off" aria-label="Search transcript">
                 </div>
-            </section>
+                <div class="conversation-controls"><span class="caption-count"><span id="transcript-count">0</span> captions</span><button id="follow-latest" class="text-button" type="button" aria-pressed="true">Follow latest</button></div>
+            </div>
+            <details class="conversation-help"><summary>How to use a caption</summary><p>Choose a caption or select its words to mark evidence or use On the Fly. With a keyboard, move between captions using the arrow keys, then press Enter or Space. Follow latest pauses when you scroll back or select words.</p></details>
+            <p id="transcript-window-note" class="conversation-help" hidden>Showing the most recent 150 matching captions. Open Full transcript for earlier words.</p>
+            <ol id="transcript-list" class="transcript-list" aria-label="Meeting conversation">
+                <li class="empty">Connect to a supported meeting to see captions.</li>
+            </ol>
             <div id="on-the-fly-bar" class="instant-research-bar" hidden>
-                <div><strong id="on-the-fly-label">Selected meeting text</strong><span id="on-the-fly-preview"></span></div>
-                <div class="on-the-fly-quick-actions" aria-label="On the Fly actions">
+                <div class="selection-heading"><strong id="on-the-fly-label">Selected caption</strong><button id="clear-on-the-fly" class="text-button" type="button" aria-label="Clear caption selection">Clear</button></div>
+                <span id="on-the-fly-preview"></span>
+                <div class="mark-controls">
+                    <select id="marker-kind" aria-label="Marker type"></select>
+                    <button id="mark-latest" class="primary" disabled>Mark selection</button>
+                </div>
+                <details class="selection-note"><summary>Add a note</summary><input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off" aria-label="Optional evidence marker note"></details>
+                <details class="selection-ai"><summary>On the Fly</summary><div class="on-the-fly-quick-actions" aria-label="On the Fly actions">
                     <button class="primary" type="button" data-quick-task="research">Research</button>
                     <button type="button" data-quick-task="explain">Explain</button>
                     <button type="button" data-quick-task="draft_reply">Reply</button>
                     <button type="button" data-quick-task="email">Email</button>
                     <button id="review-on-the-fly" type="button">Review/edit</button>
-                    <button id="clear-on-the-fly" class="text-button" type="button">Clear</button>
-                </div>
+                </div></details>
             </div>
-            <div class="mark-controls">
-                <select id="marker-kind" aria-label="Marker type"></select>
-                <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off" aria-label="Optional evidence marker note">
-                <button id="mark-latest" class="primary" disabled>Mark latest</button>
-            </div>
-            <div class="search-row">
-                <input id="transcript-search" type="search" placeholder="Search transcript" autocomplete="off" aria-label="Search transcript">
-                <span id="transcript-count" class="status-pill">0</span>
-            </div>
-            <ol id="transcript-list" class="transcript-list">
-                <li class="empty">Connect to a supported meeting to see captions.</li>
-            </ol>
         </section>
 
         <section id="moments-view" class="workspace-view" role="tabpanel" aria-labelledby="moments-tab" tabindex="0" hidden>
@@ -161,9 +160,21 @@
                 <label for="answer-draft">Reviewed answer</label>
                 <textarea id="answer-draft" rows="9" maxlength="100000" placeholder="Paste the reviewed answer here. Include caption citations such as C0001."></textarea>
                 <div class="artifact-actions"><button id="save-answer" class="primary" type="button">Keep reviewed answer</button><button id="clear-answer" type="button">Clear draft</button></div>
+                <button id="answer-not-established" type="button">The transcript does not establish an answer</button>
                 <p class="muted">Saved answers remain separate from the source transcript and require valid caption citations.</p>
             </div>
             <ol id="answer-list" class="artifact-list"><li class="empty">No reviewed answers kept for this meeting.</li></ol>
+        </section>
+        <section id="templates-view" class="workspace-view" role="tabpanel" aria-labelledby="templates-tab" tabindex="0" hidden>
+            <h2>Meeting templates</h2>
+            <p class="muted">Choose reusable instructions for your next reviewed notes handoff. Template versions stay separate from the captured words.</p>
+            <label for="workspace-template-select">Template</label>
+            <select id="workspace-template-select"></select>
+            <p id="workspace-template-version" class="muted"></p>
+            <label for="workspace-template-preview">Saved instructions</label>
+            <textarea id="workspace-template-preview" rows="7" readonly></textarea>
+            <button id="workspace-template-use" class="primary" type="button">Review notes with this template</button>
+            <p><a href="settings.html#intelligence-settings" target="_blank" rel="noopener">Create, edit, import, or export templates in All Settings</a></p>
         </section>
         <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>

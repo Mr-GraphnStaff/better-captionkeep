@@ -2,9 +2,17 @@
 // same ordered files through background.scripts in their generated manifest.
 if (typeof importScripts === 'function') {
     importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-        'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'derivedArtifacts.js', 'graphRuntimeConfig.js', 'evidenceMarkerStore.js');
+        'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'derivedArtifacts.js', 'graphRuntimeConfig.js', 'evidenceMarkerStore.js', 'captureTabProtection.js');
 }
 let historyQueue = Promise.resolve();
+const captureTabProtection = CaptionKeepCaptureTabProtection.create({
+    tabs:chrome.tabs,storage:chrome.storage.local,
+    readCaptureState:async tabId => await chrome.tabs.sendMessage(tabId,{message:'get_status'})
+});
+// Ordinary worker wakeups keep an active capture protected. An onSuspend
+// restoration would undo protection whenever MV3 suspends its background worker.
+// Reconcile only on the explicit extension lifecycle events below, never on a
+// cold worker wakeup before browser-startup invalidates stale tab identities.
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
@@ -170,6 +178,27 @@ function authoritativeCaption(transcript, requestedSourceKey) {
         CaptionKeepCorrections.sourceKey(caption, candidateIndex) === String(requestedSourceKey || ''));
     if (index < 0) throw new Error('The source caption is no longer available. No correction was saved.');
     return {caption:transcript[index], index};
+}
+
+function validateDerivedSource(artifact, source) {
+    const transcript = source?.transcript;
+    if (!Array.isArray(transcript) || artifact.sourceCaptionCount > transcript.length) {
+        throw new Error('The claimed transcript snapshot is not available in the authoritative source.');
+    }
+    for (const evidenceId of artifact.evidenceIds) {
+        const match = /^C(\d{4,})$/.exec(evidenceId);
+        const index = match ? Number(match[1]) - 1 : -1;
+        if (!Number.isSafeInteger(index) || index < 0 || index >= artifact.sourceCaptionCount || !transcript[index]) {
+            throw new Error('A saved citation is not present in the authoritative source.');
+        }
+        if (evidenceId !== `C${String(index + 1).padStart(4, '0')}`) {
+            throw new Error('A saved citation does not use the authoritative caption identity.');
+        }
+    }
+    const sourceKeys = new Set(transcript.map(caption => String(caption?.key || '').replace(/\s+/g, ' ').trim().slice(0, 200)));
+    if (artifact.sourceKeys.some(key => !sourceKeys.has(key))) {
+        throw new Error('A saved source key is not present in the authoritative transcript.');
+    }
 }
 
 async function prepareManagedExport(meetingTitle, transcriptArray, attendeeReport, policy, aliases = {}) {
@@ -470,12 +499,16 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.remove('entitlement_v1').catch(() => {});
     cleanupViewerPayloads().catch(() => {});
     queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
+    captureTabProtection.reconcile({restoreUnreachable:true}).catch(() => {});
 });
 
 chrome.runtime.onStartup.addListener(() => {
     updateBadge(false);
     cleanupViewerPayloads().catch(() => {});
     queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
+    // Tab IDs are not persistent across browser restarts; never apply a stale
+    // ledger to a different restored tab. Live Teams scripts acquire new ownership.
+    captureTabProtection.forgetAll().catch(() => {});
 });
 
 // A tab-scoped action badge survives top-level navigation unless it is
@@ -483,8 +516,14 @@ chrome.runtime.onStartup.addListener(() => {
 // navigating; a supported meeting content script will publish the fresh state
 // after it loads.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.status === 'loading') clearBadge(tabId);
+    if (changeInfo.status === 'loading') {
+        clearBadge(tabId);
+        captureTabProtection.release(tabId).catch(() => {});
+    } else if (changeInfo.status === 'complete') {
+        captureTabProtection.reconcile({restoreUnreachable:true,onlyTabId:tabId}).catch(() => {});
+    }
 });
+chrome.tabs.onRemoved?.addListener(tabId => captureTabProtection.forget(tabId).catch(() => {}));
 
 chrome.storage.onChanged.addListener((_changes, areaName) => {
     if (areaName === 'managed') queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
@@ -505,7 +544,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         'get_meeting_extras','save_meeting_extras','delete_meeting_extras',
         'get_derived_artifacts','save_derived_artifact','delete_derived_artifact','update_evidence_markers',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
-        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
+        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript','set_capture_tab_protection']);
     if (!handled.has(message?.message)) return false;
     if (sender.id !== chrome.runtime.id) return false;
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
@@ -518,6 +557,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         let responsePayload = {};
 
         switch (message.message) {
+            case 'set_capture_tab_protection':
+                return await captureTabProtection.apply(sender,message.active,message.sessionId);
             case 'graph_get_status':
                 {
                     const policy = await readEffectivePolicy();
@@ -621,8 +662,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         return archivedSessionId;
                     });
                     historyQueue = operation.catch(() => {});
-                    await operation;
-                    return;
+                    return {sessionId:await operation};
                 }
             case 'delete_session':
             case 'clear_sessions':
@@ -735,7 +775,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             case 'delete_derived_artifact': {
                 const operation = historyQueue.then(async () => {
                     const requireSource = message.message === 'save_derived_artifact';
-                    await correctionAuthority(message.sessionId, message.historical, requireSource);
+                    const authority = await correctionAuthority(message.sessionId, message.historical, requireSource);
                     const key = CaptionKeepDerivedArtifacts.storageKey(message.sessionId);
                     const stored = CaptionKeepDerivedArtifacts.normalizeCollection((await chrome.storage.local.get(key))[key]);
                     if (message.message === 'get_derived_artifacts') return {artifacts:stored};
@@ -744,8 +784,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         await chrome.storage.local.set({[key]:artifacts});
                         return {artifacts};
                     }
+                    const policy = await readEffectivePolicy();
+                    if (policy.settings.disableSessionHistory) {
+                        throw new Error('Local meeting retention is disabled by your organization.');
+                    }
                     const artifact = CaptionKeepDerivedArtifacts.normalize(message.artifact);
                     if (artifact.sessionId !== String(message.sessionId || '').trim()) throw new Error('Artifact source does not match the active meeting.');
+                    validateDerivedSource(artifact, authority.source);
+                    if (policy.settings.forceScrubbedExport && artifact.payload.screenshot) {
+                        throw new Error('Images cannot be automatically masked for managed scrubbed output.');
+                    }
+                    if (artifact.kind === 'answer' && artifact.payload.notEstablished === true) {
+                        if (artifact.payload.text !== 'The transcript does not establish an answer.'
+                            || artifact.evidenceIds.length || artifact.sourceKeys.length) {
+                            throw new Error('An unestablished answer must use the standard response without invented citations.');
+                        }
+                    } else if (['answer', 'live-notes'].includes(artifact.kind)) {
+                        const citations = CaptionKeepDerivedArtifacts.assertCitations(artifact.payload.text, artifact.sourceCaptionCount);
+                        if (citations.length !== artifact.evidenceIds.length
+                            || citations.some(id => !artifact.evidenceIds.includes(id))) {
+                            throw new Error('The reviewed text and saved source citations do not agree.');
+                        }
+                    }
                     const artifacts = CaptionKeepDerivedArtifacts.upsert(stored, artifact);
                     await chrome.storage.local.set({[key]:artifacts});
                     return {artifact, artifacts};

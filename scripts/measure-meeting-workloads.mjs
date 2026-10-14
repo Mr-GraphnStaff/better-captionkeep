@@ -46,15 +46,33 @@ for (const count of [1000,10000]) {
     batches++;
   }
   const preparationMs = performance.now()-preparationStarted;
+  const snapshotStarted = performance.now();
+  const preparedSource = rolling.prepareSource(transcript);
+  const snapshotMs = performance.now()-snapshotStarted;
+  let preparedState = {...rolling.emptyState('synthetic-performance'),enabled:true};
+  const preparedStarted = performance.now();
+  let preparedBatches = 0;
+  while (preparedState.processedCaptionCount < preparedSource.length && preparedBatches <= count) {
+    const next = rolling.update(preparedSource,preparedState,{force:true,now:'2026-10-13T10:00:00.000Z'});
+    if (next.state.processedCaptionCount <= preparedState.processedCaptionCount) throw new Error('Prepared rolling source did not advance.');
+    preparedState = next.state;
+    preparedBatches++;
+  }
+  const preparedPreparationMs = performance.now()-preparedStarted;
+  if (JSON.stringify(preparedState) !== JSON.stringify(state)) throw new Error('Prepared-source optimization changed resulting notes or provenance.');
   const boardContext = {sessionId:'synthetic-performance',meetingTitle:'Synthetic benchmark',transcriptArray:transcript};
   const markerCount = Math.min(500,count);
   const markers = Array.from({length:markerCount},(_,index) => evidence.createMarker(boardContext, {
     captionIndex:Math.floor(index*count/markerCount),createId:()=>`marker-${index}`,now:()=>new Date('2026-10-13T10:00:00.000Z')
   }));
   const changedTranscript = transcript.map((caption,index) => index === 0 ? {...caption,Text:caption.Text+' Corrected.'} : caption);
+  const preparedChangedSource = rolling.prepareSource(changedTranscript);
   workloads.push({captionCount:count,markerCount,preparation:{batches,durationMs:preparationMs},
+    preparedPreparation:{batches:preparedBatches,snapshotMs,durationMs:preparedPreparationMs,totalMs:snapshotMs+preparedPreparationMs},
     rollingIdle:measure(()=>rolling.update(transcript,state,{force:true,now:'2026-10-13T10:01:00.000Z'})),
     rollingEarlyRevision:measure(()=>rolling.update(changedTranscript,state,{force:true,now:'2026-10-13T10:01:00.000Z'})),
+    preparedRollingIdle:measure(()=>rolling.update(preparedSource,state,{force:true,now:'2026-10-13T10:01:00.000Z'})),
+    preparedRollingEarlyRevision:measure(()=>rolling.update(preparedChangedSource,state,{force:true,now:'2026-10-13T10:01:00.000Z'})),
     markerReconciliation:measure(()=>evidence.reconcileMarkers(markers,{...boardContext,transcriptArray:changedTranscript}))});
 }
 const report = {generatedAt:new Date().toISOString(),runtime:process.version,platform:process.platform,

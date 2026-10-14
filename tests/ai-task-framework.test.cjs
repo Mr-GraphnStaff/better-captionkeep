@@ -37,9 +37,9 @@ test('On the Fly offers one-click outcomes plus optional review and never places
         assert.match(panelHtml, new RegExp(`data-quick-task="${task}"`));
     }
     assert.match(panelHtml, />Review\/edit</);
-    assert.match(panel, /navigator\.clipboard\.writeText\(prompt\)/);
+    assert.match(panel, /navigator\.clipboard\.writeText\(CaptionKeepPromptTemplates\.reviewedHandoffText\(prompt\)\)/);
     assert.match(panel, /chrome\.tabs\.create\(\{url:destination\.url\}\)/);
-    assert.match(handoff, /navigator\.clipboard\.writeText\(promptBox\.value\)/);
+    assert.match(handoff, /navigator\.clipboard\.writeText\(CaptionKeepPromptTemplates\.reviewedHandoffText\(promptBox\.value\)\)/);
     assert.match(handoff, /Confirm the active workspace before attaching or pasting/);
     assert.doesNotMatch(destinations, /[?&](prompt|q|text)=/);
 });

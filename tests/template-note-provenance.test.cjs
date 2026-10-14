@@ -20,11 +20,14 @@ async function save(metadata, {switchDuringHash = false} = {}) {
             if (switchDuringHash) context.currentContext = {sessionId:'different-synthetic-source', transcriptArray:[{key:'new-caption', Text:'Different words'}]};
             return hash;
         },
-        chrome:{storage:{session:{get:async key => ({[key]:metadata})}}},
+        chrome:{storage:{session:{get:async key => key.startsWith('review_source_') ? {} : ({[key]:metadata})}}},
         CaptionKeepDerivedArtifacts:artifacts,
         derivedRequest:async(message, {artifact}) => {kept = artifact; return {artifacts:[artifact]};},
         renderDerivedArtifacts:() => {}, setStatus:() => {}, Date, encodeURIComponent, structuredClone
     });
+    const sourceStart = script.indexOf('    function reviewSnapshotKey(');
+    const sourceEnd = script.indexOf('    function selectedMarkers(', sourceStart);
+    vm.runInContext(script.slice(sourceStart, sourceEnd), context);
     vm.runInContext(script.slice(start, end), context);
     await context.saveReviewedNotes();
     return kept;

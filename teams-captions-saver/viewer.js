@@ -889,10 +889,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideSessionHistory();
             }
         });
+        sessionModal.addEventListener('cancel', event => {
+            event.preventDefault();
+            hideSessionHistory();
+        });
     }
 
     function hideSessionHistory() {
-        sessionModal.style.display = 'none';
+        if (sessionModal.open) sessionModal.close();
         historyReturnFocus?.focus();
         historyReturnFocus = null;
     }
@@ -905,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         historyReturnFocus = document.activeElement;
-        sessionModal.style.display = 'block';
+        if (!sessionModal.open) sessionModal.showModal();
         closeModal.focus();
         await loadSessionHistory();
     }

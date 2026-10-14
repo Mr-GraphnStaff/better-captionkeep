@@ -14,6 +14,9 @@
     let trackingAllowed = true;
     let liveCaptionsRequested = false;
     let adapterStarted = false;
+    let captureSurfaceId = '';
+    let providerTransition = null;
+    const pendingProviderEvents = [];
     const summaryFeature = insights.createAiSummaryFeature({
         storage: chrome.storage.sync,
         readManaged: () => configuration.readManaged(),
@@ -30,6 +33,34 @@
     }
 
     function handleProviderEvent(event) {
+        if (providerTransition) {
+            pendingProviderEvents.push(event);
+            return;
+        }
+        if (event?.type === 'meeting-started') {
+            // Wait for the old archive before reusing this tab's checkpoint key.
+            providerTransition = restartCapture();
+            providerTransition.catch(error => console.error('[Better CaptionKeep] Capture transition failed.', error));
+            return;
+        }
+        consumeProviderEvent(event);
+    }
+
+    async function restartCapture() {
+        try {
+            try { await coordinator.finalize(); }
+            catch (error) { console.error('[Better CaptionKeep] Previous meeting remains in recovery.', error); }
+            coordinator = createCaptureCoordinator();
+            if (!trackingAllowed) coordinator.pause();
+            updateCaptureBadge();
+        } finally {
+            providerTransition = null;
+            pendingProviderEvents.splice(0).forEach(handleProviderEvent);
+        }
+    }
+
+    function consumeProviderEvent(event) {
+        if (!trackingAllowed && event?.type?.startsWith('caption-')) return;
         coordinator.handleProviderEvent(event);
         updateCaptureBadge();
         if (event?.type !== 'meeting-ended') return;
@@ -44,8 +75,17 @@
         }).catch(error => console.error('[Better CaptionKeep] Could not prepare the evidence summary.', error));
     }
 
+    function createCaptureCoordinator() {
+        return coordinatorFactory.create({
+            providerId:'google-meet', surfaceId:captureSurfaceId,
+            normalizeCaption:registry.normalizeCaption, storage:chrome.storage.local,
+            sendMessage:message => chrome.runtime.sendMessage(message),
+            pageUrl:window.location.href, meetingTitle:document.title || 'Google Meet'
+        });
+    }
+
     function startAdapter() {
-        if (adapterStarted || !trackingAllowed) return;
+        if (adapterStarted) return;
         adapter.start(handleProviderEvent);
         adapterStarted = true;
     }
@@ -63,11 +103,13 @@
             if (!coordinator) return;
             if (trackingAllowed) {
                 coordinator.resume();
+                adapter.setCaptureEnabled?.(true);
                 adapter.setAutoEnableCaptions(true);
                 startAdapter();
             } else {
                 adapter.setAutoEnableCaptions(false);
-                stopAdapter('paused');
+                coordinator.pause();
+                adapter.setCaptureEnabled?.(false);
             }
             updateCaptureBadge();
         }
@@ -76,15 +118,8 @@
     async function initialize() {
         const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'google-meet'});
         if (!surface?.ok || !surface.surfaceId) throw new Error(surface?.error || 'Capture surface is unavailable');
-        coordinator = coordinatorFactory.create({
-            providerId: 'google-meet',
-            surfaceId: surface.surfaceId,
-            normalizeCaption: registry.normalizeCaption,
-            storage: chrome.storage.local,
-            sendMessage: message => chrome.runtime.sendMessage(message),
-            pageUrl: window.location.href,
-            meetingTitle: document.title || 'Google Meet'
-        });
+        captureSurfaceId = surface.surfaceId;
+        coordinator = createCaptureCoordinator();
         await coordinator.restore();
         adapter.restoreState?.(coordinator.getTranscript());
         try {
@@ -94,8 +129,9 @@
             trackingAllowed = true;
         }
         adapter.setAutoEnableCaptions(trackingAllowed);
-        if (trackingAllowed) startAdapter();
-        else coordinator.pause();
+        adapter.setCaptureEnabled?.(trackingAllowed);
+        if (!trackingAllowed) coordinator.pause();
+        startAdapter();
         updateCaptureBadge();
     }
 

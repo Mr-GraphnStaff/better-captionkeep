@@ -1,5 +1,12 @@
 # Better CaptionKeep
 
+<!-- captionkeep-6.0-status:start -->
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera, safari.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> This status does not change historical 5.4 publication records.
+<!-- captionkeep-6.0-status:end -->
+
 **A DAF-TECH Product** — Keep the words. Stay in the conversation.
 
 <img src="branding/daf-tech/daf-tech-sphere.png" alt="DAF-TECH sphere" width="120">
@@ -133,7 +140,7 @@ After the project folder move, reload the extension from its new location if nee
 
 ## Development
 
-Use Node.js 20 or newer, then run `npm install`.
+Use Node.js 22 or newer, then run `npm install`.
 
 - `npm run lint`: validate the extension manifest and assets.
 - `npm run locales:generate`: regenerate all packaged locale catalogs from the reviewed English source and preview translation map.

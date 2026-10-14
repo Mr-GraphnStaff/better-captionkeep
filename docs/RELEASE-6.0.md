@@ -1,5 +1,12 @@
 # Better CaptionKeep 6.0 Development Gate
 
+<!-- captionkeep-6.0-status:start -->
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera, safari.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> This status does not change historical 5.4 publication records.
+<!-- captionkeep-6.0-status:end -->
+
 ## Status
 
 Version 6.0 is working development on `codex/6.0`. Completion is tracked against
@@ -22,7 +29,8 @@ The automated release path now builds and packages all six browser targets,
 records SHA-256 hashes, emits a CycloneDX SBOM and provenance, renders the
 versioned Store art bundle, and creates a browser/provider certification record.
 On the current Windows host, isolated renderer smoke passed in installed Chrome,
-Edge, Brave, and Firefox. This is not provider certification. Opera is not
+Edge and Brave. Firefox has a screenshot capture only, not an asserted renderer pass.
+This is not provider certification. Opera is not
 installed and Safari/macOS is unavailable on this host; both remain explicit
 external live-test gates.
 

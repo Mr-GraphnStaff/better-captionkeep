@@ -48,3 +48,63 @@ as well as commit and artifact hashes.
 The software-team package and this ledger travel with the repository.
 No Store publication or browser certification is implied by this repair batch.
 
+## October 14 top-to-bottom execution pass
+
+Starting revision: 360cae2. Four actual agents performed engineering, UX/UI,
+assurance and coordinator/Scrum Master passes, with independent cross-review.
+The full scope remains in ROADMAP-6.0.md; old committed programs were not dropped.
+
+| Track | Executed work | Verification boundary |
+| --- | --- | --- |
+| Capture/reliability, Task #343 | Meet/Zoom terminal callback ordering and rejoin, immutable Teams archive snapshots, serialized recovery generations, canceled Leave intent and badge retry | Executable lifecycle/failure tests; actual provider acceptance open |
+| Worker/privacy, Task #344 | Recovery identity response, authoritative citation/count/key checks, retention and image restrictions, review-snapshot cleanup | Actual worker tests and isolated native Chromium storage/recovery/deletion checks; live policy/provider UAT open |
+| Advanced UI, Task #345 | Templates view, original Ask/Notes binding, per-meeting drafts, immutable copied safety rules, explicit no-answer path, Moment PNG/alt/export, native focus modal, narrow layout, contrast presets, stable correction/status refresh | Function tests and real Chrome 300px keyboard/contrast/template/Ask/Moment flow with fixture APIs; assistive technology and actual downloads/live providers open |
+| Release control, Task #346 / CAP-14 #305 | One versioned development status record and three checked views; full artifact/branch validation; Node22 alignment and codex CI trigger; staged/ZIP source parity | Local tests; protected CI run and final public promotion evidence still required |
+| Scrum Master | Created Epic #335 / Features #336-342 / Tasks #343-346; preserved inherited #298/#308/#318; corrected stale #252/#284 and CLI project default; linked public issues with revision-tested patches | Live Azure reads and post-write verification; no fabricated owners/sprints/velocity or premature closures |
+| Existing public backlog | #14 capture-tab defense, #38 real read-only MCP header setup, #82 additional optional themes | Each keeps its original acceptance limits; no new permission or default-theme change |
+
+The intermediate integrated source suite passed **341/341**, with no skips,
+before the subsequent paused-provider repair and reading-first workspace redesign.
+That count is not final-source packaging evidence. Independent UI review passed ten function cases and a real Chrome
+advanced rendered workflow. The benchmark's prepared 10,000-caption path completed
+the same backlog/state in 283 ms including snapshot preparation, versus 3,640 ms
+for mutable inputs in the same build; this is CPU-module evidence, not live-browser
+performance certification. See RENDERED-AND-PERFORMANCE-CHECKS.md.
+
+PUBLIC-DEFECTS-6.0.md indexes all public reports, including retrospectively
+documented October 13 fixes. Issues remain open with local/deployed/live distinctions.
+The lead authorized pushing this branch and opening a **draft** PR after checks.
+No merge, Store submission or public 6.0 certification is authorized or implied.
+
+### Latest user-directed workspace iteration
+
+The user's live meeting screenshot identified excessive chrome competing with
+conversation: a prominent On the Fly explanation, repeated per-caption actions,
+heavy identifiers, newest-first cards and nested scrolling. The reading-first
+redesign retains advanced tools but discloses them on selection, uses quiet
+chronological speaker/time rows, and makes Follow latest explicit. Screenshots,
+participant identities and actual meeting content are not public test fixtures.
+The reading-first source is frozen for integration, not a release-candidate freeze.
+Independent QA passed 26 focused production-function/workflow regressions and the
+actual Chrome rendered test, including 300/400/1280 widths, keyboard focus beyond
+150 captions and highlighted words/reading position surviving new captions.
+Missing-source actions and policy-wait selection races (#133/#134) fail closed.
+The full integrated suite now passes 353/353 with zero skips. Final package,
+source-parity and CI evidence are separate gates; live certification remains open.
+
+The complete local release-candidate command passed on October 14: 353 tests,
+extension validation, seven-surface audit, zero dependency vulnerabilities,
+Store metadata checks, six browser packages, separate rendered Chrome/Edge/Brave
+checks and eight native-extension smoke checks per browser, Store-equivalent ZIPs,
+Intune bundle and source-parity/hash/SBOM verification. Firefox captured a
+screenshot only; Opera and Safari did not run. This execution prepares a
+development handoff, not a certified or frozen release candidate. Build provenance
+is regenerated against the committed source before the authorized draft PR.
+
+Confirmed defect #132 independently reproduces paused Meet/Zoom capture missing
+leave/rejoin boundaries and combining sessions. Production provider/content and
+coordinator fixtures now pass eight lifecycle regressions. Lifecycle observation
+remains enabled while caption retention and automatic caption enabling stay off.
+Same-meeting resume preserves the session; rejoin begins a fresh paused session.
+Independent QA review passed; authenticated live provider acceptance remains open.
+

@@ -354,6 +354,12 @@ html[data-meeting-state="active"] .platform-launchers { display: none; }
 :root[data-theme="light"] .settings-cockpit-nav,
 :root[data-theme="light"][data-view="settings"] details.settings-group { background: #f8fbfa; }
 :root[data-theme="light"] .settings-cockpit-nav a { color: #315e59; }
+:root:is([data-theme="slate"], [data-theme="high-contrast"]):not([data-view="settings"]) body { background: var(--ck-bg) !important; }
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .v6-status-card { background: var(--ck-surface); border-color: var(--ck-border); }
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .brand.v6-popup-only,
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .settings-command-center { background: var(--ck-surface-soft); }
+:root:is([data-theme="slate"], [data-theme="high-contrast"]) .v6-primary-action { background: var(--ck-primary) !important; color: var(--ck-on-primary) !important; }
+
 @media (max-width: 720px) {
     .settings-health, .intelligence-grid { grid-template-columns: 1fr; }
     html[data-view="settings"] .settings-command-center { padding: 18px; border-radius: 19px; }

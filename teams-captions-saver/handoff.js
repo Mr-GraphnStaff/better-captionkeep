@@ -36,6 +36,7 @@ const templateStatus = document.getElementById('template-status');
 const templateApply = document.getElementById('template-apply');
 const templateSave = document.getElementById('template-save');
 const templateDelete = document.getElementById('template-delete');
+document.getElementById('safety-envelope-text').textContent = CaptionKeepPromptTemplates.SAFETY_ENVELOPE;
 
 function showHandoffWorkspace() {
     handoffEmpty.hidden = true;
@@ -179,7 +180,8 @@ function renderPackage() {
         providerLabel:metadata.providerLabel,
         sessionId:sourceData.sessionId,
         warnings:metadata.warnings,
-        privacyMode
+        privacyMode,
+        maxChunkLength:CaptionKeepHandoffPackage.DEFAULT_CHUNK_LENGTH - CaptionKeepPromptTemplates.SAFETY_ENVELOPE.length - 80
     });
     if (onTheFlyMode || transcriptQaMode) {
         const selectedEvidence = transcript.map((caption, index) => ({
@@ -257,7 +259,7 @@ copyButton.onclick = async () => {
             return;
         }
         await persistTemplateProvenance();
-        await navigator.clipboard.writeText(promptBox.value);
+        await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(promptBox.value));
         unmaskedCopyArmed = false;
         statusBox.textContent = 'Instructions copied. Attach the complete evidence file, or copy every numbered chunk in order.';
     } catch (error) {
@@ -274,7 +276,7 @@ copyChunkButton.onclick = async () => {
             return;
         }
         await persistTemplateProvenance();
-        await navigator.clipboard.writeText(currentPackage.chunks[currentChunk].text);
+        await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(currentPackage.chunks[currentChunk].text));
         unmaskedCopyArmed = false;
         statusBox.textContent = `Copied chunk ${currentChunk + 1} of ${currentPackage.chunks.length}.`;
     } catch (error) {
@@ -352,7 +354,7 @@ function renderProvider(providerKey, settings) {
                 return;
             }
             await persistTemplateProvenance();
-            await navigator.clipboard.writeText(promptBox.value);
+            await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(promptBox.value));
             unmaskedCopyArmed = false;
             await chrome.tabs.create({url: destination.url});
             statusBox.textContent = `Prompt copied and ${destination.name} opened. Confirm the active workspace before attaching or pasting, then review and send there.`;
@@ -406,14 +408,17 @@ function renderProvider(providerKey, settings) {
         if (!onTheFlyMode && !transcriptQaMode) {
             templateApply.disabled = false;
             templateSave.disabled = false;
-            renderTemplates(liveNotesMode ? 'minutes' : undefined);
+            renderTemplates(liveNotesMode ? (sourceData.selectedTemplate?.id || 'minutes') : undefined);
             if (liveNotesMode) {
-                const template = CaptionKeepPromptTemplates.BUILT_INS.find(item => item.id === 'minutes');
+                const selected = sourceData.selectedTemplate;
+                const template = selected && typeof selected.id === 'string' && typeof selected.instructions === 'string'
+                    && selected.instructions.length <= 4000 && Number.isSafeInteger(selected.version) && selected.version > 0
+                    ? selected : CaptionKeepPromptTemplates.BUILT_INS.find(item => item.id === 'minutes');
                 appliedInstructions = `${CaptionKeepAiTasks.task('live_notes').instruction}\n\n${template.instructions}`;
                 appliedTemplateSnapshot = CaptionKeepPromptTemplates.appliedSnapshot(template, template.instructions);
                 promptBox.value = CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions);
                 appliedPromptValue = promptBox.value;
-                templateStatus.textContent = 'Cited Live Notes instructions are applied. Review the complete prompt before copying.';
+                templateStatus.textContent = `${template.name} · version ${template.version} applied. Review the complete prompt before copying.`;
             }
         }
         for (const provider of sourceData.providers) renderProvider(provider, effectivePolicy.settings);

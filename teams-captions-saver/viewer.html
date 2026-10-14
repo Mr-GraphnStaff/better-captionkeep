@@ -384,7 +384,13 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.4);
+            margin: 0;
+            padding: 0;
+            border: 0;
+            max-width: none;
+            max-height: none;
         }
+        .modal[open] { display: block; }
         
         .modal-content {
             background-color: #fefefe;
@@ -604,7 +610,7 @@
     </dialog>
     
     <!-- Session History Modal -->
-    <div id="sessionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="archiveModalTitle" tabindex="-1">
+    <dialog id="sessionModal" class="modal" aria-labelledby="archiveModalTitle">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="archiveModalTitle">Local transcript archive</h2>
@@ -635,6 +641,6 @@
                 <div style="text-align: center; color: #999;">Loading sessions...</div>
             </div>
         </div>
-    </div>
+    </dialog>
 </body>
 </html>

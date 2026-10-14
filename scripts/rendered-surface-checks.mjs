@@ -201,8 +201,8 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
     await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:fixture});
     const checks = [];
     for (const surface of ['settings','popup','viewer','handoff','workspace']) {
-      await cdp.send('Emulation.setDeviceMetricsOverride',{width:surface === 'popup' ? 364 : 1280,
-        height:surface === 'popup' ? 600 : 900,deviceScaleFactor:1,mobile:false});
+      const viewport = options.viewportForSurface?.(surface) || {width:surface === 'popup' ? 364 : 1280, height:surface === 'popup' ? 600 : 900};
+      await cdp.send('Emulation.setDeviceMetricsOverride',{...viewport,deviceScaleFactor:1,mobile:false});
       const pageName = surface === 'viewer' ? 'viewer.html?payload=viewer_payload_surface'
         : surface === 'handoff' ? 'handoff.html' : surface === 'workspace' ? 'sidepanel.html'
           : surface === 'settings' ? 'popup.html?view=settings' : 'popup.html';
@@ -217,7 +217,7 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
       if (!ready) throw new Error(`${surface} page did not finish loading.`);
       await delay(200);
       if (options.beforeAssertions) {
-        const injected = await cdp.send('Runtime.evaluate',{expression:options.beforeAssertions});
+        const injected = await cdp.send('Runtime.evaluate',{expression:options.beforeAssertions,awaitPromise:true});
         if (injected.exceptionDetails) {
           throw new Error(`Browser script exception: ${injected.exceptionDetails.exception?.description || injected.exceptionDetails.text}`);
         }
@@ -230,6 +230,13 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
       validateSurfaceResult(result.result.value,cdp.exceptions);
       checks.push(...result.result.value.checks);
       checks.push(...await themeChecks(cdp,surface));
+      if (options.afterSurface) {
+        const extra = await options.afterSurface(surface, cdp);
+        if (extra) {
+          validateSurfaceResult(extra,cdp.exceptions);
+          checks.push(...extra.checks);
+        }
+      }
       if (surface === 'settings') {
         await cdp.send('Runtime.evaluate',{expression:'window.scrollTo(0,0)'});
         const captured = await cdp.send('Page.captureScreenshot',{format:'png'});

@@ -897,6 +897,7 @@ test('Google Meet coordinator exposes captured captions through the shared popup
         getSanitizedStructure:()=>({version:1,nodeCount:2,truncated:false,tree:{type:'element',tag:'DIV'}}),
         isMeetingPresent:()=>true,
         setAutoEnableCaptions(value){this.autoEnableCaptions=value;},
+        setCaptureEnabled(value){this.captureEnabled=value;},
         start(handler){providerEventHandler=handler;this.startCount=(this.startCount||0)+1;},
         stop(){this.stopped=true;}
     };
@@ -948,16 +949,18 @@ test('Google Meet coordinator exposes captured captions through the shared popup
     storageListeners[0]({trackCaptions:{newValue:false}},'sync');
     messageHandler({message:'viewer_ready'},null,response=>{viewer=response;});
     assert.equal(viewer.streaming,false);
-    assert.equal(adapter.stopped,true);
+    assert.equal(adapter.captureEnabled,false);
+    assert.notEqual(adapter.stopped,true);
     assert(messages.some(message=>message.message==='update_badge_status'&&message.capturing===false));
     storageListeners[0]({trackCaptions:{newValue:true}},'sync');
-    assert.equal(adapter.startCount,2);
+    assert.equal(adapter.startCount,1);
+    assert.equal(adapter.captureEnabled,true);
 });
 test('Google Meet does not start capture when caption tracking is disabled at load',async()=>{
     let startCount=0;
     let messageHandler;
     const local={async get(){return {};},async set(){},async remove(){}};
-    const adapter={isMeetingPresent:()=>true,setAutoEnableCaptions(){},start(){startCount++;},stop(){}};
+    const adapter={isMeetingPresent:()=>true,setAutoEnableCaptions(value){this.autoEnableCaptions=value;},setCaptureEnabled(value){this.captureEnabled=value;},start(){startCount++;},stop(){}};
     const chrome={
         runtime:{sendMessage:message=>Promise.resolve(message?.message==='get_capture_surface'
             ? {ok:true,surfaceId:'google-meet-tab-7'} : {ok:true}),onMessage:{addListener(handler){messageHandler=handler;}}},
@@ -975,7 +978,9 @@ test('Google Meet does not start capture when caption tracking is disabled at lo
     await new Promise(resolve=>setImmediate(resolve));
     let status;
     messageHandler({message:'get_status'},null,response=>{status=response;});
-    assert.equal(startCount,0);
+    assert.equal(startCount,1);
+    assert.equal(adapter.captureEnabled,false);
+    assert.equal(adapter.autoEnableCaptions,false);
     assert.equal(status.capturing,false);
     assert.equal(status.captureState,'paused');
 });
@@ -1769,7 +1774,8 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(browserCompat.includes('api.sidebarAction?.open'));
     assert(browserCompat.includes("api.runtime.getURL('sidepanel.html')"));
     const sidepanel=read('sidepanel.html');const sidepanelScript=read('sidepanel.js');
-    assert(sidepanel.includes('>Live transcript</button>'));
+    assert(sidepanel.includes('>Transcript</button>'));
+    assert(sidepanel.includes('id="follow-latest"'));
     assert(sidepanel.includes('>Full transcript</button>'));
     assert(sidepanel.includes('id="capture-moment"'));
     for(const id of ['moments-tab','notes-tab','ask-tab','moment-list','notes-draft','prepare-question','answer-draft','save-answer','answer-list']) assert(sidepanel.includes(`id="${id}"`));

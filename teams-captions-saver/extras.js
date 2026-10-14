@@ -1,5 +1,5 @@
 const params = new URL(location.href).searchParams;
-const elements = Object.fromEntries(['meeting','capture-chat','load-extras','chat','screenshot','image-confirm','moment-note-section','moment-note','save','discard','export','delete','status'].map(id => [id, document.getElementById(id)]));
+const elements = Object.fromEntries(['meeting','capture-chat','load-extras','chat','screenshot','image-confirm','moment-note-section','moment-note','save','discard','export-image','export','delete','status'].map(id => [id, document.getElementById(id)]));
 let context = null;
 let pendingImage = '';
 let capturedMessages = [];
@@ -29,13 +29,21 @@ function preview(bundle) {
     if (pendingImage) elements.screenshot.src = pendingImage;
     else elements.screenshot.removeAttribute('src');
     elements['image-confirm'].checked = false;
+    refreshMomentActions();
 }
+function refreshMomentActions() {
+    elements['export-image'].disabled = !context || !pendingImage || !elements['image-confirm'].checked;
+    elements.save.disabled = !context || (!pendingImage && !elements.chat.value.trim()) || (!!pendingImage && !elements['image-confirm'].checked);
+    elements.export.disabled = !context || !elements.chat.value.trim();
+}
+elements['image-confirm'].addEventListener('change', refreshMomentActions);
+elements.chat.addEventListener('input', refreshMomentActions);
 async function reload() { preview((await worker({message:'get_meeting_extras'})).extras); }
 function listen(id, action) {
     elements[id].addEventListener('click', async () => {
         elements[id].disabled = true;
         try { await action(); } catch (error) { elements.status.textContent = error.message; }
-        finally { elements[id].disabled = !context; }
+        finally { elements[id].disabled = !context; refreshMomentActions(); }
     });
 }
 listen('capture-chat', async () => {
@@ -78,6 +86,7 @@ listen('save', async () => {
             screenshotIncluded: Boolean(pendingImage),
             screenshot: pendingImage,
             note: String(elements['moment-note'].value || '').trim().slice(0, 1000),
+            altText: String(elements['moment-note'].value || '').trim().slice(0, 1000),
             reviewedChatMessageCount: messages.length,
             storage: 'meeting-extras'
         }
@@ -108,6 +117,14 @@ listen('export', async () => {
     if (!result?.ok) throw new Error(result?.error || 'Export failed.');
     elements.status.textContent = 'Chat export is ready on the save page.';
 });
+listen('export-image', async () => {
+    const settings = await policy();
+    if (settings.disableFileExport || settings.forceScrubbedExport) throw new Error('Moment image export is unavailable under your organization’s export/privacy policy.');
+    if (!pendingImage || !elements['image-confirm'].checked) throw new Error('Review and approve the image before exporting it.');
+    const title = String(context.meetingTitle || 'Meeting').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').slice(0, 80);
+    await chrome.downloads.download({url:pendingImage, filename:`${title || 'Meeting'}-moment.png`, saveAs:true});
+    elements.status.textContent = 'Reviewed Moment PNG export started. No image was sent to an external service.';
+});
 listen('delete', async () => {
     if (!confirm('Delete saved chat and screenshot extras for this meeting? The spoken transcript is not affected.')) return;
     await worker({message:'delete_meeting_extras', artifactId:savedArtifactId});
@@ -136,6 +153,7 @@ listen('delete', async () => {
         }
         for (const id of ['load-extras','save','export','delete']) elements[id].disabled = false;
         elements['capture-chat'].disabled = !params.has('tab');
+        refreshMomentActions();
         elements.status.textContent = 'Review extras before saving. No automatic upload or sharing.';
     } catch (error) { context = null; elements.status.textContent = error.message; }
 })();

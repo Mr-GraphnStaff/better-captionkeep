@@ -7,6 +7,7 @@
     const MAX_BATCH_CHARS = 12000;
     const MIN_AUTOMATIC_CAPTIONS = 3;
     const DEFAULT_INTERVAL_MS = 30000;
+    const preparedSources = new WeakMap();
 
     function cleanInline(value, limit = 4000) {
         return String(value || '').replace(/\s+/g, ' ').trim().slice(0, limit);
@@ -32,7 +33,23 @@
 
     function sourceRevision(transcript) {
         const captions = Array.isArray(transcript) ? transcript : [];
+        const prepared = preparedSources.get(captions);
+        if (prepared) return prepared.revision;
         return `${captions.length}:${checksum(JSON.stringify(captions.map(captionFingerprint)))}`;
+    }
+
+    function prepareSource(transcript) {
+        const captions = Object.freeze((Array.isArray(transcript) ? transcript : []).map(caption => Object.freeze({...caption})));
+        const fingerprints = Object.freeze(captions.map(captionFingerprint));
+        preparedSources.set(captions, {fingerprints, revision:`${captions.length}:${checksum(JSON.stringify(fingerprints))}`});
+        return captions;
+    }
+
+    function processedSourceChanged(transcript, state) {
+        const captions = Array.isArray(transcript) ? transcript : [];
+        const fingerprints = preparedSources.get(captions)?.fingerprints || captions.map(captionFingerprint);
+        return state.processedCaptionCount > captions.length || fingerprints.slice(0, state.processedCaptionCount)
+            .some((fingerprint, index) => fingerprint !== state.sourceFingerprints?.[index]);
     }
 
     function captionFingerprint(caption) {
@@ -123,8 +140,9 @@
     function update(transcript, previousState, options = {}) {
         let state = normalizeState(previousState, previousState?.sessionId);
         const captions = Array.isArray(transcript) ? transcript : [];
-        const revision = sourceRevision(captions);
-        const fingerprints = captions.map(captionFingerprint);
+        const prepared = preparedSources.get(captions);
+        const fingerprints = prepared?.fingerprints || captions.map(captionFingerprint);
+        const revision = prepared?.revision || `${captions.length}:${checksum(JSON.stringify(fingerprints))}`;
         let changedIndex = -1;
         for (let index = 0; index < state.processedCaptionCount; index += 1) {
             if (state.sourceFingerprints[index] !== fingerprints[index]) { changedIndex = index; break; }
@@ -191,7 +209,7 @@
 
     root.CaptionKeepRollingNotes = Object.freeze({
         VERSION, MAX_REVISIONS, MAX_BATCH_CAPTIONS, MAX_BATCH_CHARS, MIN_AUTOMATIC_CAPTIONS, DEFAULT_INTERVAL_MS,
-        storageKey, sourceRevision, emptyState, normalizeState, boundedBatch, update, recordFailure
+        storageKey, sourceRevision, prepareSource, processedSourceChanged, emptyState, normalizeState, boundedBatch, update, recordFailure
     });
     if (typeof module !== 'undefined' && module.exports) module.exports = root.CaptionKeepRollingNotes;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

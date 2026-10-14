@@ -64,11 +64,12 @@
         let meetingActive = false;
         let meetingEnded = false;
         let autoEnableCaptions = false;
+        let captureEnabled = true;
         let captionEnableAttempted = false;
         let nextCaptionId = 0;
         let lastEmittedCaption = null;
         let resumeCandidate = null;
-        const rowKeys = new WeakMap();
+        let rowKeys = new WeakMap();
         const lastTextByKey = new Map();
 
         function nowDate() {
@@ -102,12 +103,14 @@
         }
 
         function endMeeting() {
-            if (!meetingEnded) signal('meeting-ended');
+            const shouldSignal = !meetingEnded;
             meetingEnded = true;
             meetingActive = false;
             sourceAvailable = false;
             captionEnableAttempted = false;
             disconnectCaptionSource();
+            // Set terminal state before callbacks, which may synchronously reconcile.
+            if (shouldSignal) signal('meeting-ended');
         }
 
         function containsImage(node) {
@@ -128,6 +131,7 @@
         }
 
         function emitCaptionRows() {
+            if (!captureEnabled) return;
             const capturedAt = nowDate();
             for (const {row, speaker, text} of captionRows(captionSource)) {
                 let key = rowKeys.get(row);
@@ -197,8 +201,22 @@
             }
             if (!positiveInCallEvidence && !meetingActive) return;
             if (positiveInCallEvidence) {
+                const rejoined = meetingEnded;
                 meetingActive = true;
                 meetingEnded = false;
+                if (rejoined) {
+                    rowKeys = new WeakMap();
+                    lastTextByKey.clear();
+                    lastEmittedCaption = null;
+                    resumeCandidate = null;
+                    signal('meeting-started');
+                }
+            }
+            // Pause caption retention, not observation of meeting boundaries.
+            if (!captureEnabled) {
+                disconnectCaptionSource();
+                sourceAvailable = false;
+                return;
             }
             if (nextSource && nextSource !== captionSource) {
                 if (captionSource) preserveRemountCandidate();
@@ -244,6 +262,16 @@
             if (pageObserver && autoEnableCaptions) reconcile();
         }
 
+        function setCaptureEnabled(enabled) {
+            captureEnabled = enabled === true;
+            if (!captureEnabled) {
+                preserveRemountCandidate();
+                disconnectCaptionSource();
+                sourceAvailable = false;
+            }
+            if (pageObserver) reconcile();
+        }
+
         function restoreState(records = []) {
             const restored = Array.isArray(records) ? records : [];
             for (const record of restored) {
@@ -262,6 +290,7 @@
             getSanitizedStructure: () => sanitizeStructure(captionSource),
             isMeetingPresent: () => meetingActive && isMeetingUrl(currentUrl()) && !hasControl(POST_CALL_LABELS),
             restoreState,
+            setCaptureEnabled,
             setAutoEnableCaptions,
             start,
             stop

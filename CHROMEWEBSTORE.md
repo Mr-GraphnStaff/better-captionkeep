@@ -4,7 +4,17 @@ Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-13
+> Last Updated: 2026-10-14
+
+6.0 development review: the Live Workspace now puts chronological conversation
+first, with optional selected-caption actions and explicit Follow latest. Local
+Templates, reviewed source-bound Notes/Ask, rolling notes, approved Moment PNG
+exports, and optional contrast presets have automated regression coverage. Pause,
+leave/rejoin, archive recovery and managed-policy repairs are implemented locally.
+These are development changes, not a public Store update or six-browser certification.
+Refresh final product screenshots after acceptance and candidate freeze; artwork
+and listing approval remain open. The historical 5.4 publication record below is
+unchanged.
 
 6.0 development fix: Teams same-page meeting departure clears the live-capture
 badge without discarding captured words. Caption menu controls and DOM-hidden
