@@ -46,7 +46,7 @@ class SessionManager {
         for (let index = 0; index < Number(metadata?.chunkCount || 0); index += 1) {
             keys.push(`${prefix}_chunk_${index}`);
         }
-        if (prefix) keys.push(`${prefix}_attendees`);
+        if (prefix) keys.push(`${prefix}_attendees`, `${prefix}_journal`);
         const correctionSessionId = includeCorrections && (metadata?.sourceSessionId || metadata?.id);
         if (correctionSessionId) {
             keys.push(`meeting_extras_${encodeURIComponent(String(correctionSessionId).trim())}`);
@@ -60,6 +60,95 @@ class SessionManager {
             keys.push(metadata.sourceArtifactKey);
         }
         return keys;
+    }
+
+    sourceIdentities(metadata) {
+        return [...new Set([metadata?.id, metadata?.sourceSessionId].filter(Boolean).map(String))];
+    }
+
+    activeSourceIdentities(data) {
+        const identities = new Set();
+        for (const [key, value] of Object.entries(data)) {
+            if (!/^active_capture_v[23]_/.test(key) || !Array.isArray(value?.transcript)) continue;
+            for (const identity of [value.recordingStartTime, value.sessionId, value.sourceSessionId]) {
+                if (typeof identity === 'string' && identity) identities.add(identity);
+            }
+        }
+        return identities;
+    }
+
+    // Markers contain source quotes; deleting an archive must delete those copies too.
+    async removeEvidenceMarkers(identities, {clearAll = false, preserve = new Set()} = {}) {
+        const key = 'evidenceBoardMarkersV1';
+        const stored = await chrome.storage.local.get(key);
+        if (!Array.isArray(stored[key])) return;
+        const removed = new Set(identities.map(String));
+        const retained = stored[key].filter(marker => preserve.has(String(marker?.sessionId))
+            || (!clearAll && !removed.has(String(marker?.sessionId))));
+        if (retained.length === stored[key].length) return;
+        if (retained.length) await chrome.storage.local.set({[key]:retained});
+        else await chrome.storage.local.remove(key);
+    }
+
+    async removeTemporaryArtifacts(identities, preserve = new Set()) {
+        if (!chrome.storage.session) return;
+        const keys = identities.filter(id => !preserve.has(String(id)))
+            .flatMap(id => this.sessionKeys({id}))
+            .filter(key => /^(?:transcript_corrections_|meeting_extras_|derived_artifacts_|rolling_notes_)/.test(key));
+        if (keys.length) await chrome.storage.session.remove([...new Set(keys)]);
+    }
+
+    ownedGenerationKeys(sessionId, data, prefix = '') {
+        const uuid = '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}';
+        if (!new RegExp(`^session_${uuid}$`, 'i').test(sessionId || '')) return [];
+        const pattern = new RegExp(`^${sessionId}_generation_${uuid}_(?:chunk_\\d+|attendees|source|journal)$`, 'i');
+        return Object.keys(data).filter(key => pattern.test(key) && (!prefix || key.startsWith(`${prefix}_`)));
+    }
+
+    completeGeneration(metadata, data) {
+        if (!metadata || !Number.isInteger(metadata.chunkCount) || metadata.chunkCount < 1) return false;
+        const prefix = metadata.storagePrefix || metadata.id;
+        let count = 0;
+        for (let index = 0; index < metadata.chunkCount; index += 1) {
+            const chunk = data[`${prefix}_chunk_${index}`];
+            if (!Array.isArray(chunk)) return false;
+            count += chunk.length;
+        }
+        return count === metadata.captionCount
+            && (!metadata.sourceArtifactKey || typeof data[metadata.sourceArtifactKey] === 'string');
+    }
+
+    // A journal proves which generation an interrupted write owned. A lone unindexed
+    // generation may be the only recoverable copy and is deliberately left intact.
+    async cleanupAbandonedGenerations(now = Date.now()) {
+        if (!this.writer) return 0;
+        const data = await chrome.storage.local.get(null);
+        const index = Array.isArray(data.session_index) ? data.session_index : [];
+        const protectedKeys = new Set(index.flatMap(metadata => this.sessionKeys(metadata, false)));
+        const obsolete = new Set();
+        for (const [key, journal] of Object.entries(data)) {
+            if (journal?.version !== 1 || key !== `${journal.storagePrefix}_journal`
+                || !this.ownedGenerationKeys(journal.sessionId, data, journal.storagePrefix).includes(key)) continue;
+            const current = index.find(metadata => metadata.id === journal.sessionId);
+            if (!this.completeGeneration(current, data)) continue;
+            if (current.storagePrefix === journal.storagePrefix) {
+                // Publication succeeded. Only the named previous generation is retired.
+                if (journal.previousStoragePrefix) {
+                    for (const item of this.ownedGenerationKeys(journal.sessionId, data, journal.previousStoragePrefix)) {
+                        if (!protectedKeys.has(item)) obsolete.add(item);
+                    }
+                }
+                obsolete.add(key);
+            } else if (Number.isFinite(journal.createdAt) && now - journal.createdAt >= 24 * 60 * 60 * 1000) {
+                // An unpublished replacement can be removed after a grace period,
+                // only while a complete published generation remains available.
+                for (const item of this.ownedGenerationKeys(journal.sessionId, data, journal.storagePrefix)) {
+                    if (!protectedKeys.has(item)) obsolete.add(item);
+                }
+            }
+        }
+        if (obsolete.size) await chrome.storage.local.remove([...obsolete]);
+        return obsolete.size;
     }
 
     normalizeSourceMetadata(source = null) {
@@ -84,7 +173,14 @@ class SessionManager {
         const index = await this.getStoredIndex();
         const expired = index.filter(session => this.isExpired(session, now));
         if (!expired.length) return 0;
-        const keys = expired.flatMap(session => this.sessionKeys(session));
+        const data = await chrome.storage.local.get(null);
+        const active = this.activeSourceIdentities(data);
+        const keys = expired.flatMap(session => [
+            ...this.sessionKeys(session, !active.has(String(session.sourceSessionId || session.id))),
+            ...this.ownedGenerationKeys(session.id, data)
+        ]);
+        await this.removeEvidenceMarkers(expired.flatMap(session => this.sourceIdentities(session)), {preserve:active});
+        await this.removeTemporaryArtifacts(expired.flatMap(session => this.sourceIdentities(session)), active);
         if (keys.length) await chrome.storage.local.remove(keys);
         await chrome.storage.local.set({session_index:index.filter(session => !this.isExpired(session, now))});
         return expired.length;
@@ -97,7 +193,14 @@ class SessionManager {
         const sorted = [...index].sort((a, b) => Date.parse(b.timestamp || '') - Date.parse(a.timestamp || ''));
         const retained = sorted.slice(0, this.MAX_SESSIONS);
         const excess = sorted.slice(this.MAX_SESSIONS);
-        const keys = excess.flatMap(session => this.sessionKeys(session));
+        const data = await chrome.storage.local.get(null);
+        const active = this.activeSourceIdentities(data);
+        const keys = excess.flatMap(session => [
+            ...this.sessionKeys(session, !active.has(String(session.sourceSessionId || session.id))),
+            ...this.ownedGenerationKeys(session.id, data)
+        ]);
+        await this.removeEvidenceMarkers(excess.flatMap(session => this.sourceIdentities(session)), {preserve:active});
+        await this.removeTemporaryArtifacts(excess.flatMap(session => this.sourceIdentities(session)), active);
         if (keys.length) await chrome.storage.local.remove(keys);
         await chrome.storage.local.set({session_index:retained});
         return excess.length;
@@ -107,6 +210,7 @@ class SessionManager {
     async saveSession(transcriptArray, meetingTitle, attendeeReport = null, options = {}) {
         try {
             if (!Array.isArray(transcriptArray) || !transcriptArray.length) throw new Error('Cannot archive an empty transcript');
+            await this.cleanupAbandonedGenerations();
             await this.pruneExpiredSessions();
             await this.pruneExcessSessions();
             const originalIndex = await this.getStoredIndex();
@@ -147,6 +251,10 @@ class SessionManager {
                 throw new Error('This recovery snapshot is outside the managed transcript retention period.');
             }
             const staged = Object.fromEntries(chunks.map((chunk, index) => [`${storagePrefix}_chunk_${index}`, chunk]));
+            staged[`${storagePrefix}_journal`] = {
+                version:1, sessionId, storagePrefix, createdAt:Date.now(),
+                previousStoragePrefix:existing?.storagePrefix || ''
+            };
             if (attendeeReport) staged[`${storagePrefix}_attendees`] = attendeeReport;
             if (rawSource) staged[metadata.sourceArtifactKey] = rawSource;
             const nextIndex = [...originalIndex.filter(item => item.id !== sessionId), metadata]
@@ -162,6 +270,7 @@ class SessionManager {
                 const obsolete = this.sessionKeys(existing, false);
                 if (obsolete.length) await chrome.storage.local.remove(obsolete);
             }
+            await chrome.storage.local.remove(`${storagePrefix}_journal`);
             await this.pruneExcessSessions();
             console.log(`[SessionManager] Archived session ${sessionId} with ${chunks.length} chunks`);
             return sessionId;
@@ -225,7 +334,7 @@ class SessionManager {
     }
 
     // Delete a session
-    async deleteSession(sessionId) {
+    async deleteSession(sessionId, {preserveSources = new Set()} = {}) {
         if (!this.writer) {
             const result = await chrome.runtime.sendMessage({message:'delete_session', sessionId});
             if (!result?.ok) throw new Error(result?.error || 'Delete failed');
@@ -234,6 +343,8 @@ class SessionManager {
         if (sessionId === 'transcriptBackup' || sessionId.startsWith('backup_')) {
             const stored = await chrome.storage.local.get(sessionId);
             const stableId = stored[sessionId]?.recordingStartTime || sessionId;
+            await this.removeEvidenceMarkers([sessionId, stableId]);
+            await this.removeTemporaryArtifacts([sessionId, stableId]);
             const correctionKeys = [sessionId, stableId].map(value => {
                 const encoded = encodeURIComponent(String(value).trim()).replace(/%/g, '_').slice(0, 240);
                 return encoded ? `transcript_corrections_${encoded}` : null;
@@ -252,8 +363,12 @@ class SessionManager {
             if (!metadata) return;
 
             // Delete all chunks
-            const keysToDelete = this.sessionKeys(metadata);
-
+            const preserveSource = preserveSources.has(String(metadata.sourceSessionId || metadata.id));
+            const keysToDelete = this.sessionKeys(metadata, !preserveSource);
+            const data = await chrome.storage.local.get(null);
+            keysToDelete.push(...this.ownedGenerationKeys(metadata.id, data));
+            await this.removeEvidenceMarkers(this.sourceIdentities(metadata), {preserve:preserveSources});
+            await this.removeTemporaryArtifacts(this.sourceIdentities(metadata), preserveSources);
             await chrome.storage.local.remove(keysToDelete);
             
             // Update index
@@ -426,21 +541,34 @@ class SessionManager {
     }
 
     // Clear all sessions
-    async clearAllSessions() {
+    async clearAllSessions({preserveActive = true} = {}) {
         if (!this.writer) {
             const result = await chrome.runtime.sendMessage({message:'clear_sessions'});
             if (!result?.ok) throw new Error(result?.error || 'Clear failed');
             return;
         }
-        const index = await this.getStoredIndex();
+        const initialData = await chrome.storage.local.get(null);
+        const index = Array.isArray(initialData.session_index) ? initialData.session_index : [];
+        // Clear completed history without erasing a meeting that is still recording.
+        const active = preserveActive ? this.activeSourceIdentities(initialData) : new Set();
+        const temporaryActive = this.activeSourceIdentities(initialData);
         
         for (const session of index) {
-            await this.deleteSession(session.id);
+            await this.deleteSession(session.id, {preserveSources:temporaryActive});
         }
         const data = await chrome.storage.local.get(null);
         const orphanCorrections = Object.keys(data).filter(key => key.startsWith('transcript_corrections_')
             || key.startsWith('meeting_extras_') || key.startsWith('derived_artifacts_') || key.startsWith('rolling_notes_'));
-        if (orphanCorrections.length) await chrome.storage.local.remove(orphanCorrections);
+        const activeKeys = new Set([...active].flatMap(id => this.sessionKeys({id})));
+        if (orphanCorrections.length) await chrome.storage.local.remove(orphanCorrections.filter(key => !activeKeys.has(key)));
+        await this.removeEvidenceMarkers([], {clearAll:true, preserve:active});
+        if (chrome.storage.session) {
+            const temporary = await chrome.storage.session.get(null);
+            const preserveKeys = new Set([...temporaryActive].flatMap(id => this.sessionKeys({id})));
+            const expiredKeys = Object.keys(temporary).filter(key =>
+                /^(?:transcript_corrections_|meeting_extras_|derived_artifacts_|rolling_notes_)/.test(key) && !preserveKeys.has(key));
+            if (expiredKeys.length) await chrome.storage.session.remove(expiredKeys);
+        }
         
         await chrome.storage.local.set({ 'session_index': [] });
         console.log('[SessionManager] Cleared all sessions');

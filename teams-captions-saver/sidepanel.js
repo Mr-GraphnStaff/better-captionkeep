@@ -81,6 +81,7 @@
     };
     let currentContext = null;
     let allMarkers = [];
+    let persistedMarkers = new Map();
     let selectedSessionId = '';
     let polling = false;
     let transcriptSignature = '';
@@ -91,6 +92,7 @@
     let derivedArtifacts = [];
     let rollingNotesState = null;
     let rollingNotesBusy = false;
+    const rollingNotesStore = CaptionKeepRollingNotesStore.create({storage:chrome.storage, readPolicy:refreshEnterprisePolicy});
 
     async function refreshEnterprisePolicy() {
         const user = await chrome.storage.sync.get([
@@ -283,16 +285,14 @@
         }
         for (const revision of [...state.revisions].reverse()) {
             const item = document.createElement('li');
-            item.textContent = `${artifactTime(revision.createdAt)} · ${revision.evidenceIds[0]}–${revision.evidenceIds.at(-1)}`;
+            item.textContent = `${artifactTime(revision.createdAt)} · ${revision.evidenceIds[0]}–${revision.evidenceIds.at(-1)}${revision.status === 'superseded' ? ' · Superseded by corrected source' : ''}`;
             elements.rollingNotesRevisions.append(item);
         }
     }
 
     async function saveRollingNotesState() {
         if (!currentContext?.sessionId || !rollingNotesState) return;
-        await chrome.storage.local.set({
-            [CaptionKeepRollingNotes.storageKey(currentContext.sessionId)]:rollingNotesState
-        });
+        await rollingNotesStore.save(CaptionKeepRollingNotes.storageKey(currentContext.sessionId), rollingNotesState);
     }
 
     async function loadRollingNotesState() {
@@ -302,22 +302,24 @@
             return;
         }
         const key = CaptionKeepRollingNotes.storageKey(currentContext.sessionId);
-        const stored = await chrome.storage.local.get(key);
-        rollingNotesState = CaptionKeepRollingNotes.normalizeState(stored[key], currentContext.sessionId);
+        const stored = await rollingNotesStore.load(key);
+        rollingNotesState = CaptionKeepRollingNotes.normalizeState(stored, currentContext.sessionId);
         renderRollingNotes();
     }
 
     async function updateRollingNotes({force = false} = {}) {
         if (rollingNotesBusy || !currentContext?.sessionId || !rollingNotesState?.enabled) return;
         const transcript = currentContext.transcriptArray || [];
-        if (!transcript.length) return;
-        if (!force && rollingNotesState.lastUpdatedAt
+        const processedPrefix = transcript.slice(0, rollingNotesState.processedCaptionCount);
+        const sourceChanged = processedPrefix.length !== rollingNotesState.processedCaptionCount
+            || CaptionKeepRollingNotes.sourceRevision(processedPrefix) !== rollingNotesState.processedSourceRevision;
+        if (!force && !sourceChanged && rollingNotesState.lastUpdatedAt
             && Date.now() - Date.parse(rollingNotesState.lastUpdatedAt) < rollingNotesState.intervalMs) return;
         rollingNotesBusy = true;
         renderRollingNotes();
         try {
             const result = CaptionKeepRollingNotes.update(transcript, rollingNotesState, {force});
-            rollingNotesState = result.state;
+            rollingNotesState = {...result.state, processedSourceRevision:CaptionKeepRollingNotes.sourceRevision(transcript.slice(0, result.state.processedCaptionCount))};
             if (result.changed || result.reason === 'duplicate' || result.reason === 'empty') await saveRollingNotesState();
         } catch (error) {
             rollingNotesState = CaptionKeepRollingNotes.recordFailure(rollingNotesState, error);
@@ -588,12 +590,20 @@
 
     async function saveMarkers() {
         allMarkers = allMarkers.slice(-MAX_MARKERS);
-        await chrome.storage.local.set({[STORAGE_KEY]: allMarkers});
+        const currentIds = new Set(allMarkers.map(marker => marker.id));
+        const upserts = allMarkers.filter(marker => persistedMarkers.get(marker.id) !== JSON.stringify(marker));
+        const removeIds = [...persistedMarkers.keys()].filter(id => !currentIds.has(id));
+        const result = await chrome.runtime.sendMessage({message:'update_evidence_markers', upserts, removeIds});
+        if (!result?.ok) throw new Error(result?.error || 'Evidence markers could not be saved.');
+        allMarkers = result.markers || [];
+        persistedMarkers = new Map(allMarkers.map(marker => [marker.id, JSON.stringify(marker)]));
+        if (result.rejected?.length) throw new Error(result.rejected[0].reason || 'The source is no longer available; its evidence was not retained.');
     }
 
     async function loadMarkers() {
         const stored = await chrome.storage.local.get(STORAGE_KEY);
         allMarkers = Array.isArray(stored[STORAGE_KEY]) ? stored[STORAGE_KEY] : [];
+        persistedMarkers = new Map(allMarkers.map(marker => [marker.id, JSON.stringify(marker)]));
         renderMarkers();
     }
 
@@ -844,22 +854,27 @@
         if (!artifact) throw new Error('The reviewed notes artifact is no longer available.');
         if (!board.MARKER_KINDS.includes(kind)) throw new Error('Choose a supported Evidence marker type.');
         const transcript = currentContext?.transcriptArray || [];
-        let added = 0;
+        const pendingMarkers = [];
         for (const evidenceId of artifact.evidenceIds) {
             const captionIndex = Number.parseInt(evidenceId.slice(1), 10) - 1;
             const caption = transcript[captionIndex];
             if (!caption) continue;
+            const original = artifact.payload.sourceEvidence?.find(item => item.evidenceId === evidenceId);
+            if (original && (original.caption.key !== caption.key || original.caption.Text !== caption.Text)) {
+                throw new Error(`${evidenceId} changed after these notes were reviewed. Review updated notes before promoting that citation.`);
+            }
             const alreadyMarked = allMarkers.some(marker => marker.sessionId === currentContext.sessionId
                 && marker.kind === kind && marker.sourceKey === caption.key);
             if (alreadyMarked) continue;
-            allMarkers.push(board.createMarker(currentContext, {
+            pendingMarkers.push(board.createMarker(currentContext, {
                 captionIndex,
                 kind,
                 note:`Promoted from reviewed Live Notes ${artifact.id}.`
             }));
-            added += 1;
         }
+        const added = pendingMarkers.length;
         if (!added) throw new Error(`Every cited caption is already marked as ${kind.toLowerCase()}.`);
+        allMarkers.push(...pendingMarkers);
         selectedSessionId = currentContext.sessionId;
         await saveMarkers();
         renderMarkers();
@@ -869,25 +884,39 @@
     async function saveReviewedNotes() {
         await refreshEnterprisePolicy();
         if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
-        const transcript = currentContext?.transcriptArray || [];
+        const sourceContext = currentContext ? structuredClone(currentContext) : null;
+        const transcript = sourceContext?.transcriptArray || [];
         if (!transcript.length) throw new Error('Capture at least one caption before keeping notes.');
         const text = elements.notesDraft.value.trim();
         const evidenceIds = CaptionKeepDerivedArtifacts.assertCitations(text, transcript.length);
         const sourceIndexes = evidenceIds.map(id => Number.parseInt(id.slice(1), 10) - 1);
+        const sourceTranscriptSha256 = await sha256Hex(board.canonicalTranscript(sourceContext));
+        const templateKey = `handoff_template_${encodeURIComponent(sourceContext.sessionId)}`;
+        const handoffTemplate = (await chrome.storage.session.get(templateKey))[templateKey];
+        const handoffCreatedAt = Date.parse(handoffTemplate?.createdAt || '');
+        const templateSnapshot = handoffTemplate?.sourceTranscriptSha256 === sourceTranscriptSha256
+            && handoffTemplate.sessionId === sourceContext.sessionId
+            && Number.isFinite(handoffCreatedAt) && Date.now() - handoffCreatedAt >= 0
+            && Date.now() - handoffCreatedAt < 60 * 60 * 1000 ? handoffTemplate.templateSnapshot : null;
         const artifact = CaptionKeepDerivedArtifacts.normalize({
             kind:'live-notes',
-            sessionId:currentContext.sessionId,
-            sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(currentContext)),
+            sessionId:sourceContext.sessionId,
+            sourceTranscriptSha256,
             sourceCaptionCount:transcript.length,
             sourceRevision:`${transcript.length}:${transcript.at(-1)?.key || ''}`,
             sourceKeys:sourceIndexes.map(index => transcript[index]?.key).filter(Boolean),
             evidenceIds,
             createdBy:'user',
             generator:'reviewed-live-notes-v1',
+            templateId:templateSnapshot?.id || '',
+            templateVersion:templateSnapshot ? (templateSnapshot.state === 'draft' ? `draft based on v${templateSnapshot.basedOnVersion}` : String(templateSnapshot.version)) : '',
             status:'user-confirmed',
-            payload:{text}
+            payload:{text, sourceEvidence:sourceIndexes.map(index => ({evidenceId:board.evidenceId(index), caption:transcript[index]})),
+                ...(templateSnapshot ? {reviewedHandoffTemplate:templateSnapshot} : {})}
         });
-        const response = await derivedRequest('save_derived_artifact', {artifact});
+        if (currentContext?.sessionId !== sourceContext.sessionId) throw new Error('The active meeting changed. Return to the original meeting before keeping these notes.');
+        const response = await derivedRequest('save_derived_artifact', {artifact, sessionId:sourceContext.sessionId});
+        if (currentContext?.sessionId !== sourceContext.sessionId) {setStatus('Notes were kept for the previous meeting.'); return;}
         derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
         elements.notesDraft.value = '';
         renderDerivedArtifacts();
@@ -897,7 +926,8 @@
     async function saveReviewedAnswer() {
         await refreshEnterprisePolicy();
         if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
-        const transcript = currentContext?.transcriptArray || [];
+        const sourceContext = currentContext ? structuredClone(currentContext) : null;
+        const transcript = sourceContext?.transcriptArray || [];
         if (!transcript.length) throw new Error('Capture at least one caption before keeping an answer.');
         const question = board.cleanInline(elements.askQuestion.value);
         if (!question) throw new Error('Enter the question this answer responds to.');
@@ -906,8 +936,8 @@
         const sourceIndexes = evidenceIds.map(id => Number.parseInt(id.slice(1), 10) - 1);
         const artifact = CaptionKeepDerivedArtifacts.normalize({
             kind:'answer',
-            sessionId:currentContext.sessionId,
-            sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(currentContext)),
+            sessionId:sourceContext.sessionId,
+            sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(sourceContext)),
             sourceCaptionCount:transcript.length,
             sourceRevision:`${transcript.length}:${transcript.at(-1)?.key || ''}`,
             sourceKeys:sourceIndexes.map(index => transcript[index]?.key).filter(Boolean),
@@ -915,9 +945,11 @@
             createdBy:'user',
             generator:'reviewed-transcript-answer-v1',
             status:'user-confirmed',
-            payload:{question, text}
+            payload:{question, text, sourceEvidence:sourceIndexes.map(index => ({evidenceId:board.evidenceId(index), caption:transcript[index]}))}
         });
-        const response = await derivedRequest('save_derived_artifact', {artifact});
+        if (currentContext?.sessionId !== sourceContext.sessionId) throw new Error('The active meeting changed. Return to the original meeting before keeping this answer.');
+        const response = await derivedRequest('save_derived_artifact', {artifact, sessionId:sourceContext.sessionId});
+        if (currentContext?.sessionId !== sourceContext.sessionId) {setStatus('The answer was kept for the previous meeting.'); return;}
         derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
         elements.answerDraft.value = '';
         renderDerivedArtifacts();
@@ -950,6 +982,7 @@
                 meetingTitle:currentContext.meetingTitle || 'Meeting',
                 providerLabel:currentContext.providerLabel || 'Meeting platform',
                 sessionId:currentContext.sessionId,
+                sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(currentContext)),
                 warnings:['Transcript snapshot only. Nothing has been sent.', `Snapshot contains ${transcript.length} captions.`]
             }
         });
@@ -1212,6 +1245,11 @@
         if (changeInfo.status === 'complete') void pollContext();
     });
     chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes[STORAGE_KEY]) {
+            allMarkers = Array.isArray(changes[STORAGE_KEY].newValue) ? changes[STORAGE_KEY].newValue : [];
+            persistedMarkers = new Map(allMarkers.map(marker => [marker.id, JSON.stringify(marker)]));
+            renderMarkers();
+        }
         if (areaName === 'local' && currentContext?.sessionId
             && changes[CaptionKeepDerivedArtifacts.storageKey(currentContext.sessionId)]) {
             void loadDerivedArtifacts().catch(error => setStatus(error.message));
@@ -1220,6 +1258,7 @@
         if (areaName !== 'managed') return;
         void (async () => {
             await refreshEnterprisePolicy();
+            await saveRollingNotesState();
             renderMarkers();
         })().catch(error => setStatus(error.message));
     });

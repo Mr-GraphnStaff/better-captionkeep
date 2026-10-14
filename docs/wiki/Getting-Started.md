@@ -4,7 +4,7 @@ Better CaptionKeep reads captions already displayed by the supported meeting pag
 
 ## Capture controls
 
-Open **All Settings → Capture controls** to decide whether Better CaptionKeep stores displayed captions or saves automatically when a meeting ends. During a meeting, open **Live Workspace** to explicitly enable live captions. In Teams, the same side panel has separate actions to open the attendee panel and request the official Microsoft 365 transcript. Opening Better CaptionKeep alone does not trigger any of these meeting controls. Turning caption tracking off stops new local capture without deleting captions already collected. Provider and organization policies may still prevent captions, rosters, or Microsoft 365 transcription from becoming available.
+For 6.0, live transcript capture starts by default in supported meetings. Open **All Settings → Capture controls** to pause capture or configure saving when a meeting ends. Open **Live Workspace** to review captured words; if meeting captions are unavailable, use the visible caption recovery action. In Teams, attendee capture and official Microsoft 365 transcription remain separate explicit actions. Turning capture off stops new local capture without deleting words already collected. Provider and organization policies may prevent captions, rosters, or official transcription from becoming available. For the public 5.4 interface, consult its versioned release instructions.
 
 ## Microsoft Teams
 

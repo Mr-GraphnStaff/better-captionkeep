@@ -46,6 +46,7 @@ Its first independent feature was **Save As (choose download location)**; the cu
 
 ## Project-local product skills
 
+- Use `.agents/skills/software-team/SKILL.md` when the user invokes `$software-team` or requests coordinated multidisciplinary delivery. Read its coordination and relevant role playbooks, use the existing 6.0 roadmap and release evidence, and keep the user as team lead. The full portable package is stored with this repository.
 - Use `.agents/skills/better-captionkeep-ux-designer/SKILL.md` when reviewing flows, interface states, terminology, hierarchy, accessibility, or release UX acceptance.
 - Use `.agents/skills/better-captionkeep-ui-engineer/SKILL.md` when implementing or verifying interface changes.
 - Use `.agents/skills/better-captionkeep-qa-engineer/SKILL.md` when designing or executing functional, visual, accessibility, upgrade, failure, or cross-browser testing and release evidence.

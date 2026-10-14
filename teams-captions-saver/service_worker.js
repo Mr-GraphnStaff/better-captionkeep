@@ -1,5 +1,9 @@
-importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
-    'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'derivedArtifacts.js', 'graphRuntimeConfig.js');
+// Workers load dependencies synchronously; document backgrounds preload the
+// same ordered files through background.scripts in their generated manifest.
+if (typeof importScripts === 'function') {
+    importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
+        'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'derivedArtifacts.js', 'graphRuntimeConfig.js', 'evidenceMarkerStore.js');
+}
 let historyQueue = Promise.resolve();
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
@@ -94,11 +98,12 @@ async function applyManagedHistoryPolicy() {
     const policy = await readEffectivePolicy();
     const manager = new SessionManager(true, historyOptions(policy.settings));
     if (policy.settings.disableSessionHistory) {
-        await manager.clearAllSessions();
+        await manager.clearAllSessions({preserveActive:false});
         return;
     }
     await manager.pruneExpiredSessions();
     await manager.pruneExcessSessions();
+    await manager.cleanupAbandonedGenerations();
 }
 
 function queueManagedHistoryPolicy() {
@@ -150,7 +155,7 @@ async function correctionAuthority(sessionId, historical, requireSource = true) 
         throw new Error('The source transcript is no longer available. No correction was saved.');
     }
     if (policy.settings.disableSessionHistory && (historical || source?.kind !== 'live')) {
-        await new SessionManager(true).clearAllSessions();
+        await new SessionManager(true).clearAllSessions({preserveActive:false});
         throw new Error('Transcript history is disabled by your organization. No correction was saved.');
     }
     const area = policy.settings.disableSessionHistory ? chrome.storage.session : chrome.storage.local;
@@ -498,7 +503,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const handled = new Set(['save_session_history','retry_archive','delete_session','clear_sessions','reset_aliases',
         'get_corrections','save_correction','undo_correction','save_correction_dictionary','apply_correction_dictionary',
         'get_meeting_extras','save_meeting_extras','delete_meeting_extras',
-        'get_derived_artifacts','save_derived_artifact','delete_derived_artifact',
+        'get_derived_artifacts','save_derived_artifact','delete_derived_artifact','update_evidence_markers',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
         'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript']);
     if (!handled.has(message?.message)) return false;
@@ -506,7 +511,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
         'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_disconnect',
         'graph_list_recent_meetings','graph_import_transcript','get_meeting_extras','save_meeting_extras','delete_meeting_extras'];
-    extensionPageOnly.push('get_derived_artifacts','save_derived_artifact','delete_derived_artifact');
+    extensionPageOnly.push('get_derived_artifacts','save_derived_artifact','delete_derived_artifact','update_evidence_markers');
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
     (async () => {
         const { speakerAliases } = await chrome.storage.session.get('speakerAliases');
@@ -570,7 +575,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         const policy = await readEffectivePolicy(['trackAttendees']);
                         const manager = new SessionManager(true, historyOptions(policy.settings));
                         if (policy.settings.disableSessionHistory) {
-                            await manager.clearAllSessions();
+                            await manager.clearAllSessions({preserveActive:false});
                             if (/^backup_[a-f0-9-]+$/.test(message.backupKey || '')) await chrome.storage.local.remove(message.backupKey);
                             return;
                         }
@@ -705,6 +710,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
                     await chrome.storage.local.set(update);
                     return {extras, artifact};
+                });
+                historyQueue = operation.catch(() => {});
+                return await operation;
+            }
+            case 'update_evidence_markers': {
+                const operation = historyQueue.then(async () => {
+                    const store = CaptionKeepEvidenceMarkerStore.create({
+                        readStored:async () => (await chrome.storage.local.get('evidenceBoardMarkersV1')).evidenceBoardMarkersV1 || [],
+                        writeStored:async markers => {
+                            if (markers.length) await chrome.storage.local.set({evidenceBoardMarkersV1:markers});
+                            else await chrome.storage.local.remove('evidenceBoardMarkersV1');
+                        },
+                        findSource:findCorrectionSource,
+                        readPolicy:async () => (await readEffectivePolicy()).settings
+                    });
+                    return await store.apply({upserts:message.upserts, removeIds:message.removeIds});
                 });
                 historyQueue = operation.catch(() => {});
                 return await operation;

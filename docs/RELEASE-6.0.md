@@ -2,7 +2,9 @@
 
 ## Status
 
-Version 6.0 is feature-complete working development on `codex/6.0`. It is not
+Version 6.0 is working development on `codex/6.0`. Completion is tracked against
+the full roadmap and the Software Team review; remaining gaps are not waived.
+It is not
 yet a frozen release candidate, certified six-browser build, Store submission,
 or public release.
 
@@ -11,8 +13,8 @@ The executable scope and gate sequence are maintained in
 
 The working product applies the dark DAF-TECH theme to the real Manifest V3
 popup, side panel, viewer, export, handoff, extras, and platform guidance;
-keeps one primary **Keep this meeting** action; restores direct Teams, Meet,
-and Zoom launchers; and preserves the existing local capture, Meeting Receipt,
+keeps one primary **Open Live Workspace** action during capture; offers Teams,
+Meet, and Zoom launchers when no meeting is active; and preserves local capture, Meeting Receipt,
 Evidence Board, export, privacy, and BYOAI engine. Rolling Live Notes are
 bounded, cited, pauseable, restart-safe, and locally revisioned.
 
@@ -23,6 +25,10 @@ On the current Windows host, isolated renderer smoke passed in installed Chrome,
 Edge, Brave, and Firefox. This is not provider certification. Opera is not
 installed and Safari/macOS is unavailable on this host; both remain explicit
 external live-test gates.
+
+The [Software Team review](SOFTWARE-TEAM-REVIEW-6.0-2026-10-13.md) records the
+source findings and acceptance criteria. Rendered checks must assert behavior
+and fail on defects; screenshot capture alone is not a pass.
 
 ## Browser commitment
 

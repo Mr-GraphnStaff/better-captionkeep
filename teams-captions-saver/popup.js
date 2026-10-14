@@ -14,6 +14,7 @@ const UI_ELEMENTS = {
     intelligenceTemplateName: document.getElementById('intelligenceTemplateName'),
     intelligenceTemplateInstructions: document.getElementById('intelligenceTemplateInstructions'),
     intelligenceTemplateSave: document.getElementById('intelligenceTemplateSave'),
+    intelligenceTemplateDuplicate: document.getElementById('intelligenceTemplateDuplicate'),
     intelligenceTemplateDelete: document.getElementById('intelligenceTemplateDelete'),
     intelligenceTemplateExport: document.getElementById('intelligenceTemplateExport'),
     intelligenceTemplateImport: document.getElementById('intelligenceTemplateImport'),
@@ -120,8 +121,8 @@ function renderMeetingTemplates(selectedId = '') {
         const option = document.createElement('option');
         option.value = template.id;
         option.textContent = customMeetingTemplates.some(item => item.id === template.id)
-            ? `Local · ${template.name}`
-            : `Built-in · ${template.name}`;
+            ? `Local · ${template.name} · v${template.version}`
+            : `Built-in · ${template.name} · v${template.version}`;
         select.append(option);
     }
     if ([...select.options].some(option => option.value === selectedId)) select.value = selectedId;
@@ -142,7 +143,8 @@ async function saveMeetingTemplate() {
     const selected = selectedMeetingTemplate();
     const existing = customMeetingTemplates.find(item => item.id === selected?.id);
     if (!existing && customMeetingTemplates.length >= 20) throw new Error('Delete a local template before adding another (limit 20).');
-    const template = {id:existing?.id || `custom-${crypto.randomUUID()}`, name, instructions};
+    const template = existing ? CaptionKeepPromptTemplates.revise(existing, {name, instructions})
+        : {id:`custom-${crypto.randomUUID()}`, name, instructions, version:1};
     customMeetingTemplates = CaptionKeepPromptTemplates.sanitize([
         ...customMeetingTemplates.filter(item => item.id !== template.id), template
     ]);
@@ -158,6 +160,17 @@ async function deleteMeetingTemplate() {
     await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
     renderMeetingTemplates();
     UI_ELEMENTS.intelligenceTemplateStatus.textContent = 'Local template deleted.';
+}
+
+async function duplicateMeetingTemplate() {
+    const selected = selectedMeetingTemplate();
+    if (!selected) throw new Error('Select a template to duplicate.');
+    if (customMeetingTemplates.length >= 20) throw new Error('Delete a local template before adding another (limit 20).');
+    const template = {id:`custom-${crypto.randomUUID()}`, name:`${selected.name} copy`.slice(0, 80), instructions:selected.instructions, version:1};
+    customMeetingTemplates = CaptionKeepPromptTemplates.sanitize([...customMeetingTemplates, template]);
+    await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
+    renderMeetingTemplates(template.id);
+    UI_ELEMENTS.intelligenceTemplateStatus.textContent = 'Template duplicated locally. The original is unchanged.';
 }
 
 function exportMeetingTemplates() {
@@ -204,7 +217,8 @@ function updateV6State({capturing = false, isInMeeting = false, captureState = '
     if (!UI_ELEMENTS.v6StatusOrbit) return;
     const ready = trackingAllowed && isInMeeting && capturing && !checkpointError && captureState !== 'source unavailable';
     const paused = isInMeeting && !trackingAllowed;
-    const errored = isInMeeting && !!checkpointError;
+    const sourceUnavailable = isInMeeting && trackingAllowed && captureState === 'source unavailable';
+    const errored = isInMeeting && trackingAllowed && (!!checkpointError || sourceUnavailable);
     const visualState = ready ? 'ready' : errored ? 'error' : paused ? 'paused' : isInMeeting ? 'starting' : 'unavailable';
     currentMeetingStatus = {capturing, isInMeeting, captureState, checkpointError, captionCount, trackingAllowed, ready, errored};
     document.documentElement.dataset.meetingState = isInMeeting ? 'active' : 'inactive';
@@ -216,7 +230,7 @@ function updateV6State({capturing = false, isInMeeting = false, captureState = '
     if (visualState !== 'unavailable') UI_ELEMENTS.v6ProviderState.classList.add(visualState);
     UI_ELEMENTS.v6ProviderDetail.textContent = ready
         ? `${captionCount} ${captionCount === 1 ? 'caption' : 'captions'} preserved`
-        : errored ? 'The last capture checkpoint failed'
+        : errored ? (checkpointError ? 'The last capture checkpoint failed' : 'Meeting captions are unavailable; existing text is preserved')
             : paused ? 'Live transcript capture is off in Settings'
             : isInMeeting ? 'Meeting found · live transcript is starting' : 'Open or join a supported meeting';
     UI_ELEMENTS.v6ReadyTitle.textContent = ready
@@ -352,7 +366,9 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
                 status += `, ${attendeeCount} attendees`;
             }
             status += ')';
-            if (transcriptionState === 'running') {
+            if (currentProviderLabel !== 'Microsoft Teams') {
+                status += ' Local capture is working.';
+            } else if (transcriptionState === 'running') {
                 status += ' Official Microsoft 365 transcription is running.';
             } else if (transcriptionState === 'requested') {
                 status += ' Microsoft 365 transcription was requested; Teams will confirm when it starts.';
@@ -1023,6 +1039,8 @@ function setupEventListeners() {
     UI_ELEMENTS.intelligenceTemplateDelete?.addEventListener('click', () => void deleteMeetingTemplate()
         .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; }));
     UI_ELEMENTS.intelligenceTemplateExport?.addEventListener('click', exportMeetingTemplates);
+    UI_ELEMENTS.intelligenceTemplateDuplicate?.addEventListener('click', () => void duplicateMeetingTemplate()
+        .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; }));
     UI_ELEMENTS.intelligenceTemplateImport?.addEventListener('click', () => UI_ELEMENTS.intelligenceTemplateFile.click());
     UI_ELEMENTS.intelligenceTemplateFile?.addEventListener('change', event => void importMeetingTemplates(event.target.files?.[0])
         .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; })

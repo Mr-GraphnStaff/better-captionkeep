@@ -41,6 +41,9 @@
         let finalizing = false;
         let finalized = false;
         let pending = Promise.resolve();
+        let checkpointFlight = null;
+        let checkpointDirty = false;
+        let captionRevision = 0;
         const transcript = [];
         const captionIndex = new Map();
 
@@ -77,7 +80,25 @@
         }
 
         function persistCheckpoint() {
-            return enqueue(writeCheckpoint);
+            checkpointDirty = true;
+            if (checkpointFlight) return checkpointFlight;
+            // One writer and one dirty flag replace an unbounded promise per mutation.
+            checkpointFlight = enqueue(async () => {
+                try {
+                    while (checkpointDirty) {
+                        checkpointDirty = false;
+                        await writeCheckpoint();
+                    }
+                } catch (error) {
+                    checkpointDirty = true;
+                    throw error;
+                } finally {
+                    checkpointFlight = null;
+                }
+            });
+            // Event-driven capture has no caller awaiting recovery saves; attach one rejection handler per flight.
+            checkpointFlight.catch(() => {});
+            return checkpointFlight;
         }
 
         async function restore() {
@@ -120,6 +141,7 @@
         }
 
         function upsertCaption(record) {
+            if (finalized) return null;
             const caption = options.normalizeCaption(record);
             const existingIndex = captionIndex.get(caption.key);
             if (existingIndex === undefined) {
@@ -131,7 +153,8 @@
                 broadcastCaption(caption, 'update');
             }
             lastCaptionAt = caption.capturedAt;
-            persistCheckpoint().catch(() => {});
+            captionRevision += 1;
+            persistCheckpoint();
             return caption;
         }
 
@@ -142,20 +165,28 @@
             sendMessage({message: 'meeting_ended', sessionId: recordingStartTime.toISOString()}).catch(() => {});
             return enqueue(async () => {
                 try {
-                    await writeCheckpoint();
+                    // Captions already queued by the provider may arrive during a slow final save.
+                    // Repeat the final snapshot until checkpoint and history contain the latest revision.
+                    let savedRevision;
+                    do {
+                        savedRevision = captionRevision;
+                        await writeCheckpoint();
+                        if (transcript.length) {
+                            const historyResult = await sendMessage({
+                                message: 'save_session_history',
+                                backupKey,
+                                recordingStartTime: recordingStartTime.toISOString(),
+                                transcriptArray: cloneTranscript(transcript),
+                                meetingTitle,
+                                attendeeReport: null
+                            });
+                            if (!historyResult?.ok) throw new Error(historyResult?.error || 'History save failed');
+                        }
+                        if (savedRevision === captionRevision) await storage.remove(activeCaptureKey);
+                    } while (savedRevision !== captionRevision);
+                    finalized = true;
+                    checkpointError = '';
                     if (transcript.length) {
-                        const historyResult = await sendMessage({
-                            message: 'save_session_history',
-                            backupKey,
-                            recordingStartTime: recordingStartTime.toISOString(),
-                            transcriptArray: cloneTranscript(transcript),
-                            meetingTitle,
-                            attendeeReport: null
-                        });
-                        if (!historyResult?.ok) throw new Error(historyResult?.error || 'History save failed');
-                        await storage.remove(activeCaptureKey);
-                        finalized = true;
-                        checkpointError = '';
                         sendMessage({
                             message: 'save_on_leave',
                             transcriptArray: cloneTranscript(transcript),
@@ -165,9 +196,6 @@
                         }).catch(error => {
                             checkpointError = `Automatic export failed: ${error.message}`;
                         });
-                    } else {
-                        await storage.remove(activeCaptureKey);
-                        finalized = true;
                     }
                 } finally {
                     finalizing = false;
@@ -182,7 +210,7 @@
                     break;
                 case 'caption-source-unavailable':
                     captureState = 'source unavailable';
-                    persistCheckpoint().catch(() => {});
+                    persistCheckpoint();
                     break;
                 case 'caption-upsert':
                     if (event.caption) upsertCaption(event.caption);
@@ -195,7 +223,7 @@
 
         function pause() {
             captureState = 'paused';
-            persistCheckpoint().catch(() => {});
+            persistCheckpoint();
         }
 
         function resume() {

@@ -1816,7 +1816,7 @@ test('6.0 build system stages every committed browser target with native workspa
         assert(roadmap.includes(browser === 'safari' ? 'Safari' : browser[0].toUpperCase()+browser.slice(1)));
     }
     assert(builder.includes("manifest.sidebar_action"));
-    assert(builder.includes("background = {scripts: ['service_worker.js']}"));
+    assert(builder.includes('background = {scripts: await documentBackgroundScripts()}'));
     assert(builder.includes("strict_min_version: '140.0'"));
     assert(builder.includes("strict_min_version: '142.0'"));
     assert(builder.includes("required: ['none']"));

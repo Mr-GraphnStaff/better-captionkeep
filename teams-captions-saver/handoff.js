@@ -24,6 +24,8 @@ let basePrompt = '';
 let handoffReady = false;
 let customTemplates = [];
 let appliedInstructions = '';
+let appliedTemplateSnapshot = null;
+let appliedPromptValue = '';
 let onTheFlyMode = false;
 let transcriptQaMode = false;
 let liveNotesMode = false;
@@ -76,8 +78,13 @@ templateApply.addEventListener('click', async () => {
     try {
         await allowTemplateAction();
         appliedInstructions = templateInstructions.value;
+        const selected = [...CaptionKeepPromptTemplates.BUILT_INS, ...customTemplates].find(item => item.id === templateSelect.value);
+        appliedTemplateSnapshot = selected ? CaptionKeepPromptTemplates.appliedSnapshot(selected, appliedInstructions) : null;
         promptBox.value = CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions);
-        templateStatus.textContent = 'Task applied. Review the complete prompt before copying.';
+        appliedPromptValue = promptBox.value;
+        templateStatus.textContent = appliedTemplateSnapshot?.state === 'draft'
+            ? 'Unsaved draft instructions applied. Review before copying.'
+            : `Template version ${appliedTemplateSnapshot?.version || 1} applied. Review before copying.`;
     } catch (error) { templateStatus.textContent = error.message; }
 });
 templateSave.addEventListener('click', async () => {
@@ -87,7 +94,9 @@ templateSave.addEventListener('click', async () => {
         // Never persist the generated prompt or transcript as a template.
         const existing = customTemplates.find(item => item.id === templateSelect.value);
         if (!existing && customTemplates.length >= 20) throw new Error('Delete a custom template before adding another (limit 20).');
-        const template = {id:existing?.id || `custom-${crypto.randomUUID()}`, name:templateName.value, instructions:templateInstructions.value};
+        const changes = {name:templateName.value, instructions:templateInstructions.value};
+        const template = existing ? CaptionKeepPromptTemplates.revise(existing, changes)
+            : {id:`custom-${crypto.randomUUID()}`, ...changes, version:1};
         const next = CaptionKeepPromptTemplates.sanitize([...customTemplates.filter(item => item.id !== template.id), template]);
         await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:next});
         customTemplates = next;
@@ -192,6 +201,7 @@ function renderPackage() {
     promptBox.value = appliedInstructions
         ? CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions)
         : basePrompt;
+    appliedPromptValue = promptBox.value;
     currentChunk = 0;
     renderCoverage();
     renderChunk();
@@ -220,6 +230,24 @@ async function requireAllowedAction(action) {
     }
 }
 
+async function persistTemplateProvenance() {
+    if (!chrome.storage.session || !sourceData?.sessionId) return;
+    if (!appliedTemplateSnapshot) {
+        await chrome.storage.session.remove(`handoff_template_${encodeURIComponent(sourceData.sessionId)}`);
+        return;
+    }
+    const snapshot = promptBox.value === appliedPromptValue ? appliedTemplateSnapshot
+        : {...appliedTemplateSnapshot, version:null, state:'draft', basedOnVersion:appliedTemplateSnapshot.version || appliedTemplateSnapshot.basedOnVersion};
+    const metadata = CaptionKeepPromptTemplates.handoffMetadata(sourceData.sessionId, sourceData.sourceTranscriptSha256, snapshot);
+    if (metadata) await chrome.storage.session.set({[metadata.key]:metadata.value});
+}
+
+promptBox.addEventListener('input', () => {
+    if (appliedTemplateSnapshot && promptBox.value !== appliedPromptValue) {
+        templateStatus.textContent = 'Prompt edited. This handoff is an unsaved draft based on the applied template.';
+    }
+});
+
 copyButton.onclick = async () => {
     try {
         await requireAllowedAction('copy');
@@ -228,6 +256,7 @@ copyButton.onclick = async () => {
             statusBox.textContent = 'Scrubby is off. Click "Copy unmasked instructions" again to confirm.';
             return;
         }
+        await persistTemplateProvenance();
         await navigator.clipboard.writeText(promptBox.value);
         unmaskedCopyArmed = false;
         statusBox.textContent = 'Instructions copied. Attach the complete evidence file, or copy every numbered chunk in order.';
@@ -244,6 +273,7 @@ copyChunkButton.onclick = async () => {
             statusBox.textContent = 'Scrubby is off. Click "Copy this chunk" again to confirm unmasked copying.';
             return;
         }
+        await persistTemplateProvenance();
         await navigator.clipboard.writeText(currentPackage.chunks[currentChunk].text);
         unmaskedCopyArmed = false;
         statusBox.textContent = `Copied chunk ${currentChunk + 1} of ${currentPackage.chunks.length}.`;
@@ -275,8 +305,11 @@ nextChunkButton.onclick = () => { currentChunk += 1; renderChunk(); };
 
 document.getElementById('discard').onclick = async () => {
     await chrome.storage.local.remove(id);
+    if (chrome.storage.session && sourceData?.sessionId) await chrome.storage.session.remove(`handoff_template_${encodeURIComponent(sourceData.sessionId)}`);
     basePrompt = '';
     appliedInstructions = '';
+    appliedTemplateSnapshot = null;
+    appliedPromptValue = '';
     handoffReady = false;
     templateApply.disabled = true;
     templateSave.disabled = true;
@@ -318,6 +351,7 @@ function renderProvider(providerKey, settings) {
                 statusBox.textContent = `Scrubby is off. Choose ${destination.name} again to confirm unmasked copying.`;
                 return;
             }
+            await persistTemplateProvenance();
             await navigator.clipboard.writeText(promptBox.value);
             unmaskedCopyArmed = false;
             await chrome.tabs.create({url: destination.url});
@@ -376,7 +410,9 @@ function renderProvider(providerKey, settings) {
             if (liveNotesMode) {
                 const template = CaptionKeepPromptTemplates.BUILT_INS.find(item => item.id === 'minutes');
                 appliedInstructions = `${CaptionKeepAiTasks.task('live_notes').instruction}\n\n${template.instructions}`;
+                appliedTemplateSnapshot = CaptionKeepPromptTemplates.appliedSnapshot(template, template.instructions);
                 promptBox.value = CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions);
+                appliedPromptValue = promptBox.value;
                 templateStatus.textContent = 'Cited Live Notes instructions are applied. Review the complete prompt before copying.';
             }
         }

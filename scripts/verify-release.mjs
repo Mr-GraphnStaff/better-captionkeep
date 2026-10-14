@@ -127,6 +127,13 @@ for (const name of ['edge-extension-settings.json', 'edge-extension-force-instal
 
 const safeProjectRoot = projectRoot.replaceAll('\\', '/');
 const commit = execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
-const provenance = { product: 'Better CaptionKeep', version: sourceManifest.version, commit, createdAt: new Date().toISOString(), artifacts };
+const sourceDigest = createHash('sha256');
+for (const file of [...sourceFiles].sort()) {
+  sourceDigest.update(file).update('\0').update(await readFile(path.join(projectRoot, 'teams-captions-saver', file))).update('\0');
+}
+const workingTreeDirty = !!execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'status', '--porcelain', '--untracked-files=normal'],
+  {cwd:projectRoot, encoding:'utf8'}).trim();
+const provenance = { product: 'Better CaptionKeep', version: sourceManifest.version, commit,
+  sourceTreeSha256:sourceDigest.digest('hex'), workingTreeDirty, createdAt: new Date().toISOString(), artifacts };
 await writeFile(path.join(prodDir, 'release-provenance.json'), `${JSON.stringify(provenance, null, 2)}\n`, 'utf8');
 console.log(JSON.stringify(provenance, null, 2));

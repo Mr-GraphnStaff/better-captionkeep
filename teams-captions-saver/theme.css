@@ -27,6 +27,7 @@
 }
 
 :root[data-theme="light"] {
+    color-scheme: light;
     --ck-bg: #eef3f5;
     --ck-surface: #ffffff;
     --ck-surface-soft: #f5f8f9;
@@ -36,6 +37,9 @@
     --ck-border: #cbd8dd;
     --ck-primary: #007f8c;
     --ck-primary-hover: #00646e;
+    --ck-success: #176b3b;
+    --ck-warning: #865800;
+    --ck-danger: #ae2634;
     --ck-shadow: 0 5px 18px rgba(16, 42, 59, 0.12);
 }
 

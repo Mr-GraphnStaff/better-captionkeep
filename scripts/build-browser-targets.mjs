@@ -7,7 +7,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(projectRoot, 'teams-captions-saver');
 const manifestsDir = path.join(projectRoot, 'manifests');
-const canonicalDist = path.join(projectRoot, 'dist');
+const canonicalDist = process.env.CAPTIONKEEP_TEST_DIST
+  ? path.resolve(process.env.CAPTIONKEEP_TEST_DIST) : path.join(projectRoot, 'dist');
 const devDir = path.join(canonicalDist, 'dev');
 const uatDir = path.join(canonicalDist, 'uat');
 const prodDir = path.join(canonicalDist, 'prod');
@@ -72,7 +73,7 @@ async function stageTarget(target) {
     delete manifest.side_panel;
     delete manifest.storage;
     delete manifest.key;
-    manifest.background = {scripts: ['service_worker.js']};
+    manifest.background = {scripts: await documentBackgroundScripts()};
     manifest.sidebar_action = {
       default_title: '__MSG_extensionName__',
       default_panel: 'sidepanel.html',
@@ -97,7 +98,7 @@ async function stageTarget(target) {
     delete manifest.storage;
     delete manifest.key;
     manifest.background = {
-      scripts: ['service_worker.js'],
+      scripts: await documentBackgroundScripts(),
       service_worker: 'service_worker.js',
       preferred_environment: ['service_worker', 'document']
     };
@@ -108,6 +109,21 @@ async function stageTarget(target) {
     'utf8'
   );
   console.log(`Staged ${target} extension at ${targetDir}`);
+}
+
+// Keep document and worker backgrounds on the same dependency order, without
+// asynchronous loading that could delay extension event registration.
+async function documentBackgroundScripts() {
+  const worker = await readFile(path.join(sourceDir, 'service_worker.js'), 'utf8');
+  const imports = worker.match(/\bimportScripts\(([\s\S]*?)\);/);
+  if (!imports) throw new Error('Background worker dependency list was not found.');
+  const dependencies = [...imports[1].matchAll(/'([^']+\.js)'/g)].map(match => match[1]);
+  if (!dependencies.length) throw new Error('Background worker dependency list is empty.');
+  for (const dependency of dependencies) {
+    if (dependency !== path.basename(dependency)) throw new Error(`Invalid background dependency: ${dependency}`);
+    await readFile(path.join(sourceDir, dependency), 'utf8');
+  }
+  return [...dependencies, 'service_worker.js'];
 }
 
 const targets = selectTargets(process.argv[2]?.toLowerCase());

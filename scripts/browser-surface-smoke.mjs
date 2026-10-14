@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
+import {runChromiumSurface} from './rendered-surface-checks.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const prodDir = path.join(projectRoot, 'dist', 'prod');
@@ -31,6 +32,7 @@ function version(binary) {
 
 await mkdir(evidenceDir, {recursive: true});
 const record = JSON.parse(await readFile(recordPath, 'utf8'));
+let failed = false;
 
 for (const definition of definitions) {
   const entry = record.browsers.find(item => item.browser === definition.browser);
@@ -45,16 +47,23 @@ for (const definition of definitions) {
     ? ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--window-size=1280,900', `--screenshot=${screenshot}`, url]
     : ['--headless', '--window-size', '1280,900', '--screenshot', screenshot, url];
   try {
-    execFileSync(definition.binary, args, {stdio: 'pipe', windowsHide: true, timeout: 60000});
+    await rm(screenshot,{force:true});
+    const rendered = definition.chromium
+      ? await runChromiumSurface(definition.binary,path.join(prodDir, `${definition.browser}-unpacked`),screenshot)
+      : (execFileSync(definition.binary, args, {stdio: 'pipe', windowsHide: true, timeout: 60000}), null);
     entry.browserVersion = version(definition.binary);
     entry.operatingSystem = `${os.type()} ${os.release()}`;
     entry.surfaceSmoke = {
-      status: await exists(screenshot) ? 'passed' : 'failed',
-      scope: 'Rendered the packaged 6.0 Settings surface in an isolated headless browser process; extension APIs and meeting providers were not exercised.',
+      status: !await exists(screenshot) ? 'failed' : rendered ? 'passed' : 'captured',
+      scope: rendered ? 'Packaged Settings navigation, popup reachability, system/native theming, viewer tools, and handoff empty-state assertions with fixture extension APIs; live provider behavior was not exercised.'
+        : 'Screenshot captured only; no visibility, interaction, or extension behavior assertions ran.',
+      checks: rendered?.checks || [],
       testedAt: new Date().toISOString(),
       evidence: `certification-evidence/${path.basename(screenshot)}`
     };
+    if (entry.surfaceSmoke.status === 'failed') failed = true;
   } catch (error) {
+    failed = true;
     entry.surfaceSmoke = {status: 'failed', reason: String(error.message || error).slice(0, 500)};
   }
 }
@@ -63,3 +72,4 @@ const safari = record.browsers.find(item => item.browser === 'safari');
 if (safari) safari.surfaceSmoke = {status: 'not-run', reason: 'Safari/macOS is unavailable on this Windows host.'};
 await writeFile(recordPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 console.log(`Updated ${path.relative(projectRoot, recordPath)} with separate installed-browser surface-smoke evidence.`);
+if (failed) process.exitCode = 1;

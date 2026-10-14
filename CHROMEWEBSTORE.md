@@ -88,7 +88,9 @@ Better CaptionKeep does not record microphone audio or video, run advertising or
 
 Version 5.4 is preparing broad AI-assisted interface translation previews. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
 
-To begin, open a supported meeting and open Better CaptionKeep. Use **Live Workspace** to choose when live captions start and, in Teams, whether to open the attendee panel or request the official transcript. Use the popup for settings, history, and exports, or keep the Evidence Board beside the meeting. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
+To begin in 6.0, join a supported meeting. Live transcript capture starts by default; pause it in **All Settings → Capture controls** whenever you choose. Open **Live Workspace** to review the transcript and evidence, or recover unavailable meeting captions. In Teams, opening the attendee panel and requesting the official transcript remain separate actions. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
+
+6.0 artwork is pending regeneration from the final frozen interface. Current images must not be treated as final visual acceptance or uploaded before that review.
 
 Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
 

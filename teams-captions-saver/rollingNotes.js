@@ -1,7 +1,7 @@
 (function initializeRollingNotes(root) {
     'use strict';
 
-    const VERSION = 1;
+    const VERSION = 2;
     const MAX_REVISIONS = 30;
     const MAX_BATCH_CAPTIONS = 24;
     const MAX_BATCH_CHARS = 12000;
@@ -32,8 +32,12 @@
 
     function sourceRevision(transcript) {
         const captions = Array.isArray(transcript) ? transcript : [];
-        const latest = captions.at(-1) || {};
-        return `${captions.length}:${cleanInline(latest.key, 240)}:${cleanInline(latest.Text, 1000)}`;
+        return `${captions.length}:${checksum(JSON.stringify(captions.map(captionFingerprint)))}`;
+    }
+
+    function captionFingerprint(caption) {
+        // Change detection only; immutable evidence provenance uses the transcript SHA-256 elsewhere.
+        return checksum(JSON.stringify([caption?.key || '', caption?.Name || '', caption?.Text || '', caption?.Time || '']));
     }
 
     function emptyState(sessionId) {
@@ -44,6 +48,7 @@
             paused: false,
             intervalMs: DEFAULT_INTERVAL_MS,
             processedCaptionCount: 0,
+            sourceFingerprints: [],
             sourceRevision: '0::',
             lastUpdatedAt: '',
             failureCount: 0,
@@ -66,6 +71,7 @@
                     ? [...new Set(item.evidenceIds.map(id => cleanInline(id, 20)).filter(Boolean))].slice(0, MAX_BATCH_CAPTIONS)
                     : [],
                 text: String(item?.text || '').slice(0, MAX_BATCH_CHARS + 2000),
+                status: item?.status === 'superseded' ? 'superseded' : 'current',
                 sourceRevision: cleanInline(item?.sourceRevision, 140)
             })).filter(item => item.id && item.text)
             : [];
@@ -76,6 +82,7 @@
             paused: input.paused === true,
             intervalMs: [30000, 60000, 120000].includes(intervalMs) ? intervalMs : DEFAULT_INTERVAL_MS,
             processedCaptionCount: Math.max(0, Number.parseInt(input.processedCaptionCount, 10) || 0),
+            sourceFingerprints: Array.isArray(input.sourceFingerprints) ? input.sourceFingerprints.map(item => cleanInline(item, 16)) : [],
             sourceRevision: cleanInline(input.sourceRevision, 140) || base.sourceRevision,
             lastUpdatedAt: isoDate(input.lastUpdatedAt),
             failureCount: Math.min(3, Math.max(0, Number.parseInt(input.failureCount, 10) || 0)),
@@ -100,7 +107,8 @@
             characters += line.length;
             selected.push({index, line, evidenceId:evidenceId(index)});
         }
-        return {start, selected};
+        const scannedThrough = selected.length ? selected.at(-1).index + 1 : captions.length;
+        return {start, selected, scannedThrough};
     }
 
     function checksum(value) {
@@ -113,22 +121,38 @@
     }
 
     function update(transcript, previousState, options = {}) {
-        const state = normalizeState(previousState, previousState?.sessionId);
-        if (!state.enabled) return {state, changed:false, reason:'disabled'};
-        if (state.paused && !options.force) return {state, changed:false, reason:'paused'};
-        if (state.failureCount >= 3 && !options.force) return {state, changed:false, reason:'retry-limit'};
+        let state = normalizeState(previousState, previousState?.sessionId);
         const captions = Array.isArray(transcript) ? transcript : [];
         const revision = sourceRevision(captions);
+        const fingerprints = captions.map(captionFingerprint);
+        let changedIndex = -1;
+        for (let index = 0; index < state.processedCaptionCount; index += 1) {
+            if (state.sourceFingerprints[index] !== fingerprints[index]) { changedIndex = index; break; }
+        }
+        let invalidated = false;
+        if (changedIndex >= 0) {
+            // Keep history, but remove outdated batches from the current draft before bounded rebuilding.
+            const affected = state.revisions.filter(item => item.status !== 'superseded' && item.toCaption >= changedIndex);
+            const restartAt = Math.min(changedIndex, ...affected.map(item => item.fromCaption));
+            const revisions = state.revisions.map(item => affected.includes(item) ? {...item, status:'superseded'} : item);
+            state = {...state, processedCaptionCount:restartAt, sourceFingerprints:state.sourceFingerprints.slice(0, restartAt), revisions,
+                draft:revisions.filter(item => item.status !== 'superseded').map(item => item.text).join('\n\n').slice(-100000)};
+            invalidated = true;
+        }
+        // Pausing generation must not present known obsolete source text as a current draft.
+        if (!state.enabled) return {state, changed:invalidated, reason:'disabled'};
+        if (state.paused && !options.force) return {state, changed:invalidated, reason:'paused'};
+        if (state.failureCount >= 3 && !options.force) return {state, changed:invalidated, reason:'retry-limit'};
         if (revision === state.sourceRevision && state.processedCaptionCount >= captions.length) {
             return {state, changed:false, reason:'current'};
         }
         const batch = boundedBatch(captions, state);
-        if (!batch.selected.length) return {state:{...state, sourceRevision:revision}, changed:false, reason:'empty'};
-        if (!options.force && batch.selected.length < MIN_AUTOMATIC_CAPTIONS) return {state, changed:false, reason:'waiting'};
+        if (!batch.selected.length) return {state:{...state, sourceRevision:revision, processedCaptionCount:captions.length, sourceFingerprints:fingerprints}, changed:invalidated, reason:'empty'};
+        if (!options.force && !invalidated && batch.selected.length < MIN_AUTOMATIC_CAPTIONS) return {state, changed:false, reason:'waiting'};
         const createdAt = isoDate(options.now, Date.now());
         const text = [`Rolling update · ${createdAt}`, ...batch.selected.map(item => item.line)].join('\n');
-        const id = `rolling-${batch.selected[0].index + 1}-${batch.selected.at(-1).index + 1}-${checksum(text)}`;
-        if (state.revisions.some(item => item.id === id)) {
+        const id = `rolling-${batch.selected[0].index + 1}-${batch.selected.at(-1).index + 1}-${checksum(`${revision}:${state.revisions.at(-1)?.id || 'root'}:${batch.selected.map(item => item.line).join('\n')}`)}`;
+        if (state.revisions.some(item => item.id === id && item.status !== 'superseded')) {
             return {state:{...state, sourceRevision:revision}, changed:false, reason:'duplicate'};
         }
         const nextRevision = {
@@ -138,6 +162,7 @@
             toCaption:batch.selected.at(-1).index,
             evidenceIds:batch.selected.map(item => item.evidenceId),
             text,
+            status:'current',
             sourceRevision:revision
         };
         const revisions = [...state.revisions, nextRevision].slice(-MAX_REVISIONS);
@@ -148,12 +173,13 @@
             state:{
                 ...state,
                 processedCaptionCount:batch.selected.at(-1).index + 1,
+                sourceFingerprints:fingerprints.slice(0, batch.selected.at(-1).index + 1),
                 sourceRevision:revision,
                 lastUpdatedAt:createdAt,
                 failureCount:0,
                 lastError:'',
                 revisions,
-                draft:revisions.map(item => item.text).join('\n\n').slice(-100000)
+                draft:revisions.filter(item => item.status !== 'superseded').map(item => item.text).join('\n\n').slice(-100000)
             }
         };
     }
