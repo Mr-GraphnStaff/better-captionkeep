@@ -1,11 +1,11 @@
 # Release Status
 
-Last verified: **October 12, 2026**.
+Last verified: **October 14, 2026**.
 
 | Channel | Version | Status |
 | --- | --- | --- |
 | Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
-| Microsoft Edge Add-ons | 5.4.0 public; post-upgrade smoke pending | Microsoft's public listing served version 5.4.0 as updated October 10, 2026. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
+| Microsoft Edge Add-ons | 5.4.0 and DAF-TECH listing refresh public; post-upgrade smoke pending | Microsoft's official listing serves version 5.4.0 and, as verified October 14, the refreshed description plus all five 5.4 screenshots. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
 | Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
 | Active development release | None | Version 5.4.0 is frozen at Production commit `515819599bcd0c9e3d6d97852d36ef3517e68ac8`. New product work must use a later development lane. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
@@ -66,6 +66,12 @@ Edge again displayed the Store-generated `_metadata` reserved-name warning
 tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820).
 The immutable submitted ZIP contains no `_metadata` entry. Public availability
 is verified; successful post-upgrade functional smoke testing remains open.
+
+On October 14, Microsoft's official Edge Add-ons listing was verified serving
+the refreshed DAF-TECH description and all five 5.4 screenshots. The public
+listing now presents the three supported meeting platforms, explicit meeting
+controls, On the Fly research, reviewed BYOAI handoff, and enterprise controls.
+The listing refresh is public; the installed-upgrade smoke gate remains open.
 
 The product owner accepted clean UAT and explicitly authorized an early
 full-pipeline release. The normal unchanged 48-hour observation window was
