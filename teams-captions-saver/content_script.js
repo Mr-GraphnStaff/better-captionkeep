@@ -10,7 +10,8 @@ const TIMING = {
 };
 
 const SELECTORS = {
-    CAPTIONS_RENDERER: "[data-tid='closed-caption-v2-window-wrapper'], [data-tid='closed-captions-renderer'], [data-tid*='closed-caption']",
+    // Caption settings/buttons are not live caption surfaces.
+    CAPTIONS_RENDERER: "[data-tid='closed-caption-v2-window-wrapper'], [data-tid='closed-captions-renderer']",
     CHAT_MESSAGE: '.fui-ChatMessageCompact',
     AUTHOR: '[data-tid="author"]',
     CAPTION_TEXT: '[data-tid="closed-caption-text"]',
@@ -50,6 +51,7 @@ let leaveRequested = false;
 let stateCheckRunning = false;
 let attendeeStartTimer = null;
 let captureState = 'idle';
+let lastPublishedBadgeState = null;
 let checkpointError = '';
 let transcriptionState = 'unchecked';
 let transcriptionDetail = 'Teams transcription has not been checked.';
@@ -131,7 +133,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             clearInterval(backupInterval);
             backupInterval = null;
             persistBackup();
-            chrome.runtime.sendMessage({message:'update_badge_status', capturing:false}).catch(() => {});
+            publishCaptureBadge();
         } else {
             void requestLiveCaptions().catch(error => console.warn('[Better CaptionKeep] Live captions could not be resumed:', error));
             handleCaptionsStateChange();
@@ -359,10 +361,36 @@ function clearElementCache() {
 // The compact stage can use a different hang-up button, and pop-out captions do
 // not contain meeting controls at all. Either surface is evidence that the
 // meeting/caption session is still alive.
-const isUserInMeeting = () => (
-    getCachedElement(SELECTORS.LEAVE_BUTTONS) !== null ||
-    getCachedElement(SELECTORS.CAPTIONS_RENDERER) !== null
+function getLiveMeetingElement(selector) {
+    const candidates = document.querySelectorAll
+        ? Array.from(document.querySelectorAll(selector)) : [document.querySelector(selector)];
+    return candidates.find(element => {
+        if (!element || !document.contains(element)) return false;
+        if (element.closest?.('[hidden], [aria-hidden="true"]')) return false;
+        // Hidden/minimized browser windows remain live. Only DOM-hidden controls
+        // (including their ancestors) are excluded, not document.hidden.
+        if (typeof getComputedStyle === 'function') {
+            for (let node = element; node?.nodeType === 1; node = node.parentElement) {
+                const style = getComputedStyle(node);
+                if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false;
+            }
+        }
+        return true;
+    }) || null;
+}
+
+const isUserInMeeting = () => Boolean(
+    getLiveMeetingElement(SELECTORS.LEAVE_BUTTONS) ||
+    (!leaveRequested && getLiveMeetingElement(SELECTORS.CAPTIONS_RENDERER))
 );
+
+function publishCaptureBadge() {
+    const live = capturing && trackingAllowed && isUserInMeeting()
+        && Boolean(getLiveMeetingElement(SELECTORS.CAPTIONS_RENDERER));
+    if (live === lastPublishedBadgeState) return;
+    lastPublishedBadgeState = live;
+    chrome.runtime.sendMessage({message:'update_badge_status', capturing:live}).catch(() => {});
+}
 
 // --- Core Logic ---
 const processCaptionUpdates = ErrorHandler.wrap(function() {
@@ -631,20 +659,22 @@ function setupCaptionsObserver() {
 const checkMeetingState = ErrorHandler.wrap(async function() {
     const previouslyInMeeting = wasInMeeting;
     const nowInMeeting = isUserInMeeting();
+    // Do not advertise ON during the recovery grace period or async exports.
+    publishCaptureBadge();
     if (nowInMeeting) {
         sourceMissingSince = null;
-        leaveRequested = false;
         captureState = trackingAllowed ? (document.querySelector(SELECTORS.CAPTIONS_RENDERER) ? 'capturing' : 'source unavailable') : 'paused';
     } else if (wasInMeeting) {
         sourceMissingSince ??= Date.now();
         captureState = 'source unavailable';
         // Hidden Teams windows are not evidence that a meeting ended.
         // Allow visible DOM swaps 15 seconds to settle before finalizing.
-        if ((document.hidden && !leaveRequested) || Date.now() - sourceMissingSince < 15000) return;
+        if (!leaveRequested && (document.hidden || Date.now() - sourceMissingSince < 15000)) return;
     }
     
     if (wasInMeeting && !nowInMeeting) {
         flushPendingCaptions();
+        stopCaptureSession();
         console.log("Meeting transition detected: In -> Out. Checking for auto-save.");
         
         // Send meeting ended signal to viewer
@@ -712,6 +742,7 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
         stopAttendeeTracking();
         return;
     } else if (!previouslyInMeeting && nowInMeeting) {
+        leaveRequested = false;
         // Reset auto-save state when joining a new meeting
         console.log("Meeting transition detected: Out -> In. Resetting auto-save state.");
         autoSaveTriggered = false;
@@ -818,7 +849,7 @@ async function startCaptureSession() {
     // Start periodic backup
     startPeriodicBackup();
     
-    chrome.runtime.sendMessage({ message: "update_badge_status", capturing: true });
+    publishCaptureBadge();
     
     ensureObserverIsActive();
 }
@@ -908,7 +939,7 @@ function stopCaptureSession() {
     // Stop attendee tracking
     stopAttendeeTracking();
     
-    chrome.runtime.sendMessage({ message: "update_badge_status", capturing: false });
+    publishCaptureBadge();
 }
 
 // Save current transcript to session history
@@ -1221,7 +1252,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                 const { trackCaptions } = await chrome.storage.sync.get('trackCaptions');
                 const attendeeReport = await getAttendeeReport();
                 sendResponse({
-                    capturing: trackCaptions !== false ? capturing : false,
+                    capturing: trackCaptions !== false && capturing && isUserInMeeting()
+                        && Boolean(getLiveMeetingElement(SELECTORS.CAPTIONS_RENDERER)),
                     captureState, checkpointError,
                     captionCount: transcriptArray.length,
                     lastCaptionAt: transcriptArray.at(-1)?.capturedAt || '',

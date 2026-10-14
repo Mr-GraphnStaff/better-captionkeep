@@ -2076,6 +2076,54 @@ test('visible transient DOM loss receives a grace interval',async()=>{
     const h=await contentHarness();h.run('wasInMeeting=true;capturing=true;sourceMissingSince=Date.now()-5000;');await h.run('handleMeetingStateChange()');
     assert.equal(h.run('capturing'),true);assert(!h.messages.some(m=>m.message==='meeting_ended'));
 });
+
+test('Teams caption menu buttons cannot keep a left meeting active',async()=>{
+    const h=await contentHarness();
+    const menuButton={};
+    h.document.querySelector=selector=>selector.includes("[data-tid*='closed-caption']")?menuButton:null;
+    h.run("wasInMeeting=true;capturing=true;sourceMissingSince=Date.now()-20000;recordingStartTime=new Date();transcriptArray.push({Name:'A',Text:'preserved',Time:'10'});");
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('isUserInMeeting()'),false);
+    assert.equal(h.run('capturing'),false);
+    assert.equal(h.run('transcriptArray.length'),1);
+    assert.equal(h.messages.filter(m=>m.message==='update_badge_status').at(-1).capturing,false);
+    assert.equal(h.messages.filter(m=>m.message==='meeting_ended').length,1);
+});
+
+test('DOM-hidden cached Teams controls do not keep the badge ON',async()=>{
+    const h=await contentHarness();
+    const control={closest:()=>null};
+    h.document.querySelector=()=>control;
+    h.run('getCachedElement(SELECTORS.LEAVE_BUTTONS);wasInMeeting=true;capturing=true;');
+    control.closest=()=>({hidden:true});
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('isUserInMeeting()'),false);
+    assert.equal(h.messages.filter(m=>m.message==='update_badge_status').at(-1).capturing,false);
+    assert.equal(h.run('capturing'),true,'recovery grace still preserves the session');
+});
+
+test('explicit Teams leave stops immediately even when hidden with a stale caption wrapper',async()=>{
+    const h=await contentHarness();h.document.hidden=true;
+    h.document.querySelector=selector=>selector.includes('closed-caption-v2-window-wrapper')?{}:null;
+    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;recordingStartTime=new Date();transcriptArray.push({Name:'A',Text:'preserved',Time:'10'});");
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),false);
+    assert.equal(h.run('transcriptArray[0].Text'),'preserved');
+    assert.equal(h.messages.filter(m=>m.message==='update_badge_status').at(-1).capturing,false);
+    assert(h.messages.some(m=>m.message==='meeting_ended'));
+});
+
+test('minimized live Teams controls remain ON and can resume after a transient DOM swap',async()=>{
+    const h=await contentHarness();h.document.hidden=true;
+    h.run('wasInMeeting=true;capturing=true;');
+    await h.run('checkMeetingState()');
+    assert.equal(h.messages.filter(m=>m.message==='update_badge_status').at(-1).capturing,false);
+    h.document.querySelector=()=>({});
+    await h.run('checkMeetingState()');
+    assert.equal(h.run('capturing'),true);
+    assert.equal(h.messages.filter(m=>m.message==='update_badge_status').at(-1).capturing,true);
+    assert(!h.messages.some(m=>m.message==='meeting_ended'));
+});
 test('a recent same-page checkpoint restores captions and warns about the gap',async()=>{
     const h=harness();
     h.data['active_capture_v2_teams-tab-1']={transcript:[{Name:'A',Text:'before reload',Time:'10:00',key:'teams-caption-1',capturedAt:new Date().toISOString()}],meetingTitle:'Synthetic meeting',

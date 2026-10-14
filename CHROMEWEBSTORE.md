@@ -6,6 +6,10 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Last Updated: 2026-10-13
 
+6.0 development fix: Teams same-page meeting departure clears the live-capture
+badge without discarding captured words. Caption menu controls and DOM-hidden
+meeting controls are not evidence of an active meeting. Live Teams retest pending.
+
 > Development package version: **6.0.0** on `codex/6.0`. This is an unpacked
 > development line, not a Store submission or release candidate. It introduces
 > the dark DAF-TECH operational shell, a single-decision popup, direct platform
