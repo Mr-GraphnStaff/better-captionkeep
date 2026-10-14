@@ -852,13 +852,16 @@
     async function promoteArtifactCitations(artifactId, kind) {
         const artifact = derivedArtifacts.find(item => item.id === artifactId && item.kind === 'live-notes');
         if (!artifact) throw new Error('The reviewed notes artifact is no longer available.');
+        if (artifact.sessionId !== currentContext?.sessionId) {
+            throw new Error('These reviewed notes belong to a different meeting. Reopen their source meeting before promoting citations.');
+        }
         if (!board.MARKER_KINDS.includes(kind)) throw new Error('Choose a supported Evidence marker type.');
         const transcript = currentContext?.transcriptArray || [];
         const pendingMarkers = [];
         for (const evidenceId of artifact.evidenceIds) {
             const captionIndex = Number.parseInt(evidenceId.slice(1), 10) - 1;
             const caption = transcript[captionIndex];
-            if (!caption) continue;
+            if (!caption) throw new Error(`${evidenceId} is no longer available. Review updated notes before promoting that citation.`);
             const original = artifact.payload.sourceEvidence?.find(item => item.evidenceId === evidenceId);
             if (original && (original.caption.key !== caption.key || original.caption.Text !== caption.Text)) {
                 throw new Error(`${evidenceId} changed after these notes were reviewed. Review updated notes before promoting that citation.`);
