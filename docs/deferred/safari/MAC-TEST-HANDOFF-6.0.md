@@ -1,3 +1,8 @@
+> **Archived / superseded scope — October 14, 2026:** The lead removed Safari
+> completely from 6.0. This original preparation is preserved for a later major
+> version, not active support, an installation offer, or a release gate. Reverify
+> procedures, dependencies and package identity before any future use.
+
 # Better CaptionKeep 6.0: Mac test handoff
 
 For David's brother. Draft instructions, checked 2026-10-14. The fresh ZIP and

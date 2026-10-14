@@ -8,7 +8,7 @@ import { packageExtension } from './package-extension.mjs';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const prodDir = path.join(projectRoot, 'dist', 'prod');
 const artifactDir = path.join(prodDir, 'browser-packages');
-const browsers = ['chrome', 'edge', 'brave', 'opera', 'firefox', 'safari'];
+const browsers = ['chrome', 'edge', 'brave', 'opera', 'firefox'];
 
 async function sha256(file) {
   return createHash('sha256').update(await readFile(file)).digest('hex').toUpperCase();

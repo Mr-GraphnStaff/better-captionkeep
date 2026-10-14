@@ -1,7 +1,7 @@
 (function initializeDerivedArtifacts(root) {
     'use strict';
 
-    const KINDS = Object.freeze(['moment', 'live-notes', 'template-run', 'answer']);
+    const KINDS = Object.freeze(['moment', 'live-notes', 'template-run', 'answer', 'action-result']);
     const STATUSES = Object.freeze(['draft', 'user-confirmed', 'superseded', 'deleted']);
     const MAX_REFERENCES = 500;
     const MAX_PER_SESSION = 50;

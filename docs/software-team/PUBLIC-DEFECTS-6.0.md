@@ -71,3 +71,61 @@ implementation batch; final feature and release gates remain separate.
 Draft PR [#137](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/137)
 contains local fixes and this evidence register. Do not close issues automatically
 from commit wording or claim the draft is a public release.
+
+## Shareable-summary prototype policy follow-up (2026-10-14)
+
+Feature [#151](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/151), Azure Task #347, adds a separate reviewed email summary and handling labels. Independent synthetic execution caught two pre-release bugs:
+
+- [#152](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/152): absent managed-policy interface was treated as empty policy, permitting clipboard output. Local repair requires policy authority and fails closed if unavailable.
+- [#153](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/153): policy revocation during asynchronous source validation, or a source change during the later policy check, could permit one stale output before a storage-change event arrived. Local repair rechecks both resources across the release sequence and invalidates changed settings before output. Browser APIs offer no atomic cross-resource transaction; the residual last-observation boundary is disclosed rather than claiming perfect instantaneous revocation.
+
+Strict independent regression probes reproduced both failures before repair. They remain open pending final-source independent acceptance and applicable installed-browser tests; no prototype fix is represented as deployed or legal clearance. Only synthetic text was used.
+
+## Attendee-panel control follow-up (2026-10-14)
+
+[#149](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/149): Live Workspace disables the attendee-panel button after capture is enabled, even when the user closes the Teams panel with its native X. The control now follows host `aria-expanded`/`aria-pressed` state (visible attendee tree fallback), offers Open/Close, and does not discard captured attendees or change caption capture. Missing or unresponsive host controls return an error rather than false success.
+
+Local verification: six new attendee regressions plus eight Teams lifecycle checks passed; 124 reliability/UI-state checks passed; lint and the seven-page surface audit passed. These are synthetic/code checks, not rendered or live Teams acceptance. Updated packaging, live open/close/reopen verification, and deployment remain pending. The issue stays open.
+
+## BYOMCP and release-integration follow-up (2026-10-14)
+
+The earlier 44-record count describes the initial review only, not the cumulative
+register. Additional confirmed development defects remain public and open:
+
+| GitHub | Finding and local repair boundary |
+| --- | --- |
+| [#138](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/138) | Async write verification must not expose unverified results or miss policy denial |
+| [#139](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/139) | Literal-IP remote endpoints must not bypass network restrictions |
+| [#140](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/140) | Native result limit must reserve room for the proof/envelope within the frame |
+| [#141](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/141) | Consent expiry rechecked after asynchronous admission, before dispatch |
+| [#142](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/142) | Metadata bootstrap and Live Workspace inventory must work without granting connection authority to workspace senders |
+| [#143](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/143) | Duplicate/recovered jobs must not expose results after source revocation |
+| [#144](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/144) | Pin denial must remove the owned artifact and never resurrect a revoked prior Receipt |
+| [#145](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/145) | Durable reads must honor result lifetime expiry |
+| [#146](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/146) | Workspace must reject returned results after selected-source changes |
+| [#147](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/147) | Valid final job states must not be rejected by the workspace |
+| [#148](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/148) | Settings must clear profile metadata after managed revocation |
+| [#154](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/154) | Strict registry key allowlists reject secret-bearing unknown profile fields before local storage |
+| [#155](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/155) | Pin consumes the already verified private Receipt, not an already-consumed native proof a second time |
+| [#156](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/156) | Edge Store staging must bind the helper to Edge, not the Chrome-default source identity |
+| [#157](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/157) | Wireframe archive IDs must not fall back to weak randomness; no authentication-token exposure claimed |
+| [#158](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/158) | Store metadata must strictly require optional-permission justifications, including explicit Connect for nativeMessaging |
+
+Azure Task #348 under Evidence Actions Feature #318 tracks BYOMCP integration
+and installed/provider acceptance, with verified public issue links #138-148 and
+#154-155. Release Task #346 links packaging, artifact freeze and CI findings;
+native installation and live certifications are not inferred from either task.
+
+Independent synthetic integration review covers actual typed runtime/job/Receipt
+paths, policy revocation during persistence, strict registry rejection and source
+deletion without removing unrelated artifacts. Cloudflare compiler review checks
+wrong account/record/current values, hostile TXT literals and independent
+readback mismatch; 51 targeted checks passed with no skips. These do not certify
+an installed native host, actual credentials, live DNS or directory activity.
+
+[#105](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/105) also tracks
+Azure 745's observable theme timing failure and the merge-ref CodeQL audit-script
+alert. The runner now waits for actual theme/native-control state and real page
+focus; audit text is token-inspected without rebuilding HTML. Its old value was
+only a boolean accessible-name check, not a production HTML sink. Local focused
+checks passed; protected Linux/CodeQL reruns are separate acceptance evidence.

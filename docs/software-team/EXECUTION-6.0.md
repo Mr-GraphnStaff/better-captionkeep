@@ -1,15 +1,40 @@
 # 6.0 Software Team execution ledger
 
+## October 14 shareable-summary addition
+
+Lead-approved roadmap gate16 is implemented locally: transcript viewer More
+transcript tools opens a separate shareable-summary workspace with explicit
+source selection, reviewed editable draft, confidentiality/explicit privileged
+designation, and labelled copy/TXT/Print-PDF. Source transcript stays unchanged;
+no automatic AI/MCP/email submission or new persistence. Original source links
+and identifiers are not automatically exported. Edits invalidate review.
+
+Independent QA reproduced and repaired missing-policy and asynchronous
+policy/source-check defects, publicly tracked as #152/#153 under feature #151
+and Azure Task #347. Nineteen focused checks including real Chrome narrow/theme
+and print-media assertions pass. Full integrated suite: 449 passed, zero
+failures/skips. Eight-page surface audit, lint, development
+build and release-state checks pass. Live five-browser acceptance, actual PDF
+pagination/downloads and legal/recipient review remain separate requirements;
+cross-resource checks are best-effort, not an atomic disclosure guarantee.
+
 Project: Better CaptionKeep, P:/Projects/better-captionkeep-6.0, codex/6.0.
 Review baseline: f4d4d02. Date: October 13, 2026.
 The original review remains in ../SOFTWARE-TEAM-REVIEW-6.0-2026-10-13.md.
 
 ## Implemented repair batch
 
+Scope update, October 14, 2026: the lead removed Safari completely from 6.0
+and reserved it for a later major version. The supported release targets are
+Chrome, Edge, Brave, Firefox, and Opera, with 15 live provider cells. Safari
+preparation is [archived](../deferred/safari/README.md). Dated execution below
+retains original evidence; old six-target artifacts are historical, not current
+candidate inputs. Five-target regeneration and validation are required.
+
 | Review | Owner | Implementation and verification | Remaining acceptance |
 | --- | --- | --- | --- |
 | R01 | Database/security/backend/QA | Source deletion, expiry, pruning, and Clear All remove dependent Evidence Board excerpts. Marker updates merge individual deltas under the worker history queue and reject missing sources. In-memory deletion/race tests. | Loaded-extension deletion and managed-policy UAT. |
-| R02 | Integration/frontend | Document backgrounds preload ordered dependencies; workers load synchronously. Executable Firefox/Safari/Chromium background fixtures. | Actual installed Firefox and Safari/macOS provider certification. |
+| R02 | Integration/frontend | Document backgrounds preload ordered dependencies; workers load synchronously. Historical Firefox/Safari/Chromium fixtures existed before the scope change. | Actual installed Firefox provider certification; Safari fixtures are archived, not a 6.0 gate. |
 | R03 | Data/QA | Rolling state detects earlier-caption corrections/truncation, supersedes stale output, and rebuilds bounded batches. Restart/idempotency/paused tests. | Long live meeting correction UAT. |
 | R04 | QA/platform | Real rendered visibility, geometry, navigation, theme/control, viewer, workspace, and empty-handoff assertions; injected blank/overflow/exception cases fail. Browser smoke errors return nonzero. | Firefox rendered interactions and all real extension/provider APIs. |
 | R05 | Product/analysis/frontend/data | Versioned built-ins/custom templates, bounded revision history, explicit Duplicate, source-bound reviewed handoff snapshots, draft distinction, cited source excerpts in reviewed notes/answers. | Feature-by-feature final full-roadmap review and live regeneration workflows. |
@@ -37,7 +62,7 @@ as well as commit and artifact hashes.
 ## Remaining release gates
 
 1. Loaded-extension Teams/Meet/Zoom tests separately in Chrome, Edge, Brave,
-   Firefox, Opera, and Safari/macOS. Mac test requires an available Mac.
+   Firefox, and Opera: all 15 supported provider/browser combinations.
 2. Accessibility tasks, browser performance, failure/restart, upgrade, retention,
    privacy, and export review on the exact candidate.
 3. Reconcile every full-scope roadmap commitment against final evidence.
@@ -122,4 +147,57 @@ coordinator fixtures now pass eight lifecycle regressions. Lifecycle observation
 remains enabled while caption retention and automatic caption enabling stay off.
 Same-meeting resume preserves the session; rejoin begins a fresh paused session.
 Independent QA review passed; authenticated live provider acceptance remains open.
+
+## October 14: concrete BYOMCP integration and release preparation
+
+Starting commit for this continuation: `b9f52d7`. Actual runtime, Settings,
+independent QA and release-engineering assignments delivered these local changes:
+
+- Optional native permission, strict nonsecret configuration, concrete native
+  enrollment/inventory adapter, fresh policy/capacity checks and exact typed
+  source-bound approvals. No helper starts on ordinary capture or page load.
+- Runnable Node.js 22+ helper for both pinned SDK transports; Cloudflare official
+  execute compatibility is a finite existing-record DNS compiler with independent
+  GET-only verification. Generic tools are not automatically promoted to actions.
+- Verified results pin actual separate source-linked Receipts. Strict profile
+  fields, single-use proof handling, retention rollback and workspace inventory
+  regressions were repaired; public defects remain open for applicable acceptance.
+- Separate offline helper ZIP, dependency licenses, CycloneDX SBOM and per-file
+  hashes, verified against direct source/lock bytes and included in release
+  provenance. Candidate validation requires all three helper artifact hashes.
+- Correct Edge Store runtime identity, deterministic observable theme/focus
+  checks and strong prototype IDs. Optional permission review metadata now has
+  exact justification coverage rather than silently ignoring nativeMessaging.
+- Shareable-summary privacy/UI repairs and attendee Open/Close controls are
+  integrated. Safari is archived, not a 6.0 certification target or blocker.
+
+Observed local complete `npm run release:candidate`: **489/489 extension tests,
+28/28 helper tests, zero skips or failures**, eight-page/54-script surface audit,
+zero vulnerabilities in both dependency audits, Store metadata, five browser
+packages, separate Chrome/Edge/Brave rendered and loaded-extension smoke checks,
+Intune bundle, both Store ZIPs and helper/source/hash/SBOM/provenance verification.
+The generated provenance records the starting commit and a dirty source tree;
+it must be regenerated after committing, not represented as a frozen candidate.
+Firefox captured a screenshot only; its native checks did not run. Opera and all
+15 authenticated browser/provider cells remain unverified. Later metadata and
+workflow-artifact follow-ups require their focused reruns before push.
+
+Independent Cloudflare/runtime review passed 51 focused checks. No real DNS write,
+directory-person query, credential provisioning or OS native installation was
+performed. The registered Cloudflare connection in Codex passed an identity check
+only, not a CaptionKeep helper test; no Codex credentials were copied. Task #348
+under Feature #318 tracks the actual installed-provider acceptance work. No merge,
+Store submission, publication, legal privilege determination or complete-UAT
+claim follows from this implementation handoff.
+
+Final-source follow-up verification: **494/494 extension tests passed, zero
+failures/skips**, including actual offline helper ZIP extraction/import and
+execution of the workflow checksum command against synthetic files. Eight Store
+metadata tests, lint, eight-page surface audit, checked development-status views
+and current package verification passed. Optional permission justification is
+now enforced and single-purpose/privacy copy discloses opt-in MCP sharing.
+Future release workflow preserves the existing Store-only checksum contract and
+adds a complete-distribution checksum manifest; both are included with the
+helper and all five browser packages in attestation/upload/draft asset paths.
+No release workflow, tag, native installation or publication was triggered.
 

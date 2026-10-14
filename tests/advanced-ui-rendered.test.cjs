@@ -11,6 +11,7 @@ async function evaluate(cdp, expression) {
 const workspaceChecks = `(async () => {
     const checks = [];
     const add = (name, passed) => checks.push({name, passed:!!passed});
+    const settleTheme = async () => {await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); await Promise.all(document.getAnimations().map(animation=>animation.finished.catch(()=>{})));};
     const key = value => document.querySelector('.workspace-tabs').dispatchEvent(new KeyboardEvent('keydown', {key:value, bubbles:true, cancelable:true}));
     document.getElementById('transcript-tab').focus(); key('End');
     add('Workspace End key selects Ask', document.activeElement.id === 'ask-tab' && !document.getElementById('ask-view').hidden);
@@ -31,10 +32,12 @@ const workspaceChecks = `(async () => {
     const endpoints = light.backgroundImage.match(/rgb\\([^)]+\\)/g) || [];
     add('Light Rolling Notes text has contrasting gradient endpoints', endpoints.length > 0 && endpoints.every(color => contrast(light.color, color) >= 4.5));
     CaptionKeepTheme.apply('captionkeep');
+    await settleTheme();
     const primary = getComputedStyle(document.getElementById('generate-notes'));
     add('Dark primary button text has adequate contrast', contrast(primary.color, primary.backgroundColor) >= 4.5);
     for (const preset of ['slate','high-contrast']) {
         CaptionKeepTheme.apply(preset);
+        await settleTheme();
         const control = getComputedStyle(document.getElementById('generate-notes'));
         const body = getComputedStyle(document.body);
         add(preset+' has native dark scheme and contrasting primary text', getComputedStyle(document.documentElement).colorScheme === 'dark'
@@ -95,15 +98,17 @@ const workspaceChecks = `(async () => {
 })()`;
 const readingChecks = `(async () => {
     const checks = [], add = (name,passed) => checks.push({name,passed:!!passed});
+    const waitFor = async predicate => {const deadline=Date.now()+6000; while (!predicate()) {if(Date.now()>deadline) throw new Error('Workspace fixture did not reach its expected caption state'); await new Promise(resolve=>setTimeout(resolve,30));}};
     const live = globalThis.__workspaceTestLive;
     live.transcriptArray = Array.from({length:150}, (_,index) => ({key:'reading-'+index, Name:index % 2 ? 'Speaker B' : 'Speaker A',
       Text:'Synthetic caption '+(index+1)+': reviewing the proposal and next steps.', Time:'10:00', capturedAt:'2026-10-14T10:00:00Z'}));
     if (document.getElementById('follow-latest').getAttribute('aria-pressed') !== 'true') document.getElementById('follow-latest').click();
-    await new Promise(resolve => setTimeout(resolve,1350));
+    await waitFor(()=>document.querySelectorAll('.caption-select').length===150 && document.querySelector('.caption-select')?.closest('li').dataset.captionKey==='reading-0');
     const oldest = document.querySelector('.caption-select'); oldest.focus();
+    add('Caption focus immediately pauses even after automatic following (active='+document.activeElement?.className+', docfocus='+document.hasFocus()+')',document.getElementById('follow-latest').getAttribute('aria-pressed')==='false');
     const initialY = scrollY;
     live.transcriptArray.push({key:'reading-150',Name:'Speaker A',Text:'Synthetic new caption 151.',Time:'10:01'});
-    await new Promise(resolve => setTimeout(resolve,1350));
+    await waitFor(()=>document.getElementById('transcript-count').textContent==='151');
     add('Focused unselected oldest row survives caption 151',oldest.isConnected && document.activeElement === oldest && oldest.getAttribute('aria-pressed') === 'false');
     add('Conversation keeps one caption keyboard entry point',document.querySelectorAll('.caption-select[tabindex="0"]').length === 1);
     add('Paused reading keeps scroll position on new captions',Math.abs(scrollY-initialY) < 5);
@@ -114,11 +119,17 @@ const readingChecks = `(async () => {
     await new Promise(resolve => setTimeout(resolve,35));
     const chosenText = selection.toString(), chosenY = scrollY;
     live.transcriptArray.push({key:'reading-151',Name:'Speaker B',Text:'Synthetic new caption 152.',Time:'10:01'});
-    await new Promise(resolve => setTimeout(resolve,1350));
+    await waitFor(()=>document.getElementById('transcript-count').textContent==='152');
     add('Highlighted words survive new caption polling',selection.toString() === chosenText && chosenText.length > 0);
     add('Word selection pauses scrolling without losing place',document.getElementById('follow-latest').getAttribute('aria-pressed') === 'false' && Math.abs(scrollY-chosenY) < 5);
     add('Conversation uses document scrolling without nested transcript scroller',getComputedStyle(document.getElementById('transcript-list')).overflowY === 'visible');
     document.getElementById('clear-on-the-fly').click();
+    document.getElementById('follow-latest').click();
+    add('Explicit Follow latest resumes after reading focus',document.getElementById('follow-latest').getAttribute('aria-pressed')==='true' && document.activeElement.id==='follow-latest' && document.querySelector('.caption-select').dataset.captionIndex==='2');
+    document.getElementById('follow-latest').click();
+    // Restore the oldest bounded reading window for subsequent real keyboard checks.
+    document.getElementById('transcript-search').value='Synthetic';
+    document.getElementById('transcript-search').dispatchEvent(new Event('input'));
     return {checks};
 })()`;
 

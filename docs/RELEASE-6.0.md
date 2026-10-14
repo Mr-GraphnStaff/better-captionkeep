@@ -2,7 +2,7 @@
 
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
-> Live provider certification outstanding: chrome, edge, brave, firefox, opera, safari.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
@@ -12,7 +12,7 @@
 Version 6.0 is working development on `codex/6.0`. Completion is tracked against
 the full roadmap and the Software Team review; remaining gaps are not waived.
 It is not
-yet a frozen release candidate, certified six-browser build, Store submission,
+yet a frozen release candidate, certified five-browser build, Store submission,
 or public release.
 
 The executable scope and gate sequence are maintained in
@@ -25,14 +25,14 @@ Meet, and Zoom launchers when no meeting is active; and preserves local capture,
 Evidence Board, export, privacy, and BYOAI engine. Rolling Live Notes are
 bounded, cited, pauseable, restart-safe, and locally revisioned.
 
-The automated release path now builds and packages all six browser targets,
-records SHA-256 hashes, emits a CycloneDX SBOM and provenance, renders the
-versioned Store art bundle, and creates a browser/provider certification record.
+The revised five-target build and packaging checks passed on October 14, 2026,
+with SHA-256 hashes, a CycloneDX SBOM and a pending browser/provider certification
+record. The versioned Store art was regenerated. Full candidate provenance and
+freeze remain separate gates; these development packages are not certified.
 On the current Windows host, isolated renderer smoke passed in installed Chrome,
 Edge and Brave. Firefox has a screenshot capture only, not an asserted renderer pass.
 This is not provider certification. Opera is not
-installed and Safari/macOS is unavailable on this host; both remain explicit
-external live-test gates.
+installed; its native runtime remains an explicit live-test gate.
 
 The [Software Team review](SOFTWARE-TEAM-REVIEW-6.0-2026-10-13.md) records the
 source findings and acceptance criteria. Rendered checks must assert behavior
@@ -47,12 +47,16 @@ Release certification must be recorded separately for:
 - Brave
 - Mozilla Firefox
 - Opera
-- Apple Safari on macOS
 
 Shared Chromium packaging is not certification evidence for Chrome, Edge,
-Brave, and Opera. Firefox and Safari require their own compatible packages and
+Brave, and Opera. Firefox requires its own compatible package and
 live validation. Unsupported or untested browsers must remain explicitly
 unverified.
+
+Safari is not supported, packaged, certified, or required for 6.0. The lead
+removed it on October 14, 2026, reserving reconsideration for a later major
+version. [Archived groundwork](deferred/safari/README.md) is recoverable history,
+not an active release target or current installation procedure.
 
 ## Storefront gate
 

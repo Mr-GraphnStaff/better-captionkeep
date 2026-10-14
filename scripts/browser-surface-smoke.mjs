@@ -87,9 +87,6 @@ for (const definition of definitions) {
   }
 }
 
-const safari = record.browsers.find(item => item.browser === 'safari');
-if (safari) safari.surfaceSmoke = {status: 'not-run', reason: process.platform === 'darwin'
-  ? 'Safari native-extension validation requires its separate macOS test workflow.' : `Safari/macOS is unavailable on this ${os.type()} host.`};
 if (!renderedBrowsers) {failed = true; console.error('No installed Chromium browser completed rendered assertions.');}
 await writeFile(recordPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 console.log(`Updated ${path.relative(projectRoot, recordPath)} with separate installed-browser surface-smoke evidence.`);

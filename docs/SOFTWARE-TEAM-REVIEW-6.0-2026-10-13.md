@@ -1,5 +1,12 @@
 # Software Team review: Better CaptionKeep 6.0
 
+> **Historical review / superseded browser scope — October 14, 2026:** This
+> dated evidence is preserved unchanged. The lead subsequently removed Safari
+> completely from 6.0 and archived its groundwork for a later major version.
+> Current acceptance is five browsers and 15 provider cells; references below
+> to six browsers, Safari, or 18 cells describe the former scope, not active gates.
+> See [current roadmap](ROADMAP-6.0.md) and [archive](deferred/safari/README.md).
+
 Date: October 13, 2026
 Project: P:/Projects/better-captionkeep-6.0
 Branch: codex/6.0

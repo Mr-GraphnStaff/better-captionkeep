@@ -2,8 +2,9 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import path from 'node:path';
 
-const BROWSERS = ['chrome', 'edge', 'brave', 'firefox', 'opera', 'safari'];
-const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom'];
+const BROWSERS = ['chrome', 'edge', 'brave', 'firefox', 'opera'];
+const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom',
+  'byomcp-helper', 'byomcp-sbom', 'byomcp-hashes'];
 const GATES = ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'artworkApproved',
   'unchangedWindow', 'storeApproval', 'publicParity', 'installedUpgrade'];
 const START = '<!-- captionkeep-6.0-status:start -->';
@@ -16,7 +17,7 @@ export function validateReleaseStatus(record, version) {
       || record.branch.includes('..') || record.branch.endsWith('/')) throw new Error('Invalid source branch identity');
   if (!['development', 'candidate', 'released'].includes(record.state)) throw new Error('Unknown release state');
   if (!Array.isArray(record.requiredBrowsers) || record.requiredBrowsers.length !== BROWSERS.length
-      || !BROWSERS.every(browser => record.requiredBrowsers.includes(browser))) throw new Error('Six-browser commitment is incomplete');
+      || !BROWSERS.every(browser => record.requiredBrowsers.includes(browser))) throw new Error('Five-browser commitment is incomplete');
   for (const browser of BROWSERS) {
     if (!['pending', 'passed', 'failed', 'blocked'].includes(record.liveCertification?.[browser])) throw new Error(`Missing live certification: ${browser}`);
   }
@@ -26,7 +27,7 @@ export function validateReleaseStatus(record, version) {
   if (record.state === 'development' && record.candidate.frozen) throw new Error('Development cannot claim a frozen candidate');
   if (record.state !== 'development') {
     if (!record.candidate.frozen || !/^[a-f0-9]{40}$/i.test(record.candidate.commit || '')
-        || !record.candidate.hashes || ARTIFACTS.some(name => !/^[a-f0-9]{64}$/i.test(record.candidate.hashes[name] || ''))) throw new Error('Frozen candidate requires exact commit and artifact hashes for all browser/Store packages and SBOM');
+        || !record.candidate.hashes || ARTIFACTS.some(name => !/^[a-f0-9]{64}$/i.test(record.candidate.hashes[name] || ''))) throw new Error('Frozen candidate requires exact commit and artifact hashes for all browser/Store packages, SBOM and BYOMCP helper evidence');
     if (!BROWSERS.every(browser => record.liveCertification[browser] === 'passed')
         || !record.releaseGates.fullScopeAcceptance || !record.releaseGates.accessibilityAndFailureUat
         || !record.releaseGates.artworkApproved) throw new Error('Candidate acceptance/certification remains open');

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="settingsView.js"></script>
+    <link rel="stylesheet" href="byomcp-settings.css">
+    <script src="byomcpSettings.js" defer></script>
     <style>
         .settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         /* A first-screen destination, not a link buried in the settings form. */
@@ -825,6 +827,31 @@
             </div>
             <button id="settingsOpenWorkspace" type="button">Open the Live Workspace</button>
             <p class="small-info-text">Nothing is submitted to an AI service automatically. Your approved workspace opens only after the review screen.</p>
+        </details>
+
+        <details class="settings-group" id="byomcp-settings">
+            <summary>Connections — Bring Your Own MCP</summary>
+            <p class="small-info-text">Optional and off by default. Both local stdio and remote HTTP connections use a helper you install and enroll. Configure services and credentials in that helper, never in this extension.</p>
+            <p class="small-info-text">Checking the helper reviews its status and tool inventory only. Nothing from your meetings is sent. Each later evidence request requires its own destination, tool and evidence review.</p>
+            <details><summary>Installation, enrollment and reviewed configuration</summary>
+                <p class="small-info-text">Install the reviewed helper package separately, confirm its identity locally and configure your own service profile there. Existing registrations in another application are not automatically shared. Never export credentials or OAuth tokens from that application. This extension does not install software or run pasted commands.</p>
+                <p id="byomcp-configuration-help" class="small-info-text">Import only a non-secret helper binding JSON supplied by your locally reviewed setup. Importing does not enable a connection. Credentials stay in the helper. If the helper is unavailable, local capture continues.</p>
+                <label for="byomcp-configuration-file">Non-secret helper configuration (JSON, up to 128 KiB)</label>
+                <input id="byomcp-configuration-file" type="file" accept=".json,application/json" aria-describedby="byomcp-configuration-help byomcp-status">
+                <label><input id="byomcp-configuration-reviewed" type="checkbox"> I reviewed this non-secret helper configuration and authorize its browser/profile bindings</label>
+                <button id="byomcp-configure" type="button" disabled>Import reviewed configuration</button>
+            </details>
+            <p id="byomcp-status" class="small-info-text" role="status" aria-live="polite">Off by default. Check your installed helper when you choose to connect.</p>
+            <div class="byomcp-fields">
+                <div class="actions-row"><button id="byomcp-check" type="button">Check connection status</button><button id="byomcp-connect" type="button">Connect enrolled helper</button></div>
+                <label for="byomcp-profile" class="setting-label">Verified helper profile</label>
+                <select id="byomcp-profile" aria-describedby="byomcp-status" disabled><option value="">Choose a verified profile</option></select>
+                <div class="actions-row"><button id="byomcp-review" type="button" disabled>Review tool inventory</button><button id="byomcp-disconnect" type="button" disabled>Disconnect helper</button></div>
+                <ul id="byomcp-inventory" aria-label="Reviewed helper tool inventory"></ul>
+                <label><input id="byomcp-allow-writes" type="checkbox" aria-describedby="byomcp-writes-help"> Allow reviewed write actions</label>
+                <p id="byomcp-writes-help" class="small-info-text">Off by default. Each write still requires its own exact-operation approval. This setting does not execute anything; your organization may block it.</p>
+                <p class="small-info-text">Connecting is not blanket permission to share transcripts. Tool descriptions and returned results are untrusted until reviewed. No DAF-hosted assistant or transcript service is involved.</p>
+            </div>
         </details>
 
         <details class="settings-group" id="privacy-settings">

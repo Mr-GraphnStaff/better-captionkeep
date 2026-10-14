@@ -12,7 +12,7 @@ const isolatedDist = mkdtempSync(path.join(os.tmpdir(),'captionkeep-bootstrap-bu
 const read = (directory, file) => readFileSync(path.join(directory, file), 'utf8');
 
 before(() => {
-    for (const target of ['firefox', 'safari']) {
+    for (const target of ['firefox']) {
         execFileSync(process.execPath, ['scripts/build-browser-targets.mjs', target], {
             cwd:project,env:{...process.env,CAPTIONKEEP_TEST_DIST:isolatedDist}
         });
@@ -56,7 +56,7 @@ function assertInitialized(instance) {
     assert.equal(response.surfaceId, 'google-meet-tab-23');
 }
 
-for (const target of ['firefox', 'safari']) {
+for (const target of ['firefox']) {
     test(`${target} document background executes packaged dependencies and handles capture messages`, () => {
         const directory = path.join(isolatedDist, 'prod', `${target}-unpacked`);
         const manifest = JSON.parse(read(directory, 'manifest.json'));
@@ -77,11 +77,8 @@ test('worker background loads dependencies synchronously and handles capture mes
     assert.deepEqual(instance.loaded.slice(1), manifest.background.scripts.slice(0, -1));
 });
 
-test('Safari packaged worker fallback loads the same dependencies as its document background', () => {
-    const directory = path.join(isolatedDist, 'prod/safari-unpacked');
-    const manifest = JSON.parse(read(directory, 'manifest.json'));
-    const instance = background(directory, true);
-    instance.execute(manifest.background.service_worker);
-    assertInitialized(instance);
-    assert.deepEqual(instance.loaded.slice(1), manifest.background.scripts.slice(0, -1));
+test('deferred Safari target is rejected before creating a package', () => {
+    assert.throws(() => execFileSync(process.execPath, ['scripts/build-browser-targets.mjs', 'safari'], {
+        cwd:project, env:{...process.env,CAPTIONKEEP_TEST_DIST:isolatedDist}, stdio:'pipe'
+    }), /Unsupported browser target: safari/);
 });

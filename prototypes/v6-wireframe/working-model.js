@@ -14,7 +14,12 @@
   ]);
 
   function identifier(prefix = 'item') {
-    const value = root.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    let value = root.crypto?.randomUUID?.();
+    if (!value) {
+      if (!root.crypto?.getRandomValues) throw new Error('Secure random identifiers are unavailable.');
+      const bytes = root.crypto.getRandomValues(new Uint8Array(16));
+      value = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
     return `${prefix}-${value}`;
   }
 

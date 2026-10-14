@@ -2,16 +2,17 @@
 
 Assessment date: 2026-10-14. Working development, not release approval.
 Scope: the complete [6.0 roadmap](../ROADMAP-6.0.md), including the lightweight
-front door and powerful back door. No feature is removed or waived here.
+front door and powerful back door. The lead explicitly removed Safari from 6.0
+on October 14, 2026; its groundwork is archived for a later major version.
 The lead subsequently explicitly included opt-in Bring Your Own MCP in 6.0;
 its [UX contract](BYOMCP-UX-6.0.md) is design work, not an implemented claim.
 
 ## Highest launch risks
 
-1. **Live end-to-end acceptance remains open on all six browsers.** Synthetic
+1. **Live end-to-end acceptance remains open on all five browsers.** Synthetic
    rendering cannot establish that meeting entry, pause, departure, recovery,
    export, and rejoin work together in real provider pages. Run the journeys
-   below separately in Chrome, Edge, Brave, Firefox, Opera, and Safari/macOS.
+   below separately in Chrome, Edge, Brave, Firefox, and Opera.
 2. **Manual accessibility acceptance is incomplete.** Native controls, contrast
    checks, static audits, and keyboard fixtures are useful evidence, not a
    screen-reader or WCAG conformance statement. Test the entire product with
@@ -45,7 +46,7 @@ belongs in test fixtures, public issues, or marketing screenshots.
 | --- | --- | --- |
 | Popup (`popup.html`, `popup-v6.css`) | Width/state checks; shared theme tokens; actual packaged renderer gate | Exercise no meeting, starting, capturing, paused, disconnected, permission denied, recovery, and saved history. One clear primary action; sphere and toolbar agree; gear/launchers/last transcript accessible at 200% zoom. |
 | All Settings (`popup.html?view=settings`; `settings.html` routes there) | Settings visibility and theme checks; configuration/policy tests | Keyboard through every section and return to front door. Verify managed denial clearly explains disabled controls; no hidden/unreachable features; advanced settings never unexpectedly start a meeting source. |
-| Live workspace (`sidepanel.html`) | Reading-first Chrome checks above | Real caption stream plus >150 captions while reading/selecting. Follow latest resumes deliberately; arrows/Enter/Space and shared actions work; tab order follows Transcript, Notes, Moments, Evidence, Templates, Ask. Validate Firefox native sidebar and Safari extension-tab fallback. |
+| Live workspace (`sidepanel.html`) | Reading-first Chrome checks above | Real caption stream plus >150 captions while reading/selecting. Follow latest resumes deliberately; arrows/Enter/Space and shared actions work; tab order follows Transcript, Notes, Moments, Evidence, Templates, Ask. Validate Firefox native sidebar and each supported Chromium browser's workspace. |
 | Transcript/Receipt viewer (`viewer.html`) | Rendered viewer and native archive focus checks | Search/speaker filters/correction dictionary, raw vs corrected view, history, delete, scrubbed output, print/PDF, translate, save and return. Keyboard and screen reader must identify active filters and archive dialog. |
 | Export (`export.html`) | Static surface audit plus export/privacy tests | Each offered format and save-location behavior; cancel/download failure; long text and Unicode; verify scrub setting and actual downloaded content. Printing is a separate visual acceptance task. |
 | Reviewed AI handoff (`handoff.html`) | Safety-envelope and provenance tests; rendered surface check | Edited prompt, copy chunks, evidence export, discard, workspace selection, empty/expired source and managed denial. Explain that external AI receives data only through an explicit user action and generated prose remains a draft requiring review. |
@@ -78,8 +79,8 @@ actual result, and sanitized evidence for each row. A missing prerequisite is
 
 - Keyboard-only traversal on every surface: visible focus, logical order,
   no trap outside a genuine modal, Escape and opener focus restoration.
-- Screen reader: Windows NVDA with a supported browser and macOS VoiceOver
-  with Safari. Verify tab names/states, transcript navigation, polite status
+- Screen reader: Windows NVDA with supported browsers. Verify tab names/states,
+  transcript navigation, polite status
   updates, errors, counts, modal boundaries, labels and Moment descriptions.
 - 200% and 400% zoom, narrow viewport, OS high contrast and reduced motion;
   no essential clipped text or unreachable contextual action. Do not assume
@@ -97,9 +98,9 @@ to all five feature images and both promotional tiles. Keep synthetic content,
 DAF sphere, dark default and calm front door. Verify current action labels,
 Notes/Ask review boundaries, provider names, Zoom Web scope, no account/cloud
 claim qualifications, privacy policy, and version 6.0 in every channel. Do not
-claim six certified browsers until their independent records pass. The owner
+claim five certified browsers until their independent records pass. The owner
 must approve artwork/copy; automation must not invent that approval.
 
 Next: execute the matrix, resolve every failure through a public sanitized
-issue, then attach exact candidate evidence to the release gate. Mac tester
-instructions are in [MAC-TEST-HANDOFF-6.0.md](MAC-TEST-HANDOFF-6.0.md).
+issue, then attach exact candidate evidence to the release gate. Safari material
+is [archived for a later major version](../deferred/safari/README.md), not a 6.0 gate.

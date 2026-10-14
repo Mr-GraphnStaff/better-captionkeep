@@ -2,7 +2,7 @@
 
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
-> Live provider certification outstanding: chrome, edge, brave, firefox, opera, safari.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
@@ -19,9 +19,34 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including th
 
 > **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).
 
-> **6.0 development status:** The `codex/6.0` line is the complete working extension, not a detached wireframe. Version `6.0.0` applies the dark sphere shell to every user-facing surface. The popup presents one primary meeting decision, direct Teams, Meet, and Zoom launchers, a live ready/not-ready state, a local-device boundary, and a quiet Meeting Receipt history path. The workspace separates Transcript, Moments, cited Live Notes, Evidence, and transcript-bound Ask flows. Rolling Notes process bounded caption deltas, can pause/resume or update now, stop after repeated failures, and retain restart-safe cited revisions without changing the raw transcript. Custom meeting templates remain local. Automated tests, seven-surface accessibility/security checks, dependency audit, six target builds, exact-dimension Store art, hashes, SBOM, and provenance are in place. Live provider/browser certification, Opera, Safari/macOS, release-owner approval, candidate freeze, Store submission, approval, and installed-upgrade testing remain open and will not be represented as complete.
+> **6.0 development status:** The `codex/6.0` line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries and an optional user-owned BYOMCP helper are implemented locally with synthetic integration coverage. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, separate extension/helper SBOMs and provenance support review. Full-roadmap acceptance, installed helper/authentication, five separate live browser/provider certifications, artwork approval, candidate freeze, Store approval and installed-upgrade testing remain open.
 
 ### Current 5.4 capabilities
+
+**6.0 BYOMCP development addition:** an optional user-owned helper now connects
+reviewed local stdio and remote MCP profiles. Settings imports nonsecret reviewed
+configuration and requests native messaging only on Connect; reviewed writes
+remain off by default and each action needs a separate exact approval. Typed
+Cloudflare existing-record updates and directory lookup contracts use independent
+readback before a result can be pinned as a separate source-linked Receipt.
+The official Cloudflare endpoint has a narrow generated-code adapter; arbitrary
+MCP tools are not automatically compatible. The offline helper bundle requires
+Node.js 22+, separate native registration and separately provisioned credentials.
+Synthetic tests do not establish installed-host, authenticated provider or
+five-browser acceptance. See [helper setup and limits](companion/byomcp/README.md).
+
+**6.0 development addition:** the transcript viewer's More transcript tools
+includes a separate reviewed shareable-summary workflow. Explicit excerpt
+selection, editable email draft and confidentiality labels preserve the original
+transcript. A privileged label requires explicit organizational legal-guidance
+confirmation; the tool does not determine privilege or guarantee safe disclosure.
+No automatic AI submission or email sending is introduced. See
+[scope and acceptance](docs/software-team/SHAREABLE-SUMMARY-6.0.md).
+
+**6.0 browser scope — October 14, 2026:** Chrome, Edge, Brave, Firefox, and Opera
+remain separately required. Safari is removed entirely from active 6.0 support,
+builds, certification, and release gates. Its [recoverable groundwork](docs/deferred/safari/README.md)
+is reserved for a later major version, not current installation guidance.
 
 **All Settings** is a prominent full-width control beneath the popup header. It opens every setting in a full browser tab; it is also available through the browser's extension Options action. The transcript viewer has per-export file types, Print / PDF (choose Save as PDF in the browser dialog), and keyboard shortcuts. The AI handoff offers reusable local task templates without retaining transcripts as templates.
 
@@ -152,7 +177,7 @@ Use Node.js 22 or newer, then run `npm install`.
 - `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `dist/prod/intune-chrome/`.
 - `npm run build:intune:local-only`: generate the optional high-security bundle that disables AI handoff.
 - `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store package in `dist/prod/`.
-- `npm run build:browsers && npm run package:browsers`: build and hash separate Chrome, Edge, Brave, Opera, Firefox, and Safari packages, emit the CycloneDX SBOM, and create the still-pending live-certification record.
+- `npm run build:browsers && npm run package:browsers`: build and hash separate Chrome, Edge, Brave, Opera, and Firefox packages, emit the CycloneDX SBOM, and create the still-pending live-certification record.
 - `npm run test:browser-surfaces`: record isolated installed-browser rendering evidence without confusing it with provider or extension-runtime certification.
 - `npm run store:assets:render`: regenerate the versioned synthetic-data 6.0 screenshots, promotional artwork, and asset hashes.
 - Test capture, TXT/Markdown export, Save As, saved sessions, and Teams PWA behavior in Edge before publication. Zoom development also requires unpacked Chrome and Edge UAT against the Web client.
@@ -163,7 +188,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Both Stores publicly serve `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` remains development-only and must complete the six-browser certification and governed promotion sequence before any public-release claim. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 development record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Both Stores publicly serve `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` remains development-only and must complete the five-browser certification and governed promotion sequence before any public-release claim. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 development record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 

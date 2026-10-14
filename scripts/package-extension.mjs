@@ -29,10 +29,15 @@ export async function assertNoReservedPackagePaths(root, relative = '') {
   }
 }
 
-export async function packageExtension(source, destination, artifactBaseName = null) {
+export async function packageExtension(source, destination, artifactBaseName = null, browserTarget = null) {
   const sourceDir = path.resolve(source);
   const destinationDir = path.resolve(destination);
   await assertNoReservedPackagePaths(sourceDir);
+  if (browserTarget) {
+    if (!['edge','brave','opera','firefox'].includes(browserTarget)) throw new Error('Unsupported explicit package browser target');
+    const expected = `globalThis.CaptionKeepBrowserRuntime = Object.freeze(${JSON.stringify({target:browserTarget})});\n`;
+    if (await readFile(path.join(sourceDir,'browserRuntimeConfig.js'),'utf8') !== expected) throw new Error(`Package browser runtime identity mismatch: expected ${browserTarget}`);
+  }
   const manifest = JSON.parse(await readFile(path.join(sourceDir, 'manifest.json'), 'utf8'));
   const messages = await readEnglishMessages(sourceDir);
   const resolvedArtifactName = artifactBaseName || resolveManifestMessage(manifest.name, messages);
@@ -62,7 +67,7 @@ export async function packageExtension(source, destination, artifactBaseName = n
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [source, destination, artifactBaseName] = process.argv.slice(2);
+  const [source, destination, artifactBaseName, browserTarget] = process.argv.slice(2);
   if (!source || !destination) throw new Error('Usage: node scripts/package-extension.mjs <source-dir> <destination-dir> [artifact-base-name]');
-  await packageExtension(source, destination, artifactBaseName);
+  await packageExtension(source, destination, artifactBaseName, browserTarget);
 }

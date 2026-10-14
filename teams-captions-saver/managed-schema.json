@@ -6,6 +6,8 @@
     "forceUiLocale": { "type": "string" },
     "forceScrubbedExport": { "type": "boolean" },
     "disableAiHandoff": { "type": "boolean" },
+    "disableByomcp": { "type": "boolean" },
+    "disableByomcpWrites": { "type": "boolean" },
     "disableClipboard": { "type": "boolean" },
     "disableFileExport": { "type": "boolean" },
     "disableEvidenceEmail": { "type": "boolean" },

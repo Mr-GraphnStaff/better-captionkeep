@@ -5,6 +5,17 @@
     const MAX_MARKERS = 500;
     const POLL_INTERVAL_MS = 1200;
     const board = globalThis.CaptionKeepEvidenceBoard;
+    // Connected actions are explicit, separately reviewed workflows, never caption-triggered calls.
+    const connectedActionSelect=document.getElementById('byomcp-action-profile');
+    const connectedActionStatus=document.getElementById('byomcp-action-status');
+    const connectedActionReview=document.getElementById('byomcp-review-action');
+    let connectedActions=[];
+    const connectedActionComponent=CaptionKeepByomcpWorkspace.createComponent({document,
+        backend:CaptionKeepByomcpWorkspace.runtimeBackend(chrome.runtime),
+        stillCurrent:source=>currentContext?.sessionId===source.sessionId
+            && CaptionKeepRollingNotes.sourceRevision(currentContext.transcriptArray)===source.localFingerprint
+            && onTheFlyEvidence?.evidenceId===source.captions[0]?.evidenceId
+            && onTheFlyEvidence?.text===source.localSelectedText});
     const elements = {
         captureState: document.getElementById('capture-state'),
         closePanel: document.getElementById('close-panel'),
@@ -45,6 +56,8 @@
         markerCount: document.getElementById('marker-count'),
         markerSession: document.getElementById('marker-session'),
         markerList: document.getElementById('marker-list'),
+        actionReceiptCount: document.getElementById('action-receipt-count'),
+        actionReceiptList: document.getElementById('action-receipt-list'),
         copyBoard: document.getElementById('copy-board'),
         downloadBoard: document.getElementById('download-board'),
         emailBoard: document.getElementById('email-board'),
@@ -279,8 +292,10 @@
         elements.requestTeamsTranscription.hidden = !isTeams;
         elements.enableLiveCaptions.disabled = !inMeeting || controls.liveCaptions === true;
         elements.enableLiveCaptions.textContent = controls.liveCaptions ? 'Live captions enabled' : 'Enable live captions';
-        elements.openAttendeePanel.disabled = !inMeeting || controls.attendeeAllowed === false || controls.attendees === true;
-        elements.openAttendeePanel.textContent = controls.attendees ? 'Attendee capture enabled' : 'Open attendee panel';
+        const attendeePanelOpen = controls.attendeePanelOpen === true;
+        elements.openAttendeePanel.disabled = !inMeeting || (!attendeePanelOpen && controls.attendeeAllowed === false);
+        elements.openAttendeePanel.textContent = attendeePanelOpen ? 'Close attendee panel' : 'Open attendee panel';
+        elements.openAttendeePanel.setAttribute('aria-expanded', String(attendeePanelOpen));
         elements.requestTeamsTranscription.disabled = !inMeeting || ['checking', 'running', 'requested'].includes(controls.transcriptionState);
         elements.requestTeamsTranscription.textContent = controls.transcriptionState === 'running'
             ? 'Teams transcript running'
@@ -434,6 +449,7 @@
         const buttonByMessage = {
             enable_live_captions: elements.enableLiveCaptions,
             open_attendee_panel: elements.openAttendeePanel,
+            close_attendee_panel: elements.openAttendeePanel,
             request_teams_transcription: elements.requestTeamsTranscription
         };
         const button = buttonByMessage[message];
@@ -685,6 +701,11 @@
             clearOnTheFly();
             setStatus('The selected caption changed. Select its updated words before using an action.');
         }
+        // Reading focus is authoritative even while an asynchronous poll or programmatic
+        // scroll is settling. Never evict a focused row merely because more words arrive.
+        const readingRow = document.activeElement?.closest('.caption-select')?.closest('li');
+        if (readingRow && elements.transcriptList.contains(readingRow)
+            && matches.some(({caption, index}) => String(caption.key || index) === readingRow.dataset.captionKey)) setFollowLatest(false);
         if (followLatest) conversationWindowStart = Math.max(0, matches.length - 150);
         conversationWindowStart = Math.min(conversationWindowStart, Math.max(0, matches.length - 1));
         const visible = matches.slice(conversationWindowStart, conversationWindowStart + 150);
@@ -933,6 +954,26 @@
     }
 
     function renderDerivedArtifacts() {
+        const receipts = derivedArtifacts.filter(item => item.kind === 'action-result' && item.status === 'user-confirmed'
+            && item.generator === 'byomcp-verified-action' && item.payload?.receipt?.jobId === item.payload.jobId
+            && /^[a-f0-9]{64}$/.test(item.payload.receipt.receiptDigest || ''));
+        elements.actionReceiptCount.textContent = String(receipts.length);
+        elements.actionReceiptList.replaceChildren();
+        if (!receipts.length) {
+            const empty = document.createElement('li'); empty.className = 'empty';
+            empty.textContent = 'No verified action receipts kept for this meeting.';
+            elements.actionReceiptList.append(empty);
+        }
+        for (const artifact of [...receipts].reverse()) {
+            const item = document.createElement('li'); item.className = 'artifact-card';
+            const header = document.createElement('div'); header.className = 'artifact-card-header';
+            const title = document.createElement('strong'); title.textContent = 'Verified action result';
+            header.append(title, artifactDeleteButton(artifact));
+            const body = document.createElement('p'); body.className = 'note-body'; body.textContent = artifact.payload.text || '';
+            const meta = document.createElement('p'); meta.className = 'artifact-meta';
+            meta.textContent = `${artifactTime(artifact.payload.receipt.observedAt)} · Citations: ${artifact.evidenceIds.join(', ')} · transcript ${artifact.sourceTranscriptSha256.slice(0,12)}…`;
+            item.append(header, body, meta); elements.actionReceiptList.append(item);
+        }
         const moments = derivedArtifacts.filter(item => item.kind === 'moment' && item.status !== 'deleted');
         const notes = derivedArtifacts.filter(item => item.kind === 'live-notes' && item.status !== 'deleted');
         const answers = derivedArtifacts.filter(item => item.kind === 'answer' && item.status !== 'deleted');
@@ -1447,6 +1488,10 @@
         const button = event.target.closest('button[data-artifact-id]');
         if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
     });
+    elements.actionReceiptList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+    });
     elements.clearOnTheFly.addEventListener('click', () => clearOnTheFly({restoreFocus:true}));
     elements.reviewOnTheFly.addEventListener('click', openOnTheFlyDialog);
     elements.onTheFlyBar.addEventListener('click', event => {
@@ -1458,7 +1503,11 @@
     elements.cancelOnTheFly.addEventListener('click', () => elements.onTheFlyDialog.close());
     elements.prepareOnTheFly.addEventListener('click', () => void prepareOnTheFly().catch(error => setStatus(error.message)));
     elements.enableLiveCaptions.addEventListener('click', () => void runMeetingControl('enable_live_captions', 'Requesting live captions…').catch(error => setStatus(error.message)));
-    elements.openAttendeePanel.addEventListener('click', () => void runMeetingControl('open_attendee_panel', 'Opening the attendee panel…').catch(error => setStatus(error.message)));
+    elements.openAttendeePanel.addEventListener('click', () => {
+        const open = currentContext?.meetingControls?.attendeePanelOpen === true;
+        void runMeetingControl(open ? 'close_attendee_panel' : 'open_attendee_panel',
+            open ? 'Closing the attendee panel…' : 'Opening the attendee panel…').catch(error => setStatus(error.message));
+    });
     elements.requestTeamsTranscription.addEventListener('click', () => void runMeetingControl('request_teams_transcription', 'Requesting the tenant transcript…').catch(error => setStatus(error.message)));
     elements.markerList.addEventListener('click', event => {
         const button = event.target.closest('button[data-marker-id]');
@@ -1475,6 +1524,41 @@
         const index = Number.parseInt(choose.dataset.captionIndex, 10);
         if (index === selectedCaptionIndex) clearOnTheFly({restoreFocus:true});
         else selectForOnTheFly(index);
+    });
+    document.getElementById('byomcp-check-actions').addEventListener('click',async()=>{
+        connectedActions=[];connectedActionSelect.replaceChildren();connectedActionSelect.disabled=true;connectedActionReview.disabled=true;
+        connectedActionStatus.textContent='Checking enrolled helper profiles. No meeting evidence is sent.';
+        try {
+            const response=await chrome.runtime.sendMessage({message:'byomcp_settings',operation:'status'});
+            if(response?.ok!==true || response.status?.enrollmentVerified!==true)throw new Error('unavailable');
+            for(const profile of response.status.profiles || []) {
+                if(profile.verified!==true)continue;
+                const inventory=await chrome.runtime.sendMessage({message:'byomcp_settings',operation:'inventory',profileId:profile.id,revision:profile.revision});
+                if(inventory?.ok!==true || inventory.inventory?.profileId!==profile.id || inventory.inventory?.revision!==profile.revision)continue;
+                for(const tool of inventory.inventory.tools || []) {
+                    // A reviewed named adapter, not a tool's description, supplies the supported form kind.
+                    if(tool.compatible!==true || tool.approved!==true || !['dns-change','directory-lookup'].includes(tool.actionKind))continue;
+                    connectedActions.push({id:profile.id,revision:profile.revision,tool:tool.name,schemaDigest:tool.schemaDigest,
+                        profileGrantId:tool.profileGrantId,effect:tool.effect,kind:tool.actionKind,compatible:true,approved:true});
+                }
+            }
+            for(const [index,profile] of connectedActions.entries()) {const option=document.createElement('option');option.value=String(index);option.textContent=`${profile.id} · ${profile.kind==='dns-change'?'DNS record change':'Work directory lookup'} · ${profile.effect}`;connectedActionSelect.append(option);}
+            connectedActionSelect.disabled=!connectedActions.length;connectedActionReview.disabled=!connectedActions.length;
+            connectedActionStatus.textContent=connectedActions.length ? 'Choose a reviewed action. Execution still requires a separate exact-operation approval.' : 'No reviewed compatible action profile is available. No evidence has been sent.';
+        } catch {connectedActionStatus.textContent='The enrolled helper is unavailable or unsupported. No evidence has been sent; local capture continues.';}
+    });
+    connectedActionReview.addEventListener('click',async()=>{
+        try {
+            const request=selectionRequestSnapshot(),context=structuredClone(currentContext);
+            const profile=connectedActions[Number(connectedActionSelect.value)];
+            const caption=context.transcriptArray[selectedCaptionIndex];
+            if(!profile || !caption || !globalThis.CaptionKeepByomcpWorkerBridge?.describeSource)throw new Error('unavailable');
+            const source=await CaptionKeepByomcpWorkerBridge.describeSource(context.sessionId,context.transcriptArray,context.recordingStartTime || context.sessionId);
+            assertSelectionRequest(request);
+            const selected=source.captions[selectedCaptionIndex];if(!selected)throw new Error('unavailable');
+            connectedActionComponent.open({source:{...source,captions:[selected],
+                localFingerprint:CaptionKeepRollingNotes.sourceRevision(context.transcriptArray),localSelectedText:request.evidence.text},profile});
+        } catch {connectedActionStatus.textContent='The source or action profile changed. Select current evidence and check the helper again.';}
     });
     elements.transcriptList.addEventListener('keydown', event => {
         const choose = event.target.closest('.caption-select');
@@ -1510,6 +1594,8 @@
     });
     elements.followLatest.addEventListener('click', () => {
         const next = !followLatest;
+        // Explicit resume leaves reading focus behind, including keyboard/programmatic activation.
+        elements.followLatest.focus({preventScroll:true});
         if (next) clearOnTheFly();
         setFollowLatest(next);
         if (next) renderTranscript();

@@ -25,7 +25,7 @@ Prioritize data loss, false status, unreachable controls, accidental disclosure,
 - Record exact build identity, browser and OS version, test data, steps, expected result, actual result, and pass/fail.
 - Capture screenshots for visual and state defects, but never include real meeting content, tenant details, credentials, or private URLs.
 - A passing automated test is evidence only for the behavior it actually exercises. Static selectors and string assertions do not prove computed visibility, layout, contrast, focus, or clickability.
-- Record each major browser separately. Chrome results do not certify Edge, Brave, Opera, Firefox, or Safari/macOS.
+- Record each 6.0 browser separately. Chrome results do not certify Edge, Brave, Opera or Firefox. Safari is archived for a later major version and is not a 6.0 target.
 - Distinguish not run, blocked, failed, and passed. Never collapse them into a generic incomplete state.
 
 ## Automation and live testing

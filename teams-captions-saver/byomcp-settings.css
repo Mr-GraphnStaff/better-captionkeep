@@ -1,0 +1,9 @@
+#byomcp-settings { overflow-wrap: anywhere; }
+#byomcp-settings .byomcp-fields { display:grid; gap:8px; }
+#byomcp-settings select { width:100%; min-width:0; padding:9px; font:inherit; background:var(--ck-field); color:var(--ck-text); border:1px solid var(--ck-border); border-radius:8px; }
+#byomcp-settings .actions-row { display:flex; flex-wrap:wrap; gap:8px; }
+#byomcp-settings .actions-row button { flex:1 1 160px; min-width:0; white-space:normal; }
+#byomcp-settings button:focus-visible, #byomcp-settings select:focus-visible { outline:3px solid var(--ck-primary); outline-offset:3px; }
+#byomcp-settings button:disabled { cursor:not-allowed; }
+#byomcp-inventory { padding-inline-start:20px; font-size:13px; }
+#byomcp-inventory li { margin-block:8px; }

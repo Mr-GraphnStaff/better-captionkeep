@@ -8,13 +8,13 @@
         'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled',
         'customScrubTerms', 'aiSummaryProviders', 'onTheFlyAiDestination', 'chatgptWorkspaceUrl',
         'claudeWorkspaceUrl', 'claudeConsoleUrl', 'webmailDestination', 'timestampFormat',
-        'filenamePattern', 'uiTheme', 'uiLocale'
+        'filenamePattern', 'uiTheme', 'uiLocale', 'byomcpEnabled', 'byomcpAllowWrites'
     ]);
     const GRAPH_USER_KEYS = Object.freeze([
         'enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'
     ]);
     const POLICY_KEYS = Object.freeze([
-        'forcePrivacyScrubber', 'disableAiHandoff', 'allowedAiProviders',
+        'forcePrivacyScrubber', 'disableAiHandoff', 'disableByomcp', 'disableByomcpWrites', 'allowedAiProviders',
         'chatgptWorkspaceUrl', 'claudeWorkspaceUrl', 'claudeConsoleUrl',
         'forceProfanityFilter', 'customScrubTerms', 'forceScrubbedExport',
         'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
@@ -25,7 +25,7 @@
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
     const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled']);
+    const BOOLEAN_KEYS = new Set(['autoEnableCaptions', 'autoSaveOnEnd', 'trackCaptions', 'trackAttendees', 'autoOpenAttendees', 'autoAISummary', 'privacyScrubberEnabled', 'profanityFilterEnabled', 'byomcpEnabled', 'byomcpAllowWrites']);
     const UI_LOCALES = new Set([
         'system', 'en', 'fr', 'fr-CA', 'es', 'es_419', 'de', 'pt_BR', 'pt_PT', 'it', 'nl', 'pl',
         'cs', 'el', 'ro', 'sv', 'uk', 'ru', 'tr', 'hi', 'bn', 'gu', 'kn', 'ml', 'mr', 'ta', 'te',
@@ -131,11 +131,19 @@
             locked.add('trackAttendees');
             locked.add('autoOpenAttendees');
         }
-        for (const key of ['disableClipboard', 'disableFileExport', 'disableEvidenceEmail', 'disableSessionHistory']) {
+        for (const key of ['disableClipboard', 'disableFileExport', 'disableEvidenceEmail', 'disableSessionHistory', 'disableByomcp', 'disableByomcpWrites']) {
             if (managed[key] === true) {
                 settings[key] = true;
                 locked.add(key);
             }
+        }
+        if (managed.disableByomcp === true || managed.disableAiHandoff === true) {
+            settings.byomcpEnabled = false;
+            locked.add('byomcpEnabled');
+        }
+        if (managed.disableByomcpWrites === true) {
+            settings.byomcpAllowWrites = false;
+            locked.add('byomcpAllowWrites');
         }
         for (const [key, minimum, maximum] of [['maxStoredSessions', 1, 10000], ['sessionRetentionDays', 1, 365]]) {
             if (Number.isInteger(managed[key]) && managed[key] >= minimum && managed[key] <= maximum) {

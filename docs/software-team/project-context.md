@@ -15,7 +15,10 @@ Preserve full roadmap scope and the lightweight spherical front door/powerful
 back door. Live capture defaults on and can be paused without losing collected
 words. Raw captions remain authoritative; reviewed derivatives keep source
 identity and cannot rewrite them. Privacy/managed policy wins over optional
-features. Six browsers remain separately required, not inferred from Chromium.
+features. Five browsers remain separately required, not inferred from Chromium:
+Chrome, Edge, Brave, Firefox, and Opera. The lead removed Safari completely from
+6.0 on October 14, 2026, reserving it for a later major version. Its groundwork
+is archived under `docs/deferred/safari`; no Safari release gate remains active.
 
 On October 14 the lead explicitly required the opt-in bridge before 6.0 release
 and clarified it is BYOMCP (Bring Your Own MCP), connecting to user-owned MCP
@@ -63,10 +66,16 @@ Azure DevOps live project: Better CaptionKeep, project ID
 c23a840e-a145-4d4f-be1c-52627d5ae561, DAF-TECH organization; default team
 Better CaptionKeep Team. The old CLI default Better-CaptionKeep was corrected.
 
-Epic #335 tracks full 6.0. Features #336-342 cover all fourteen roadmap gates,
+Epic #335 tracks full 6.0. Features #336-342 preserve the inherited roadmap gates,
 including inherited CAP controls #298-307, multilingual adoption #308-313 and
 Evidence Actions #318-332. None of those commitments was deleted or represented
 as completed by the public 5.4 release.
+
+The roadmap now has sixteen gates, including required BYOMCP (15) and the
+lead-approved reviewed shareable summary and export labels (16). Task #347 under
+UI Feature #336 links public feature #151 and pre-release policy defects
+#152/#153. Separate summary review is not a legal privilege determination;
+original transcripts remain unchanged and no email or AI submission is automatic.
 
 Tasks #343-346 track this repair/verification batch. Zoom story #252 was corrected
 from uncommitted/New to implemented/Active with live acceptance still open;
@@ -80,14 +89,25 @@ for issue links. Failed CLI calls are not counted as applied changes.
 
 ## Verification and remaining constraints
 
+October 14 integration continuation: the optional BYOMCP helper, concrete native
+adapter, Settings connection/write consent, typed action jobs and actual Receipt
+retention are implemented locally. Official Cloudflare DNS uses a finite compiler
+and separate readback, not arbitrary meeting-supplied code. Registered Cloudflare
+access in Codex passed an identity check only; no credentials were copied and no
+CaptionKeep installed-host or authenticated provider acceptance is implied.
+Helper packaging now includes its own dependency audit, offline SDK sources,
+license files, SBOM and independently verified source/hash evidence. These
+artifacts are mandatory for any future frozen candidate. Full release acceptance
+remains open; local integration is not publication or browser certification.
+
 - Tests execute production functions and deliberate failure cases; real Chromium
   rendering and loaded-extension checks use isolated profiles with synthetic data.
 - No customer transcript, tenant credential or private screenshot belongs in
   public reports. Current issue reports use relative source paths and fixtures.
 - The release state record remains development: no frozen candidate or provider
   certification. Generated status blocks are checked for contradictions.
-- Firefox native/provider, Opera and Safari/macOS acceptance is still required.
-  Safari needs an available Mac; a Windows package build cannot satisfy it.
+- Firefox native/provider and Opera acceptance are still required. All 15
+  supported browser/provider cells need their own live evidence.
 - Full-scope acceptance includes inherited committed programs, manual keyboard/
   assistive-technology/localization review, live permissions/storage/restart,
   clean Store-equivalent install and actual Store-installed upgrade.

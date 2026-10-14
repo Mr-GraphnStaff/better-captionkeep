@@ -545,20 +545,23 @@ function updateAttendeeList() {
     }
 }
 
-async function tryOpenParticipantPanel() {
-    try {
-        const peopleButton = document.querySelector(SELECTORS.PEOPLE_BUTTON);
-        if (peopleButton && peopleButton.getAttribute('aria-pressed') !== 'true') {
-            console.log("Attempting to open participant panel for attendee tracking...");
-            peopleButton.click();
-            await delay(500); // Wait for panel to open
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.log("Could not open participant panel:", error);
-        return false;
-    }
+function isParticipantPanelOpen() {
+    const button = getLiveMeetingElement(SELECTORS.PEOPLE_BUTTON);
+    // Read the host's visibility, not the persistent attendee-capture intent.
+    const state = button?.getAttribute('aria-expanded') ?? button?.getAttribute('aria-pressed');
+    if (state === 'true' || state === 'false') return state === 'true';
+    return Boolean(getLiveMeetingElement(SELECTORS.ATTENDEE_TREE));
+}
+
+async function setParticipantPanelOpen(open) {
+    if (!isUserInMeeting()) throw new Error('Join a Teams meeting before changing the attendee panel.');
+    if (isParticipantPanelOpen() === open) return false;
+    const button = getLiveMeetingElement(SELECTORS.PEOPLE_BUTTON);
+    if (!button || button.disabled) throw new Error('The Teams People control is unavailable.');
+    button.click();
+    await delay(500);
+    if (isParticipantPanelOpen() !== open) throw new Error('Teams did not change the attendee panel. Try its People control.');
+    return true;
 }
 
 async function startAttendeeTracking() {
@@ -1383,6 +1386,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                 meetingControls: {
                     liveCaptions: Boolean(getCachedElement(SELECTORS.CAPTIONS_RENDERER)),
                     attendees: attendeeCaptureRequested && attendeesAllowed,
+                    attendeePanelOpen: isParticipantPanelOpen(),
                     attendeeAllowed: attendeesAllowed,
                     transcriptionState,
                     transcriptionDetail
@@ -1407,13 +1411,20 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
                     sendResponse({ok:false, error:'Join a Teams meeting before opening the attendee panel.'});
                     return;
                 }
+                const opened = await setParticipantPanelOpen(true);
                 attendeeCaptureRequested = true;
                 attendeesAllowed = true;
                 await chrome.storage.sync.set({trackAttendees:true, autoOpenAttendees:false});
-                const opened = await tryOpenParticipantPanel();
                 await startAttendeeTracking();
-                sendResponse({ok:true, state:'active', opened});
+                sendResponse({ok:true, state:'active', opened, detail:'Attendee panel open.'});
             })().catch(error => sendResponse({ok:false, error:error.message}));
+            return true;
+
+        case 'close_attendee_panel':
+            // Closing the host panel must not discard previously captured attendees.
+            setParticipantPanelOpen(false)
+                .then(closed => sendResponse({ok:true, closed, detail:'Attendee panel closed.'}))
+                .catch(error => sendResponse({ok:false, error:error.message}));
             return true;
 
         case 'request_teams_transcription':

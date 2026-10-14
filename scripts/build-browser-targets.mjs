@@ -16,12 +16,13 @@ const DEV_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAos0GuSScxwgzbTlJj4+
 const UAT_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmSxpyAJ/mAN0vL+TWksWy3QEdjWiO7F440uqHoPX7tYFX0kVNMMp9Xgl6juMKX47ANPBZjwWhSRc8uZlaneF/lYooxKV3vee/uH5YaBLzQ60ejLr1XZb4jOsOhM3Xz+aaKDPfSDx4epZHZKGZ92XgSNjEuafdkT/4TMCqyYjQm/eeqCjLBA4ktHTXG5R313nrEh+DzEqX+tXArlDYmXPnxDsycqVjZmqfXTfMBzsmaDFgmu7zbp04wZToHIGKg4u/KPYrhe3cmn5Na29V/rbl1LoRl0r/fskAa6aP6srVQeSUd8K9c6OoSNyElhWv0HsWAut9QCVaEa5PjiqQUy0ZwIDAQAB';
 const PROD_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypItlpcGeN7eROd+0GuGk5yMLmka719pWqHFcBjbUP+a7L+yUetQIOCAvHLZfFPgZQ+3MuOUg8IYBpWlhyD8T500jvCFPJ38G8T5cpKv7WsOM8c9r4gZ5HQuvHkbh2+swvfiNhDD1F87kZil31wKjJIzAvR2GXKQy4ladRRLU0RxLpw9Ch45DiloWEM+TixVyoufwHPQboO2uR8nn/+TqfWiSu8/AQtVhgHG64N5mXRa53en5bRM5GBkfrHExoQ9+HDiJSxoieIYp4r9DfNZzn/Ji59FN+lthcf3vmHKi2e9fRg3lqEVy8MVTGSjUbZxlAuSlrcihSxJhKGJ9OzCnQIDAQAB';
 const defaultTargets = ['dev', 'uat', 'prod'];
-const certifiedBrowserTargets = ['chrome', 'edge', 'brave', 'opera', 'firefox', 'safari'];
+const certifiedBrowserTargets = ['chrome', 'edge', 'brave', 'opera', 'firefox'];
 const targetManifests = new Map([
   ['dev', path.join(sourceDir, 'manifest.json')],
   ['uat', path.join(sourceDir, 'manifest.json')],
   ['prod', path.join(manifestsDir, 'manifest.chrome-store.json')],
   ['chrome-store', path.join(manifestsDir, 'manifest.chrome-store.json')],
+  ['edge-store', path.join(sourceDir, 'manifest.json')],
   ...certifiedBrowserTargets.map(target => [target, path.join(manifestsDir, 'manifest.chrome-store.json')])
 ]);
 
@@ -34,6 +35,11 @@ function selectTargets(requestedTarget) {
   return [requestedTarget];
 }
 
+function assertStagingChild(targetPath) {
+  const relative=path.relative(canonicalDist,path.resolve(targetPath));
+  if(!relative || relative==='..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) throw new Error('Staging target escapes the selected dist directory');
+}
+
 async function stageTarget(target) {
   const targetDir = target === 'dev'
     ? devDir
@@ -41,15 +47,18 @@ async function stageTarget(target) {
       ? uatDir
       : target === 'prod'
         ? prodDir
-        : target === 'chrome-store'
-          ? path.join(prodDir, 'chrome-store-unpacked')
+        : target === 'chrome-store' || target === 'edge-store'
+          ? path.join(prodDir, `${target}-unpacked`)
           : path.join(prodDir, `${target}-unpacked`);
   const manifestPath = targetManifests.get(target);
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 
+  assertStagingChild(targetDir);
   await rm(targetDir, { recursive: true, force: true });
   if (target === 'chrome-store') {
-    await rm(path.join(prodDir, 'chrome-store'), { recursive: true, force: true });
+    const archiveDir=path.join(prodDir,'chrome-store');
+    assertStagingChild(archiveDir);
+    await rm(archiveDir, { recursive: true, force: true });
   }
   await mkdir(targetDir, { recursive: true });
   await cp(sourceDir, targetDir, {
@@ -92,16 +101,10 @@ async function stageTarget(target) {
       }
     };
   }
-  if (target === 'safari') {
-    manifest.permissions = manifest.permissions.filter(permission => permission !== 'sidePanel');
-    delete manifest.side_panel;
-    delete manifest.storage;
-    delete manifest.key;
-    manifest.background = {
-      scripts: await documentBackgroundScripts(),
-      service_worker: 'service_worker.js',
-      preferred_environment: ['service_worker', 'document']
-    };
+  if (target === 'edge-store' || certifiedBrowserTargets.includes(target) && target !== 'chrome') {
+    const browserTarget = target === 'edge-store' ? 'edge' : target;
+    await writeFile(path.join(targetDir, 'browserRuntimeConfig.js'),
+      `globalThis.CaptionKeepBrowserRuntime = Object.freeze(${JSON.stringify({target:browserTarget})});\n`, 'utf8');
   }
   await writeFile(
     path.join(targetDir, 'manifest.json'),

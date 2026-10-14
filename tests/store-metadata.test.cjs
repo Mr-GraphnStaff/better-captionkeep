@@ -43,6 +43,7 @@ test('Chrome Store metadata contract accepts synchronized disclosures', async ()
   assert.deepEqual(validateChromeStoreMetadata(manifest, metadata), {
     version: '5.2.0',
     permissions: 3,
+    optionalPermissions: 0,
     hostPermissions: 1,
     optionalHostPermissions: 0,
     providers: 3,
@@ -57,6 +58,19 @@ test('Chrome Store metadata contract rejects a permission without a justificatio
     () => validateChromeStoreMetadata(manifest, metadata),
     /permission justifications drifted/i,
   );
+});
+
+test('Chrome Store metadata requires exact optional-permission justification coverage', async () => {
+  const {validateChromeStoreMetadata} = await import('../scripts/check-store-metadata.mjs');
+  const {manifest,metadata} = fixture();
+  manifest.optional_permissions = ['nativeMessaging'];
+  assert.throws(() => validateChromeStoreMetadata(manifest,metadata),/optional permission justifications drifted/i);
+  metadata.optionalPermissionJustifications = {nativeMessaging:'Required'};
+  assert.throws(() => validateChromeStoreMetadata(manifest,metadata),/nativeMessaging optional justification must contain a meaningful/);
+  metadata.optionalPermissionJustifications.nativeMessaging = 'Explicit Connect grants access to a separately installed user-owned helper; local capture does not require it.';
+  assert.equal(validateChromeStoreMetadata(manifest,metadata).optionalPermissions,1);
+  metadata.optionalPermissionJustifications.debugger = 'This undeclared optional permission must not be accepted by the gate.';
+  assert.throws(() => validateChromeStoreMetadata(manifest,metadata),/optional permission justifications drifted/i);
 });
 
 test('Chrome Store metadata contract rejects host and version drift', async () => {
@@ -102,6 +116,10 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
   assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace('`identity`', '`removed-identity`')),
     /missing current Store value: `identity`/
+  );
+  assert.throws(
+    () => validateChromeWebStoreDossier(manifest, metadata, dossier.replaceAll('`nativeMessaging`', '`removed-native-messaging`')),
+    /missing current Store value: `nativeMessaging`/
   );
 });
 

@@ -1,6 +1,6 @@
 {
   "version": "6.0.0",
-  "generatedAt": "2026-10-13T17:17:50.186Z",
+  "generatedAt": "2026-10-14T19:38:00.301Z",
   "approval": "pending release-owner review",
   "artifacts": [
     {
@@ -30,8 +30,8 @@
     {
       "file": "05-advanced-settings.png",
       "dimensions": "1280x800",
-      "bytes": 383243,
-      "sha256": "D26DB35EF4E26100AA56E889CB6D341A00D00014C131FDAFD59FB29B5FD4B985"
+      "bytes": 382632,
+      "sha256": "4F925C4F135FFD703D403538E42E027569E16C0EF257E9D850FFF621F3AD50C6"
     },
     {
       "file": "small-promotional-tile.png",

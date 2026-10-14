@@ -44,14 +44,22 @@ export function zipEntries(bytes) {
   return entries;
 }
 
-export async function verifyPackageSource(source, {directory, zipPath, allowedDifferences = ['manifest.json']} = {}) {
+export async function verifyPackageSource(source, {directory, zipPath, allowedDifferences = ['manifest.json'], browserTarget, expectedManifest} = {}) {
   if (!directory && !zipPath) throw new Error('A staged directory or ZIP is required.');
   const entries = zipPath ? zipEntries(await readFile(zipPath)) : null;
+  if (browserTarget && !['chrome','edge','brave','opera','firefox'].includes(browserTarget)) throw new Error('Unsupported package browser target');
+  if (expectedManifest) {
+    const expected = JSON.parse(await readFile(expectedManifest,'utf8'));
+    const actual = JSON.parse(entries ? entries.get('manifest.json')?.toString('utf8') : await readFile(path.join(directory,'manifest.json'),'utf8'));
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Package manifest identity mismatch: ${zipPath || directory}`);
+  }
   const allowed = new Set(allowedDifferences);
   const files = await sourceFiles(source);
   for (const name of files) {
     if (allowed.has(name)) continue;
-    const expected = await readFile(path.join(source, name));
+    const expected = name === 'browserRuntimeConfig.js' && browserTarget && browserTarget !== 'chrome'
+      ? Buffer.from(`globalThis.CaptionKeepBrowserRuntime = Object.freeze(${JSON.stringify({target:browserTarget})});\n`)
+      : await readFile(path.join(source, name));
     const actual = entries ? entries.get(name) : await readFile(path.join(directory, name));
     if (!actual || !actual.equals(expected)) throw new Error(`Package source mismatch: ${name} in ${zipPath || directory}`);
   }

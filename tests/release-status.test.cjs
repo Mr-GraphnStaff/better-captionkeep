@@ -27,10 +27,12 @@ test('candidate and release labels cannot hide unverified browsers or open gates
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Frozen candidate/);
   record.candidate = {frozen:true, commit:'a'.repeat(40), hashes:{chrome:'b'.repeat(64)}};
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /all browser/);
-  for (const key of ['chrome','edge','brave','firefox','opera','safari','chrome-store','edge-store','sbom']) record.candidate.hashes[key] = 'b'.repeat(64);
+  for (const key of ['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom']) record.candidate.hashes[key] = 'b'.repeat(64);
+  assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /BYOMCP helper/);
+  for (const key of ['byomcp-helper','byomcp-sbom','byomcp-hashes']) record.candidate.hashes[key] = 'b'.repeat(64);
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /acceptance\/certification/);
   record.requiredBrowsers.pop();
-  assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Six-browser/);
+  assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Five-browser/);
 });
 test('missing, duplicate boundaries and malformed gate fields fail closed', async () => {
   const api = await load(), record = loadRecord();
@@ -45,4 +47,12 @@ test('source branch identity cannot be blank or malformed', async () => {
     record.branch = branch;
     assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /branch identity/);
   }
+});
+
+test('6.0 requires exactly five browsers and cannot silently reintroduce archived Safari', async () => {
+  const api = await load(), record = loadRecord();
+  assert.deepEqual(record.requiredBrowsers, ['chrome','edge','brave','firefox','opera']);
+  assert.equal(Object.hasOwn(record.liveCertification, 'safari'), false);
+  record.requiredBrowsers.push('safari');
+  assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Five-browser/);
 });

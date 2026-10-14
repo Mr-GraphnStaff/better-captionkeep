@@ -10,7 +10,7 @@ export function validateSurfaceResult(result, exceptions = []) {
   if (exceptions.length) throw new Error(`Browser script exception: ${exceptions.join('; ')}`);
   if (!result || !Array.isArray(result.checks) || !result.checks.length) throw new Error('No rendered assertions ran.');
   const failed = result.checks.filter(check => check.passed !== true);
-  if (failed.length) throw new Error(failed.map(check => check.name).join('; '));
+  if (failed.length) throw new Error(failed.map(check => check.name + (check.actual ? ` (actual: ${JSON.stringify(check.actual)})` : '')).join('; '));
   return result;
 }
 
@@ -135,28 +135,52 @@ const workspaceAssertions = `(() => {
     {name:'Live workspace has no horizontal overflow',passed:document.documentElement.scrollWidth <= innerWidth + 1}]};
 })()`;
 
+// CDP acknowledges media emulation before Chromium dispatches matchMedia change
+// events. Wait for the observable application state, not an arbitrary 75ms sleep.
+// Do not reapply the theme here: that would conceal a broken change listener.
+export async function observeThemeState(cdp, expected, {timeoutMs = 2000, intervalMs = 25} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let actual;
+  do {
+    const state = await cdp.send('Runtime.evaluate',{returnByValue:true,expression:`(() => ({
+      theme:document.documentElement.dataset.theme,
+      preference:document.documentElement.dataset.themePreference,
+      media:matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      native:getComputedStyle(document.documentElement).colorScheme,
+      nativeField:getComputedStyle(document.querySelector('input,select,textarea') || document.body).colorScheme
+    }))()`});
+    if (state.exceptionDetails) throw new Error(state.exceptionDetails.exception?.description || state.exceptionDetails.text);
+    actual = state.result.value;
+    if (actual && Object.entries(expected).every(([key,value]) => actual[key] === value)) return {passed:true,actual};
+    if (Date.now() >= deadline) break;
+    await delay(intervalMs);
+  } while (true);
+  return {passed:false,actual};
+}
+
+async function emulateAppearance(cdp, scheme) {
+  await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme}]});
+  // Allow media-query change listeners to run before testing an explicit theme
+  // that already matched before emulation. Otherwise a broken listener could
+  // change it just after an early successful observation.
+  const result = await cdp.send('Runtime.evaluate',{awaitPromise:true,
+    expression:'new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'});
+  if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
+}
+
 async function themeChecks(cdp, surface) {
   const checks = [];
   await cdp.send('Runtime.evaluate',{expression:"CaptionKeepTheme.apply('system')"});
   for (const scheme of ['light','dark','light']) {
-    await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:scheme}]});
-    await delay(75);
-    const state = await cdp.send('Runtime.evaluate',{returnByValue:true,expression:`(() => ({
-      theme:document.documentElement.dataset.theme,
-      preference:document.documentElement.dataset.themePreference,
-      native:getComputedStyle(document.documentElement).colorScheme,
-      nativeField:getComputedStyle(document.querySelector('input,select,textarea') || document.body).colorScheme
-    }))()`});
-    const actual = state.result.value;
-    checks.push({name:surface+' system theme follows '+scheme,passed:actual.preference === 'system' &&
-      actual.theme === (scheme === 'light' ? 'light' : 'captionkeep') && actual.native === scheme && actual.nativeField === scheme});
+    await emulateAppearance(cdp,scheme);
+    const observed = await observeThemeState(cdp,{preference:'system',
+      theme:scheme === 'light' ? 'light' : 'captionkeep',media:scheme,native:scheme,nativeField:scheme});
+    checks.push({name:surface+' system theme follows '+scheme,...observed});
   }
   await cdp.send('Runtime.evaluate',{expression:"CaptionKeepTheme.apply('light')"});
-  await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
-  await delay(75);
-  const explicit = await cdp.send('Runtime.evaluate',{returnByValue:true,
-    expression:"document.documentElement.dataset.theme === 'light' && getComputedStyle(document.documentElement).colorScheme === 'light'"});
-  checks.push({name:surface+' explicit light stays light on dark OS',passed:explicit.result.value === true});
+  await emulateAppearance(cdp,'dark');
+  const explicit = await observeThemeState(cdp,{preference:'light',theme:'light',media:'dark',native:'light',nativeField:'light'});
+  checks.push({name:surface+' explicit light stays light on dark OS',...explicit});
   validateSurfaceResult({checks},cdp.exceptions);
   return checks;
 }
@@ -200,6 +224,9 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
     cdp = await connection(page.webSocketDebuggerUrl);
     await cdp.send('Runtime.enable');
     await cdp.send('Page.enable');
+    // Headless pages can otherwise update activeElement without dispatching
+    // focusin, unlike the active browser page these keyboard checks exercise.
+    await cdp.send('Emulation.setFocusEmulationEnabled',{enabled:true});
     await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:fixture});
     const checks = [];
     for (const surface of ['settings','popup','viewer','handoff','workspace']) {
@@ -210,6 +237,7 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
           : surface === 'settings' ? 'popup.html?view=settings' : 'popup.html';
       const url = `http://127.0.0.1:${server.address().port}/${pageName}`;
       await cdp.send('Page.navigate',{url});
+      await cdp.send('Page.bringToFront');
       let ready = false;
       for (let attempt = 0; attempt < 100; attempt++) {
         const result = await cdp.send('Runtime.evaluate',{expression:'document.readyState',returnByValue:true});
@@ -218,6 +246,10 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
       }
       if (!ready) throw new Error(`${surface} page did not finish loading.`);
       await delay(200);
+      const focused = await cdp.send('Runtime.evaluate',{expression:'document.hasFocus()',returnByValue:true});
+      const focusCheck = {name:surface+' document is focused for keyboard checks',passed:focused.result.value === true};
+      validateSurfaceResult({checks:[focusCheck]},cdp.exceptions);
+      checks.push(focusCheck);
       if (options.beforeAssertions) {
         const injected = await cdp.send('Runtime.evaluate',{expression:options.beforeAssertions,awaitPromise:true});
         if (injected.exceptionDetails) {

@@ -1,11 +1,29 @@
 # BYOMCP: 6.0 UX contract
 
-Date: 2026-10-14. **Design artifact; not implemented or certified.**
+Date: 2026-10-14. **Implementation contract; local implementation and synthetic
+integration checks exist, installed-browser/provider certification remains open.**
 Lead decision: include an opt-in **Bring Your Own MCP** bridge in version 6.0.
 This is not a deferred feature, a DAF-hosted assistant, or publisher transcript
 storage. Engineering/security contract review precedes UI implementation.
+Lead transport decision: an optional locally installed helper mediates **both**
+local stdio and remote HTTP profiles. The extension does not directly store
+remote credentials or contact arbitrary MCP endpoints. See the draft
+[architecture ADR](../adr/ADR-0001-evidence-actions-architecture.md); its initial
+read-only proposal requires amendment for the explicit action scope below.
 
 ## Product boundary
+
+Current implementation: All Settings explicitly imports a bounded nonsecret
+reviewed configuration after a review checkbox, resets writes to off, and asks
+for optional native permission only on Connect. The browser worker independently
+checks enrollment, live inventory/schema and managed policy. A separately opted-in
+write setting is not per-action consent. Preview seals exact typed arguments,
+selected source and destination; caption-text scrubbing does not silently change
+operational record/IP/tenant identifiers. Pin is available only after independent
+typed readback and creates an actual source-linked action Receipt. Disconnect
+clears local connection authority but does not revoke a provider credential.
+Node.js 22+, OS registration and helper credential provisioning are separate
+setup requirements; normal capture never starts the helper automatically.
 
 The popup remains the calm meeting front door. Advanced Settings contains
 **Connections → Bring Your Own MCP**. The feature is off by default; enrollment
@@ -20,13 +38,15 @@ connection safe merely because its name, endpoint, or tool annotation says so.
 
 ## Connection enrollment and review
 
-1. **Choose connection type.** Remote HTTP endpoint, or installed local bridge.
-   Explain their different permissions before asking for credentials.
+1. **Choose helper profile.** Remote HTTP service or local stdio server, both
+   through the installed helper. Explain installation and service permissions.
+   Credentials are configured locally in the helper, not entered here.
 2. **Identify destination.** User label plus canonical origin/endpoint or local
    host identity, connection type and authentication state. Reject credentials
    embedded in endpoint URLs. Never echo credentials into UI diagnostics.
-3. **Grant narrow access.** Show the requested destination and browser permission
-   separately from tool approval. Permission denial returns to an editable form.
+3. **Grant narrow access.** Show helper/native permission separately from the
+   configured service's authentication and tool grant. Permission denial returns
+   to a recoverable setup state; it does not disable local capture.
    No transcript is attached to a connectivity check.
 4. **Review service and tool inventory.** Tool name, description, input schema,
    claimed side effects, version/inventory identity and permission boundaries.
@@ -44,11 +64,11 @@ does not authorize a mutation or prove it lacks side effects.
 
 | Route | Required user-facing explanation | Acceptance boundary |
 | --- | --- | --- |
-| Remote HTTP | Destination origin, endpoint, authentication owner and explicit browser site-access request. Untrusted discovery is not execution. | Denied access/auth expiry produces a recoverable connection state. Endpoint changes do not reuse approval or credentials for a different destination. |
+| Remote HTTP through helper | Destination origin/endpoint, authentication owner, installed helper identity and local enrollment permission. No direct browser MCP endpoint access or token form. Untrusted discovery is not execution. | Denied helper access/auth expiry produces a recoverable state. Endpoint changes do not reuse approval or credentials for another destination. |
 | Local stdio/native bridge | A browser page cannot simply launch a user's MCP command. A separately installed browser-compatible host/bridge and explicit permission are required. Show installer provenance, installed host identity, supported browser/OS and uninstall instructions. No pasted shell command is executed by the extension. | Not installed, wrong version, wrong extension identity and blocked native permission are distinct states; do not offer a fake Connect success. Enrollment never downloads/installs/starts an arbitrary executable automatically. |
 
 Native integration differs by browser; Chrome's native messaging permission and
-host registration do not establish Firefox or Safari support. Engineering must
+host registration do not establish Firefox, Brave, Edge, or Opera support. Engineering must
 document/test each route before labeling it available. Follow official
 [MCP transports](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports)
 and browser-specific integration requirements, including
@@ -70,8 +90,9 @@ after enrollment and deliberate selection. Not a new competing popup button.
    permission. A changed source/selection/meeting invalidates the preview rather
    than rebinding it. A denied image policy cannot be bypassed through MCP.
 4. Button label includes the action/destination: **Send to [connection]**. Warn
-   if the tool declares a write or external side effect; require the actual
-   consequential arguments to be confirmed. No silent follow-up tool calls.
+   for a write or external side effect; require the actual consequential
+   arguments to be confirmed through a separate execution approval. Only
+   reviewed compatible action profiles may execute. No silent follow-up calls.
 5. Submit once with a request identity. Duplicate clicks cannot duplicate calls.
    No background polling stream of captions and no auto-resend after reconnect.
 
@@ -79,6 +100,46 @@ The non-editable review envelope remains outside editable instructions.
 Transcript/tool output is evidence, not extension authority. No tool result can
 request credentials, another submission, permissions, native execution or a
 change to managed policy.
+
+## Golden path: transcripts to user-approved actions and verified Receipts
+
+Meeting words are context, never execution approval. The user chooses a named
+action; exact arguments come from explicit form fields or a user-chosen BYOAI
+interpretation step whose output is only a proposal. No publisher model, hosted
+agent, caption-triggered dispatch, or autonomous natural-language tool loop.
+
+### Cloudflare DNS change (reviewed write profile)
+
+After selecting evidence, choose **Change DNS record**. Preview the exact
+Cloudflare account/zone, record identity and type/name, current value, proposed
+value, TTL/proxy settings and other changed fields. Resolve ambiguity and read
+current state before approval. Show impact/permissions and reject a stale
+before-state; never select an account or zone from an untrusted tool suggestion.
+
+**Execute this DNS change** is a separate affirmative action after preview;
+an approved compatible tool/profile in Settings is not that execution approval.
+Track job progress and expose honest Cancel/outcome unknown. A successful call
+alone is not completion: read back the record from the approved account/zone
+and compare expected state. Label this **API readback verified**, not a guarantee
+that DNS caches or public propagation completed. Preserve verified/failed/unknown
+result as a source-bound action Receipt; explicitly pin or copy it back into
+meeting work. No automatic meeting chat message.
+
+### Microsoft 365 participant directory lookup (reviewed read profile)
+
+Choose **Look up this participant**. Present matched person choices and the
+approved organizational tenant/account; require the user to disambiguate the
+person rather than assuming a display name identifies them. Preview selected
+work-directory fields and purpose; request no unnecessary personal fields.
+Explicit lookup approval uses organization-owned permissions through the helper.
+Label returned directory data with person/tenant binding and retrieval time;
+it is external evidence, not a statement captured in the meeting transcript.
+Pin/copy a source-bound Receipt only after review. Do not post to Teams or enrich
+other participants automatically.
+
+Compatible profiles must bind tool/schema identity, account/resource identity,
+required permissions, allowed arguments and verification/readback contracts.
+Tool names and read-only hints are not proof. Unknown profiles remain disabled.
 
 ## Request state and cancel
 

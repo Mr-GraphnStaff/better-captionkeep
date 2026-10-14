@@ -6,12 +6,30 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Last Updated: 2026-10-14
 
+6.0 optional permission review: `nativeMessaging` is requested only when the
+user explicitly chooses Connect in Settings. It connects to the separately
+installed, user-owned BYOMCP helper for reviewed local stdio or remote MCP
+actions. It is not required for local transcript capture and no helper starts
+on ordinary page load. The helper keeps separately provisioned credentials out
+of browser storage. Exact tool/schema grants, source-bound previews, fresh
+managed-policy checks and separate write approval constrain invocation. The
+helper package requires Node.js 22 or later; browser-native installation and
+authenticated provider acceptance remain pending. This is proposed 6.0 review
+copy, not a change to a published 5.4 listing or a Store approval claim.
+
 6.0 development review: the Live Workspace now puts chronological conversation
 first, with optional selected-caption actions and explicit Follow latest. Local
 Templates, reviewed source-bound Notes/Ask, rolling notes, approved Moment PNG
 exports, and optional contrast presets have automated regression coverage. Pause,
 leave/rejoin, archive recovery and managed-policy repairs are implemented locally.
-These are development changes, not a public Store update or six-browser certification.
+These are development changes, not a public Store update or five-browser certification.
+
+6.0 development scope added October 14: reviewed shareable-summary drafts and
+explicit confidentiality/privilege handling labels. No automatic legal privilege
+determination, automatic email sending or guaranteed removal of privileged
+material is claimed. This workflow preserves the original and introduces no
+publisher-operated processing. Final screenshots/copy require acceptance review;
+do not change the published 5.4 listing on the strength of this development note.
 Refresh final product screenshots after acceptance and candidate freeze; artwork
 and listing approval remain open. The historical 5.4 publication record below is
 unchanged.
@@ -114,7 +132,7 @@ Workflow & Planning
 
 **Single Purpose**
 
-Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports or copies it.
+Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares selected evidence through an optional user-owned MCP helper. Reviewed MCP actions require separate approval and do not change the original transcript.
 
 **Primary Language**
 

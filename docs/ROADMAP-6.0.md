@@ -91,7 +91,10 @@ templates, and every advanced control.
 
 The lead explicitly included an opt-in BYOMCP bridge in 6.0 on October 14, 2026.
 This connects to a user's own MCP setup, not a publisher-operated assistant.
-It is required release scope, not an implemented or certified feature yet.
+It is required release scope. The concrete browser adapter, runnable optional
+helper, both transports, typed action approval, independent readback and Receipt
+pinning are implemented locally. Synthetic integration is not installed-browser
+or authenticated provider acceptance; those checks remain required.
 
 - Keep connection setup and advanced controls in Settings; disabled by default.
 - Preserve local Core capture without an MCP connection or identity dependency.
@@ -106,6 +109,24 @@ It is required release scope, not an implemented or certified feature yet.
 - Complete the new trust-boundary design, negative tests and native/browser
   integration acceptance before claiming this requirement complete.
 
+### 5b. Reviewed shareable summaries and export labels
+
+Lead-approved October 14, 2026: prepare a separate email-shareable business
+summary without altering the original transcript. Select authorized excerpts
+explicitly; optionally prepare a prompt for an organization-approved destination
+without automatic submission. Author or paste the proposed email text, inspect
+it and confirm review for the intended recipients before copy or export.
+
+Default to `CONFIDENTIAL — DRAFT — REVIEW REQUIRED`. Reviewed output carries
+`CONFIDENTIAL — FOR AUTHORIZED RECIPIENTS ONLY`; the attorney-client privileged
+designation requires an explicit choice and separate confirmation under the
+organization's legal guidance. Never infer privilege or claim a summary is safe
+to share. Labels communicate handling expectations, not legal determinations.
+Edits, label changes or source changes invalidate review. Keep transcript links,
+internal source references, review flags and omission reasons out of email copy
+by default. Respect managed clipboard/export/AI restrictions. See
+[acceptance contract](software-team/SHAREABLE-SUMMARY-6.0.md).
+
 ### 6. One binary and enterprise readiness
 
 - Keep one package per browser—not separate Core, Pro, or Enterprise forks.
@@ -116,19 +137,22 @@ It is required release scope, not an implemented or certified feature yet.
   no secret, raw license key, IdP token, or transcript content enters sync
   storage, logs, exports, fixtures, or source control.
 
-### 7. Six certified browsers
+### 7. Five certified browsers
 
 - Google Chrome
 - Microsoft Edge
 - Brave
 - Mozilla Firefox
 - Opera
-- Apple Safari on macOS
 
 Chromium code sharing is not certification. Firefox receives its native
-sidebar. Safari uses the same Meeting Receipt workspace in an extension tab
-where a native side panel is unavailable. Every browser receives its own build,
+sidebar. Every supported browser receives its own build,
 provider smoke matrix, version/OS record, and evidence.
+
+Lead decision, October 14, 2026: Safari is removed completely from active 6.0
+support, packages, certification, and release gates. Its recoverable groundwork
+is [archived for a later major version](deferred/safari/README.md); it is not a
+6.0 browser, an unverified 6.0 target, or a release blocker.
 
 ## Execution board
 
@@ -143,12 +167,13 @@ provider smoke matrix, version/OS record, and evidence.
 | 7 | Rolling Live Notes | Implemented with bounded deltas, pause/resume, update-now, retry limits, idempotency, and restart-safe revision history; live UAT open |
 | 8 | User meeting templates/prompts | Local Settings workbench, versioned built-ins/custom revisions and duplication implemented; workspace selection/safety hardening under review; live acceptance open |
 | 9 | Transcript Q&A | Working snapshot-bound reviewed handoff plus local cited-answer retention; live UAT open |
-| 10 | Six browser-specific build/runtime targets | Implemented; native validation open |
+| 10 | Five browser-specific build/runtime targets | Safari archived; revised five-target build and packaging passed October 14; native/provider validation remains open |
 | 11 | Accessibility, privacy, security, and failure hardening | Automated seven-surface audit, extension validation, tests, and dependency audit pass; manual assistive-technology and live failure UAT open |
-| 12 | Separate six-browser/provider certification | Packages built for all six; asserted Windows renderer checks passed in Chrome, Edge and Brave; Firefox screenshot captured only; all live provider certification, Opera, and Safari/macOS remain open |
-| 13 | Frozen storefront bundle and release candidate | Reproducible screenshots, promotional art, six browser packages, hashes, SBOM, and provenance automation implemented; owner approval and candidate freeze open |
+| 12 | Separate five-browser/provider certification | Asserted Windows renderer checks passed in Chrome, Edge and Brave; Firefox screenshot captured only; all 15 live provider cells and Opera runtime acceptance remain open |
+| 13 | Frozen storefront bundle and release candidate | Five-browser packages, hashes, SBOM and Store art regenerated October 14; final provenance, owner approval and candidate freeze remain open |
 | 14 | Controlled promotion, public parity, and upgrade smoke | Open |
-| 15 | Opt-in BYOMCP bridge and reviewed Evidence Actions | Required by lead; architecture/UX/security contracts in progress; implementation and acceptance open |
+| 15 | Opt-in BYOMCP bridge and reviewed Evidence Actions | Concrete helper/transport/Settings/Receipt path implemented with synthetic integration coverage; native installation, real authentication, provider and five-browser acceptance open |
+| 16 | Reviewed shareable summary and export labels | Implemented with independent synthetic privacy and rendered UI checks; user/installed-browser acceptance open; no privilege or safe-distribution guarantee |
 
 ## Non-negotiable source model
 
@@ -172,7 +197,7 @@ No derivative may edit, truncate, or silently replace a source caption.
 4. Complete editable local templates and regeneration history.
 5. Add transcript Q&A on bounded snapshots.
 6. Run automated, privacy, accessibility, and provider regression gates.
-7. Certify Chrome, Edge, Brave, Firefox, Opera, and Safari separately.
+7. Certify Chrome, Edge, Brave, Firefox, and Opera separately.
 8. Freeze current UI and features, then create—not before—the final 6.0 Store
    screenshots, promotional art, copy, hashes, SBOM, and provenance.
 9. Hold the unchanged candidate window and promote through the governed Store

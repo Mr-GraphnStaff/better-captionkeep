@@ -1721,7 +1721,8 @@ test('extension pages use only packaged scripts and settings use progressive dis
     assert(!popup.includes('assistantBridgeAuth.js'));
     const manifest=JSON.parse(read('manifest.json'));
     assert(!manifest.permissions.includes('alarms'));
-    assert(!manifest.optional_permissions?.includes('nativeMessaging'));
+    assert(manifest.optional_permissions?.includes('nativeMessaging'));
+    assert(!manifest.permissions.includes('nativeMessaging'), 'optional BYOMCP must not require native access for Core');
     assert(!manifest.optional_host_permissions.includes('https://*/*'));
 });
 test('managed release restrictions are enforced across extension action surfaces',()=>{
@@ -1817,16 +1818,16 @@ test('6.0 build system stages every committed browser target with native workspa
     const builder=readProject('scripts/build-browser-targets.mjs');
     const roadmap=readProject('docs/ROADMAP-6.0.md');
     assert.equal(packageJson.scripts['build:browsers'],'node scripts/build-browser-targets.mjs browsers');
-    for(const browser of ['chrome','edge','brave','opera','firefox','safari']) {
+    for(const browser of ['chrome','edge','brave','opera','firefox']) {
         assert(builder.includes(`'${browser}'`),`${browser} must be an explicit build target`);
-        assert(roadmap.includes(browser === 'safari' ? 'Safari' : browser[0].toUpperCase()+browser.slice(1)));
+        assert(roadmap.includes(browser[0].toUpperCase()+browser.slice(1)));
     }
     assert(builder.includes("manifest.sidebar_action"));
     assert(builder.includes('background = {scripts: await documentBackgroundScripts()}'));
     assert(builder.includes("strict_min_version: '140.0'"));
     assert(builder.includes("strict_min_version: '142.0'"));
     assert(builder.includes("required: ['none']"));
-    assert(builder.includes("preferred_environment: ['service_worker', 'document']"));
+    assert(!builder.includes("target === 'safari'"));
 });
 test('6.0 release controls require Store package and storefront parity',()=>{
     const process=readProject('docs/RELEASE_PROCESS.md');
@@ -1838,7 +1839,7 @@ test('6.0 release controls require Store package and storefront parity',()=>{
     assert(release.includes('store-assets/6.0/'));
     assert(release.includes('product-metadata endpoint'));
     assert(release.includes('Google Chrome'));
-    assert(release.includes('Apple Safari on macOS'));
+    assert(release.includes('Mozilla Firefox'));
     assert(assets.includes('Partner Center'));
     assert(assets.includes('SHA-256'));
 });

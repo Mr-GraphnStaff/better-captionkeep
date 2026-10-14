@@ -13,6 +13,22 @@ create a requirement to implement one just to test its failure.
 
 ## Evidence identity and interpretation
 
+October 14 continuation: concrete BYOMCP browser/helper/typed-action/Receipt
+integration and reviewed shareable summaries now have executable synthetic
+coverage. The local full candidate command passed 489 extension and 28 helper
+tests, both dependency audits, five packages, Chrome/Edge/Brave rendered and
+loaded-extension smoke checks, and source/hash/SBOM/helper verification. These
+supersede the older 353-test local count below for this batch, but do not satisfy
+installed-native/provider authentication, all 15 live provider cells, inherited
+scope or final release acceptance. Follow-up metadata/workflow tests and exact
+commit provenance are recorded in the execution ledger, not inferred here.
+
+Scope decision, October 14, 2026: Safari is removed entirely from active 6.0
+support, packaging, certification, and release gates by the lead. Its material
+is [archived for a later major version](../deferred/safari/README.md). All five
+remaining browsers still require separate evidence; removing Safari does not
+turn any pending Chrome, Edge, Brave, Firefox, or Opera cell into a pass.
+
 - The coordinator reports the frozen integration source suite at 353 tests.
   The coordinator owns the final candidate pipeline and records its exact commit,
   hashes and result in the execution ledger; this audit does not invent that
@@ -48,7 +64,7 @@ Sources: [roadmap](../ROADMAP-6.0.md), [release record](../RELEASE-6.0.md),
 [machine state](../release-state/6.0.json), [execution ledger](EXECUTION-6.0.md),
 [public defects](PUBLIC-DEFECTS-6.0.md), and actual test/source inspection.
 
-## All fifteen roadmap gates
+## All sixteen roadmap gates
 
 Owners are accountable disciplines, not invented named employees or deadlines.
 
@@ -63,12 +79,21 @@ Owners are accountable disciplines, not invented named employees or deadlines.
 | 7 Rolling Live Notes | Rolling module, source-revision, storage/migration, bounded batch, restart/idempotency and checkpoint tests; comparable CPU workload evidence | Long native session, storage/IPC pressure, pause/retry/failure and managed policy transitions during writes | Performance + QA: measure native browser CPU/memory/input and compare recovery after restart; module CPU is not browser performance |
 | 8 Templates / prompts | Version/import limits, template lineage and per-meeting draft regressions | Full create/duplicate/edit/import/export/delete/regenerate tour; workspace selection and immutable safety rules in real tabs/locales | UI + QA: do full template revision tour against final artifact |
 | 9 Transcript Q&A | Original Ask snapshots, canned no-answer, source-bound cited derivatives and promotion tests | Original request binding, correction/disappearance, unsupported answer and re-review in actual meeting tabs | UI + QA: preserve original Ask source; reject absent/changed citations |
-| 10 Six build/runtime targets and one binary | Packaging/bootstrap tests; six manifests; native Chromium probes; managed-denial tests | Installed Firefox native sidebar, Opera extension APIs, Safari conversion/installed extension-tab runtime; stable capability-ID contract not located | Platform + architecture + QA: assert native runtimes independently; reconcile explicit capability IDs without adding paid tiers |
+| 10 Five build/runtime targets and one binary | Packaging/bootstrap tests; five manifests; native Chromium probes; managed-denial tests | Installed Firefox native sidebar, Opera extension APIs; stable capability-ID contract not located | Platform + architecture + QA: assert native runtimes independently; reconcile explicit capability IDs without adding paid tiers |
 | 11 Accessibility/privacy/security/failure hardening | Surface audit, injection/export/policy/worker/citation/retention/failure tests, dependency audit pipeline | Screen readers, 200% zoom, high contrast/forced colors, localized live regions; native quota/permission/disconnect/restart failures; current 6.0 security/TOM review | Accessibility + security + QA: perform checks below; refresh security architecture's older 5.2/5.3 applicability |
-| 12 Separate six-browser/provider certification | Renderer assertions in Chrome/Edge/Brave; Firefox screenshot only; all live provider cells pending | All 18 cells below, not inferred from shared engines | QA: execute exact-package provider protocol per browser; assigned Mac tester handles Safari |
+| 12 Separate five-browser/provider certification | Renderer assertions in Chrome/Edge/Brave; Firefox screenshot only; all live provider cells pending | All 15 cells below, not inferred from shared engines | QA: execute exact-package provider protocol per browser |
 | 13 Frozen candidate, artwork/copy/hashes/SBOM | Packaging/source ZIP parity, hashes/SBOM/provenance scripts, art generation and release-status validation | Final clean artifact identity, owner-approved current art/copy/privacy, candidate declaration and unchanged window | Release + product: read final pipeline evidence, review actual product art, then freeze approved digest |
 | 14 Controlled promotion, public parity, upgrade | Development-state views and publish script tests; no publication implied | Controlled submission, review receipts, public version/copy/art/privacy and real installed upgrade | Release + lead: only after previous gates and applicable authorization; maintain release open until post-upgrade smoke |
-| 15 Opt-in user-owned BYOMCP bridge | Lead inclusion decision; architecture and UX contracts drafted; security review in progress | Transport/credential/permission/enrollment choices, implementation, tool consent, durable jobs, cancellation, source-bound result verification and pinning, six-browser integration | Architecture + engineering + security + UI: resolve the design choices, implement both profiles and execute the adversarial/native acceptance contract; Core remains independent |
+| 15 Opt-in user-owned BYOMCP bridge | Lead inclusion decision; architecture and UX contracts drafted; security review in progress | Transport/credential/permission/enrollment choices, implementation, tool consent, durable jobs, cancellation, source-bound result verification and pinning, five-browser integration | Architecture + engineering + security + UI: resolve the design choices, implement both profiles and execute the adversarial/native acceptance contract; Core remains independent |
+
+### Lead-approved gate 16: shareable summary and labels
+
+Required October 14: [shareable-summary acceptance](SHAREABLE-SUMMARY-6.0.md).
+Review selection, source immutability/freshness, separate draft, explicit
+privilege designation, edit-invalidates-review, managed denial and labelled
+copy/TXT/Print-PDF with no automatic transcript metadata. Include narrow/light/
+dark UI and browser-print leakage checks. Implementation is not legal clearance
+or privilege certification; five-browser live acceptance remains pending.
 
 The one-binary enterprise requirement also preserves Core independence from
 optional services and managed-denial precedence. Core currently has no required
@@ -76,7 +101,7 @@ license/SSO dependency; its absence is not a missing feature. Exercise outages
 only for optional integrations actually shipped. Stable capability IDs remain
 an explicit product contract requiring reconciliation, separate from paid tiers.
 
-## Eighteen live browser/provider cells
+## Fifteen live browser/provider cells
 
 Each cell must record exact tested package digest, browser version, OS, date,
 tester, synthetic meeting steps, expected/actual result and sanitized evidence.
@@ -89,7 +114,6 @@ tester, synthetic meeting steps, expected/actual result and sanitized evidence.
 | Brave | Not run | Not run | Not run | Installed Windows browser; QA + meeting host |
 | Mozilla Firefox | Not run | Not run | Not run | Installed Windows browser, but native sidebar/extension behavior needs asserted testing; QA/platform |
 | Opera | Not run | Not run | Not run | Browser absent on inspected host; install only with authority or use another tester; QA/platform |
-| Apple Safari/macOS | Not run | Not run | Not run | Available Mac + Safari conversion/build/install required; Mac tester/platform |
 
 Minimum protocol per cell: clean install; meeting start/default-on capture;
 speech and interim correction; pause/resume; captions hidden/remounted; leave,
@@ -154,6 +178,15 @@ CaptionKeep does not become a publisher-operated AI host. Core remains usable
 without the bridge; there is no automatic transcript release and no secrets in
 browser sync. The retained program below must be reconciled with that approved
 BYOMCP contract, rather than silently relabeled complete or removed.
+The lead subsequently refined this to operation-specific controlled write
+profiles: reviewed Cloudflare DNS changes with exact sealed approval and verified
+readback receipts, plus authorized Microsoft 365 person lookup/disambiguation.
+This is additional 6.0 design/build/test scope, not permission for this team to
+change DNS or query actual employee profiles. Historical read-only criteria
+remain visible below; their proposed successor ADR must explicitly distinguish
+reviewed read profiles from write profiles, actual tool/server contracts,
+before-state/concurrency limits, test-TXT/rollback and honest outcome-unknown.
+Neither captions, tool annotations nor returned text may authorize a mutation.
 
 Live read-only Azure work-item reads in this audit retain the committed program.
 #319, #321 and #322 were Closed in the tracker; #320 and #323–332 were Active.
@@ -208,11 +241,9 @@ lead; do not silently reduce them to prompt-copy functionality.
 
 ### Requires live users, customer environments, hardware or distribution
 
-- Eighteen authenticated live meeting cells, including Teams PWA/minimized UAT.
+- Fifteen authenticated live meeting cells, including Teams PWA/minimized UAT.
   Windows Chrome/Edge/Brave and Firefox do not require a Mac but need real provider
   sessions. Opera needs an available installed browser/tester.
-- Safari needs an available Mac and actual compatible conversion/install/native
-  runtime; Windows packaging or a ZIP sent to a relative is only preparation.
 - Customer-owned Microsoft identity/import, Intune language/policy pilot, and
   local/remote assistant enrollment require their actual authorized environments.
 - Qualified language and adopter privacy/legal review cannot be replaced by an

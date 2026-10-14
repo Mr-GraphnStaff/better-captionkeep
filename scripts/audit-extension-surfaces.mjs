@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(projectRoot, 'teams-captions-saver');
-const pageNames = ['popup.html', 'sidepanel.html', 'viewer.html', 'export.html', 'extras.html', 'handoff.html', 'platform-coming-soon.html'];
+const pageNames = ['popup.html', 'sidepanel.html', 'viewer.html', 'export.html', 'extras.html', 'handoff.html', 'platform-coming-soon.html', 'shareable.html'];
 const errors = [];
 
 function fail(page, message) {
@@ -17,6 +17,15 @@ function attribute(tag, name) {
     return tag.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, 'i'))?.[1] ?? null;
 }
 
+// Inspect text tokens only; this is not an HTML sanitizer and its result is
+// never rendered. Avoid reconstructing partially stripped markup as text.
+export function hasVisibleButtonText(content) {
+    return content.split(/<svg\b[\s\S]*?<\/svg>/gi)
+        .some(fragment => fragment.split(/<[^>]*>/g).some(text => text.trim().length > 0));
+}
+
+// Keep the CLI audit separate from imports of the pure accessible-name helper.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 for (const pageName of pageNames) {
     const html = await readFile(path.join(sourceDir, pageName), 'utf8');
     if (!/<html\b[^>]*\blang=["'][^"']+["']/i.test(html)) fail(pageName, 'document language is missing');
@@ -40,8 +49,7 @@ for (const pageName of pageNames) {
     }
     for (const match of html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)) {
         const tag = match[0];
-        const visibleText = match[2].replace(/<svg[\s\S]*?<\/svg>/gi, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-        if (!visibleText && !attribute(tag, 'aria-label') && !attribute(tag, 'title')) fail(pageName, 'button has no accessible name');
+        if (!hasVisibleButtonText(match[2]) && !attribute(tag, 'aria-label') && !attribute(tag, 'title')) fail(pageName, 'button has no accessible name');
     }
     for (const match of html.matchAll(/<(?:input|select|textarea)\b[^>]*>/gi)) {
         const tag = match[0];
@@ -80,4 +88,5 @@ if (errors.length) {
     process.exitCode = 1;
 } else {
     console.log(`6.0 accessibility/security surface audit passed for ${pageNames.length} pages and ${scriptNames.length} scripts.`);
+}
 }

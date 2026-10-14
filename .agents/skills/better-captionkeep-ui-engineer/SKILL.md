@@ -23,7 +23,7 @@ Turn approved UX findings into robust 6.0 implementation. Work in the requested 
 - Avoid browser-specific CSS or APIs without feature detection and a usable fallback.
 - Maintain semantic headings, labels, focus visibility, keyboard order, live-region behavior, and adequate contrast.
 - Verify responsive behavior at popup constraints, normal desktop widths, and 200% zoom.
-- Treat Chrome, Edge, Brave, Firefox, Opera, and Safari/macOS claims as separate test evidence; shared-engine inference is not certification.
+- Treat Chrome, Edge, Brave, Firefox and Opera claims as separate test evidence; shared-engine inference is not certification. Safari is archived for a later major version, outside 6.0 scope.
 
 ## Verification
 

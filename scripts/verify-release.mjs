@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readEnglishMessages, resolveManifestMessage } from './manifest-localization.mjs';
 import {verifyPackageSource} from './verify-package-source.mjs';
+import {verifyByomcpHelper} from './package-byomcp-helper.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = path.join(projectRoot, 'dist');
@@ -100,7 +101,9 @@ if (new Set(lifecycleKeys).size !== lifecycleKeys.length) {
 
 const storeZipName = `better_captionkeep-${sourceManifest.version}.zip`;
 const storeZipPath = path.join(prodDir, storeZipName);
-await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPath:storeZipPath});
+await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {
+  zipPath:storeZipPath,browserTarget:'edge',expectedManifest:path.join(projectRoot,'teams-captions-saver','manifest.json')
+});
 artifacts.push({ target: 'edge-store', path: storeZipName, bytes: (await stat(storeZipPath)).size, sha256: await sha256(storeZipPath) });
 
 const chromeStoreZipName = `better_captionkeep-chrome-${sourceManifest.version}.zip`;
@@ -109,10 +112,10 @@ await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPa
 artifacts.push({ target: 'chrome-store', path: chromeStoreZipName, bytes: (await stat(chromeStoreZipPath)).size, sha256: await sha256(chromeStoreZipPath) });
 
 const browserPackageDir = path.join(prodDir, 'browser-packages');
-for (const browser of ['chrome', 'edge', 'brave', 'opera', 'firefox', 'safari']) {
+for (const browser of ['chrome', 'edge', 'brave', 'opera', 'firefox']) {
   const name = `better-captionkeep-${browser}-${sourceManifest.version}.zip`;
   const filePath = path.join(browserPackageDir, name);
-  await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPath:filePath});
+  await verifyPackageSource(path.join(projectRoot, 'teams-captions-saver'), {zipPath:filePath,browserTarget:browser});
   artifacts.push({
     target: `${browser}-browser-package`,
     path: `browser-packages/${name}`,
@@ -133,6 +136,7 @@ for (const name of ['edge-extension-settings.json', 'edge-extension-force-instal
 }
 
 const safeProjectRoot = projectRoot.replaceAll('\\', '/');
+artifacts.push(...await verifyByomcpHelper(projectRoot));
 const commit = execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
 const sourceDigest = createHash('sha256');
 for (const file of [...sourceFiles].sort()) {

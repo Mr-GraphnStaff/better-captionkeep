@@ -865,6 +865,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)});
             } catch (error) { showNotification(error.message, 'error'); }
         });
+        document.getElementById('shareable-summary-btn').addEventListener('click', async () => {
+            try {
+                await refreshViewerPolicy();
+                if (enterprisePolicy.disableEvidenceEmail) throw new Error('Shareable summaries are disabled by your organization.');
+                const query = new URLSearchParams();
+                if (historical) {
+                    const archiveId = new URL(location.href).searchParams.get('session');
+                    if (!archiveId) throw new Error('Open the saved transcript again to prepare a summary.');
+                    query.set('session', archiveId);
+                } else {
+                    if (!sourceSessionId || !Number.isInteger(sourceTabId)) throw new Error('Meeting identity is unavailable.');
+                    query.set('liveTab', String(sourceTabId)); query.set('liveSession', sourceSessionId);
+                }
+                await chrome.tabs.create({url:chrome.runtime.getURL(`shareable.html?${query}`)});
+            } catch (error) { showNotification(error.message, 'error'); }
+        });
         
         // Session history handlers
         historyBtn.addEventListener('click', showSessionHistory);
