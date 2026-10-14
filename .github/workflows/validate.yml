@@ -50,3 +50,18 @@ jobs:
 
       - name: Run the complete release-candidate gate
         run: npm run release:candidate
+
+      - name: Preserve package and browser-check evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: development-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            dist/prod/browser-certification.json
+            dist/prod/certification-evidence/
+            dist/prod/browser-package-hashes.json
+            dist/prod/release-provenance.json
+            dist/prod/*.cdx.json
+            dist/prod/browser-packages/

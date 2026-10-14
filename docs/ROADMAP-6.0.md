@@ -87,6 +87,25 @@ templates, and every advanced control.
 - Do not include images, attendee reports, other meetings, or earlier questions
   unless the user explicitly selects them in a later reviewed design.
 
+### 5a. Bring Your Own MCP (BYOMCP)
+
+The lead explicitly included an opt-in BYOMCP bridge in 6.0 on October 14, 2026.
+This connects to a user's own MCP setup, not a publisher-operated assistant.
+It is required release scope, not an implemented or certified feature yet.
+
+- Keep connection setup and advanced controls in Settings; disabled by default.
+- Preserve local Core capture without an MCP connection or identity dependency.
+- Review the destination, available tools and selected evidence before an
+  explicit submission. Never automatically send the entire transcript.
+- Preserve select/preview/submit/monitor/cancel/receive/verify/pin, with
+  source-bound returned artifacts and human review before promotion.
+- Define local stdio and remote MCP transport/enrollment contracts before
+  implementation, with least-privilege permissions and managed denial.
+- Connection secrets do not enter sync storage, logs, exports, fixtures or
+  source control. No DAF-TECH-hosted endpoint or service is implied.
+- Complete the new trust-boundary design, negative tests and native/browser
+  integration acceptance before claiming this requirement complete.
+
 ### 6. One binary and enterprise readiness
 
 - Keep one package per browser—not separate Core, Pro, or Enterprise forks.
@@ -129,6 +148,7 @@ provider smoke matrix, version/OS record, and evidence.
 | 12 | Separate six-browser/provider certification | Packages built for all six; asserted Windows renderer checks passed in Chrome, Edge and Brave; Firefox screenshot captured only; all live provider certification, Opera, and Safari/macOS remain open |
 | 13 | Frozen storefront bundle and release candidate | Reproducible screenshots, promotional art, six browser packages, hashes, SBOM, and provenance automation implemented; owner approval and candidate freeze open |
 | 14 | Controlled promotion, public parity, and upgrade smoke | Open |
+| 15 | Opt-in BYOMCP bridge and reviewed Evidence Actions | Required by lead; architecture/UX/security contracts in progress; implementation and acceptance open |
 
 ## Non-negotiable source model
 

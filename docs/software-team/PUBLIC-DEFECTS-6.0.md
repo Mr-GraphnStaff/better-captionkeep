@@ -5,7 +5,7 @@ Confirmed defects and explicit scope gaps are public; two feature requests are
 labeled as scope gaps rather than fabricated runtime bugs. Source paths and
 reproductions are synthetic and do not expose meeting content or credentials.
 
-All 43 records remain open. Local fixes and tests are not deployment,
+All 44 records remain open. Local fixes and tests are not deployment,
 provider certification, Store approval, or installation-upgrade evidence.
 The earlier October 13 findings are documented retrospectively as well as the
 new independent October 14 findings. Issue comments record follow-up variants
@@ -56,6 +56,7 @@ without duplicating the same underlying defect.
 | [#133](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/133) | Missing transcript leaves stale selected-caption actions active | Local repair independently verified; live acceptance open |
 | [#134](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/134) | Selection changes during policy refresh silently change the action's evidence | Local repair independently verified; live acceptance open |
 | [#135](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/135) | UX enhancement: reading-first workspace with progressive caption actions | Implemented and independently rendered-tested; user/live acceptance open |
+| [#136](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/136) | Managed locale precedence incorrectly forces English or permits a user override | Local repair; ten locale tests independently passed; live Intune acceptance open |
 
 Existing open requests also advanced:
 
@@ -67,6 +68,6 @@ Azure Boards Epic #335 and Features #336-342 preserve the full scope. Public iss
 hyperlinks are attached to corresponding work items. Tasks #343-346 track this
 implementation batch; final feature and release gates remain separate.
 
-The draft PR will contain local fixes and this evidence register. Do not close
-issues automatically from commit wording or claim the draft is a public release.
-
+Draft PR [#137](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/137)
+contains local fixes and this evidence register. Do not close issues automatically
+from commit wording or claim the draft is a public release.

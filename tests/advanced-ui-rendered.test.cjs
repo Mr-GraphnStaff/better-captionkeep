@@ -1,10 +1,8 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {existsSync} = require('node:fs');
 const {mkdtemp, rm, mkdir, writeFile} = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
-const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 async function evaluate(cdp, expression) {
     const result = await cdp.send('Runtime.evaluate', {expression, awaitPromise:true, returnByValue:true});
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
@@ -124,7 +122,10 @@ const readingChecks = `(async () => {
     return {checks};
 })()`;
 
-test('real Chrome checks constrained workspace keyboard, source-bound reviewed actions, and native archive focus', {skip:!existsSync(chrome)}, async () => {
+test('real Chrome checks constrained workspace keyboard, source-bound reviewed actions, and native archive focus', async t => {
+    const {installedBrowsers} = await import('../scripts/browser-platform.mjs');
+    const chrome = (await installedBrowsers()).find(browser => browser.browser === 'chrome')?.binary;
+    if (!chrome) {t.skip('Google Chrome is not installed on this host.'); return;}
     const {runChromiumSurface} = await import('../scripts/rendered-surface-checks.mjs');
     const temporary = await mkdtemp(path.join(os.tmpdir(), 'captionkeep-advanced-render-'));
     try {

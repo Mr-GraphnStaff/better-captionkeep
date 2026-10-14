@@ -31,6 +31,10 @@ await mkdir(evidenceDir, {recursive: true});
 const record = JSON.parse(await readFile(recordPath, 'utf8'));
 let failed = false;
 let renderedBrowsers = 0;
+function diagnostic(error) {
+  return String(error.message || error).replaceAll(projectRoot,'[project]').replaceAll(os.homedir(),'[home]')
+    .replace(/[\u0000-\u001f\u007f]/g,' ').replace(/https?:\/\/[^\s]+/g,'[url]').slice(0,500);
+}
 
 for (const definition of definitions) {
   const entry = record.browsers.find(item => item.browser === definition.browser);
@@ -44,11 +48,13 @@ for (const definition of definitions) {
   const args = definition.chromium
     ? ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--window-size=1280,900', `--screenshot=${screenshot}`, url]
     : ['--headless', '--window-size', '1280,900', '--screenshot', screenshot, url];
+  let stage = 'rendered-surface';
   try {
     await rm(screenshot,{force:true});
     const rendered = definition.chromium
       ? await runChromiumSurface(definition.binary,path.join(prodDir, `${definition.browser}-unpacked`),screenshot)
       : (execFileSync(definition.binary, args, {stdio: 'pipe', windowsHide: true, timeout: 60000}), null);
+    stage = 'browser-version';
     entry.browserVersion = version(definition.binary);
     entry.operatingSystem = `${os.type()} ${os.release()}`;
     entry.surfaceSmoke = {
@@ -62,6 +68,7 @@ for (const definition of definitions) {
     if (entry.surfaceSmoke.status === 'failed') failed = true;
     if (entry.surfaceSmoke.status === 'passed') renderedBrowsers += 1;
     if (definition.chromium && rendered) {
+      stage = 'loaded-extension';
       const nativeResult = await runLoadedExtension(definition.binary, path.join(prodDir, `${definition.browser}-unpacked`), {
         browserName:definition.browser, screenshot:path.join(evidenceDir, `${definition.browser}-loaded-extension.png`)
       });
@@ -69,10 +76,14 @@ for (const definition of definitions) {
       await writeFile(path.join(evidenceDir,evidence),JSON.stringify(nativeResult,null,2)+'\n');
       entry.loadedExtensionSmoke = {status:'passed',...nativeResult,evidence:`certification-evidence/${evidence}`};
     } else entry.loadedExtensionSmoke = {status:'not-run',reason:'Native-extension runtime checks are available only for Chromium targets in this tool.'};
+    console.log(`[browser-smoke] ${definition.browser}: surface=${entry.surfaceSmoke.status}; native=${entry.loadedExtensionSmoke.status}; live providers remain pending.`);
   } catch (error) {
     failed = true;
-    entry.surfaceSmoke = {status: 'failed', reason: String(error.message || error).slice(0, 500)};
-    entry.loadedExtensionSmoke = {status:'failed',reason:String(error.message || error).slice(0,500)};
+    const reason = diagnostic(error);
+    if (stage !== 'loaded-extension') entry.surfaceSmoke = {status:'failed',stage,reason};
+    entry.loadedExtensionSmoke = stage === 'loaded-extension'
+      ? {status:'failed',stage,reason} : {status:'not-run',reason:'Surface setup failed before native-extension verification.'};
+    console.error(`[browser-smoke] ${definition.browser} ${stage} failed: ${reason}`);
   }
 }
 

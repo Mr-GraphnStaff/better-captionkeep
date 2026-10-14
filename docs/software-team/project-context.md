@@ -17,6 +17,13 @@ words. Raw captions remain authoritative; reviewed derivatives keep source
 identity and cannot rewrite them. Privacy/managed policy wins over optional
 features. Six browsers remain separately required, not inferred from Chromium.
 
+On October 14 the lead explicitly required the opt-in bridge before 6.0 release
+and clarified it is BYOMCP (Bring Your Own MCP), connecting to user-owned MCP
+setups rather than publisher-hosted AI. Roadmap gate 15 records this scope.
+Architecture, UX and security contracts precede runtime implementation; connection
+secrets remain outside sync/log/export, submissions are explicit and selected,
+and local Core remains independent. Required does not mean implemented/accepted.
+
 ## Team and ownership
 
 Four actual agents perform grouped discipline passes, not fictitious employees:
