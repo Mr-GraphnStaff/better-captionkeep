@@ -15,10 +15,45 @@ const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const HOST='com.daftech.captionkeep.byomcp';
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+export function classifyNativeError(message) {
+    const text=typeof message==='string'?message.slice(0,1000):'';
+    if(/specified native messaging host not found/i.test(text))return 'host-not-found';
+    if(/failed to start native messaging host/i.test(text))return 'host-start-failed';
+    if(/access to the specified native messaging host is forbidden/i.test(text))return 'host-forbidden';
+    if(/invalid native messaging host name/i.test(text))return 'invalid-host-name';
+    if(/native host has exited/i.test(text))return 'host-exited';
+    if(/error when communicating with the native messaging host/i.test(text))return 'communication-failed';
+    if(/nativeMessaging|permission/i.test(text))return 'permission-or-api-denied';
+    return 'native-error-other';
+}
 function privateBase(baseDirectory) {
     const candidate=baseDirectory || (process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA,'DAF-TECH/CaptionKeep/BYOMCP-Probe'));
     if(!candidate || !path.isAbsolute(candidate) || path.basename(path.resolve(candidate))!=='BYOMCP-Probe') throw Error('An explicit scoped BYOMCP-Probe private directory is required.');
     return path.resolve(candidate);
+}
+function challengeExpression() {
+    return `(async()=>{
+        const classify=${classifyNativeError.toString()};
+        if(!await chrome.permissions.contains({permissions:['nativeMessaging']}))return {outcome:'permission-not-present'};
+        return new Promise(resolve=>{
+            let port,done=false;const requestId=crypto.randomUUID();
+            const finish=outcome=>{if(done)return;done=true;clearTimeout(timer);try{port?.disconnect();}catch{}resolve({outcome});};
+            const timer=setTimeout(()=>finish('challenge-timeout'),10000);
+            try{
+                port=chrome.runtime.connectNative(${JSON.stringify(HOST)});
+                port.onDisconnect.addListener(()=>{const message=chrome.runtime.lastError?.message;finish(message?classify(message):'host-disconnected');});
+                port.onMessage.addListener(reply=>{
+                    try{
+                        if(JSON.stringify(reply).length>65536 || reply?.version!==1 || reply?.requestId!==requestId || reply?.ok!==true
+                            || reply?.result?.hostName!==${JSON.stringify(HOST)} || !/^[a-f0-9]{64}$/.test(reply?.result?.nonce || '')
+                            || !Array.isArray(reply?.result?.profileIds) || reply.result.profileIds.length>20)finish('invalid-challenge-reply');
+                        else finish('challenge-ok');
+                    }catch{finish('invalid-challenge-reply');}
+                });
+                port.postMessage({version:1,requestId,operation:'enrollment-challenge'});
+            }catch(error){finish(classify(error?.message));}
+        });
+    })()`;
 }
 export async function prepareByomcpNativeProbe({root=project,baseDirectory,cloudflareInventory=false}={}) {
     if(process.platform!=='win32')throw Error('This bounded native probe prepares only the approved Windows Brave profile.');
@@ -117,26 +152,35 @@ function pipe(child) {
         pending.set(id,{resolve,reject,timer});child.stdio[3].write(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})})+'\0');
     });}};
 }
-export async function runByomcpNativeProbe({root=project,baseDirectory,interactive=false,manualConnect=false}={}) {
+export async function runByomcpNativeProbe({root=project,baseDirectory,interactive=false,manualConnect=false,nativeDiagnostic=false,reuseExisting=false,challengeOnly=false}={}) {
     if(manualConnect&&!interactive)throw Error('Manual Connect requires an explicitly visible interactive probe.');
+    if(challengeOnly&&!reuseExisting)throw Error('Challenge-only diagnosis requires explicit reuse-existing mode; no reload or grant request is allowed.');
     root=path.resolve(root);const base=privateBase(baseDirectory),record=JSON.parse(await readFile(path.join(base,'setup/probe.json'),'utf8'));
     if(record.extension!==path.join(base,'extension') || record.profileDirectory!==path.join(base,'profile'))throw Error('Probe paths differ from approved isolated directories.');
     if(!/^[a-p]{32}$/.test(record.extensionId || '') || !/^[a-zA-Z0-9._-]{1,100}$/.test(record.profileId || '')
         || record.browserConfigurationPath!==path.join(base,'setup/browser-configuration.json'))throw Error('Probe caller/configuration identity is invalid.');
     if(record.workerSha256!==sha(await readFile(path.join(record.extension,'service_worker.js'))))throw Error('Prepared worker bytes changed; prepare and review registration again.');
+    if(reuseExisting){
+        const manifest=JSON.parse(await readFile(path.join(record.extension,'manifest.json'),'utf8'));
+        const keyedId=sha(Buffer.from(manifest.key || '','base64')).slice(0,32).replace(/[0-9a-f]/g,digit=>String.fromCharCode(97+parseInt(digit,16)));
+        const preferences=JSON.parse(await readFile(path.join(record.profileDirectory,'Default/Secure Preferences'),'utf8'));
+        const entry=preferences.extensions?.settings?.[record.extensionId];
+        if(keyedId!==record.extensionId || !entry || path.resolve(entry.path || '')!==record.extension || entry.disable_reasons?.length)throw Error('The exact prepared extension is not persistently installed and enabled; reuse will not reinstall it.');
+    }
     const browser=(await installedBrowsers()).find(item=>item.browser==='brave'&&item.binary);
     if(!browser)throw Error('Installed Brave is unavailable.');
     const child=spawn(browser.binary,[...(interactive?[]:['--headless=new']),'--no-first-run','--no-default-browser-check','--disable-background-networking',
         '--enable-unsafe-extension-debugging','--remote-debugging-pipe',`--user-data-dir=${record.profileDirectory}`,'about:blank'],
         {windowsHide:!interactive,stdio:['ignore','ignore','pipe','pipe','pipe']});
     const connection=pipe(child);let stderr='',ready=false;child.stderr.on('data',value=>{stderr=(stderr+value.toString()).slice(-4096);});
-    const evidence={testedAt:new Date().toISOString(),scope:record.scope,extensionId:record.extensionId,workerSha256:record.workerSha256,
-        registrationPerformedByProbe:false,interactive:interactive===true,manualConnect:manualConnect===true,checks:[],permissionMethod:manualConnect
+    const evidence={testedAt:new Date().toISOString(),scope:challengeOnly?'Local native-host challenge only if an existing optional grant is usable. No authentication, tools/list, tools/call, DNS or directory requests.':record.scope,extensionId:record.extensionId,workerSha256:record.workerSha256,
+        registrationPerformedByProbe:false,interactive:interactive===true,manualConnect:manualConnect===true,reuseExisting:reuseExisting===true,challengeOnly:challengeOnly===true,checks:[],permissionMethod:challengeOnly
+            ?'Read existing optional grant only. No reload, Connect click, permission request, configure, inventory or authentication.' : manualConnect
             ?'Visible Settings awaits the person’s Connect click and real optional permission grant. No programmatic Connect click.'
             :'Production Settings DOM Connect click under CDP userGesture; browser grant is real, not mocked or set through CDP.'};
     try {
         const version=await connection.send('Browser.getVersion');ready=true;evidence.engineVersion=version.product;
-        const loaded=await connection.send('Extensions.loadUnpacked',{path:record.extension});
+        const loaded=reuseExisting?{id:record.extensionId}:await connection.send('Extensions.loadUnpacked',{path:record.extension});
         if(loaded.id!==record.extensionId)throw Error('Loaded extension identity differs from registered allowlist.');
         const target=await connection.send('Target.createTarget',{url:`chrome-extension://${loaded.id}/popup.html?view=settings`});
         const {sessionId}=await connection.send('Target.attachToTarget',{targetId:target.targetId,flatten:true});
@@ -148,6 +192,23 @@ export async function runByomcpNativeProbe({root=project,baseDirectory,interacti
         for(let index=0;index<100;index++){
             if(await evaluate("document.readyState==='complete'&&!!document.getElementById('byomcp-connect')"))break;
             await delay(50);
+        }
+        const actualIdentity=await evaluate(`(async()=>{
+            if(globalThis.chrome?.runtime?.id!==${JSON.stringify(record.extensionId)} || location.origin!==${JSON.stringify(`chrome-extension://${record.extensionId}`)})return false;
+            const bytes=await (await fetch(chrome.runtime.getURL('service_worker.js'))).arrayBuffer();
+            const digest=await crypto.subtle.digest('SHA-256',bytes);
+            return [...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('')===${JSON.stringify(record.workerSha256)};
+        })()`);
+        evidence.extensionLoadedWithoutReload=reuseExisting?actualIdentity===true:null;
+        if(actualIdentity!==true)throw Error(reuseExisting?'Persisted extension is not active without reload; existing grant/native challenge is unavailable. No reload or new permission request was attempted.':'Loaded DOM extension identity or worker source bytes differ from the prepared probe.');
+        if(challengeOnly){
+            evidence.permissionGrantedBefore=await evaluate("chrome.permissions.contains({permissions:['nativeMessaging']})");
+            evidence.nativeChallengeDiagnostic=await evaluate(challengeExpression());
+            evidence.available=evidence.permissionGrantedBefore===true;
+            evidence.checks.push({name:'Existing optional native grant is present without reload or permission request',passed:evidence.permissionGrantedBefore===true});
+            evidence.checks.push({name:'Fixed registered host returns a bounded challenge only',passed:evidence.nativeChallengeDiagnostic.outcome==='challenge-ok'});
+            evidence.passed=evidence.checks.every(check=>check.passed===true);
+            return evidence;
         }
         const configurationText=await readFile(record.browserConfigurationPath,'utf8');
         if(Buffer.byteLength(configurationText)>131072)throw Error('Probe configuration exceeds the approved body bound.');
@@ -189,6 +250,18 @@ export async function runByomcpNativeProbe({root=project,baseDirectory,interacti
         evidence.connectClick=await evaluate("globalThis.__probeConnectClick || null");
         if(manualConnect)evidence.checks.push({name:'Manual mode observed a trusted browser Connect click',passed:evidence.connectClick?.isTrusted===true});
         evidence.denialControlRun=!permission;
+        if(status?.status?.enrollmentVerified!==true && evidence.permissionGrantedAfter===true && evidence.settingsBusy!=='true'){
+            evidence.workerConnectDiagnostic=await evaluate(`(async()=>{
+                const result=await chrome.runtime.sendMessage({message:'byomcp_settings',operation:'connect'});
+                const allowed=new Set(['operation-not-verified','helper-unavailable','policy-denied','sender-denied']);
+                return {outcome:result?.ok===true?'worker-connect-ok':'worker-connect-denied',
+                    enrollmentVerified:result?.status?.enrollmentVerified===true,
+                    code:allowed.has(result?.error)?result.error:result?.ok===true?'ok':'unclassified'};
+            })()`);
+            if(nativeDiagnostic && evidence.workerConnectDiagnostic.enrollmentVerified!==true){
+                evidence.nativeChallengeDiagnostic=await evaluate(challengeExpression());
+            }
+        }
         evidence.passed=evidence.checks.every(check=>check.passed===true);
         return evidence;
     } catch(error) {
@@ -196,7 +269,7 @@ export async function runByomcpNativeProbe({root=project,baseDirectory,interacti
         if(!ready)evidence.startupStderr=stderr.replace(/[\u0000-\u001f]/g,' ').slice(-1000);
         return evidence;
     } finally {
-        await writeFile(path.join(base,'native-probe-result.json'),JSON.stringify(evidence,null,2)+'\n');
+        await writeFile(path.join(base,challengeOnly?'native-challenge-result.json':'native-probe-result.json'),JSON.stringify(evidence,null,2)+'\n');
         if(child.exitCode===null){if(ready){try{await connection.send('Browser.close');}catch{}}
             if(child.exitCode===null){const exited=new Promise(resolve=>child.once('exit',resolve));child.kill();await Promise.race([exited,delay(3000)]);}}
         // Retain isolated evidence/config/profile for inspection. The owner that
@@ -207,6 +280,6 @@ export async function runByomcpNativeProbe({root=project,baseDirectory,interacti
 if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){
     const mode=process.argv[2];if(!['prepare','run'].includes(mode))throw Error('Choose prepare or run; neither performs registration.');
     const result=mode==='prepare'?await prepareByomcpNativeProbe({cloudflareInventory:process.argv.includes('--cloudflare-inventory')})
-        :await runByomcpNativeProbe({interactive:process.argv.includes('--interactive'),manualConnect:process.argv.includes('--manual-connect')});
+        :await runByomcpNativeProbe({interactive:process.argv.includes('--interactive'),manualConnect:process.argv.includes('--manual-connect'),nativeDiagnostic:process.argv.includes('--native-diagnostic'),reuseExisting:process.argv.includes('--reuse-existing'),challengeOnly:process.argv.includes('--challenge-only')});
     console.log(JSON.stringify(result,null,2));if(mode==='run'&&!result.passed)process.exitCode=1;
 }

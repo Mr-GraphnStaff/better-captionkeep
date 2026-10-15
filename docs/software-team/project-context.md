@@ -105,11 +105,16 @@ the explicitly approved read-only session preset and refresh-token discard.
 Two initial live consent attempts failed before persistence; the corrected retry
 succeeded with authenticated metadata inventory only (#162, still open). Four
 tool schemas returned; no tool invocation or enabled action. The temporary local
-credential is for this bounded test only. The separately registered isolated
-Brave helper still needs a real optional-permission grant and native enrollment.
+credential was for this bounded test only. Temporary access was subsequently
+revoked (HTTP 200, then authenticated metadata
+HTTP 401); the encrypted file remains because deletion was blocked. The
+separately registered isolated Brave helper observed a real permission grant,
+but native enrollment still failed; browser/provider acceptance remains open.
 No IDE credentials were reused; no DNS changes or directory lookups are authorized
 by this connection test. Revision `9307752` passed GitHub validation, CodeQL and
-Azure Lifecycle 751, but subsequent local authentication work needs its own CI.
+Azure Lifecycle 751. The later `12806ec` passed Azure 752 and CodeQL but failed
+GitHub validation at Linux Edge startup. The latest recovery/tooling changes
+need their own remote run and do not inherit either earlier revision's results.
 
 - Tests execute production functions and deliberate failure cases; real Chromium
   rendering and loaded-extension checks use isolated profiles with synthetic data.

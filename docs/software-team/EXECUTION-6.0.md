@@ -257,3 +257,43 @@ captured a screenshot only and Opera was unavailable. Those smoke results do
 not certify live meeting providers or actual Store-installed upgrades. The
 generated provenance reflects development work, not a frozen release candidate.
 
+## October 14 evening: connection recovery and cleanup
+
+The first real manual Brave attempt observed a trusted Connect click and actual
+optional nativeMessaging permission, but enrollment did not complete. Direct
+helper-process framing/challenge passed; that does not prove browser-native
+launch. A subsequent browser reload had no optional grant, so that attempt
+cannot diagnose the host. No grant, manifest permission, or browser preference
+was fabricated to obtain a passing result.
+
+Temporary Cloudflare access was revoked at the issuer's discovered revocation
+endpoint: HTTP 200, followed by HTTP 401 for an authenticated metadata-only
+request using the same token. No refresh token was retained. The file-safety
+guard denied deleting the encrypted file, which remains on disk; verified
+revocation is not represented as verified file deletion. No new sign-in is
+needed to establish that this temporary authorization is no longer usable.
+
+Public defect #163, linked to Azure Task #348, records the unbounded permission
+wait that left Settings disabled. The local correction adds bounded permission,
+policy and helper waits, actionable live status, restored controls and late-grant/
+stale-response guards; the original synchronous permission call and worker-side
+grant check are retained. Independent integration review and latest whole-suite
+results are recorded with the subsequent commit, not inferred from an older run.
+
+On `12806ec`, Azure Lifecycle 752 and CodeQL passed, but both GitHub validations
+failed at Linux Edge browser startup, not a product test assertion. The exact
+startup cause remains unconfirmed. The tooling correction preserves bounded,
+redacted diagnostic prefix/tail and captures browser identity before launch;
+background-network isolation now matches the existing native harness. Sandbox,
+startup deadline and required assertions remain unchanged. Windows Edge's 67
+rendered checks passed; a fresh Linux CI run is still required.
+
+Recovery integration: **530/530 extension tests, zero failures/skips**, lint and
+the eight-page/54-script surface audit passed. Independent recovery review ran
+18 focused checks, including actual Chrome DOM events with a controlled permission
+fixture, plus a separate timeout/late-grant/fresh-policy-denial probe with zero
+helper sends. This is not a real Brave permission or native-host acceptance test.
+Helper tests remain **47/47**, zero skips/failures; the latest full packaging gate
+is rerunning against these final sources. Native bootstrap remains open rather
+than bypassing optional permission to manufacture success.
+

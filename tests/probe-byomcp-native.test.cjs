@@ -80,3 +80,11 @@ test('manual connection mode cannot run invisibly',async()=>{
     const api=await import('../scripts/probe-byomcp-native.mjs');
     await assert.rejects(api.runByomcpNativeProbe({manualConnect:true,interactive:false}),/visible interactive/);
 });
+test('native error diagnostics emit only bounded enums, never upstream text',async()=>{
+    const {classifyNativeError}=await import('../scripts/probe-byomcp-native.mjs');
+    for(const [input,expected] of [
+        ['Specified native messaging host not found.','host-not-found'],['Failed to start native messaging host.','host-start-failed'],
+        ['Native host has exited.','host-exited'],['Error when communicating with the native messaging host.','communication-failed'],
+        ['Access to the specified native messaging host is forbidden.','host-forbidden'],
+        ['SYNTHETIC_PRIVATE_TOKEN_AND_RAW_HELPER_OUTPUT','native-error-other']])assert.equal(classifyNativeError(input),expected);
+});

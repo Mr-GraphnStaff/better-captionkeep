@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import {runChromiumSurface} from './rendered-surface-checks.mjs';
-import {installedBrowsers} from './browser-platform.mjs';
+import {installedBrowsers,browserFailureDiagnostic} from './browser-platform.mjs';
 import {runLoadedExtension} from './loaded-extension-checks.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -32,8 +32,7 @@ const record = JSON.parse(await readFile(recordPath, 'utf8'));
 let failed = false;
 let renderedBrowsers = 0;
 function diagnostic(error) {
-  return String(error.message || error).replaceAll(projectRoot,'[project]').replaceAll(os.homedir(),'[home]')
-    .replace(/[\u0000-\u001f\u007f]/g,' ').replace(/https?:\/\/[^\s]+/g,'[url]').slice(0,500);
+  return browserFailureDiagnostic(error,{projectRoot,homeDirectory:os.homedir()});
 }
 
 for (const definition of definitions) {
@@ -50,13 +49,16 @@ for (const definition of definitions) {
     : ['--headless', '--window-size', '1280,900', '--screenshot', screenshot, url];
   let stage = 'rendered-surface';
   try {
+    // Capture identity even if this particular browser never becomes ready.
+    // Availability/version is diagnostic metadata, not a passed browser check.
+    stage = 'browser-version';
+    entry.browserVersion = version(definition.binary);
+    entry.operatingSystem = `${os.type()} ${os.release()}`;
+    stage = 'rendered-surface';
     await rm(screenshot,{force:true});
     const rendered = definition.chromium
       ? await runChromiumSurface(definition.binary,path.join(prodDir, `${definition.browser}-unpacked`),screenshot)
       : (execFileSync(definition.binary, args, {stdio: 'pipe', windowsHide: true, timeout: 60000}), null);
-    stage = 'browser-version';
-    entry.browserVersion = version(definition.binary);
-    entry.operatingSystem = `${os.type()} ${os.release()}`;
     entry.surfaceSmoke = {
       status: !await exists(screenshot) ? 'failed' : rendered ? 'passed' : 'captured',
       scope: rendered ? 'Packaged Settings navigation, popup reachability, system/native theming, viewer tools, and handoff empty-state assertions with fixture extension APIs; live provider behavior was not exercised.'

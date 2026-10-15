@@ -185,6 +185,13 @@ async function themeChecks(cdp, surface) {
   return checks;
 }
 
+export function chromiumSurfaceArguments(profile) {
+  // Match the native-extension harness's fresh-profile isolation. Background
+  // networking is unrelated to these loopback-only surface assertions.
+  return ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',
+    '--disable-background-networking','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'];
+}
+
 export async function runChromiumSurface(binary, directory, screenshot, options = {}) {
   if (typeof WebSocket !== 'function') throw new Error('Rendered checks require Node.js with built-in WebSocket support.');
   const profile = await mkdtemp(path.join(os.tmpdir(), 'captionkeep-surface-'));
@@ -205,8 +212,7 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
   });
   await new Promise((resolve,reject) => { server.once('error',reject); server.listen(0,'127.0.0.1',resolve); });
   try {
-    child = spawn(binary, ['--headless=new','--disable-gpu','--no-first-run',
-      '--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],
+    child = spawn(binary, chromiumSurfaceArguments(profile),
       {windowsHide:true,stdio:['ignore','ignore','pipe']});
     child.stderr.on('data', bytes => {startupStderr = (startupStderr + bytes.toString('utf8')).slice(-8192);});
     let launchError;

@@ -188,3 +188,23 @@ returned four tool schemas, including `whoami`. No tool was invoked; actions
 remain empty. Installed extension enrollment is still separate acceptance;
 #162 stays open. These OAuth changes are local and unpushed, separate from the
 remote CI acceptance recorded for #105.
+
+Follow-up cleanup: the temporary access token was revoked (issuer HTTP 200),
+and the same authenticated metadata request then returned HTTP 401. No refresh
+token was retained. The encrypted file remains because file deletion was denied
+by the safety guard; no file-removal claim is made. A real trusted Brave click
+and browser permission were observed, but native enrollment did not complete.
+
+Settings recovery defect [#163](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/163),
+linked to Azure Task #348: an unresolved optional permission promise left the
+Settings section busy and all connection controls disabled indefinitely.
+`byomcpSettings.js` now bounds permission/policy/helper waits, restores controls,
+announces actionable recovery, and ignores late grants/stale replies. Browser
+permission is still requested synchronously in the original click and rechecked
+by the worker. Focused controller and actual rendered DOM recovery tests passed;
+real native enrollment remains separate open acceptance.
+
+On revision `12806ec`, #105 also tracks a later Linux Edge startup timeout in
+both GitHub validations; Azure 752 and CodeQL passed. A diagnostic/isolation
+correction is local, not a proven Linux fix. No assertion, sandbox or startup
+deadline is relaxed to hide the failure.

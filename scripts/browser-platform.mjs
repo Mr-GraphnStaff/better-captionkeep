@@ -1,5 +1,17 @@
 import {access} from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
+
+export function browserFailureDiagnostic(error,{projectRoot='',homeDirectory=os.homedir()}={}) {
+  let message=String(error?.message || error);
+  if(projectRoot)message=message.replaceAll(projectRoot,'[project]');
+  if(homeDirectory)message=message.replaceAll(homeDirectory,'[home]');
+  message=message.replace(/[\u0000-\u001f\u007f]/g,' ').replace(/https?:\/\/[^\s]+/g,'[url]');
+  // Startup errors already contain bounded, redacted stderr. Retain its tail:
+  // clipping at 500 characters discarded remaining hosted-Edge startup evidence.
+  const limit=3000,separator=' [truncated] ';
+  return message.length<=limit?message:message.slice(0,500)+separator+message.slice(-(limit-500-separator.length));
+}
 
 export function browserCandidates(platform = process.platform, environment = process.env) {
   if (platform === 'win32') return [

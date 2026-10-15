@@ -39,59 +39,91 @@
         if (!configuration || typeof configuration !== 'object' || Array.isArray(configuration)) throw new Error('Choose a valid non-secret JSON configuration.');
         return configuration;
     }
-    function createController({send, policy}) {
+    function failure(code) {const error = new Error(recoveryMessages[code] || code); error.code = code; return error;}
+    function deadline(promise, milliseconds, code) {
+        return new Promise((resolve,reject) => {
+            const timer = setTimeout(() => reject(failure(code)), milliseconds);
+            Promise.resolve(promise).then(value => {clearTimeout(timer);resolve(value);}, error => {clearTimeout(timer);reject(error);});
+        });
+    }
+    const recoveryMessages = Object.freeze({
+        'permission-timeout':'Browser permission timed out. Dismiss any open permission prompt, then choose Connect enrolled helper to try again. No new helper connection was requested.',
+        'permission-denied':'Browser permission was not granted. Choose Connect enrolled helper to try again; the helper remains disconnected.',
+        'policy-timeout':'Organization policy could not be checked in time. Local capture remains available; try Check installed helper again.',
+        'helper-timeout':'The helper did not respond in time. Check its installation, then try Check installed helper again. No completion is confirmed.'
+    });
+    function createController({send, policy, permissionTimeoutMs = 30000, operationTimeoutMs = 20000}) {
         let state = {verified:false, enabled:false, profiles:[], label:'Off by default. Check your installed helper when you choose to connect.'};
         let reviewed = null;
         let pending = false;
-        async function request(operation, fields = {}) {
+        let generation = 0;
+        const permissionWait = Math.max(1,Math.min(permissionTimeoutMs,60000));
+        const operationWait = Math.max(1,Math.min(operationTimeoutMs,60000));
+        const current = expected => {if (generation !== expected) throw failure('stale-operation');};
+        async function request(operation, fields = {}, expected = generation) {
             if (pending) throw new Error('A helper check is already in progress.');
             pending = true;
             try {
-                const managed = await policy();
+                const managed = await deadline(policy(),operationWait,'policy-timeout');
+                current(expected);
                 if (managed.disableByomcp === true || managed.disableAiHandoff === true) {
                     state = statusView({code:'policy-denied'}); reviewed = null;
                     throw new Error(state.label);
                 }
                 if (operation === 'allow-writes' && fields.enabled === true && managed.disableByomcpWrites === true) throw new Error('Your organization has disabled write actions.');
-                return await send({message:'byomcp_settings', operation, ...fields});
+                const response = await deadline(send({message:'byomcp_settings', operation, ...fields}),operationWait,'helper-timeout');
+                current(expected);
+                return response;
             } finally {pending = false;}
         }
         return {
             getState:() => ({...state, profiles:state.profiles.map(profile => ({...profile})), reviewed:reviewed ? {...reviewed, tools:reviewed.tools.map(tool => ({...tool}))} : null}),
             async check() {
+                const expected = ++generation;
                 reviewed = null;
-                try {state = statusView(await request('status')); return this.getState();}
-                catch (error) {state = statusView({code:state.label.includes('organization') ? 'policy-denied' : 'unsupported'}); throw error;}
+                try {state = statusView(await request('status',{},expected)); return this.getState();}
+                catch (error) {if (expected === generation) state = statusView({code:state.label.includes('organization') ? 'policy-denied' : 'unsupported'}); throw error;}
             },
             async review(profileId) {
+                const expected = ++generation;
                 reviewed = null;
                 const profile = state.profiles.find(item => item.id === profileId);
                 if (!state.verified || !profile) throw new Error('Choose a verified helper profile first.');
-                const tools = inventoryView(await request('inventory', {profileId:profile.id, revision:profile.revision}), profile);
+                const tools = inventoryView(await request('inventory', {profileId:profile.id, revision:profile.revision},expected), profile);
                 if (!tools.length) throw new Error('This profile has no approved tools. Nothing can be enabled.');
                 reviewed = {...profile, tools}; return this.getState();
             },
             async connect(permissionRequest) {
+                const expected = ++generation;
                 reviewed = null;
-                if (await permissionRequest !== true) throw new Error('Browser permission was not granted. The helper remains disconnected.');
-                state = statusView(await request('connect')); return this.getState();
+                try {
+                    const granted = await deadline(permissionRequest,permissionWait,'permission-timeout');
+                    current(expected);
+                    if (granted !== true) throw failure('permission-denied');
+                    state = statusView(await request('connect',{},expected)); return this.getState();
+                } catch (error) {
+                    if (expected === generation && recoveryMessages[error.code]) state = {...state,label:recoveryMessages[error.code]};
+                    throw error;
+                }
             },
             async configure(text, confirmed) {
+                const expected = ++generation;
                 if (confirmed !== true) throw new Error('Review and confirm the non-secret configuration before importing.');
                 const configuration = parseConfiguration(text);
                 reviewed = null;
-                const response = await request('configure', {configuration});
+                const response = await request('configure', {configuration},expected);
                 if (response?.ok !== true) throw new Error('The helper configuration could not be accepted. Check your locally reviewed setup.');
                 state = {verified:false, enabled:false, profiles:[], label:'Reviewed configuration saved. Connection remains off; choose Connect enrolled helper when ready.'};
                 return this.getState();
             },
             async allowWrites(enabled) {
-                const response = await request('allow-writes', {enabled:enabled === true});
+                const expected = ++generation;
+                const response = await request('allow-writes', {enabled:enabled === true},expected);
                 if (response?.ok !== true) throw new Error('Write-action preference could not be confirmed.');
                 state = response.status ? statusView(response) : {...state, allowWrites:response.enabled === true};
                 return this.getState();
             },
-            async disconnect() {reviewed = null; const response = await request('disconnect'); if (response?.ok !== true) throw new Error('Disconnect could not be confirmed. Check the helper; no new evidence requests are approved here.'); state = statusView(response); return this.getState();}
+            async disconnect() {const expected = ++generation; reviewed = null; const response = await request('disconnect',{},expected); if (response?.ok !== true) throw new Error('Disconnect could not be confirmed. Check the helper; no new evidence requests are approved here.'); state = statusView(response); return this.getState();}
         };
     }
     const api = {statusView, inventoryView, parseConfiguration, createController};
@@ -131,21 +163,27 @@
         }
         if (state.reviewed) elements.status.textContent += ` ${state.reviewed.label} tool inventory reviewed. Select evidence in the Live Workspace to review a specific action. No evidence was sent by this check.`;
     }
-    async function run(action) {
+    async function run(action, progress = 'Checking the local helper…') {
         if (section.getAttribute('aria-busy') === 'true') return;
         for (const name of ['check','connect','review','disconnect','profile','configure','configuration-file','configuration-reviewed','allow-writes']) elements[name].disabled = true;
         section.setAttribute('aria-busy','true');
-        try {render(await action());} catch {render(controller.getState()); elements.status.textContent += ' This operation could not be verified. Check installation, enrollment and organization policy. No evidence was sent; local capture remains available.';}
+        elements.status.textContent = progress;
+        try {render(await action());} catch (error) {
+            render(controller.getState());
+            if (recoveryMessages[error.code]) elements.status.textContent = recoveryMessages[error.code];
+            else if (error.code !== 'stale-operation') elements.status.textContent += ' This operation could not be verified. Check installation, enrollment and organization policy. No evidence was sent; local capture remains available.';
+        }
         finally {elements.check.disabled = false; elements['configuration-file'].disabled = false; elements['configuration-reviewed'].disabled = false; section.setAttribute('aria-busy','false');}
     }
     elements.check.addEventListener('click', () => {void run(() => controller.check());});
     elements['allow-writes'].addEventListener('change', () => {const enabled = elements['allow-writes'].checked; void run(() => controller.allowWrites(enabled));});
     elements.connect.addEventListener('click', () => {
+        if (section.getAttribute('aria-busy') === 'true') return;
         // This call must stay in the original user gesture, before any asynchronous work.
         let permissionRequest;
         try {permissionRequest = chrome.permissions?.request?.({permissions:['nativeMessaging']}) ?? Promise.resolve(false);}
         catch {permissionRequest = Promise.resolve(false);}
-        void run(() => controller.connect(permissionRequest));
+        void run(() => controller.connect(permissionRequest), 'Waiting for browser permission. Check for an open permission prompt…');
     });
     const updateImport = () => {elements.configure.disabled = !elements['configuration-file'].files?.length || !elements['configuration-reviewed'].checked;};
     elements['configuration-file'].addEventListener('change', () => {elements['configuration-reviewed'].checked = false; elements['configuration-file'].removeAttribute('aria-invalid'); updateImport();});

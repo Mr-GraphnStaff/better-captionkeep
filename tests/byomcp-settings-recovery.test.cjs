@@ -1,0 +1,69 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const os=require('node:os');
+const {mkdtemp,rm}=require('node:fs/promises');
+const {createController}=require('../teams-captions-saver/byomcpSettings.js');
+const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
+const status={ok:true,status:{protocolVersion:1,enrollmentVerified:true,enabled:true,helperVersion:'synthetic',profiles:[]}};
+test('unanswered permission times out recoverably; late grant never connects; fresh gesture can retry',async()=>{
+  const permission=deferred(),calls=[];
+  const controller=createController({permissionTimeoutMs:5,policy:async()=>({}),send:async message=>{calls.push(message);return status;}});
+  await assert.rejects(controller.connect(permission.promise),error=>error.code==='permission-timeout');
+  assert.match(controller.getState().label,/Dismiss any open permission prompt/);assert.equal(calls.length,0);
+  permission.resolve(true);await new Promise(resolve=>setImmediate(resolve));assert.equal(calls.length,0);
+  await controller.connect(Promise.resolve(true));assert.equal(calls.length,1);assert.equal(controller.getState().enabled,true);
+});
+test('superseded permission result cannot replace a newer connection or contact helper again',async()=>{
+  const permission=deferred(),calls=[];
+  const controller=createController({permissionTimeoutMs:100,policy:async()=>({}),send:async message=>{calls.push(message);return status;}});
+  const old=controller.connect(permission.promise);const rejected=assert.rejects(old,error=>error.code==='stale-operation');
+  await controller.connect(Promise.resolve(true));permission.resolve(true);await rejected;
+  assert.equal(calls.length,1);assert.equal(controller.getState().enabled,true);
+});
+test('hung policy and worker replies release the pending slot; late success cannot replace a fresh check',async()=>{
+  const worker=deferred();let calls=0;
+  const controller=createController({operationTimeoutMs:5,policy:async()=>({}),send:async()=>++calls===1?worker.promise:{ok:true,code:'not-connected'}});
+  await assert.rejects(controller.connect(Promise.resolve(true)),error=>error.code==='helper-timeout');
+  await controller.check();worker.resolve(status);await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(controller.getState().enabled,false);assert.match(controller.getState().label,/not connected/);
+  const policy=deferred();let sends=0;
+  const blocked=createController({operationTimeoutMs:5,policy:()=>policy.promise,send:async()=>{sends++;return status;}});
+  await assert.rejects(blocked.connect(Promise.resolve(true)),error=>error.code==='policy-timeout');policy.resolve({});
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(sends,0);
+});
+test('actual Chrome Connect event recovers controls and status after permission timeout without late native request',async context=>{
+  const {installedBrowsers}=await import('../scripts/browser-platform.mjs');
+  const chrome=(await installedBrowsers()).find(browser=>browser.browser==='chrome')?.binary;
+  if(!chrome){context.skip('Chrome is not installed; rendered recovery acceptance remains unverified on this host.');return;}
+  const {runChromiumSurface}=await import('../scripts/rendered-surface-checks.mjs');
+  const temporary=await mkdtemp(path.join(os.tmpdir(),'byomcp-settings-recovery-'));
+  try {
+    const result=await runChromiumSurface(chrome,path.resolve(__dirname,'../teams-captions-saver'),path.join(temporary,'settings.png'),{
+      afterSurface:async(surface,cdp)=>{
+        if(surface!=='settings')return null;
+        const evaluated=await cdp.send('Runtime.evaluate',{returnByValue:true,awaitPromise:true,expression:`(async()=>{
+          const checks=[],add=(name,passed)=>checks.push({name,passed:!!passed}),section=document.getElementById('byomcp-settings');
+          section.open=true;section.scrollIntoView();const button=document.getElementById('byomcp-connect'),status=document.getElementById('byomcp-status');
+          const originalTimeout=window.setTimeout;window.setTimeout=(callback,delay,...args)=>originalTimeout(callback,delay===30000?15:delay,...args);
+          const calls=[],order=[];let grant;
+          chrome.storage.managed.get=async()=>({});chrome.runtime.sendMessage=async message=>{calls.push(message);return {ok:true,code:'not-connected'};};
+          chrome.permissions={request:()=>{order.push('permission');return new Promise(resolve=>{grant=resolve;});}};
+          button.focus();button.click();add('Browser permission is requested in the original click gesture',order.join(',')==='permission' && calls.length===0);
+          add('Busy state is announced as a permission wait',section.getAttribute('aria-busy')==='true' && /Waiting for browser permission/.test(status.textContent));
+          await new Promise(resolve=>originalTimeout(resolve,60));
+          add('Timeout clears aria-busy and reenables Connect and Check',section.getAttribute('aria-busy')==='false' && !button.disabled && !document.getElementById('byomcp-check').disabled);
+          add('Import controls recover after timeout',!document.getElementById('byomcp-configuration-file').disabled && !document.getElementById('byomcp-configuration-reviewed').disabled);
+          add('Timeout gives a distinct actionable message',/permission timed out/.test(status.textContent) && /Dismiss/.test(status.textContent) && !/This build cannot verify/.test(status.textContent));
+          add('Status remains accessible',status.getAttribute('role')==='status' && status.getAttribute('aria-live')==='polite');
+          grant(true);await new Promise(resolve=>originalTimeout(resolve,25));add('Late browser grant never sends native Connect',calls.length===0);
+          chrome.permissions.request=()=>{order.push('retry-permission');return Promise.resolve(true);};button.click();
+          await new Promise(resolve=>originalTimeout(resolve,40));add('Fresh explicit retry sends exactly one Connect',calls.length===1 && calls[0].operation==='connect' && section.getAttribute('aria-busy')==='false' && !button.disabled);
+          window.setTimeout=originalTimeout;return {checks};
+        })()`});
+        if(evaluated.exceptionDetails)throw new Error(evaluated.exceptionDetails.text);return evaluated.result.value;
+      }
+    });
+    assert(result.checks.some(item=>item.name==='Fresh explicit retry sends exactly one Connect' && item.passed));
+  } finally {await rm(temporary,{recursive:true,force:true});}
+});
