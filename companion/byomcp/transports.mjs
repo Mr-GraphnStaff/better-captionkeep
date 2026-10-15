@@ -34,8 +34,11 @@ export function secureFetch(resource, getAuthorization, {resolve = lookup, send 
     return new Promise((resolveResponse, reject) => {
       const req = send(url, {method:'POST', headers, signal:init.signal,
         lookup(hostname, options, callback) {
-          resolve(hostname, {all:true}, (error, addresses) => {
-            if (error || !addresses?.length || addresses.some(item => !publicIPv4(item.address))) return callback(new Error('network-denied'));
+          // This adapter deliberately supports IPv4 only. Resolve only the
+          // addresses it can actually use rather than rejecting a safe A record
+          // merely because the same public host also publishes AAAA records.
+          resolve(hostname, {all:true,family:4}, (error, addresses) => {
+            if (error || !addresses?.length || addresses.some(item => item.family!==4 || !publicIPv4(item.address))) return callback(new Error('network-denied'));
             if (options?.all) callback(null, addresses);
             else callback(null, addresses[0].address, 4);
           });

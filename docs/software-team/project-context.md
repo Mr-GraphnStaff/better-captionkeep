@@ -100,6 +100,17 @@ license files, SBOM and independently verified source/hash evidence. These
 artifacts are mandatory for any future frozen candidate. Full release acceptance
 remains open; local integration is not publication or browser certification.
 
+Cloudflare helper-owned OAuth now has independent synthetic coverage, including
+the explicitly approved read-only session preset and refresh-token discard.
+Two initial live consent attempts failed before persistence; the corrected retry
+succeeded with authenticated metadata inventory only (#162, still open). Four
+tool schemas returned; no tool invocation or enabled action. The temporary local
+credential is for this bounded test only. The separately registered isolated
+Brave helper still needs a real optional-permission grant and native enrollment.
+No IDE credentials were reused; no DNS changes or directory lookups are authorized
+by this connection test. Revision `9307752` passed GitHub validation, CodeQL and
+Azure Lifecycle 751, but subsequent local authentication work needs its own CI.
+
 - Tests execute production functions and deliberate failure cases; real Chromium
   rendering and loaded-extension checks use isolated profiles with synthetic data.
 - No customer transcript, tenant credential or private screenshot belongs in

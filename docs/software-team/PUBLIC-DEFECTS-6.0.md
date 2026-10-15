@@ -5,7 +5,8 @@ Confirmed defects and explicit scope gaps are public; two feature requests are
 labeled as scope gaps rather than fabricated runtime bugs. Source paths and
 reproductions are synthetic and do not expose meeting content or credentials.
 
-All 44 records remain open. Local fixes and tests are not deployment,
+The initial 44-record review remains open; later follow-ups below expand this
+register. Local fixes and tests are not deployment,
 provider certification, Store approval, or installation-upgrade evidence.
 The earlier October 13 findings are documented retrospectively as well as the
 new independent October 14 findings. Issue comments record follow-up variants
@@ -25,7 +26,7 @@ without duplicating the same underlying defect.
 | [#102](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/102) | [6.0][R03] Earlier caption corrections leave Rolling Notes stale | Local repair; live/release acceptance open |
 | [#103](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/103) | 6.0: release provenance can describe newer sources than the packaged runtime | Local repair; live/release acceptance open |
 | [#104](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/104) | [6.0][R04] Browser smoke gate passes screenshots without usable UI and can exit successfully on failure | Local repair; live/release acceptance open |
-| [#105](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/105) | 6.0: Ubuntu validation can skip all browsers and uses an incompatible rendered-test runtime | Local repair; live/release acceptance open |
+| [#105](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/105) | 6.0: Ubuntu validation can skip all browsers and uses an incompatible rendered-test runtime | Remote pipeline repair verified at 9307752; live/release acceptance open |
 | [#106](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/106) | [6.0][R05] Template metadata drops the revision used by reviewed derivatives | Local repair; live/release acceptance open |
 | [#107](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/107) | [6.0][R06] System and light themes use wrong appearance and native control scheme | Local repair; live/release acceptance open |
 | [#108](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/108) | [6.0][R06] Popup source-unavailable status and provider-specific copy contradict capture | Local repair; live/release acceptance open |
@@ -128,12 +129,62 @@ Azure 745's observable theme timing failure and the merge-ref CodeQL audit-scrip
 alert. The runner now waits for actual theme/native-control state and real page
 focus; audit text is token-inspected without rebuilding HTML. Its old value was
 only a boolean accessible-name check, not a production HTML sink. Local focused
-checks passed; protected Linux/CodeQL reruns are separate acceptance evidence.
+checks passed; remote results are bound to the revision identified below, not to
+later unpublished source changes.
 
 Azure 749 follow-up under #105: one offline helper ZIP/import test failed because
 the Development job installed only root dependencies, not the locked optional
 helper SDK. The existing full GitHub candidate gate passed because it includes
 helper setup. Azure Development now installs those dependencies before tests;
 two ordering/boundary regressions and the 496-test integrated suite pass locally.
-The original failed run is not relabeled as successful; the new revision needs
-its own remote result.
+The original failed run is not relabeled as successful. Exact revision
+`9307752ddc583f632f9b8a758a1172eb3a4e7d39` subsequently passed Azure Lifecycle
+751, GitHub push/PR validation, and CodeQL analysis/check. This verifies that
+pipeline repair, not authentication, provider certification or Store release.
+New local Cloudflare OAuth/read-only-preset changes remain unpushed and are not
+covered by that remote success.
+
+Cloudflare OAuth feature [#159](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/159)
+is linked to Azure Task #348. It adds a separate Windows helper-owned sign-in,
+not IDE-token extraction or an assumption that a registered server is already
+authenticated for CaptionKeep. Callback/state/PKCE, issuer/resource binding,
+noninteractive refresh and OS-protected credential controls have independent
+synthetic coverage; live consent and installed-browser acceptance are separate.
+
+Confirmed transport defect [#160](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/160):
+the IPv4-only resolver rejected the entire result when a public host also had
+AAAA records. It reproduced against unauthenticated public Cloudflare metadata.
+Both fetches now explicitly request A records and reject all unsafe/unexpected
+selected addresses without a fallback. The repaired OAuth metadata GET returns
+200. This is not an authenticated account or DNS-operation test.
+
+OAuth prototype defect [#161](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/161):
+the initial token handler accepted a synthetic response with broader scopes
+than requested. Initial and refresh scope sets are now checked against explicit
+consent before persistence; omitted scopes retain only the requested/bound set.
+The default sign-in does not retain a refresh token or request offline access.
+Independent SDK/callback/store regressions passed. No real overbroad grant,
+credential exposure, executed account action or deployed vulnerability is claimed.
+Both #160 and #161 are linked to Azure Task #348 and remain open for acceptance.
+
+Cloudflare consent compatibility defect
+[#162](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/162): two
+user-approved sign-in attempts reached the callback but failed token
+exchange/validation before credential persistence. No authenticated connection
+or API action was claimed. Cloudflare's bootstrap-scope expansion is incompatible
+with the strict minimal requested scope set; no private token response is
+published or inferred as evidence of account access.
+
+The lead explicitly approved a read-only session preset for the test. The local
+correction requests only the bounded metadata-derived read catalog plus required
+bootstrap/offline consent scopes upfront, rejects write or unknown returned
+scopes, discards refresh tokens and refuses renewal after session expiry.
+Independent synthetic tests cover expanded-grant acceptance only with the
+explicit preset, write/unknown-scope rejection before storage, malformed catalog
+rejection before registration, and expired-preset refresh denial. The controlled
+live retry succeeded on October 15 UTC: helper-owned authorization accepted the
+read-only session preset, and the installed helper's authenticated `tools/list`
+returned four tool schemas, including `whoami`. No tool was invoked; actions
+remain empty. Installed extension enrollment is still separate acceptance;
+#162 stays open. These OAuth changes are local and unpushed, separate from the
+remote CI acceptance recorded for #105.

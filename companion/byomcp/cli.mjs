@@ -8,6 +8,7 @@ import {createEnrollmentAuthority,createNativeSession} from './enrollment.mjs';
 import {createSdkAdapters} from './transports.mjs';
 import {createControlledActions} from './controlled-actions.mjs';
 import {isCloudflareDnsProfile} from './cloudflare-dns.mjs';
+import {getCloudflareAuthorization,RESOURCE as CLOUDFLARE_RESOURCE} from './cloudflare-oauth.mjs';
 import {serveNative} from './native.mjs';
 const require=createRequire(import.meta.url);
 const runtime=require('../../teams-captions-saver/byomcpRuntimeAdapter.js');
@@ -19,8 +20,9 @@ export async function loadConfiguration(filename) {
   const metadata=await stat(filename);
   if(!metadata.isFile() || metadata.size>131072 || (process.platform!=='win32' && (metadata.mode & 0o022))) throw Error('unsafe-config');
   const config=JSON.parse(await readFile(filename,'utf8'));
-  if(!config || Object.keys(config).sort().join('|')!=='browserConfiguration|browserStoragePath|enabled|verificationTools' || config.enabled!==true
+  if(!config || Object.keys(config).filter(key=>key!=='oauthStorePath').sort().join('|')!=='browserConfiguration|browserStoragePath|enabled|verificationTools' || config.enabled!==true
       || !path.isAbsolute(config.browserStoragePath || '')
+      || config.oauthStorePath!==undefined && (typeof config.oauthStorePath!=='string' || !path.isAbsolute(config.oauthStorePath))
       || !Array.isArray(config.verificationTools) || config.verificationTools.length>100) throw Error('invalid-config');
   return config;
 }
@@ -43,6 +45,9 @@ export async function launch(argv,{input=process.stdin,output=process.stdout,env
   const originalDigest=await contracts.digest(config);
   const adapters=createSdkAdapters({cloudflareActions:entries,getAuthorization:async resource=>{
     const profile=profiles.find(entry=>entry.transport==='remote' && entry.resource===resource);
+    if(profile && resource===CLOUDFLARE_RESOURCE && config.oauthStorePath) {
+      return getCloudflareAuthorization(profile,{storePath:config.oauthStorePath});
+    }
     const token=profile && env[profile.credentialReference];
     if(typeof token!=='string' || !token || /[\r\n]/.test(token)) return null;
     return `Bearer ${token}`;

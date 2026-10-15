@@ -1,8 +1,10 @@
 # Optional BYOMCP helper prototype
 
-Private, separate Node.js 22 package. Core extension behavior and permissions are
-unchanged. No installer, native registry edits, OS credential provisioning,
-publisher endpoint or real customer account is supplied here.
+Private, separate Node.js 22 package. Core local caption capture does not depend
+on this helper. The extension requests optional `nativeMessaging` only after an
+explicit Connect gesture. This package does not automatically install a native
+host, edit the registry, provision credentials or supply a publisher endpoint
+or customer account.
 
 `@modelcontextprotocol/client` is exactly 2.3.1 (isolated lockfile). MCP is pinned
 to 2026-07-28 with no older-protocol fallback. The official SDK handles protocol
@@ -45,10 +47,11 @@ suppresses child stderr. The SDK inherits its documented restricted environment
 set; a production sandbox/environment/file-signature profile still needs review.
 Remote uses helper-side HTTPS with exact resource/path pinning, no redirects,
 per-connection supplied in-memory authorization and per-resolution public IPv4
-checking. IPv6/private-network endpoints, SSE results, OAuth enrollment and
-credential-vault retrieval are deliberately unsupported in this prototype.
-The callback must supply a token for the exact resource; do not use Graph or
-provider-session credentials. No tokens are persisted by the helper.
+checking. IPv6/private-network endpoints and SSE results are unsupported.
+Generic adapter callbacks must supply authorization for the exact resource;
+do not use Graph, IDE or provider-session credentials. The separate, explicit
+Windows Cloudflare setup flow below can persist its own approved grant in a
+CurrentUser DPAPI store. Native invocation never opens consent automatically.
 
 SDK returned structured answers are mapped to pending request/source bindings
 locally. Raw source digests/session IDs are not sent to MCP tools automatically.
@@ -156,7 +159,8 @@ launcher/manifest/registration **content only**; it never installs anything.
 Native registration, Windows launcher/ACL behavior, signing, clean installation
 and removal still need platform acceptance.
 
-The local JSON shape is `{enabled:true,browserConfiguration,browserStoragePath,verificationTools}`.
+The local JSON shape is `{enabled:true,browserConfiguration,browserStoragePath,verificationTools}`,
+with an optional explicit `oauthStorePath` for a Windows Cloudflare grant.
 `browserStoragePath` is an explicitly configured absolute directory on the
 browser profile's storage volume; only filesystem free-space metadata is read.
 Do not substitute a helper/config directory on a different disk. Admission
@@ -168,9 +172,72 @@ reviewed tool/schema grants. Actions are only `dns-change` (exact account and
 zone allowlist) or `directory-lookup` (exact tenant and allowed work fields).
 The optional remote profile's `credentialReference` names an explicitly supplied
 helper environment variable containing its bearer token. No credentials are
-read from Codex, copied to the extension, or persisted by this helper. Interactive
-OAuth provisioning is not supplied by this entry point; unavailable credentials
-fail closed. Never put tokens in this JSON or command arguments.
+read from Codex or VS Code, or copied to the extension. For an explicit
+`oauthStorePath`, the exact Cloudflare profile instead uses the helper's separately
+authorized, user-scoped Windows DPAPI store. No sign-in or new consent is launched
+by native invocation; unavailable or expired credentials fail closed. Never put
+tokens in this JSON or command arguments.
+
+### Explicit Cloudflare OAuth sign-in (Windows development)
+
+Run the separately reviewed interactive setup command:
+
+```
+node authorize-cloudflare.mjs --config <private-helper-config.json> --profile <reviewed-profile-id> --browser <absolute-Brave-executable>
+```
+
+`oauthStorePath` must name an explicit private local `.dpapi` file. Its parent
+must be owner-controlled on NTFS; the module checks protected ACLs and uses
+CurrentUser DPAPI. The helper, launcher and configuration must also be installed
+in an owner-protected local folder, not a shared/writable project drive. A
+normal browser login is not an authorization to copy another application's
+credentials. This command uses its own PKCE/state/issuer/resource-bound sign-in,
+opens consent in the selected browser and prints no tokens or authorization URL.
+Without an additional flag, this requests only `user:read account:read`, not
+offline access. Cloudflare can expand bootstrap-only consent to its default
+read-only preset, which the strict minimal client rejects rather than silently
+accepting a broader grant.
+
+For the explicitly approved Cloudflare read-only session test, use:
+
+```
+node authorize-cloudflare.mjs --config <private-helper-config.json> --profile <reviewed-profile-id> --browser <absolute-Brave-executable> --read-only-session
+```
+
+`--read-only-session` first reads validated issuer metadata and requests the
+bounded advertised read-only catalog upfront: required `user:read`,
+`account:read` and `offline_access`, plus supported scopes whose official suffix
+is `read`, `metadata_read`, `monitoring` or `report`. The consent screen therefore
+includes `offline_access`; do not describe this mode as requesting only the two
+bootstrap scopes. Write/edit scopes are never selected, and any returned write
+scope or scope absent from the approved catalog rejects before persistence.
+Malformed or oversized metadata rejects before client registration or consent.
+
+This mode registers only the authorization-code grant, discards every returned
+refresh token and records `cloudflare-read-only-session`. An expired session
+fails closed and requires a new explicit sign-in; it never refreshes, even if a
+refresh token appears in its stored record. This is not persistent login. The
+standalone module's separate offline capability is not enabled by this CLI.
+
+A read-only connection test is not permission for DNS changes, directory queries
+or arbitrary MCP execution. Unknown tool schemas remain unapproved until reviewed
+against actual authenticated inventory.
+
+Both the remote MCP fetch and the OAuth metadata fetch deliberately resolve only
+validated public IPv4 addresses. A host having public AAAA records does not make
+its A records unsafe. Private, empty or unexpected-family answers, redirects and
+foreign OAuth endpoints fail closed; IPv6 transport is not claimed supported.
+Synthetic SDK/callback tests and a real Windows DPAPI roundtrip passed. A public
+unauthenticated Cloudflare metadata read passed. Two user-approved sign-in
+attempts reached callbacks but failed token exchange/validation before credential
+persistence; neither established an authenticated connection. The targeted
+read-only-preset correction has synthetic verification. Installed-browser/native
+operation and provider action acceptance remain separate. A controlled
+read-only session retry subsequently passed
+helper-owned authorization and authenticated tool metadata inventory (four
+schemas, no tool invocation or enabled action). This does not verify native
+extension enrollment or DNS operations. See
+[issue #162](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/162).
 
 `verificationTools` entries are `{profileId,actionTool,readTool}`; the referenced
 read tool must have its own reviewed read-only schema grant. A DNS read tool

@@ -9,7 +9,7 @@ import {zipEntries} from './verify-package-source.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const HELPER_PUBLIC_FILES = Object.freeze([
-  'cli.mjs','cloudflare-dns.mjs','controlled-actions.mjs','enrollment.mjs','framing.mjs',
+  'cli.mjs','authorize-cloudflare.mjs','cloudflare-oauth.mjs','cloudflare-dns.mjs','controlled-actions.mjs','enrollment.mjs','framing.mjs',
   'helper.mjs','install-plan.mjs','installer-templates.mjs','native.mjs','transports.mjs',
   'package.json','package-lock.json','README.md'
 ]);

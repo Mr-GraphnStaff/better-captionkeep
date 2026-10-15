@@ -222,8 +222,38 @@ test, excluding DNS changes and directory lookups. He clarified the desired
 Cloudflare MCP uses OAuth in VS Code. Nonsecret registration inspection did not
 copy credentials. Public protected-resource discovery confirms the Cloudflare
 resource and authorization-server identity; it is not authenticated acceptance.
-The current helper accepts separately provisioned bearer credentials and does
-not implement interactive OAuth. A helper-owned sign-in must not be represented
-as already working, nor reuse VS Code/Codex credential stores. Isolated native
-metadata testing and that authentication requirement remain separate evidence.
+The earlier helper accepted separately provisioned bearer credentials only.
+Helper-owned interactive OAuth is now implemented locally and independently
+tested; no VS Code/Codex credential store was read or reused. Two real consent
+attempts failed before credential persistence (the second at token exchange).
+Cloudflare's required read-only preset expansion conflicts with the original
+narrow requested scope set; public defect #162 records that compatibility failure.
+The lead explicitly approved the read-only preset, rejection of write scopes,
+discarding refresh tokens and no persistent login. That explicit session mode is
+implemented. The fresh retry succeeded on October 15 UTC and the private installed
+helper performed authenticated `tools/list`: four schemas returned, including
+`whoami`; no tool invocation or enabled action. The temporary credential must be
+removed after this bounded test. Native extension enrollment remains separate.
+
+Revision `9307752` passed both GitHub validation runs, CodeQL and Azure Lifecycle
+751; PR #137 is mergeable but remains a draft and unmerged. Those remote results
+do not certify the subsequent unpushed OAuth changes. The latest focused OAuth,
+independent security and native-probe suite passes **44/44, zero skips**.
+
+The optional host was registered per-user for one isolated Brave caller, from an
+owner-protected local NTFS installation (not the shared project drive). Two
+browser attempts verified the no-permission denial, but did not complete the
+actual optional permission grant or native enrollment. A new visible mode awaits
+the person's real Connect click; no permission bypass or invented enrollment is
+accepted. All test actions remain disabled and metadata inventory is the only
+authorized remote operation. Full release certification remains pending.
+
+Final OAuth-source local candidate gate passed: **522 extension tests and 47
+helper tests, zero failures/skips**, both dependency audits report zero
+vulnerabilities, and the eight-page/54-script surface audit passed. All five
+browser packages and the optional helper ZIP/SBOM/source hashes verified.
+Isolated Chrome/Edge/Brave rendering and loaded-extension smoke passed; Firefox
+captured a screenshot only and Opera was unavailable. Those smoke results do
+not certify live meeting providers or actual Store-installed upgrades. The
+generated provenance reflects development work, not a frozen release candidate.
 
