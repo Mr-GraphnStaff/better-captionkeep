@@ -297,3 +297,16 @@ Helper tests remain **47/47**, zero skips/failures; the latest full packaging ga
 is rerunning against these final sources. Native bootstrap remains open rather
 than bypassing optional permission to manufacture success.
 
+Completed recovery checkpoint, code revision `5da5796`: the full local candidate
+gate passed all **530 extension and 47 helper tests**, zero failures/skips, both
+dependency audits, lint/surface audits, five-browser packaging, helper ZIP/SBOM
+and source/hash verification. Provenance recorded that revision with a clean
+worktree. GitHub push run `38666796151`, PR run `38666800943`, CodeQL and Azure
+754 all passed; Azure PR-merge 755 also succeeded on a merge verified to contain
+`5da5796`. Its release-candidate stage was skipped by the existing release-branch
+condition, not executed. Linux main tests: 522 passed, 8 platform skips, zero
+failures; helper tests: 47 passed, zero skips. Linux Chrome/Edge rendered and
+loaded-extension smoke passed. Firefox was screenshot-only, not native tested.
+No live provider certification, Brave installed-helper enrollment, Store upgrade,
+release freeze, merge or publication follows from this repair checkpoint.
+

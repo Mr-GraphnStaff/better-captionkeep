@@ -113,8 +113,11 @@ but native enrollment still failed; browser/provider acceptance remains open.
 No IDE credentials were reused; no DNS changes or directory lookups are authorized
 by this connection test. Revision `9307752` passed GitHub validation, CodeQL and
 Azure Lifecycle 751. The later `12806ec` passed Azure 752 and CodeQL but failed
-GitHub validation at Linux Edge startup. The latest recovery/tooling changes
-need their own remote run and do not inherit either earlier revision's results.
+GitHub validation at Linux Edge startup. Recovery revision `5da5796` then passed
+fresh GitHub push/PR validation, CodeQL, Azure 754 and PR-merge Azure 755. Its
+full local candidate gate passed 530 extension and 47 helper tests with no skips;
+Linux main tests explicitly skipped eight platform-specific cases. Chrome/Edge
+Linux surface smoke passed; real native-helper/provider acceptance remains open.
 
 - Tests execute production functions and deliberate failure cases; real Chromium
   rendering and loaded-extension checks use isolated profiles with synthetic data.

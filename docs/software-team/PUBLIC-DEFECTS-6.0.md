@@ -207,4 +207,8 @@ real native enrollment remains separate open acceptance.
 On revision `12806ec`, #105 also tracks a later Linux Edge startup timeout in
 both GitHub validations; Azure 752 and CodeQL passed. A diagnostic/isolation
 correction is local, not a proven Linux fix. No assertion, sandbox or startup
-deadline is relaxed to hide the failure.
+deadline is relaxed to hide the failure. The subsequent `5da5796` rerun passed
+both GitHub validations with Linux Chrome/Edge rendered and loaded-extension
+smoke, plus CodeQL and Azure 754/755. This does not establish the exact cause of
+the earlier startup failures or certify real meeting providers. #163's reviewed
+fix is pushed; installed native enrollment remains open acceptance.
