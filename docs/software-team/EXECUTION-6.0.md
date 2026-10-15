@@ -359,3 +359,13 @@ dependency audits passing. Browser/package/source/hash validation is still a
 separate stage of the running local candidate gate. Fresh CI must validate the
 new pushed revision; previous green revisions are not reused as acceptance.
 
+Follow-up verification: cd17f26 passed GitHub PR validation, CodeQL and Azure
+758/759. GitHub push validation passed on attempt 2; its first Edge startup
+timeout remains recorded under #105. The first local gate stopped on a Firefox
+screenshot timeout, not a product assertion. The tooling now uses a fresh exact
+temporary Firefox profile with --no-remote, retains its 60-second deadline and
+cleans only that created profile. Four focused tests and an actual packaged
+Settings screenshot passed. This corrects an isolation gap; it does not prove
+the earlier timeout's cause or certify Firefox/native/provider behavior. A new
+complete local gate is being run; earlier failures remain retained.
+

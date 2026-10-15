@@ -1,6 +1,26 @@
-import {access} from 'node:fs/promises';
+import {access,mkdtemp,rm} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
+
+export function firefoxSurfaceArguments(profileDirectory,screenshot,url) {
+  if (!path.isAbsolute(profileDirectory) || !path.isAbsolute(screenshot)) throw new Error('Firefox smoke paths must be absolute.');
+  return ['--headless','--no-remote','--profile',profileDirectory,'--window-size','1280,900','--screenshot',screenshot,url];
+}
+
+export async function runFirefoxSurface(binary,screenshot,url,{execute=execFileSync,temporaryRoot=os.tmpdir()}={}) {
+  const root=path.resolve(temporaryRoot),prefix=path.join(root,'captionkeep-firefox-surface-');
+  const profile=await mkdtemp(prefix);
+  try {
+    // Never attach to, lock, or modify the user's ordinary Firefox profile.
+    execute(binary,firefoxSurfaceArguments(profile,screenshot,url),{stdio:'pipe',windowsHide:true,timeout:60000});
+  } finally {
+    // Only the exact directory returned by this invocation's mkdtemp is eligible.
+    const resolved=path.resolve(profile);
+    if (path.dirname(resolved)!==root || !resolved.startsWith(prefix)) throw new Error('Unsafe Firefox smoke cleanup path.');
+    await rm(resolved,{recursive:true,force:true});
+  }
+}
 
 export function browserFailureDiagnostic(error,{projectRoot='',homeDirectory=os.homedir()}={}) {
   let message=String(error?.message || error);
