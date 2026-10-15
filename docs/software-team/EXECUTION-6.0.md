@@ -1,5 +1,20 @@
 # 6.0 Software Team execution ledger
 
+## October 15: tester-facing acceptance packet
+
+Lead requested a practical document to begin QA. Added TESTER-ACCEPTANCE-6.0.md:
+build identity, Brave first session, exact actions/expected behavior, blank result
+records, all sixteen gates, fifteen browser/provider cells, accessibility/source/
+failure/upgrade checks and separate stdio/remote MCP acceptance. No case is marked
+passed by document creation. Guided onboarding and elongated-sphere drift remain
+explicit acceptance gaps; prior helper DNS execution does not certify browser UI.
+README and dated engineering matrix link to the packet. Documentation preparation
+does not execute live meetings, install helpers, grant access, change DNS, certify
+browsers or approve publication. Independent QA reviewed the packet and requested
+explicit new-meeting default-on versus same-meeting pause checks and exact summary
+stamps/recipient review; both clarifications are incorporated. Forty unique case
+IDs and four relative reference links checked; whitespace validation passed.
+
 ## October 15: complete MCP catalog and actual Cloudflare TXT test
 
 Engineering delivered optional catalog profiles, helper prepare/execute proposals,

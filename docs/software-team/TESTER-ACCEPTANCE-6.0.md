@@ -1,0 +1,225 @@
+# Better CaptionKeep 6.0 — hands-on QA and acceptance
+
+Prepared October 15, 2026 for David Farris and invited testers.
+Scope: the complete 6.0 product, not just the latest MCP repair.
+Source baseline: `4408bdd` on `codex/6.0`. **Development testing, not a frozen
+release candidate or release certification.** Record the actual installed build
+below; version `6.0.0` alone does not identify its contents.
+
+## Start here
+
+Start with **Brave + a private Teams test meeting**, a second participant and
+made-up meeting content. Run the first-session checks below before the deeper
+sections. Repeat the provider journey on Meet and Zoom Web afterward.
+You can begin core testing without installing or connecting an MCP helper.
+
+Do not use confidential workplace meetings, real personal records or production
+changes as test material. This document does not authorize an external write,
+directory lookup, installation, account grant, Store submission or publication.
+
+### Identify what you are testing
+
+| Field | Fill in for this run |
+| --- | --- |
+| Tester / date / time zone | |
+| Browser name and full version / OS version | |
+| Provider / web or Teams PWA | |
+| Extension version / ID / actual loaded folder | |
+| Source commit and clean/dirty status supplied by build owner | |
+| ZIP SHA-256, if using a supplied package | |
+| Helper version / transport / configuration revision, if applicable | |
+| Clean profile, existing development installation, or real Store upgrade | |
+| Relevant policy restrictions / prerequisites missing | |
+
+Use the extension's browser management card to verify the version and loaded
+folder. A localhost preview is **not** the installed extension. Do not replace or
+remove your ordinary Store installation or real archive to create a test profile.
+Ask the build owner for the exact package/folder and identity if uncertain.
+
+For an already prepared Chromium development build, Load unpacked selects
+`P:/Projects/better-captionkeep-6.0/dist/dev` (the folder containing manifest.json).
+After an agreed rebuild, Reload that extension card and refresh test meeting tabs.
+An existing folder may be stale: the build owner must confirm its source identity.
+Do not load the older 5.4 checkout. Firefox requires its own browser-target package
+and installation instructions; do not use Chromium Load unpacked instructions.
+
+### Record every result
+
+Use **PASS**, **FAIL**, **BLOCKED** (cannot run: name the prerequisite), or
+**NOT RUN**. Every case starts NOT RUN; a checkbox or prior automated result is
+not a manual pass. A missing required feature is FAIL; unavailable credentials or
+test hardware are BLOCKED. Use N/A only with a recorded, approved scope reason.
+
+Copy this record for each case and browser/provider combination:
+
+```text
+Run ID / case ID:
+Build / browser / provider:
+Result: NOT RUN
+Steps actually performed / input:
+Expected:
+Actual:
+Evidence filename or private location:
+Severity / GitHub issue / linked Azure work item:
+Retested build / result / tester:
+```
+
+## First session — begin with these checks
+
+Use this short script so missing words and fabricated answers are recognizable:
+participant A: “QA checkpoint alpha. We decided to use a blue test banner.”
+Participant B: “I will draft the banner. We have not agreed a deadline.”
+Later say “QA checkpoint beta.” During the pause check say “PAUSE-ONLY CHARLIE.”
+Do not expect provider speech recognition to be word-perfect; compare preserved
+text to the captions actually displayed, including their stable corrections.
+
+| ID | What to do | Expected result |
+| --- | --- | --- |
+| F01 | On an unrelated page, open the extension. Open Settings using the gear, then return. | Clear waiting/no-meeting state, no active-capture badge. Settings and return controls work; no false success. |
+| F02 | Join the test meeting. Before manually enabling captions, observe what the extension does; then speak the script with captions visible. | Live capture is on by default and starts without pressing Keep. If captions cannot be enabled, explain the provider/permission limitation and recovery; never claim capture before available. Record any manual enabling required. No automatic AI submission or provider transcription claim. |
+| F03 | Open the popup, use the primary meeting action, then open last live transcript. | Workspace and transcript are reachable, current meeting identity is correct, both speakers' available captions appear. Opening workspace does not disable the popup's controls. |
+| F04 | Inspect toolbar, popup and workspace while speaking and during silence. | States agree. Waiting for speech is not “off”; provider transcription status is not confused with local capture. Count reflects retained captions, not invented activity. |
+| F05 | Pause Capture in Settings. Say PAUSE-ONLY CHARLIE. Resume, then say beta. | New local capture stops during pause, prior words survive, resume works. The paused-only line is not later silently backfilled into the captured transcript. |
+| F06 | Open and close attendee capture controls and workspace; reopen each. Use both any in-app close control and the provider's panel close. | Controls remain operable. A one-way or permanently disabled button is a failure. Provider panels are not repeatedly forced open after deliberate close. |
+| F07 | Leave the meeting, remain on its recap/calendar page, then navigate to an unrelated page. Also check with another meeting still active in another tab. | This tab no longer claims active capture. Any remaining capture indication identifies a genuinely active meeting rather than stale state. No captions from the departed session continue appearing. |
+| F08 | Pause and rejoin the same meeting; separately create/join a different test meeting and speak a distinct phrase. | Same-meeting pause persistence is observable and respected. A distinct new meeting starts live capture ON by default and can then be paused explicitly. No silent carryover of the previous meeting's pause, captions or derivatives. |
+| F09 | Finish the test session; open Meeting Receipts/history, reopen it, then close and restart the browser. | Retained transcript/history survive restart and still identify the correct meeting. No duplicate session or silent loss. |
+| F10 | Export TXT and another available format; exercise Save As, cancel once, then save. Open the files. | Expected text and readable speaker attribution; cancellation is recoverable. File type/name/location follow the chosen settings. No false saved confirmation after a failed/canceled download. |
+
+Result of first session: ______. Blocking cases: ______. Evidence: ______.
+
+## Appearance, usability and accessibility
+
+Run these in the actual popup, All Settings, Live Workspace, transcript viewer,
+history/Receipt, Moment review and AI handoff/shareable-summary surfaces. Include
+empty and populated states, not just the happy-path screenshot.
+
+| ID | What to do | Expected result |
+| --- | --- | --- |
+| U01 | Inspect the entire popup in waiting, starting, capturing, paused and error states. Capture a sanitized screenshot of each obtainable state. | Elongated-orb shell: visible curved shoulders/base, restrained rim lighting and readable flat controls. Sphere is structural, not merely a round logo in a rectangle. One primary action; Teams/Meet/Zoom and gear remain recognizable. Known sphere drift is an open acceptance item, not an assumed pass. |
+| U02 | Use the real popup at normal display scaling, then increased scaling. Resize supported full-page/panel surfaces narrow; inspect long meeting/speaker names. | No clipped essential status, overlapping footer, horizontal page scroll or unreachable actions. Native popup limits respected; any necessary vertical scrolling is obvious and usable. |
+| U03 | Select dark, light and system themes; change OS appearance in system mode. Visit every surface. | Fresh default dark; chosen theme consistent, readable text/controls and visible focus. No dark header with unreadable dark text in light mode. |
+| U04 | Complete the basic journey with Tab/Shift+Tab/Enter/Space/Escape only. Test page zoom 200% and 400% where supported, OS high contrast/reduced motion and a screen reader. | Logical order, named controls, no traps; dialogs restore focus. Status/errors announced without repeating the entire transcript. Essential content reflows or remains reachable. Record screen reader/version and exact checks; do not infer WCAG conformance. |
+| U05 | In a long transcript, scroll up, select older text, search, change views and receive more captions. Use Follow latest. | New captions do not steal selection/focus/scroll. Follow latest resumes deliberately; older available text remains usable beyond the latest 150 captions. Record session length, caption count and any delays. |
+| U06 | Try an advertised non-English locale, long Unicode names and RTL content. | Required controls and error messages remain understandable; identifiers/citations retain their meaning. Untranslated or clipped advertised UI is recorded, not waived. |
+
+## Meeting tools and source preservation
+
+Keep a raw export before these cases and compare afterward. Derivatives must not
+rewrite the original caption transcript. If a named control cannot be located,
+record the screen and FAIL/BLOCKED reason rather than guessing a hidden route.
+BYOAI tests require a separately approved destination and synthetic text only.
+
+| ID | What to do | Expected result |
+| --- | --- | --- |
+| P01 | Capture Moment: preview, cancel, repeat and approve with a note/description; export and delete it. Switch active tabs during preview. | Only intended supported meeting image is retained after approval. Wrong-tab/stale previews cannot be silently accepted. Image stays separate, is described and is never automatically sent. |
+| P02 | Generate notes through the reviewed handoff; review/import a supported cited result. Try one made-up citation, then promote a valid decision. | Summary/Decisions/Actions/Risks/Questions remain drafts with real source references. Invalid citation rejected; no invented owner/deadline. Promotion is explicit; raw source unchanged. |
+| P03 | Exercise rolling notes: update now, repeat without new text, pause/resume, correct an earlier available caption and restart. Interrupt the optional notes path. | Bounded separate revisions, no duplicate effects, source-aware correction and recoverable history. Caption capture continues if notes fail. Do not assume a background model exists. |
+| P04 | In Templates, create, duplicate, edit, select, export, import and delete a synthetic template. Generate twice. | Revision/selection retained correctly; safety envelope cannot be edited away. New result is a separate revision. Malformed/oversized import explains failure without losing prior templates. |
+| P05 | Ask “What banner did we choose?” then “What deadline did we agree?” Review supported responses. Try changed/missing citations and switch meetings during review. | Answer cites the original selected snapshot or says it is not established. No invented deadline; no rebinding an old request to another source/meeting. |
+| P06 | Mark a decision/follow-up, edit its note, navigate its citation, then unmark/delete. Review any returned Evidence artifact. | Correct source and nearby caption, no cross-meeting association; deletion/review states are clear. External results are not presented as spoken captions. |
+| P07 | Use viewer search, speaker filtering, corrected/raw views, local dictionary, Copy All, file types, Print/PDF and History. | Filters are explicit, supported corrections separate, exports contain intended scope. Print/PDF readable; no unexpected internal/private metadata. Links remain navigable. |
+| P08 | If enabled, request meeting-chat snapshot and translation. Test unavailable capability; use only synthetic chat. | Chat capture explains loaded-row limits, not full history. Translation is separately labeled; unsupported browser/language has an honest fallback, not silent cloud upload. |
+| P09 | Create a shareable summary from explicit excerpts. Review/edit for intended recipients; test confidentiality and privileged label choices; copy/export/print. Edit after review. | Original preserved; edits invalidate review. Default stamp is CONFIDENTIAL — DRAFT — REVIEW REQUIRED; reviewed stamp is CONFIDENTIAL — FOR AUTHORIZED RECIPIENTS ONLY. Recipient review required before copy/export. Privileged label requires explicit legal-guidance confirmation, not an automated determination. No automatic email/AI send or hidden transcript/source metadata in email output. Inspect actual PDF/clipboard contents. |
+
+## BYOMCP — setup and operation acceptance
+
+**Current limitation:** a piloted setup wizard and unified beginner runbook are
+not implemented at this baseline. Current setup uses a separately installed
+helper, reviewed nonsecret configuration and Settings. Do not mark onboarding
+accepted because an engineer completed it for you. Core tests can proceed while
+MCP prerequisites are BLOCKED. See [helper technical setup](../../companion/byomcp/README.md).
+
+Repeat the applicable cases separately for **remote HTTP through the helper** and
+**local stdio through the helper**, and per supported browser. Cloudflare's earlier
+remote TXT test proved installed-helper execution, NOT the browser approval flow.
+Use a controlled fixture/test service and a reviewed no-op or synthetic read tool.
+Tool names/descriptions are not proof of harmlessness; inspect exact arguments.
+
+| ID | What to do | Expected result |
+| --- | --- | --- |
+| M01 | Start clean with MCP off; capture a meeting. Open Connections and attempt guided setup without verbal developer coaching. | Core works independently. Setup should guide install/add service/sign-in/check/first operation and explain current progress. Missing wizard is recorded as a required UX gap. No arbitrary command is run by the extension. |
+| M02 | With a build-owner-prepared helper/configuration for this exact browser ID, open All Settings → Connections — Bring Your Own MCP. Expand installation/enrollment, choose the supplied nonsecret binding JSON, review its identity and import. | Credentials never entered/imported into extension. Wrong browser/caller/digest rejected. No connection/tool execution merely from import. Record any developer assistance. |
+| M03 | Select Connect enrolled helper. First deny native permission, then retry and allow for the intended helper. Test missing/wrong helper in an isolated prepared environment. | Distinct actionable state; controls recover, no endless disabled panel. Connect alone does not execute tools or transmit captions. |
+| M04 | For the remote service, follow helper-owned authorization with a separately approved test account/grant, then Check connection status. Test cancel/expiry. | Requested scopes visible; no IDE credential copying. Browser and provider grants are separate. Return page failure is not success without helper confirmation. Expired/denied authorization explains recovery; no silent sign-in. |
+| M05 | Choose Verified helper profile → All MCP tools — advanced → Load all tools for selected profile. Inspect names/schema. | Full discovered catalog, including writes, available for review; no tool invoked by discovery. Malicious descriptions stay inert. Wrong/stale profile rejected, not empty false success. |
+| M06 | With writes off, prepare an agreed synthetic no-op/read operation. Then enable Allow reviewed write actions and review again. | Preparation does not execute. Generic tools conservatively need the write gate even if called read-only. The toggle grants no blanket execution permission. Managed denial still wins. |
+| M07 | Enter reviewed exact JSON; select Review this operation. Compare destination/tool/arguments; cancel. Repeat and select Approve and run this exact operation once. | Only the displayed approved operation is dispatched once. Editing arguments/profile or disconnecting invalidates review. Returned generic data is labeled untrusted, not independently verified success. No automatic follow-up calls. |
+| M08 | With a controlled delayed fixture, close/disconnect before dispatch, double-click approve, let a proposal expire, change policy, and interrupt a response after dispatch. | No dispatch after revocation, no duplicate operation, no expired approval. Unknown outcome stays unknown and is not automatically retried. Closing does not promise remote undo. Core remains usable. |
+| M09 | In a separately configured typed action workflow, select synthetic meeting evidence, preview exact action/resource/current/proposed state, approve, inspect result and pin a Receipt. | Outbound scope matches review. Independent readback required before verified Receipt; stale state, source changes, fabricated citations or mismatched result rejected. Generic catalog responses must not masquerade as this typed verified path. |
+| M10 | Restart browser/helper, reconnect, remove access and exercise uninstall instructions in a disposable setup. | State is honest, old approvals cannot replay, no auto-send. Provider revocation is separate from Disconnect. Missing removal/recovery instructions block deployment acceptance. |
+
+**Real-write boundary:** this document is not permission to change DNS, send mail,
+create tickets or query real people. Any later live write test needs its own exact
+account/resource/action approval, unique test data, verified cleanup and recorded
+unknown-outcome procedure. Do not repeat the previous DNS test automatically.
+
+## Failure, privacy, archive and upgrade
+
+Run destructive/storage/policy scenarios only with disposable data/profiles and
+a prepared test environment. If you cannot safely simulate them, record BLOCKED.
+
+| ID | What to do | Expected result |
+| --- | --- | --- |
+| R01 | Reload meeting tab/workspace; close/reopen popup; restart browser during a controlled session. Deny an optional permission/download. | Recoverable status and retained source; no duplicated/mixed meetings or false capture/save success. Core does not depend on optional integrations. |
+| R02 | Use synthetic email/phone data with Privacy Scrubber, clipboard/export restrictions and administrator-prepared policy denial. Inspect actual outputs. | Configured transformations apply; policy cannot be bypassed through another surface, MCP or images. No tokens, secrets or private identifiers in diagnostics. Scrubbing is not guaranteed anonymization. |
+| R03 | Search/reopen older receipts; delete one disposable source with its associated Moments, Notes, Answers, evidence and pending excerpts; test retention in a prepared profile. | Intended scope clearly confirmed; source and associated retained copies no longer reopen or reappear after restart. Other meetings unaffected. Already exported external files are not claimed deleted. |
+| R04 | In a prepared disposable profile, simulate storage-full/write failure and a long meeting. Record duration, caption count, CPU/memory observations and responsiveness. | Visible failure, no false durable-save claim or silent truncation; optional feature failure does not corrupt source. Assess against an agreed budget, not an invented performance threshold. |
+| R05 | Upgrade a backed-up supported 5.4 test installation using an approved same-identity upgrade route; verify settings, archives, exports, capture and changed permissions. | Data preserved and permission changes handled honestly. A different-ID unpacked install is NOT upgrade proof. Final real Store-installed upgrade must be verified after authorized availability. Do not uninstall to upgrade. |
+
+## Separate browser/provider results
+
+Enter result + run-record reference in every cell; each starts **NOT RUN**.
+Repeat F01–F10 for each cell, and all applicable U/P/M/R cases per browser.
+Certification requires all applicable journeys, not merely a passing first session.
+
+| Browser | Teams Web | Google Meet | Zoom Web |
+| --- | --- | --- | --- |
+| Chrome | NOT RUN | NOT RUN | NOT RUN |
+| Edge | NOT RUN | NOT RUN | NOT RUN |
+| Brave | NOT RUN | NOT RUN | NOT RUN |
+| Firefox | NOT RUN | NOT RUN | NOT RUN |
+| Opera | NOT RUN | NOT RUN | NOT RUN |
+
+Record Teams PWA separately in supported Chromium installations, including
+minimized/background behavior. Firefox native sidebar requires its own interaction
+evidence. A provider/browser access restriction is BLOCKED, not a silent scope cut.
+Safari is archived for a later major version and is not a 6.0 target or blocker.
+
+## Report a bug and stop safely
+
+Stop a risky test on wrong resource/meeting, unexpected disclosure, lost source,
+duplicate write, unreviewed dispatch or misleading verified success. Preserve
+private evidence and do not blindly retry an uncertain external operation.
+
+Report case ID, build/browser/provider, exact steps, expected/actual behavior,
+frequency, impact and sanitized screenshot/log. Use Critical for catastrophic
+loss/disclosure; High for blocked core workflow or dangerous false success;
+Medium for substantial workaround; Low for limited polish. Severity is not
+scheduling priority. Confirmed defects belong in GitHub (search existing issues
+first) and must link to Azure Boards; security-sensitive details go through the
+private security channel, never public credentials or real meeting content.
+Team lead/coordinator handles tracker entry if tester lacks access.
+
+## Acceptance summary and sign-off
+
+- PASS / FAIL / BLOCKED / NOT RUN counts: ______
+- Open defects, severity and retest evidence: ______
+- Developer coaching required / confusing steps: ______
+- Browsers/providers actually exercised: ______
+- Recommendation: not ready / ready for more development QA / ready for candidate acceptance: ______
+- Tester / date / exact build identity: ______
+
+This packet covers the sixteen [roadmap gates](../ROADMAP-6.0.md): F/U cover
+1–3, P/R source checks cover 4–9, browser matrix covers 10/12, U/R/M cover 11,
+M covers 15, and P09 covers 16. Gates 13/14 additionally require release-owner
+evidence: clean frozen artifact/hash/provenance, final matching artwork/copy,
+extension/helper SBOMs, manifest permission delta, unchanged 48-hour window,
+authorized submission/approval, public parity and real installed upgrade.
+Gate 10 also requires owner evidence for stable capability IDs and one package
+per browser without paid feature tiers; the browser matrix alone cannot prove it.
+Inherited CAP, multilingual and Evidence Actions commitments remain in the
+[release acceptance matrix](RELEASE-ACCEPTANCE-6.0.md); this practical packet does
+not waive them. Dated implementation comments in older audits are not current
+test results. Consult the [execution ledger](EXECUTION-6.0.md) for later changes.
+No release approval follows from green automated tests or this document's creation.

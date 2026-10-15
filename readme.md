@@ -15,6 +15,10 @@
 
 [Trust Center](docs/TRUST-CENTER.md) · [Privacy policy](PRIVACY.md) · [Report a vulnerability](SECURITY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
+**Testing 6.0?** Use the [hands-on QA and acceptance packet](docs/software-team/TESTER-ACCEPTANCE-6.0.md).
+Start with the Brave first-session checks; record results against the actual
+installed build. This is development QA, not a frozen candidate or certification.
+
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme.
 
 > **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).

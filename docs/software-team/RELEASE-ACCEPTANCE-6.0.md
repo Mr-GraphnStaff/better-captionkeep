@@ -1,5 +1,10 @@
 # Better CaptionKeep 6.0 release acceptance matrix
 
+**Testing now? Start with the [hands-on tester packet](TESTER-ACCEPTANCE-6.0.md)**
+for setup identity, click-by-click cases, expected results and blank run records.
+This matrix retains dated audit evidence; its older implementation observations
+are not a statement of the latest build or a substitute for fresh execution.
+
 Assurance review: October 14, 2026. Branch: `codex/6.0`.
 Review baseline: `360cae215a265317efa6e4509d4ac4c689cda11d` plus the current
 integration batch. This document is a requirements/evidence audit, not approval
