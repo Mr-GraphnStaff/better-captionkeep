@@ -398,3 +398,20 @@ The private Brave log contained no conclusive host result; absence of verbose
 entries is not evidence of success on installed Chromium155. Findings are linked
 in GitHub #142/#156/#164/#165; no new OAuth, security-policy or ACL changes made.
 
+## October 15: authenticated retry exposed Windows credential replacement bug
+
+The lead's new consent callback completed, but authorization failed at private
+storage; no authenticated connection was claimed. Harmless actual Windows DPAPI
+probes reproduced first-write/read success and repeat-write failure. Windows
+PowerShell coerced the File.Replace backup argument $null to an empty string,
+causing ArgumentException. Passing [NullString]::Value preserves true .NET null.
+This retains atomic replacement, CurrentUser DPAPI and private/protected ACLs;
+no plaintext, broad access, delete-then-write or credential-copy workaround added.
+Independent QA's new Windows regression exercises real create/read/overwrite/read
+and confirms a rejected oversized write preserves the previous synthetic record.
+The old mocked storage test could not detect this OS boundary. Public defect
+#167 is linked to Azure Task348. The fixed public helper code was installed with
+rollback and source-hash verification; actual OAuth/inventory retry is separate.
+Failed-persistence cleanup discards in-memory tokens but does not revoke grants
+at the provider; no claim of revocation is made for this failed attempt.
+

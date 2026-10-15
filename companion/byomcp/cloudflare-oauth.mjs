@@ -69,7 +69,9 @@ try {
       $f=[IO.FileStream]::new($tmp,[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$acl)
       try { $f.Write($bytes,0,$bytes.Length); $f.Flush($true) } finally { $f.Dispose() }
       Assert-Private $parent
-      if ([IO.File]::Exists($p)) { Assert-Private $p; [IO.File]::Replace($tmp,$p,$null) } else { [IO.File]::Move($tmp,$p) }
+      # Windows PowerShell coerces $null to an empty string for this .NET
+      # string parameter; NullString preserves a true null backup filename.
+      if ([IO.File]::Exists($p)) { Assert-Private $p; [IO.File]::Replace($tmp,$p,[NullString]::Value) } else { [IO.File]::Move($tmp,$p) }
       Assert-Private $p; [Console]::Out.Write('true')
     } finally { if ([IO.File]::Exists($tmp)) { [IO.File]::Delete($tmp) } }
   } else { throw 'operation' }
