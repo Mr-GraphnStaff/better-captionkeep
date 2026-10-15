@@ -201,3 +201,29 @@ adds a complete-distribution checksum manifest; both are included with the
 helper and all five browser packages in attestation/upload/draft asset paths.
 No release workflow, tag, native installation or publication was triggered.
 
+## October 14: authorized branch sync and local-helper setup
+
+The lead approved bringing master history into the 6.0 branch only, keeping
+draft PR #137 unmerged and publishing nothing. Merge commit `c60ab32` preserves
+the newer public 5.4 listing/installation records alongside checked 6.0 status.
+No 5.4 checkout, package or live Store listing was changed by this integration.
+
+Azure 749 failed because Development ran root tests before installing the optional
+helper SDK. GitHub validation on `c41fcc1` passed the complete candidate gate,
+which installs those dependencies first. Azure now uses root dependency install,
+locked helper setup with lifecycle scripts disabled, then tests. Two regression
+checks cover ordering and unchanged candidate/production approval boundaries.
+After the documentation sync and setup repair, **496/496 integrated tests passed
+with zero skips/failures**; checked status and Store metadata also passed. Remote
+acceptance requires the new push and rerun, not the old GitHub success.
+
+The lead also approved local Brave helper registration and a read-only connection
+test, excluding DNS changes and directory lookups. He clarified the desired
+Cloudflare MCP uses OAuth in VS Code. Nonsecret registration inspection did not
+copy credentials. Public protected-resource discovery confirms the Cloudflare
+resource and authorization-server identity; it is not authenticated acceptance.
+The current helper accepts separately provisioned bearer credentials and does
+not implement interactive OAuth. A helper-owned sign-in must not be represented
+as already working, nor reuse VS Code/Codex credential stores. Isolated native
+metadata testing and that authentication requirement remain separate evidence.
+

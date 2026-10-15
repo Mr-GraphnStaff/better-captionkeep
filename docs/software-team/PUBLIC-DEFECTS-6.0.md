@@ -129,3 +129,11 @@ alert. The runner now waits for actual theme/native-control state and real page
 focus; audit text is token-inspected without rebuilding HTML. Its old value was
 only a boolean accessible-name check, not a production HTML sink. Local focused
 checks passed; protected Linux/CodeQL reruns are separate acceptance evidence.
+
+Azure 749 follow-up under #105: one offline helper ZIP/import test failed because
+the Development job installed only root dependencies, not the locked optional
+helper SDK. The existing full GitHub candidate gate passed because it includes
+helper setup. Azure Development now installs those dependencies before tests;
+two ordering/boundary regressions and the 496-test integrated suite pass locally.
+The original failed run is not relabeled as successful; the new revision needs
+its own remote result.

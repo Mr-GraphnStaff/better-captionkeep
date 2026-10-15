@@ -37,6 +37,8 @@ stages:
                   displayName: Use Node.js 22
                 - bash: npm ci
                   displayName: Install locked dependencies
+                - bash: npm run setup:helper
+                  displayName: Install locked optional-helper test dependencies without lifecycle scripts
                 - bash: npm test
                   displayName: Run automated tests
                 - bash: npm run lint
