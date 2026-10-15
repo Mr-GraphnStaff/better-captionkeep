@@ -5,13 +5,23 @@ const {webcrypto} = require('node:crypto');
 const vm = require('node:vm');
 const pageCode = readFileSync(require.resolve('../teams-captions-saver/shareable.js'),'utf8');
 const api = require('../teams-captions-saver/shareableSummary.js');
-const settle = () => new Promise(resolve => setTimeout(resolve,20));
-async function harness({captionCount = 1} = {}) {
+async function waitFor(predicate, description) {
+    const deadline = Date.now() + 10000;
+    while (!predicate()) {
+        assert(Date.now() < deadline, `Timed out waiting for ${description}`);
+        await new Promise(resolve => setTimeout(resolve,5));
+    }
+}
+async function harness({captionCount = 1, digestDelayMs = 0} = {}) {
     const nodes = new Map();
     function node(id) { return {id,checked:false,value:'',hidden:true,textContent:'',children:[],listeners:{},
         addEventListener(name,fn) {this.listeners[name] = fn;}, append(...values) {this.children.push(...values);},
         querySelectorAll() {return this.children.flatMap(label=>label.children || []).filter(input=>input.checked);}}; }
     for (const id of ['status','draft-form','source','summary-text','reviewed','privilege-confirmed','privilege-attestation','preview','prompt','copy','download','print','print-stamp','print-body']) nodes.set(id,node(id));
+    let statusRevision = 0, statusText = '';
+    Object.defineProperty(nodes.get('status'),'textContent', {
+        get:()=>statusText, set:value=>{statusText=value;statusRevision++;}
+    });
     const radio = {value:'confidential'}; const events = {}; const copies = []; const files = []; let storageListener;
     let captions = Array.from({length:captionCount}, (_,index)=>({key:String(index),Name:'Synthetic speaker',Text:'Approved business update.'})); let managed = {}; let failure = false; let prints = 0; let address; let yields = 0;
     const window = {addEventListener:(name,fn)=>{events[name]=fn;},print:()=>{prints++;}};
@@ -21,13 +31,23 @@ async function harness({captionCount = 1} = {}) {
         document:{getElementById:id=>nodes.get(id),querySelector:()=>radio,createElement:()=>node('generated'),createTextNode:text=>({text})},
         chrome:{storage:{managed:{get:async()=>managed},sync:{get:async()=>({privacyScrubberEnabled:false})},onChanged:{addListener:fn=>{storageListener=fn;}}},
             downloads:{download:async value=>{files.push(value);}}},navigator:{clipboard:{writeText:async text=>{copies.push(text);}}},
-        crypto:webcrypto, TextEncoder, URLSearchParams, URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL(){}},Blob,window,setTimeout:()=>0,
+        crypto:{subtle:{digest:async (...args)=>{
+            if (digestDelayMs) await new Promise(resolve=>setTimeout(resolve,digestDelayMs));
+            return webcrypto.subtle.digest(...args);
+        }}}, TextEncoder, URLSearchParams, URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL(){}},Blob,window,setTimeout:()=>0,
         requestAnimationFrame:fn=>{yields++; queueMicrotask(fn);}};
-    vm.runInNewContext(pageCode,context); await settle();
+    vm.runInNewContext(pageCode,context);
+    await waitFor(()=>nodes.get('draft-form').hidden===false,'shareable workspace initialization');
     return {nodes,radio,copies,files,events,get prints(){return prints;},get address(){return address;},get yields(){return yields;},
         setCaptions:value=>{captions=value;},deleteSource:()=>{failure=true;},setPolicy:value=>{managed=value;},
         change:(id)=>nodes.get('draft-form').listeners.input({target:nodes.get(id)}),
-        click:async id=>{nodes.get(id).listeners.click(); await settle();},storageChange:()=>storageListener({},'managed')};
+        click:async id=>{
+            const before = statusRevision;
+            nodes.get(id).listeners.click();
+            // The DOM handler intentionally returns void. Its terminal status is
+            // observable completion; elapsed time is not proof WebCrypto finished.
+            await waitFor(()=>statusRevision > before,`${id} operation completion`);
+        },storageChange:()=>storageListener({},'managed')};
 }
 test('shareable workspace is blank, excerpts unselected and private locator removed', async()=>{
     const h=await harness(); assert.equal(h.nodes.get('draft-form').hidden,false); assert.equal(h.address,'/shareable.html');
@@ -45,6 +65,15 @@ test('reviewed summary exports stamp and summary only; edits revoke approval', a
     h.nodes.get('reviewed').checked=true; await h.click('copy'); assert.equal(h.copies.length,1);
     assert.match(h.copies[0],/CONFIDENTIAL/); assert.match(h.copies[0],/Business update/); assert(!h.copies[0].includes('Synthetic speaker'));
     h.change('summary-text'); await h.click('copy'); assert.equal(h.copies.length,1);
+});
+
+test('export harness waits for asynchronous source validation beyond a short timer',async()=>{
+    const h=await harness({digestDelayMs:60});
+    h.nodes.get('summary-text').value='Reviewed delayed export.';
+    h.nodes.get('reviewed').checked=true;
+    await h.click('copy');
+    assert.equal(h.copies.length,1);
+    assert.match(h.copies[0],/Reviewed delayed export/);
 });
 test('privilege requires explicit designation and any selection change clears review',async()=>{
     const h=await harness(); h.radio.value='privileged'; h.nodes.get('summary-text').value='Reviewed text.'; h.nodes.get('reviewed').checked=true;

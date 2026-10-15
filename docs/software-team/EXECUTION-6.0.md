@@ -310,3 +310,52 @@ loaded-extension smoke passed. Firefox was screenshot-only, not native tested.
 No live provider certification, Brave installed-helper enrollment, Store upgrade,
 release freeze, merge or publication follows from this repair checkpoint.
 
+## October 15: first-party Cloudflare MCP implementation comparison
+
+The lead requested comparison against Cloudflare's real API MCP implementation,
+not another retry of the same native setup. Reviewed first-party repository
+revision `e85737947299bbb9b5858fc9ae6bc6d1e6f9a3ba`: README, `src/mcp-handler.ts`,
+OAuth handler/scopes, and the pinned official SDK 2.3.1 implementation. Cloudflare
+uses standard SDK handling with stateless 2025 compatibility and JSON/SSE shaping.
+The previous authenticated metadata discovery is evidence that OAuth worked for
+that test; it does not diagnose the separate browser-to-helper enrollment failure.
+
+Confirmed #164: our wrapper accepted only POST/JSON, rejected valid SSE, empty
+202/204 responses and MCP GET/DELETE, and pinned a modern wire revision without
+legacy fallback. The repair delegates negotiation to the official SDK and passes
+bounded incremental streams and standard lifecycle responses while preserving
+exact HTTPS resource, public IPv4 DNS, authorization ownership, redirect denial,
+byte limits, cancellation and deadlines. SDK tests exercise modern and 2025-only
+peers through the production adapters. No real API object GET/DELETE is enabled
+by supporting MCP session lifecycle at the exact reviewed endpoint.
+
+Confirmed #165: native runtime errors were discarded and reduced to a generic
+failure. The repaired Connect path propagates only fixed diagnostic enums;
+Settings distinguishes missing/forbidden/failed/exited hosts, timeout and
+enrollment mismatch without exposing raw errors or paths. Metadata-only verified
+connections remain connected with actions off, rather than appearing disconnected
+or failing review merely because no typed action is configured. Typed execution
+filters and approvals are unchanged; arbitrary discovered tools remain unusable.
+
+Independent checks: 53/53 helper tests, 84/84 native/worker/runtime/approval/UI
+regressions, final four Settings diagnostic checks and a separate pre-header
+abort cleanup probe passed. These use synthetic peers/browser boundaries except
+the documented rendered Chrome fixture checks. No credentials, new sign-in,
+native registration, installed host launch, DNS changes or directory lookup was
+used. Browser-native enrollment and live provider/action acceptance remain open.
+
+The first integrated run recorded 543/544 extension tests passing and one
+shareable-summary UI assertion failing. Independent review traced #166 to a
+fixed 20 ms test wait racing production's asynchronous WebCrypto/source checks;
+no product export defect was established. The test-only repair waits for bounded
+observable completion and adds deliberately delayed digests. Eight focused tests
+and twelve simultaneous runs (96 subtests) passed. No production privacy/source/
+approval check was weakened or test skipped. A final whole candidate gate follows
+this correction; the initial failed run is retained, not relabelled as passing.
+
+Final-source integrated tests now pass **545/545 extension tests and 53/53 helper
+tests**, zero failures/skips, with lint, eight-page/54-script audit and both
+dependency audits passing. Browser/package/source/hash validation is still a
+separate stage of the running local candidate gate. Fresh CI must validate the
+new pushed revision; previous green revisions are not reused as acceptance.
+

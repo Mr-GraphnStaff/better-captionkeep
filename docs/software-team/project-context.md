@@ -119,6 +119,16 @@ full local candidate gate passed 530 extension and 47 helper tests with no skips
 Linux main tests explicitly skipped eight platform-specific cases. Chrome/Edge
 Linux surface smoke passed; real native-helper/provider acceptance remains open.
 
+October 15 first-party Cloudflare MCP comparison found and repaired local
+interop defects #164 (standard JSON/SSE/lifecycle and supported wire-version
+negotiation) and #165 (discarded safe native diagnostic codes). The helper still
+owns both transports and credentials; connection/inventory does not grant tool
+execution. Metadata-only verified connections now stay visibly connected with
+actions off. Independent synthetic/SDK and rendered fixture checks passed; no
+new authentication or installed-native success is claimed. Test-only timing
+defect #166 was also repaired without changing product export privacy controls.
+The subsequent integrated gate and pushed revision require their own evidence.
+
 - Tests execute production functions and deliberate failure cases; real Chromium
   rendering and loaded-extension checks use isolated profiles with synthetic data.
 - No customer transcript, tenant credential or private screenshot belongs in

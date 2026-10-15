@@ -5,6 +5,28 @@
     const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
     const IDENTIFIER = /^[a-zA-Z0-9._-]{1,100}$/;
     const HASH = /^[a-f0-9]{64}$/;
+    // Browser-owned native messaging errors are classified, never forwarded.
+    // Unknown/localized errors deliberately reveal no path, command or provider text.
+    const DISCONNECT_CODES = new Map([
+        ['Specified native messaging host not found.','native-host-not-found'],
+        ['Failed to start native messaging host.','native-host-start-failed'],
+        ['Access to the specified native messaging host is forbidden.','native-host-forbidden'],
+        ['Native host has exited.','native-host-exited'],
+        ['Error when communicating with the native messaging host.','native-communication-error']
+    ]);
+    const CONNECTION_CODES = new Set([...DISCONNECT_CODES.values(),'native-timeout','enrollment-mismatch','permission-denied','native-connection-failed']);
+    function connectionFailure(error) {
+        const message = typeof error?.message === 'string' ? error.message : '';
+        const code = CONNECTION_CODES.has(error?.code) ? error.code
+            : CONNECTION_CODES.has(message) ? message
+            : message === 'permission-denied' ? 'permission-denied'
+            : ['invalid-challenge','enrollment-unverified','invalid-helper-status','invalid-helper-profile','profile-binding'].includes(message)
+                ? 'enrollment-mismatch' : 'native-connection-failed';
+        // Keep only our own bounded handshake labels, never upstream errors.
+        const safe = new Error(['invalid-challenge','enrollment-unverified','invalid-helper-status','invalid-helper-profile','profile-binding'].includes(message) ? message : code);
+        safe.code = code;
+        return safe;
+    }
     function bounded(value, limit) {
         function inspect(item, depth) {
             if (depth > 12) throw new Error('native-depth');
@@ -116,10 +138,14 @@
             await allowed(expected);
             try {
                 let opened;
-                try {opened = api.runtime.connectNative(HOST_NAME);} catch {throw new Error('native-host-unavailable');}
+                try {opened = api.runtime.connectNative(HOST_NAME);}
+                catch (error) {throw new Error(DISCONNECT_CODES.get(error?.message) || 'native-connection-failed');}
                 port = opened;
                 opened.onMessage.addListener(reply => {if (port === opened && generation === expected) receive(reply);});
-                opened.onDisconnect.addListener(() => {const ignored = api.runtime.lastError; void ignored;if (port === opened) stop('native-disconnected');});
+                opened.onDisconnect.addListener(() => {
+                    const code = DISCONNECT_CODES.get(api.runtime.lastError?.message) || 'native-connection-failed';
+                    if (port === opened) stop(code);
+                });
                 const challenge = await request('enrollment-challenge');
                 if (!challenge || challenge.hostName !== HOST_NAME || !HASH.test(challenge.nonce)
                     || !Number.isFinite(challenge.expiresAt) || challenge.expiresAt <= Date.now()
@@ -138,7 +164,7 @@
                     profileIds:[...challenge.profileIds],verifiedAt:Date.now()}});
                 await allowed(expected);
                 return structuredClone(status);
-            } catch (error) {stop('enrollment-failed');throw error;}
+            } catch (error) {stop('enrollment-failed');throw connectionFailure(error);}
         }
         async function inventory(profileId,revision,sender) {
             if (!senderAllowed(sender,true)) throw new Error('sender-denied');

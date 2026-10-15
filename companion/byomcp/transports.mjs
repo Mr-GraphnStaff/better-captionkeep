@@ -24,15 +24,30 @@ export function secureFetch(resource, getAuthorization, {resolve = lookup, send 
   if (isIP(literal) && !publicIPv4(literal)) throw new Error('network-denied');
   return async (input, init = {}) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
-    if (url.href !== pinned.href || init.method !== 'POST') throw new Error('resource-changed');
+    const method = init.method || 'GET';
+    if (url.href !== pinned.href || !['POST','GET','DELETE'].includes(method)) throw new Error('resource-changed');
     const authorization = await getAuthorization(pinned.href);
     if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ') || /[\r\n]/.test(authorization)) throw new Error('authorization-unavailable');
     const headers = Object.fromEntries(new Headers(init.headers));
     headers.authorization = authorization;
     const body = typeof init.body === 'string' ? init.body : '';
-    if (Buffer.byteLength(body) > 98304) throw new Error('request-limit');
+    if (Buffer.byteLength(body) > 98304 || method !== 'POST' && body) throw new Error('request-limit');
+    if (init.signal?.aborted) throw new Error('cancelled');
     return new Promise((resolveResponse, reject) => {
-      const req = send(url, {method:'POST', headers, signal:init.signal,
+      let req, responseBody, streamController, settled = false, finished = false;
+      const deadline = setTimeout(() => stop(new Error('timeout')), 60000);
+      deadline.unref?.();
+      const cleanup = () => {clearTimeout(deadline); init.signal?.removeEventListener('abort', abort);};
+      const stop = error => {
+        if (finished) return;
+        finished = true; cleanup();
+        if (!settled) reject(error);
+        else if (streamController) {try {streamController.error(error);} catch {}}
+        responseBody?.destroy(); req?.destroy(error);
+      };
+      const abort = () => stop(new Error('cancelled'));
+      init.signal?.addEventListener('abort', abort, {once:true});
+      try {req = send(url, {method, headers, signal:init.signal,
         lookup(hostname, options, callback) {
           // This adapter deliberately supports IPv4 only. Resolve only the
           // addresses it can actually use rather than rejecting a safe A record
@@ -43,15 +58,42 @@ export function secureFetch(resource, getAuthorization, {resolve = lookup, send 
             else callback(null, addresses[0].address, 4);
           });
         }}, response => {
-        if (response.statusCode >= 300 && response.statusCode < 400) {response.destroy(); reject(new Error('redirect-denied')); return;}
-        if (!String(response.headers['content-type']).startsWith('application/json')) {response.destroy(); reject(new Error('unsupported-response')); return;}
-        const chunks = []; let size = 0;
-        response.on('data', chunk => {size += chunk.length; if (size > contracts.LIMITS.resultBytes) {response.destroy(); reject(new Error('result-limit'));} else chunks.push(chunk);});
-        response.on('error', () => reject(new Error('network-failure')));
-        response.on('end', () => resolveResponse(new Response(Buffer.concat(chunks), {status:response.statusCode, headers:response.headers})));
-      });
-      req.on('error', () => reject(new Error('network-failure')));
-      req.setTimeout(60000, () => req.destroy(new Error('timeout')));
+        responseBody = response;
+        if (response.statusCode >= 300 && response.statusCode < 400) {stop(new Error('redirect-denied')); return;}
+        const mediaType = String(response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+        const empty = response.statusCode === 202 || response.statusCode === 204;
+        const ok = response.statusCode >= 200 && response.statusCode < 300;
+        if (ok && !empty && !['application/json','text/event-stream'].includes(mediaType)) {stop(new Error('unsupported-response')); return;}
+        let size = 0;
+        // Give the SDK the live stream rather than waiting for its end: an SSE
+        // response can remain open while the SDK dispatches its first message.
+        // The same lifetime/byte budget applies to JSON and error responses.
+        const stream = empty ? null : new ReadableStream({
+          start(controller) {streamController = controller;},
+          cancel() {stop(new Error('cancelled'));}
+        });
+        response.on('data', chunk => {
+          if (finished) return;
+          const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          size += bytes.length;
+          if (size > contracts.LIMITS.resultBytes || empty && bytes.length) {stop(new Error('result-limit')); return;}
+          if (streamController) {try {streamController.enqueue(bytes);} catch {stop(new Error('network-failure'));}}
+        });
+        response.on('error', () => stop(new Error('network-failure')));
+        response.on('aborted', () => stop(new Error('network-failure')));
+        response.on('end', () => {
+          if (finished) return;
+          finished = true; cleanup();
+          if (streamController) streamController.close();
+        });
+        response.on('close', () => {if (!finished) stop(new Error('network-failure'));});
+        try {
+          const result = new Response(stream, {status:response.statusCode, headers:response.headers});
+          settled = true; resolveResponse(result);
+        } catch {stop(new Error('unsupported-response'));}
+      });} catch {stop(new Error('network-failure')); return;}
+      req.on('error', () => stop(new Error('network-failure')));
+      req.setTimeout(60000, () => stop(new Error('timeout')));
       req.end(body);
     });
   };
@@ -60,8 +102,11 @@ export function secureFetch(resource, getAuthorization, {resolve = lookup, send 
 export function createSdkAdapters({getAuthorization = async () => null, remoteFetchFactory = secureFetch,cloudflareActions=[]} = {}) {
   const clients = new Set();
   async function connect(profile) {
+    // Negotiate a mutually supported MCP wire revision with the official SDK.
+    // The helper's approval/native-envelope version is a separate contract;
+    // supporting a 2025 server does not relax any schema or action approval.
     const client = new Client({name:'captionkeep-user-owned-helper',version:'0.1.0'},
-      {capabilities:{},versionNegotiation:{mode:{pin:contracts.PROTOCOL_VERSION}}});
+      {capabilities:{},versionNegotiation:{mode:'auto'}});
     let transport;
     if (profile.transport === 'stdio') {
       if (!path.isAbsolute(profile.executable) || !path.isAbsolute(profile.cwd) || !Array.isArray(profile.args)

@@ -212,3 +212,22 @@ both GitHub validations with Linux Chrome/Edge rendered and loaded-extension
 smoke, plus CodeQL and Azure 754/755. This does not establish the exact cause of
 the earlier startup failures or certify real meeting providers. #163's reviewed
 fix is pushed; installed native enrollment remains open acceptance.
+
+First-party Cloudflare comparison, October 15: [#164](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/164)
+tracks standard Streamable HTTP responses and SDK version negotiation rejected
+by our transport wrapper. The bounded repair and actual SDK modern/2025 fixture
+tests pass; this is not a live Cloudflare/native enrollment acceptance claim.
+
+[#165](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/165) tracks
+discarded browser/native connection reasons. Connect now emits fixed safe enums
+only; raw OS/provider diagnostics stay private and action failures remain opaque.
+Settings maps the codes to recovery instructions and correctly represents a
+metadata-only verified connection with actions off. Independent production-chain
+regressions passed. Both issues remain open until applicable acceptance is met.
+
+[#166](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/166) records
+a test-only shareable-summary timing defect found by the integrated suite:
+the fixed 20 ms wait could inspect export state before WebCrypto/source checks
+completed. Bounded observable completion and a delayed-digest regression replace
+the timing guess. Eight focused checks and twelve simultaneous eight-test runs
+passed. Product export code was unchanged; no disclosure defect is inferred.

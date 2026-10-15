@@ -1,6 +1,8 @@
 (function initializeByomcpWorkerBridge(root) {
     'use strict';
     const PAGES = new Set(['/popup.html','/settings.html','/sidepanel.html','/viewer.html']);
+    const CONNECTION_CODES = new Set(['native-host-not-found','native-host-start-failed','native-host-forbidden','native-host-exited',
+        'native-communication-error','native-timeout','enrollment-mismatch','permission-denied','native-connection-failed']);
     const copy = value => structuredClone(value);
     async function describeSource(sessionId, transcript, recordedAt) {
         if (!Array.isArray(transcript) || !transcript.length) return null;
@@ -174,7 +176,14 @@
                 if (message?.message === 'byomcp_settings') return await settings(message,sender);
                 if (message?.message === 'byomcp_action') return await actions(message);
                 return {ok:false,error:'operation-unavailable'};
-            } catch {return {ok:false,error:'operation-not-verified'};} // never echo provider content/secrets
+            } catch (error) {
+                // Only setup Connect gets bounded diagnostic enums. Action/provider
+                // failures retain the opaque response; raw messages never cross here.
+                const connecting = message?.message === 'byomcp_settings' && message.operation === 'connect';
+                const code = CONNECTION_CODES.has(error?.code) ? error.code
+                    : CONNECTION_CODES.has(error?.message) ? error.message : 'native-connection-failed';
+                return {ok:false,error:'operation-not-verified',...(connecting ? {code} : {})};
+            }
         }
         function storageChanged(changes,area) {
             if (area !== 'local' || Object.keys(changes).some(key=>key !== jobsModule.KEY)) bump();

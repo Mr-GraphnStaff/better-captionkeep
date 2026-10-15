@@ -6,9 +6,11 @@ explicit Connect gesture. This package does not automatically install a native
 host, edit the registry, provision credentials or supply a publisher endpoint
 or customer account.
 
-`@modelcontextprotocol/client` is exactly 2.3.1 (isolated lockfile). MCP is pinned
-to 2026-07-28 with no older-protocol fallback. The official SDK handles protocol
-negotiation/framing; this code does not invent a private MCP dialect.
+`@modelcontextprotocol/client` is exactly 2.3.1 (isolated lockfile). The official
+SDK automatically negotiates a mutually supported MCP wire revision, including
+2025-era initialization and modern discovery. The helper's native/approval
+contract is separate from that remote negotiation; fallback never relaxes tool
+schema, policy, source-binding or action-approval checks.
 
 Run from this directory: `npm ci --ignore-scripts`, then `npm test`.
 From the project root also run `node --test tests/byomcp-contracts.test.cjs`.
@@ -47,7 +49,11 @@ suppresses child stderr. The SDK inherits its documented restricted environment
 set; a production sandbox/environment/file-signature profile still needs review.
 Remote uses helper-side HTTPS with exact resource/path pinning, no redirects,
 per-connection supplied in-memory authorization and per-resolution public IPv4
-checking. IPv6/private-network endpoints and SSE results are unsupported.
+checking. JSON and incremental SSE responses, empty 202/204 acknowledgements,
+and exact-endpoint GET/DELETE for MCP stream/session lifecycle are supported.
+GET/DELETE never address a Cloudflare object or arbitrary URL. Response bytes,
+stream lifetime, cancellation and abort remain bounded; IPv6/private-network
+endpoints remain unsupported.
 Generic adapter callbacks must supply authorization for the exact resource;
 do not use Graph, IDE or provider-session credentials. The separate, explicit
 Windows Cloudflare setup flow below can persist its own approved grant in a

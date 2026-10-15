@@ -2,23 +2,37 @@
     'use strict';
     const clean = (value, limit = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, limit) : '';
     const identifier = value => typeof value === 'string' && /^[a-zA-Z0-9._-]{1,100}$/.test(value) ? value : '';
+    // Only fixed local diagnostic codes are displayed. Raw browser/OS or MCP
+    // error text is never copied into this status region.
+    const connectionMessages = Object.freeze({
+        'native-host-not-found':'Local helper not found. Check its installation and browser registration, then reconnect.',
+        'native-host-start-failed':'The browser could not start the local helper. Check its installed runtime and launcher, then reconnect.',
+        'native-host-forbidden':'This browser extension is not allowed to use the helper. Check the enrolled extension identity and browser registration.',
+        'native-host-exited':'The local helper closed before enrollment completed. Check its local configuration, then reconnect.',
+        'native-communication-error':'The local helper could not communicate correctly. Check that the installed extension and helper versions match.',
+        'native-timeout':'The local helper did not respond in time. Check its installation, then reconnect.',
+        'enrollment-mismatch':'The helper identity or configuration does not match the reviewed setup. Check enrollment and import the matching non-secret configuration.',
+        'permission-denied':'Browser permission was not granted. Choose Connect enrolled helper to try again; the helper remains disconnected.',
+        'native-connection-failed':'The local helper connection could not be verified. Check installation and enrollment, then reconnect.'
+    });
     function statusView(response) {
         const status = response?.ok === true ? response.status : null;
         if (!status || status.protocolVersion !== 1 || status.enrollmentVerified !== true) {
             const code = response?.code;
-            return {verified:false, enabled:false, profiles:[], label:code === 'not-installed'
+            const connectionLabel = typeof code === 'string' && Object.hasOwn(connectionMessages,code) ? connectionMessages[code] : '';
+            return {verified:false, enabled:false, profiles:[], label:connectionLabel || (code === 'not-installed'
                 ? 'Local helper not installed. Install and enroll it before connecting.'
                 : code === 'policy-denied' ? 'Your organization has disabled Bring Your Own MCP. Local capture remains available.'
                 : code === 'configuration-required' ? 'Setup required. Import a reviewed non-secret helper configuration before connecting.'
                 : code === 'not-connected' ? 'Helper not connected. Choose Connect enrolled helper to request browser permission and verify enrollment.'
-                : 'This build cannot verify an enrolled helper. Bring Your Own MCP remains off.'};
+                : 'This build cannot verify an enrolled helper. Bring Your Own MCP remains off.')};
         }
         const profiles = Array.isArray(status.profiles) ? status.profiles.slice(0, 20).filter(profile => identifier(profile?.id)
             && profile.verified === true && ['stdio', 'streamable-http'].includes(profile.transport)
             && Number.isSafeInteger(profile.revision) && profile.revision > 0).map(profile => ({id:profile.id,
             label:clean(profile.label) || profile.id, transport:profile.transport, revision:profile.revision})) : [];
         return {verified:true, enabled:status.enabled === true, allowWrites:status.allowWrites === true, profiles,
-            label:`Helper ${clean(status.helperVersion, 40) || 'version unavailable'} verified. ${status.enabled === true ? 'Connection enabled; every evidence request still needs review.' : 'Connection off. Review a profile before enabling it.'}`};
+            label:`Helper ${clean(status.helperVersion, 40) || 'version unavailable'} verified. ${status.enabled === true ? 'Connection enabled; every evidence request still needs review.' : 'Helper connected; actions remain off. Review a profile to check approved actions.'}`};
     }
     function inventoryView(response, profile) {
         const inventory = response?.ok === true ? response.inventory : null;
@@ -90,7 +104,6 @@
                 const profile = state.profiles.find(item => item.id === profileId);
                 if (!state.verified || !profile) throw new Error('Choose a verified helper profile first.');
                 const tools = inventoryView(await request('inventory', {profileId:profile.id, revision:profile.revision},expected), profile);
-                if (!tools.length) throw new Error('This profile has no approved tools. Nothing can be enabled.');
                 reviewed = {...profile, tools}; return this.getState();
             },
             async connect(permissionRequest) {
@@ -161,7 +174,9 @@
             item.textContent = `${tool.name} — compatible ${tool.effect === 'write' ? 'write action; separate execution approval required' : 'read action'}; schema ${tool.schemaDigest}`;
             elements.inventory.append(item);
         }
-        if (state.reviewed) elements.status.textContent += ` ${state.reviewed.label} tool inventory reviewed. Select evidence in the Live Workspace to review a specific action. No evidence was sent by this check.`;
+        if (state.reviewed) elements.status.textContent += state.reviewed.tools.length
+            ? ` ${state.reviewed.label} tool inventory reviewed. Select evidence in the Live Workspace to review a specific action. No evidence was sent by this check.`
+            : ` ${state.reviewed.label} inventory checked. No approved actions are available in this profile; the helper connection is verified but actions remain off. No evidence was sent.`;
     }
     async function run(action, progress = 'Checking the local helper…') {
         if (section.getAttribute('aria-busy') === 'true') return;
