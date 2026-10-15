@@ -13,7 +13,16 @@ const SCOPES='user:read account:read';
 const ID=/^[a-zA-Z0-9._-]{1,100}$/;
 const GET_PATHS=new Set(['/.well-known/oauth-protected-resource/mcp','/.well-known/oauth-protected-resource','/.well-known/oauth-authorization-server','/.well-known/openid-configuration']);
 const MAX_BYTES=65536;
-const sanitized=()=>new Error('cloudflare-authorization-not-verified');
+const REASONS=new Set(['unknown','network-error','token-http-error','invalid-grant','invalid-client','invalid-scope','access-denied',
+  'token-response-error','scope-validation','token-validation']);
+const STAGES=new Set(['initialization','read-only-catalog','awaiting-callback','token-exchange','private-storage','authorization-expired']);
+const sanitized=(reason='unknown')=>Object.assign(new Error('cloudflare-authorization-not-verified'),{reason:REASONS.has(reason)?reason:'unknown'});
+// Diagnostic values are bounded enums/numbers. Never inspect/forward messages,
+// descriptions, response bodies, URLs, tokens or arbitrary error properties.
+export function authorizationFailureDiagnostic(error) {
+  return {stage:STAGES.has(error?.stage)?error.stage:'setup',reason:REASONS.has(error?.reason)?error.reason:'unknown',
+    ...(Number.isInteger(error?.httpStatus) && error.httpStatus>=100 && error.httpStatus<=599?{httpStatus:error.httpStatus}:{})};
+}
 const sameSecret=(left,right)=>typeof left==='string' && typeof right==='string' && left.length===right.length
   && Buffer.byteLength(left)===Buffer.byteLength(right) && timingSafeEqual(Buffer.from(left),Buffer.from(right));
 
@@ -139,12 +148,12 @@ export function createCloudflareOAuthFetch({send=httpsRequest,resolveAddress=loo
         const chunks=[];let bytes=0;
         if(response.statusCode>=300 && response.statusCode<400 || !String(response.headers['content-type']).startsWith('application/json')) {response.destroy();reject(sanitized());return;}
         response.on('data',chunk=>{bytes+=chunk.length;if(bytes>MAX_BYTES){response.destroy();reject(sanitized());}else chunks.push(chunk);});
-        response.on('error',()=>reject(sanitized()));response.on('end',()=>{
+        response.on('error',()=>reject(sanitized('network-error')));response.on('end',()=>{
           try {const bytes=Buffer.concat(chunks),value=JSON.parse(bytes.toString('utf8'));if(response.statusCode===200 && method==='GET')checkMetadata(url,value);
             resolve(new Response(bytes,{status:response.statusCode,headers:response.headers}));} catch {reject(sanitized());}
         });
       });
-      req.setTimeout(15000,()=>req.destroy(sanitized()));req.on('error',()=>reject(sanitized()));req.end(body);
+      req.setTimeout(15000,()=>req.destroy(sanitized('network-error')));req.on('error',()=>reject(sanitized('network-error')));req.end(body);
     });
   };
 }
@@ -154,14 +163,14 @@ function binding(credentialReference,profileId) {
 }
 function tokenValue(tokens) {
   if(!tokens || tokens.issuer!==ISSUER || tokens.token_type?.toLowerCase()!=='bearer'
-      || typeof tokens.access_token!=='string' || !tokens.access_token || tokens.access_token.length>16384 || /[\r\n]/.test(tokens.access_token))throw sanitized();
+      || typeof tokens.access_token!=='string' || !tokens.access_token || tokens.access_token.length>16384 || /[\r\n]/.test(tokens.access_token))throw sanitized('token-validation');
   return tokens.access_token;
 }
 function checkedScope(value,allowed,limit=2048) {
   const scope=value===undefined?allowed:value;
-  if(typeof scope!=='string' || scope.length>limit || !/^[a-zA-Z0-9:._/ -]*$/.test(scope))throw sanitized();
+  if(typeof scope!=='string' || scope.length>limit || !/^[a-zA-Z0-9:._/ -]*$/.test(scope))throw sanitized('scope-validation');
   const permitted=new Set(allowed.split(/\s+/).filter(Boolean)),parts=[...new Set(scope.split(/\s+/).filter(Boolean))];
-  if(parts.some(part=>!permitted.has(part)))throw sanitized();return parts.join(' ');
+  if(parts.some(part=>!permitted.has(part)))throw sanitized('scope-validation');return parts.join(' ');
 }
 export function readOnlyCloudflareScopes(metadata) {
   checkMetadata(new URL(`${ISSUER}/.well-known/oauth-authorization-server`),metadata);
@@ -184,7 +193,25 @@ export async function authorizeCloudflare({storePath,credentialReference,profile
   validateStorePath(storePath);const expected=binding(credentialReference,profileId);
   if(typeof onAuthorizationUrl!=='function' || typeof allowOfflineAccess!=='boolean' || typeof readOnlySessionPreset!=='boolean' || signal?.aborted)throw sanitized();
   const vault=store || createWindowsCredentialStore({storePath}),controller=new AbortController();
-  const fetcher=fetchFn || createCloudflareOAuthFetch({signal:controller.signal});
+  const rawFetch=fetchFn || createCloudflareOAuthFetch({signal:controller.signal});
+  let tokenHttpStatus;
+  const fetcher=async(input,init)=>{
+    const url=new URL(typeof input==='string'||input instanceof URL?input:input.url);
+    let response;
+    try {response=await rawFetch(input,init);} catch(error) {
+      // Transport detail stays private, including URL-bearing network messages.
+      throw sanitized(error?.reason==='network-error' || ['ECONNRESET','ECONNREFUSED','ENOTFOUND','ETIMEDOUT','EAI_AGAIN'].includes(error?.code)?'network-error':'unknown');
+    }
+    if(url.origin===ISSUER && url.pathname==='/token') {
+      tokenHttpStatus=response.status;
+      // The SDK logs provider error descriptions for retryable OAuth errors.
+      // Stop those failures here, without logging or retrying a single-use code.
+      let value;try {value=await response.clone().json();} catch {}
+      const reason=new Map([['invalid_grant','invalid-grant'],['invalid_client','invalid-client'],['invalid_scope','invalid-scope'],['access_denied','access-denied']]).get(value?.error);
+      if(reason || !response.ok || typeof value?.error==='string')throw sanitized(reason || (!response.ok?'token-http-error':'token-response-error'));
+    }
+    return response;
+  };
   let requestedScopes=allowOfflineAccess ? `${SCOPES} offline_access` : SCOPES;
   let discovery,clientInformation,tokens,verifier,redirectUrl,consumed=false,expiresAt;
   let phase='initialization';
@@ -238,11 +265,16 @@ export async function authorizeCloudflare({storePath,credentialReference,profile
     if(controller.signal.aborted || !consumed)throw sanitized();
     phase='token-exchange';
     if(await guarded(authFunction(provider,{serverUrl:RESOURCE,authorizationCode:result.code,iss:result.iss,scope:requestedScopes,fetchFn:fetcher}))!=='AUTHORIZED'
-        || controller.signal.aborted || !tokens || !Number.isFinite(expiresAt) || expiresAt<=now())throw sanitized();
+        || controller.signal.aborted || !tokens || !Number.isFinite(expiresAt) || expiresAt<=now())throw sanitized('token-validation');
     const consentMode=readOnlySessionPreset?'cloudflare-read-only-session':allowOfflineAccess?'explicit-offline-access':'minimal-session';
     phase='private-storage';await vault.write({...expected,clientInformation,tokens,expiresAt,consentMode});
     return {authorized:true,issuer:ISSUER,resource:RESOURCE,credentialReference,profileId,expiresAt,consentMode};
-  } catch {const error=sanitized();error.stage=phase;throw error;}
+  } catch(cause) {
+    const reason=REASONS.has(cause?.reason)?cause.reason:phase==='token-exchange' && tokenHttpStatus>=200 && tokenHttpStatus<300?'token-validation':'unknown';
+    const error=sanitized(reason);error.stage=phase;
+    if(Number.isInteger(tokenHttpStatus) && tokenHttpStatus>=100 && tokenHttpStatus<=599)error.httpStatus=tokenHttpStatus;
+    throw error;
+  }
   finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);controller.abort();server.close();verifier=undefined;tokens=undefined;}
 }
 

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
-import {authorizeCloudflare,getCloudflareAuthorization,createWindowsCredentialStore,createCloudflareOAuthFetch,readOnlyCloudflareScopes,DPAPI_SCRIPT,ISSUER,RESOURCE} from '../cloudflare-oauth.mjs';
+import {authorizeCloudflare,authorizationFailureDiagnostic,getCloudflareAuthorization,createWindowsCredentialStore,createCloudflareOAuthFetch,readOnlyCloudflareScopes,DPAPI_SCRIPT,ISSUER,RESOURCE} from '../cloudflare-oauth.mjs';
 const storePath='C:\\CaptionKeepPrivate\\cloudflare.dpapi';
 const profile={id:'cloudflare-test',credentialReference:'cloudflare-token',transport:'remote',resource:RESOURCE};
 function fixture() {
@@ -158,4 +158,67 @@ test('read-only catalog rejects foreign metadata, invalid names/counts and unsup
   assert.throws(()=>readOnlyCloudflareScopes(f.metadata));
   for(const change of [{issuer:'https://attacker.invalid'},{scopes_supported:['user:read','account:read','offline_access','bad scope:read']},
     {scopes_supported:Array.from({length:1025},(_,i)=>`scope${i}:read`)}])assert.throws(()=>readOnlyCloudflareScopes({...f.metadata,...change}));
+});
+
+test('actual SDK token errors expose only safe enums/status, never descriptions or authorization-code retries',async()=>{
+  const hostile='SYNTHETIC_TOKEN https://private.invalid/callback?code=SECRET C:\\Private\\token.dpapi';
+  for(const [error,status,reason] of [['invalid_grant',400,'invalid-grant'],['invalid_client',401,'invalid-client'],
+    ['invalid_scope',400,'invalid-scope'],['access_denied',403,'access-denied'],[hostile,503,'token-http-error'],
+    ['invalid_grant',200,'invalid-grant'],[hostile,200,'token-response-error']]) {
+    const f=fixture(),original=f.fetchFn,warnings=[],warn=console.warn;
+    f.fetchFn=async(input,init)=>{
+      const response=await original(input,init);
+      return new URL(input).pathname==='/token'?new Response(JSON.stringify({error,error_description:hostile,error_uri:hostile}),
+        {status,headers:{'content-type':'application/json'}}):response;
+    };
+    console.warn=(...args)=>warnings.push(args);
+    try {
+      await assert.rejects(finishAuthorization(f),failure=>{
+        assert.equal(failure.message,'cloudflare-authorization-not-verified');
+        assert.deepEqual(authorizationFailureDiagnostic(failure),{stage:'token-exchange',reason,httpStatus:status});
+        assert(!JSON.stringify(failure).includes(hostile));assert.equal(failure.cause,undefined);return true;
+      });
+    } finally {console.warn=warn;}
+    assert.deepEqual(warnings,[]);assert.equal(f.record(),null);
+    assert.equal(f.seen.filter(item=>item.path==='/token').length,1);
+    assert.equal(f.seen.filter(item=>item.path==='/register').length,1);
+  }
+});
+
+test('malformed token response is bounded token validation and does not enter SDK retry logging',async()=>{
+  const f=fixture(),original=f.fetchFn,warnings=[],warn=console.warn;
+  f.fetchFn=async(input,init)=>{
+    const response=await original(input,init);
+    return new URL(input).pathname==='/token'?new Response('SYNTHETIC_SECRET not JSON',
+      {headers:{'content-type':'application/json'}}):response;
+  };
+  console.warn=(...args)=>warnings.push(args);
+  try {
+    await assert.rejects(finishAuthorization(f),error=>{
+      assert.deepEqual(authorizationFailureDiagnostic(error),{stage:'token-exchange',reason:'token-validation',httpStatus:200});
+      assert(!JSON.stringify(error).includes('SYNTHETIC_SECRET'));return true;
+    });
+  } finally {console.warn=warn;}
+  assert.deepEqual(warnings,[]);assert.equal(f.record(),null);
+  assert.equal(f.seen.filter(item=>item.path==='/token').length,1);
+  assert.equal(f.seen.filter(item=>item.path==='/register').length,1);
+});
+
+test('scope, token validation, network and unknown failures remain distinct without raw exception text',async()=>{
+  for(const defect of ['scope','token','network','unknown']) {
+    const f=fixture(),original=f.fetchFn,hostile='Bearer SYNTHETIC_SECRET https://private.invalid/token';
+    f.fetchFn=async(input,init)=>{
+      if(new URL(input).pathname!=='/token')return original(input,init);
+      if(defect==='network')throw Object.assign(Error(hostile),{code:'ECONNRESET'});
+      if(defect==='unknown')throw Error(hostile);
+      const response=await original(input,init),value=await response.json();
+      if(defect==='scope')value.scope='zone:write';else value.token_type='invalid';
+      return new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}});
+    };
+    await assert.rejects(finishAuthorization(f),error=>{
+      assert.equal(error.reason,({scope:'scope-validation',token:'token-validation',network:'network-error',unknown:'unknown'})[defect]);
+      assert(!JSON.stringify(error).includes(hostile));assert.equal(error.cause,undefined);return true;
+    });
+    assert.equal(f.record(),null);
+  }
 });

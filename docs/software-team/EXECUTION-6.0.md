@@ -415,3 +415,13 @@ rollback and source-hash verification; actual OAuth/inventory retry is separate.
 Failed-persistence cleanup discards in-memory tokens but does not revoke grants
 at the provider; no claim of revocation is made for this failed attempt.
 
+The subsequent consent callback completed but failed at token-exchange, before
+storage. Its exact cause is unknown; do not label it a provider rejection or
+reuse the callback. A separately reviewed repair now reports only fixed reason
+enums and bounded HTTP status. Token error responses are intercepted before SDK
+raw-description warnings or automatic code replay. Independent 22 focused tests
+pass, including hostile/malformed responses, no warning leakage and one exchange.
+The installed public OAuth modules match the repair source. This is diagnostic
+hardening, not live authenticated success; no additional consent attempt was
+started during this diagnostic repair.
+

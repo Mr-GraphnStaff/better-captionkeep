@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import path from 'node:path';
-import {signInCloudflare} from '../authorize-cloudflare.mjs';
+import {signInCloudflare,signInFailureMessage} from '../authorize-cloudflare.mjs';
 const profile={id:'synthetic-profile',transport:'remote',resource:'https://mcp.cloudflare.com/mcp',credentialReference:'synthetic-credential'};
 const configuration={oauthStorePath:'C:/Private/Cloudflare.dpapi',browserConfiguration:{profiles:[{profile}]}};
 const setup={configurationPath:path.resolve('synthetic-config.json'),profileId:profile.id,browserPath:process.execPath,platform:'win32'};
@@ -32,4 +32,16 @@ test('read-only preset requires explicit setup opt-in and never enables refresh 
   await signInCloudflare({...setup,readOnlySessionPreset:true,load:async()=>configuration,authorize:async options=>{
     assert.equal(options.readOnlySessionPreset,true);assert.equal(options.allowOfflineAccess,false);return {authorized:true};
   }});
+});
+
+test('CLI failure output contains only fixed stage/reason and bounded numeric HTTP status',()=>{
+  assert.equal(signInFailureMessage({stage:'token-exchange',reason:'invalid-grant',httpStatus:400}),
+    'Cloudflare sign-in could not be verified (token-exchange; invalid-grant; HTTP 400). No authenticated connection is claimed.\n');
+  const hostile='Bearer SYNTHETIC_SECRET https://private.invalid/token C:\\Private\\secret';
+  for(const error of [Object.assign(Error(hostile),{stage:hostile,reason:hostile,httpStatus:hostile}),
+    {stage:'__proto__',reason:'constructor',httpStatus:1000},
+    {stage:'token-exchange',reason:'unknown',httpStatus:'401',error_description:hostile,body:hostile,token:hostile}]) {
+    const output=signInFailureMessage(error);
+    assert(!output.includes(hostile));assert(!output.includes('HTTP'));assert(!output.includes('__proto__'));assert(!output.includes('constructor'));
+  }
 });

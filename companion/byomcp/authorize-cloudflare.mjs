@@ -3,7 +3,12 @@ import {stat} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadConfiguration} from './cli.mjs';
-import {authorizeCloudflare,RESOURCE} from './cloudflare-oauth.mjs';
+import {authorizeCloudflare,authorizationFailureDiagnostic,RESOURCE} from './cloudflare-oauth.mjs';
+
+export function signInFailureMessage(error) {
+  const {stage,reason,httpStatus}=authorizationFailureDiagnostic(error);
+  return `Cloudflare sign-in could not be verified (${stage}; ${reason}${httpStatus===undefined?'':`; HTTP ${httpStatus}`}). No authenticated connection is claimed.\n`;
+}
 
 // Explicit interactive setup only. Native invocation never calls this command.
 export async function signInCloudflare({configurationPath,profileId,browserPath,readOnlySessionPreset=false,
@@ -33,7 +38,6 @@ if(process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href===import
     const result=await signInCloudflare({configurationPath:args[1],profileId:args[3],browserPath:args[5],readOnlySessionPreset:args[6]==='--read-only-session'});
     console.log(JSON.stringify(result));
   } catch(error) {
-    const stage=['initialization','awaiting-callback','token-exchange','private-storage','authorization-expired'].includes(error?.stage) ? error.stage : 'setup';
-    process.stderr.write(`Cloudflare sign-in could not be verified (${stage}). No authenticated connection is claimed.\n`);process.exitCode=1;
+    process.stderr.write(signInFailureMessage(error));process.exitCode=1;
   }
 }
