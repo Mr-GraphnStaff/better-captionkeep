@@ -2,6 +2,17 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const settings = require('../teams-captions-saver/byomcpSettings.js');
 
+test('connection stages show only fixed labels and valid attempt times',()=>{
+    const diagnostic={stage:'native-opening',at:Date.now(),code:'Bearer SYNTHETIC_SECRET'};
+    const state=settings.statusView({ok:false,code:'native-host-not-found',diagnostic});
+    assert.match(state.label,/Last connection attempt:.*starting the local helper/);
+    assert(!state.label.includes('SYNTHETIC_SECRET'));
+    for(const bad of [{stage:'__proto__',at:Date.now()},{stage:'Bearer SECRET',at:Date.now()},{stage:'native-opening',at:'SECRET'},{stage:'native-opening',at:Date.now()+60000}]) {
+        assert(!settings.statusView({ok:false,diagnostic:bad}).label.includes('Last connection attempt'));
+    }
+    assert.match(settings.statusView({ok:false,code:'configuration-required'}).label,/Import a reviewed non-secret/);
+});
+
 test('fixed native connection diagnostics remain actionable and disconnected', () => {
     const expected = {
         'native-host-not-found':/not found.*registration/,

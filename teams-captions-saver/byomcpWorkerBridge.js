@@ -2,7 +2,8 @@
     'use strict';
     const PAGES = new Set(['/popup.html','/settings.html','/sidepanel.html','/viewer.html']);
     const CONNECTION_CODES = new Set(['native-host-not-found','native-host-start-failed','native-host-forbidden','native-host-exited',
-        'native-communication-error','native-timeout','enrollment-mismatch','permission-denied','native-connection-failed']);
+        'native-communication-error','native-timeout','enrollment-mismatch','configuration-required','permission-denied','native-connection-failed']);
+    const CONNECTION_STAGES = new Set(['worker-received','policy-check','permission-check','configuration-check','native-opening','challenge','enrollment','connected']);
     const copy = value => structuredClone(value);
     async function describeSource(sessionId, transcript, recordedAt) {
         if (!Array.isArray(transcript) || !transcript.length) return null;
@@ -77,12 +78,13 @@
             if (!value || typeof value !== 'object' || Array.isArray(value)
                 || Object.keys(value).some(key=>!keys.includes(key))) throw new Error('request-invalid');
         }
-        async function settings(message,sender) {
+        async function settings(message,sender,onStage) {
             exact(message,['message','operation','profileId','revision','configuration','enabled']);
             const setupOperation = ['configure','connect','allow-writes'].includes(message.operation);
             if (setupOperation) {
                 const path = new URL(sender.url).pathname;
                 if (!['/popup.html','/settings.html'].includes(path)) throw new Error('sender-denied');
+                if (message.operation === 'connect') onStage('policy-check');
                 const setupPolicy = await readPolicy();
                 if (!setupPolicy || setupPolicy.setupDisabled === true || setupPolicy.disableSessionHistory === true
                     || (setupPolicy.disabled === true && setupPolicy.setupDisabled !== false)) throw new Error('policy-denied');
@@ -102,7 +104,7 @@
                 exact(message,['message','operation']);
                 if (typeof options.setEnabled !== 'function' || typeof adapter.connectGranted !== 'function') throw new Error('helper-unavailable');
                 await options.setEnabled(true);await enabled();
-                try {const status = await adapter.connectGranted(sender);const policy = await enabled();return {ok:true,status:{...status,allowWrites:policy.allowWrites === true}};}
+                try {const status = await adapter.connectGranted(sender,onStage);const policy = await enabled();return {ok:true,status:{...status,allowWrites:policy.allowWrites === true}};}
                 catch (error) {await options.setEnabled(false);throw error;}
             }
             if (message.operation === 'disconnect') {
@@ -172,17 +174,23 @@
         }
         async function handle(message,sender) {
             if (!allow(sender)) return {ok:false,error:'sender-denied'};
+            const connecting = message?.message === 'byomcp_settings' && message.operation === 'connect';
+            // Attempt-local metadata cannot accidentally reuse an earlier failure.
+            let diagnostic = connecting ? {stage:'worker-received',at:Date.now(),code:'connecting'} : null;
+            const onStage = stage => {if (diagnostic && CONNECTION_STAGES.has(stage)) diagnostic={stage,at:Date.now(),code:'connecting'};};
             try {
-                if (message?.message === 'byomcp_settings') return await settings(message,sender);
+                if (message?.message === 'byomcp_settings') {
+                    const response=await settings(message,sender,onStage);
+                    return connecting ? {...response,diagnostic:{...diagnostic,code:'connected'}} : response;
+                }
                 if (message?.message === 'byomcp_action') return await actions(message);
                 return {ok:false,error:'operation-unavailable'};
             } catch (error) {
                 // Only setup Connect gets bounded diagnostic enums. Action/provider
                 // failures retain the opaque response; raw messages never cross here.
-                const connecting = message?.message === 'byomcp_settings' && message.operation === 'connect';
                 const code = CONNECTION_CODES.has(error?.code) ? error.code
                     : CONNECTION_CODES.has(error?.message) ? error.message : 'native-connection-failed';
-                return {ok:false,error:'operation-not-verified',...(connecting ? {code} : {})};
+                return {ok:false,error:'operation-not-verified',...(connecting ? {code,diagnostic:{...diagnostic,code}} : {})};
             }
         }
         function storageChanged(changes,area) {

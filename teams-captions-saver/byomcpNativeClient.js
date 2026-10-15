@@ -14,7 +14,7 @@
         ['Native host has exited.','native-host-exited'],
         ['Error when communicating with the native messaging host.','native-communication-error']
     ]);
-    const CONNECTION_CODES = new Set([...DISCONNECT_CODES.values(),'native-timeout','enrollment-mismatch','permission-denied','native-connection-failed']);
+    const CONNECTION_CODES = new Set([...DISCONNECT_CODES.values(),'native-timeout','enrollment-mismatch','configuration-required','permission-denied','native-connection-failed']);
     function connectionFailure(error) {
         const message = typeof error?.message === 'string' ? error.message : '';
         const code = CONNECTION_CODES.has(error?.code) ? error.code
@@ -113,7 +113,7 @@
             return {protocolVersion:1,enrollmentVerified:false,enabled:false,profiles:[],
                 code:stored ? 'reenrollment-required' : 'not-connected',supported:supported()};
         }
-        function connectFromGesture(sender) {
+        function connectFromGesture(sender, onStage = () => {}) {
             if (!senderAllowed(sender)) return Promise.reject(new Error('sender-denied'));
             if (!supported()) return Promise.reject(new Error('unsupported-native-browser'));
             if (policySnapshot()?.disabled !== false) return Promise.reject(new Error('policy-denied'));
@@ -121,23 +121,30 @@
             // Intentionally synchronous before any await: preserve the Connect user gesture.
             try {permission = api.permissions.request({permissions:['nativeMessaging']});}
             catch {return Promise.reject(new Error('permission-denied'));}
-            return connect(permission);
+            return connect(permission,onStage);
         }
-        function connectGranted(sender) {
+        function connectGranted(sender, onStage = () => {}) {
             if (!senderAllowed(sender)) return Promise.reject(new Error('sender-denied'));
             if (!supported()) return Promise.reject(new Error('unsupported-native-browser'));
             if (policySnapshot()?.disabled !== false) return Promise.reject(new Error('policy-denied'));
             // The packaged page requested permission synchronously in its Connect gesture.
             // Recheck the browser grant; a message's claimed permission is never trusted.
-            return connect(Promise.resolve(true));
+            return connect(Promise.resolve(true),onStage);
         }
-        async function connect(permission) {
+        async function connect(permission,onStage) {
+            // Stage callbacks contain fixed labels only, never host/provider text.
+            const stage = name => {try {onStage(name);} catch {}};
+            stage('permission-check');
             if (!await permission) throw new Error('permission-denied');
             if (!await api.permissions.contains({permissions:['nativeMessaging']})) throw new Error('permission-denied');
             stop('reconnecting');const expected = generation;
             await allowed(expected);
             try {
+                stage('configuration-check');
+                if (typeof options.verifyConfiguration === 'function') await options.verifyConfiguration();
+                await allowed(expected);
                 let opened;
+                stage('native-opening');
                 try {opened = api.runtime.connectNative(HOST_NAME);}
                 catch (error) {throw new Error(DISCONNECT_CODES.get(error?.message) || 'native-connection-failed');}
                 port = opened;
@@ -146,12 +153,14 @@
                     const code = DISCONNECT_CODES.get(api.runtime.lastError?.message) || 'native-connection-failed';
                     if (port === opened) stop(code);
                 });
+                stage('challenge');
                 const challenge = await request('enrollment-challenge');
                 if (!challenge || challenge.hostName !== HOST_NAME || !HASH.test(challenge.nonce)
                     || !Number.isFinite(challenge.expiresAt) || challenge.expiresAt <= Date.now()
                     || !Array.isArray(challenge.profileIds) || !challenge.profileIds.length || challenge.profileIds.length > 20
                     || challenge.profileIds.some(id => !IDENTIFIER.test(id))) throw new Error('invalid-challenge');
                 await allowed(expected);
+                stage('enrollment');
                 const enrollment = await request('enrollment-complete',{nonce:challenge.nonce});
                 if (!enrollment || enrollment.hostName !== HOST_NAME || !UUID.test(enrollment.enrollmentId)
                     || JSON.stringify(enrollment.profileIds) !== JSON.stringify(challenge.profileIds)
@@ -163,6 +172,7 @@
                 await storage.set({[BINDING_KEY]:{version:1,hostName:HOST_NAME,enrollmentId:enrollment.enrollmentId,
                     profileIds:[...challenge.profileIds],verifiedAt:Date.now()}});
                 await allowed(expected);
+                stage('connected');
                 return structuredClone(status);
             } catch (error) {stop('enrollment-failed');throw connectionFailure(error);}
         }

@@ -369,3 +369,32 @@ Settings screenshot passed. This corrects an isolation gap; it does not prove
 the earlier timeout's cause or certify Firefox/native/provider behavior. A new
 complete local gate is being run; earlier failures remain retained.
 
+## October 15: installed bootstrap alignment and fresh attempt diagnostics
+
+Three independent Software Team passes identified development/package identity,
+configuration bootstrap and installed-artifact gaps. The reported extension ID
+matches the development manifest key, whose native convention is Chrome; the
+probe's Brave-only binding was incompatible. Source identity is not proof of the
+loaded extension folder. The existing helper setup was aligned to the exact
+development caller/convention, with zero actions; no credentials were imported.
+All 15 helper public files and both runtime files were synchronized to current
+source with rollback copies; package/lock parity was checked before installation.
+
+Connect now validates trusted configuration before native launch. Missing or
+wrong-browser/caller/digest bindings return configuration-required with zero
+native ports. Connect-only diagnostics contain fixed stage/code and attempt
+time; Settings prints only validated labels/time, never raw paths or provider
+errors. Existing permission, policy and action-approval checks are unchanged.
+
+549 extension tests passed without skips/failures; lint and the eight-page,
+54-script audit passed. Independent QA verified all 17 installed source hashes
+and executed the actual existing Windows CMD launcher through native framing:
+challenge, enrollment, status and disconnect passed with actions disabled and
+no network operations. An initial overquoted QA command timed out; corrected
+standard CMD argument construction passed without modifying the launcher.
+This proves local launcher/framing, NOT browser host discovery. Browser-native
+Connect, restart/denial acceptance and Cloudflare discovery remain separate.
+The private Brave log contained no conclusive host result; absence of verbose
+entries is not evidence of success on installed Chromium155. Findings are linked
+in GitHub #142/#156/#164/#165; no new OAuth, security-policy or ACL changes made.
+

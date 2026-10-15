@@ -15,24 +15,41 @@
         'permission-denied':'Browser permission was not granted. Choose Connect enrolled helper to try again; the helper remains disconnected.',
         'native-connection-failed':'The local helper connection could not be verified. Check installation and enrollment, then reconnect.'
     });
+    const connectionStages = Object.freeze({
+        'worker-received':'connection request received',
+        'policy-check':'checking organization policy',
+        'permission-check':'checking browser permission',
+        'configuration-check':'checking local setup',
+        'native-opening':'starting the local helper',
+        'challenge':'waiting for the helper challenge',
+        'enrollment':'verifying enrollment',
+        'connected':'helper connected'
+    });
+    function diagnosticLabel(value) {
+        if (!value || typeof value.stage !== 'string' || !Object.hasOwn(connectionStages,value.stage)
+            || !Number.isSafeInteger(value.at) || value.at <= 0 || value.at > Date.now()+30000) return '';
+        const date = new Date(value.at);
+        if (!Number.isFinite(date.getTime())) return '';
+        return ` Last connection attempt: ${date.toLocaleTimeString()} — ${connectionStages[value.stage]}.`;
+    }
     function statusView(response) {
         const status = response?.ok === true ? response.status : null;
         if (!status || status.protocolVersion !== 1 || status.enrollmentVerified !== true) {
             const code = response?.code;
             const connectionLabel = typeof code === 'string' && Object.hasOwn(connectionMessages,code) ? connectionMessages[code] : '';
-            return {verified:false, enabled:false, profiles:[], label:connectionLabel || (code === 'not-installed'
+            return {verified:false, enabled:false, profiles:[], label:(connectionLabel || (code === 'not-installed'
                 ? 'Local helper not installed. Install and enroll it before connecting.'
                 : code === 'policy-denied' ? 'Your organization has disabled Bring Your Own MCP. Local capture remains available.'
                 : code === 'configuration-required' ? 'Setup required. Import a reviewed non-secret helper configuration before connecting.'
                 : code === 'not-connected' ? 'Helper not connected. Choose Connect enrolled helper to request browser permission and verify enrollment.'
-                : 'This build cannot verify an enrolled helper. Bring Your Own MCP remains off.')};
+                : 'This build cannot verify an enrolled helper. Bring Your Own MCP remains off.')) + diagnosticLabel(response?.diagnostic)};
         }
         const profiles = Array.isArray(status.profiles) ? status.profiles.slice(0, 20).filter(profile => identifier(profile?.id)
             && profile.verified === true && ['stdio', 'streamable-http'].includes(profile.transport)
             && Number.isSafeInteger(profile.revision) && profile.revision > 0).map(profile => ({id:profile.id,
             label:clean(profile.label) || profile.id, transport:profile.transport, revision:profile.revision})) : [];
         return {verified:true, enabled:status.enabled === true, allowWrites:status.allowWrites === true, profiles,
-            label:`Helper ${clean(status.helperVersion, 40) || 'version unavailable'} verified. ${status.enabled === true ? 'Connection enabled; every evidence request still needs review.' : 'Helper connected; actions remain off. Review a profile to check approved actions.'}`};
+            label:`Helper ${clean(status.helperVersion, 40) || 'version unavailable'} verified. ${status.enabled === true ? 'Connection enabled; every evidence request still needs review.' : 'Helper connected; actions remain off. Review a profile to check approved actions.'}` + diagnosticLabel(response?.diagnostic)};
     }
     function inventoryView(response, profile) {
         const inventory = response?.ok === true ? response.inventory : null;

@@ -133,7 +133,11 @@
             enrolledConfigDigest=await contracts.digest(config);return true;
         }
         function revoked(code) {enrolledConfigDigest=null;inventoryCache.clear();proofs.clear();verifiedReceipts.clear();options.onRevoked?.(code);}
-        const native=options.nativeClient || (options.nativeClientModule || root.CaptionKeepByomcpNativeClient).create({...options,verifyEnrollment,onRevoked:revoked});
+        async function verifyConfiguration() {
+            try {await configuration();}
+            catch {const error=new Error('configuration-required');error.code='configuration-required';throw error;}
+        }
+        const native=options.nativeClient || (options.nativeClientModule || root.CaptionKeepByomcpNativeClient).create({...options,verifyEnrollment,verifyConfiguration,onRevoked:revoked});
         async function authority() {
             const policy=await readPolicy();
             if(policy.disabled!==false || policy.disableSessionHistory!==false) throw new Error('policy-denied');
@@ -207,8 +211,8 @@
             return {verified:true,jobId:receipt.jobId,approvalDigest:receipt.approvalDigest,sourceDigest:receipt.sourceDigest,receiptDigest};
         }
         async function getVerifiedReceipt(jobId) {await authority();const receipt=verifiedReceipts.get(jobId);return receipt ? clone(receipt) : null;}
-        async function connectGranted(sender) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();return native.connectGranted(sender);}
-        async function connectFromGesture(sender) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();return native.connectFromGesture(sender);}
+        async function connectGranted(sender,onStage) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();return native.connectGranted(sender,onStage);}
+        async function connectFromGesture(sender,onStage) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();return native.connectFromGesture(sender,onStage);}
         async function disconnect(sender) {try{return await native.disconnect(sender);} finally {revoked('disconnected');}}
         async function getCapacity() {await authority();const value=await native.getCapacity();await authority();return Number.isSafeInteger(value) && value>=0 ? value : null;}
         return Object.freeze({localStatus,inventory,getReviewedProfile,verifyOperation,verifyResultProof,transport,connectGranted,connectFromGesture,disconnect,
