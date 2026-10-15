@@ -17,11 +17,12 @@ export async function validateConfiguredProfiles(profiles) {
   const ids=new Set(),validated=[];
   for(const original of profiles) {
     const profile=structuredClone(original);
-    exact(profile,['id','label','revision','transport','tools','profileDigest'],['executable','executableDigest','cwd','args','resource','credentialReference']);
+    exact(profile,['id','label','revision','transport','tools','profileDigest'],['executable','executableDigest','cwd','args','resource','credentialReference','toolAccess']);
     if (!IDENTIFIER.test(profile.id) || ids.has(profile.id) || typeof profile.label!=='string' || !profile.label
         || profile.label.length>120 || /[\u0000-\u001f\u007f]/.test(profile.label)
         || !Number.isSafeInteger(profile.revision) || profile.revision<1 || !['stdio','remote'].includes(profile.transport)
-        || !Array.isArray(profile.tools) || !profile.tools.length || profile.tools.length>100 || !HASH.test(profile.profileDigest)) throw Error('invalid-profile');
+        || profile.toolAccess!==undefined && profile.toolAccess!=='catalog'
+        || !Array.isArray(profile.tools) || !profile.tools.length && profile.toolAccess!=='catalog' || profile.tools.length>100 || !HASH.test(profile.profileDigest)) throw Error('invalid-profile');
     ids.add(profile.id);const names=new Set();
     for(const tool of profile.tools) {
       exact(tool,['name','operation','schemaDigest'],['readOnly','reviewedWrite']);
@@ -102,24 +103,31 @@ export async function createEnrollmentAuthority({hostName=NATIVE_HOST_NAME,allow
       resolve(context,enrollmentId);return policy;
     }});
     enrollment.helpers.add(instance);
-    return Object.freeze({async handle(message) {resolve(context,enrollmentId);const result=await instance.handle(message);resolve(context,enrollmentId);return result;}});
+    return Object.freeze({close:()=>revoke(context,enrollmentId),async handle(message) {resolve(context,enrollmentId);const result=await instance.handle(message);resolve(context,enrollmentId);return result;}});
   }
   function configuredProfileIds(context) {assertCaller(context);return configured.map(profile=>profile.id);}
   return Object.freeze({challenge,complete,resolve,revoke,helper,configuredProfileIds});
 }
 
 export function createNativeSession(authority,launchContext,helperOptions={}) {
-  let current=null,instance=null;
-  return Object.freeze({async handle(message) {
+  let current=null,instance=null,closed=false;
+  async function close() {
+    if(closed) return;
+    closed=true;
+    if(current) await authority.revoke(launchContext,current.enrollmentId);
+  }
+  return Object.freeze({close,async handle(message) {
+    if(closed) throw Error('disconnected');
     message=structuredClone(message);
     if(!message || message.version!==1 || typeof message.requestId!=='string' || message.requestId.length>64
-        || Object.keys(message).some(key=>!['version','requestId','operation','nonce','enrollmentId','profileId','approval','jobId'].includes(key))) throw Error('invalid-message');
+        || Object.keys(message).some(key=>!['version','requestId','operation','nonce','enrollmentId','profileId','approval','jobId','tool','arguments','proposalId','proposalDigest'].includes(key))) throw Error('invalid-message');
     if(message.operation==='enrollment-challenge') {
       return authority.challenge(launchContext,authority.configuredProfileIds(launchContext));
     }
     if(message.operation==='enrollment-complete') {
       if(current) await authority.revoke(launchContext,current.enrollmentId);
       current=await authority.complete(launchContext,message.nonce);
+      if(closed) {await authority.revoke(launchContext,current.enrollmentId);throw Error('disconnected');}
       instance=authority.helper(launchContext,current.enrollmentId,helperOptions);
       return {...current,status:await instance.handle({version:1,requestId:message.requestId,operation:'status',enrollmentId:current.enrollmentId})};
     }

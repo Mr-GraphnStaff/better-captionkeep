@@ -3,6 +3,22 @@
     const HOST = 'com.daftech.captionkeep.byomcp';
     const HASH = /^[a-f0-9]{64}$/;
     const ID = /^[a-zA-Z0-9._-]{1,100}$/;
+    const TOOL = /^[a-zA-Z0-9._-]{1,128}$/;
+    function boundedJson(value,limit=65536) {
+        function walk(item,depth) {
+            if(depth>10 || item===undefined || typeof item==='number' && !Number.isFinite(item)
+                || ['function','symbol','bigint'].includes(typeof item))throw new Error('tool-data-invalid');
+            if(item && typeof item==='object')Object.values(item).forEach(child=>walk(child,depth+1));
+        }
+        walk(value,0);
+        if(new TextEncoder().encode(JSON.stringify(value)).length>limit)throw new Error('tool-data-limit');
+        return clone(value);
+    }
+    function pageBinding(sender) {
+        if(!sender || typeof sender.url!=='string' || typeof sender.id!=='string'
+            || !(typeof sender.documentId==='string' && sender.documentId || Number.isInteger(sender.tab?.id) && sender.tab.id>=0))throw new Error('tool-page-unbound');
+        return JSON.stringify([sender.id,sender.url,sender.documentId || null,sender.tab?.id ?? null,sender.frameId ?? 0]);
+    }
     const GUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
     const FIELDS = new Set(['displayName','jobTitle','department','mail','userPrincipalName','officeLocation']);
     const DNS_NAME = /^(?=.{1,253}$)(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
@@ -31,9 +47,10 @@
         for (const entry of value.profiles) {
             if (!exact(entry,['profile','actions']) || !Array.isArray(entry.actions) || entry.actions.length > 100) throw new Error('invalid-local-profile');
             const p=entry.profile;
-            if (!fields(p,['id','label','revision','transport','tools','profileDigest'],['executable','executableDigest','cwd','args','resource','credentialReference'])
+            if (!fields(p,['id','label','revision','transport','tools','profileDigest'],['executable','executableDigest','cwd','args','resource','credentialReference','toolAccess'])
                 || !text(p.label,120) || !ID.test(p.id) || seen.has(p.id) || !HASH.test(p.profileDigest) || !Number.isSafeInteger(p.revision) || p.revision < 1
-                || !['stdio','remote'].includes(p.transport) || !Array.isArray(p.tools) || !p.tools.length || p.tools.length > 100) throw new Error('invalid-local-profile');
+                || !['stdio','remote'].includes(p.transport) || !Array.isArray(p.tools) || (!p.tools.length && p.toolAccess!=='catalog') || p.tools.length > 100
+                || p.toolAccess!==undefined && p.toolAccess!=='catalog') throw new Error('invalid-local-profile');
             if (p.transport === 'remote') {
                 let resource;
                 try {resource=new URL(p.resource);} catch {throw new Error('invalid-local-resource');}
@@ -118,7 +135,7 @@
         const api=options.chrome || root.chrome, browserTarget=options.browserTarget || 'unsupported';
         const readPolicy=options.readPolicy || (async()=>({disabled:true}));
         const readConfig=options.readTrustedConfiguration || (async()=>null);
-        const inventoryCache=new Map(),proofs=new Map(),verifiedReceipts=new Map();
+        const inventoryCache=new Map(),proofs=new Map(),verifiedReceipts=new Map(),catalogCache=new Map(),toolProposals=new Map();
         const caller=browserTarget==='firefox' ? api?.runtime?.id : api?.runtime?.getURL('');
         let enrolledConfigDigest=null;
         const configuration=async()=>validateConfiguration(clone(await readConfig()),{contracts,browserTarget,caller});
@@ -128,11 +145,12 @@
             for(const entry of config.profiles) {
                 const match=status.profiles.find(p=>p.id===entry.profile.id);
                 if(!match || match.revision!==entry.profile.revision || match.profileDigest!==entry.profile.profileDigest
-                    || match.transport!==(entry.profile.transport==='remote'?'streamable-http':'stdio')) return false;
+                    || match.transport!==(entry.profile.transport==='remote'?'streamable-http':'stdio')
+                    || match.toolAccess!==entry.profile.toolAccess) return false;
             }
             enrolledConfigDigest=await contracts.digest(config);return true;
         }
-        function revoked(code) {enrolledConfigDigest=null;inventoryCache.clear();proofs.clear();verifiedReceipts.clear();options.onRevoked?.(code);}
+        function revoked(code) {enrolledConfigDigest=null;inventoryCache.clear();proofs.clear();verifiedReceipts.clear();catalogCache.clear();toolProposals.clear();options.onRevoked?.(code);}
         async function verifyConfiguration() {
             try {await configuration();}
             catch {const error=new Error('configuration-required');error.code='configuration-required';throw error;}
@@ -211,12 +229,68 @@
             return {verified:true,jobId:receipt.jobId,approvalDigest:receipt.approvalDigest,sourceDigest:receipt.sourceDigest,receiptDigest};
         }
         async function getVerifiedReceipt(jobId) {await authority();const receipt=verifiedReceipts.get(jobId);return receipt ? clone(receipt) : null;}
-        async function connectGranted(sender,onStage) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();return native.connectGranted(sender,onStage);}
-        async function connectFromGesture(sender,onStage) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();return native.connectFromGesture(sender,onStage);}
+        async function catalogAuthority(profileId) {
+            const state=await authority(),entry=state.config.profiles.find(item=>item.profile.id===profileId && item.profile.toolAccess==='catalog');
+            const enrolled=state.status.profiles.find(item=>item.id===profileId && item.toolAccess==='catalog'
+                && item.revision===entry?.profile.revision && item.profileDigest===entry?.profile.profileDigest);
+            if(!entry || !enrolled)throw new Error('catalog-not-authorized');
+            return {...state,profile:entry.profile};
+        }
+        async function toolCatalog(profileId,sender) {
+            pageBinding(sender);catalogCache.delete(profileId);
+            for(const [id,proposal] of toolProposals)if(proposal.value.profileId===profileId)toolProposals.delete(id);
+            const {profile}=await catalogAuthority(profileId),catalog=boundedJson(await native.toolCatalog(profileId,sender),786432);
+            if(!exact(catalog,['profileId','revision','tools']) || catalog.profileId!==profileId || catalog.revision!==profile.revision
+                || !Array.isArray(catalog.tools) || catalog.tools.length>100)throw new Error('catalog-invalid');
+            const names=new Set();
+            for(const tool of catalog.tools) {
+                if(!fields(tool,['name','inputSchema','schemaDigest','effect'],['title','description']) || !TOOL.test(tool.name)
+                    || names.has(tool.name) || !HASH.test(tool.schemaDigest) || tool.effect!=='write'
+                    || !tool.inputSchema || typeof tool.inputSchema!=='object' || Array.isArray(tool.inputSchema)
+                    || tool.title!==undefined && !text(tool.title,200) || tool.description!==undefined && (typeof tool.description!=='string' || tool.description.length>20000))throw new Error('catalog-invalid');
+                names.add(tool.name);
+            }
+            const current=await catalogAuthority(profileId);
+            if(current.profile.profileDigest!==profile.profileDigest)throw new Error('catalog-changed');
+            catalogCache.set(profileId,{profileDigest:profile.profileDigest,value:clone(catalog)});return catalog;
+        }
+        async function prepareTool(profileId,tool,args,sender) {
+            const owner=pageBinding(sender),argumentsValue=boundedJson(args,49152),{profile}=await catalogAuthority(profileId);
+            if(!argumentsValue || typeof argumentsValue!=='object' || Array.isArray(argumentsValue) || !TOOL.test(tool))throw new Error('tool-arguments-invalid');
+            const catalog=catalogCache.get(profileId),selected=catalog?.value.tools.find(item=>item.name===tool);
+            if(!selected || catalog.profileDigest!==profile.profileDigest || toolProposals.size>=20)throw new Error('catalog-review-required');
+            const proposal=boundedJson(await native.prepareTool(profileId,tool,argumentsValue,sender));
+            if(!exact(proposal,['id','profileId','revision','tool','schemaDigest','arguments','expiresAt','digest']) || !GUID.test(proposal.id)
+                || proposal.profileId!==profileId || proposal.revision!==profile.revision || proposal.tool!==tool
+                || proposal.schemaDigest!==selected.schemaDigest || !HASH.test(proposal.digest)
+                || !Number.isSafeInteger(proposal.expiresAt) || proposal.expiresAt<=Date.now() || proposal.expiresAt>Date.now()+300000
+                || await contracts.digest(proposal.arguments)!==await contracts.digest(argumentsValue))throw new Error('tool-proposal-invalid');
+            const {digest,...identity}=proposal;
+            if(await contracts.digest(identity)!==digest || toolProposals.has(proposal.id))throw new Error('tool-proposal-invalid');
+            const current=await catalogAuthority(profileId);
+            if(current.profile.profileDigest!==profile.profileDigest || catalogCache.get(profileId)!==catalog)throw new Error('catalog-changed');
+            toolProposals.set(proposal.id,{owner,profileDigest:profile.profileDigest,value:clone(proposal)});return proposal;
+        }
+        async function executeTool(profileId,proposalId,proposalDigest,sender) {
+            const owner=pageBinding(sender),pending=toolProposals.get(proposalId);
+            if(!pending || pending.owner!==owner || pending.value.profileId!==profileId || pending.value.digest!==proposalDigest)throw new Error('tool-proposal-unavailable');
+            // Consume before any asynchronous policy check or dispatch. No retry.
+            toolProposals.delete(proposalId);
+            const {profile,policy}=await catalogAuthority(profileId),catalog=catalogCache.get(profileId);
+            if(policy.allowWrites!==true || pending.value.expiresAt<=Date.now() || profile.profileDigest!==pending.profileDigest
+                || !catalog?.value.tools.some(tool=>tool.name===pending.value.tool && tool.schemaDigest===pending.value.schemaDigest))throw new Error('tool-execution-denied');
+            const result=boundedJson(await native.executeTool(profileId,proposalId,proposalDigest,sender),786432);
+            await catalogAuthority(profileId);
+            if(!fields(result,['status'],['content','structuredContent','isError']) || !['returned','outcome-unknown'].includes(result.status)
+                || result.isError!==undefined && typeof result.isError!=='boolean')throw new Error('tool-result-invalid');
+            return result;
+        }
+        async function connectGranted(sender,onStage) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();catalogCache.clear();toolProposals.clear();return native.connectGranted(sender,onStage);}
+        async function connectFromGesture(sender,onStage) {inventoryCache.clear();proofs.clear();verifiedReceipts.clear();catalogCache.clear();toolProposals.clear();return native.connectFromGesture(sender,onStage);}
         async function disconnect(sender) {try{return await native.disconnect(sender);} finally {revoked('disconnected');}}
         async function getCapacity() {await authority();const value=await native.getCapacity();await authority();return Number.isSafeInteger(value) && value>=0 ? value : null;}
         return Object.freeze({localStatus,inventory,getReviewedProfile,verifyOperation,verifyResultProof,transport,connectGranted,connectFromGesture,disconnect,
-            getCapacity,verifyEnrollment,getVerifiedReceipt});
+            getCapacity,verifyEnrollment,getVerifiedReceipt,toolCatalog,prepareTool,executeTool});
     }
     root.CaptionKeepByomcpRuntimeAdapter=Object.freeze({create,validateConfiguration,operationAllowed,verifyObservation});
     if(typeof module!=='undefined' && module.exports) module.exports=root.CaptionKeepByomcpRuntimeAdapter;

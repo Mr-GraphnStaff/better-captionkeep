@@ -1,5 +1,33 @@
 # 6.0 Software Team execution ledger
 
+## October 15: complete MCP catalog and actual Cloudflare TXT test
+
+Engineering delivered optional catalog profiles, helper prepare/execute proposals,
+browser worker bindings, exact trusted Settings approval, stdio/remote transport
+support and explicitly selected full-access session OAuth. QA reproduced and
+engineering repaired duplicate catalog-name ambiguity, final write-policy race,
+and native EOF allowing pending dispatch (public #169). Generic results remain
+unverified returned data; typed independently observed Receipts are separate.
+Natural-language meeting action generation is not implied by this advanced UI.
+
+Local checks: 561/561 extension tests, 77/77 helper tests, lint, eight-page/55-script
+surface audit and rendered HTTP fixture passed. Helper packaging and development
+build passed. No current full-candidate gate or fresh CI success is claimed.
+
+The lead explicitly approved Cloudflare's broad full-access grant and separately
+authorized only a unique temporary TXT add/read/delete on the named test zone.
+Despite Brave blocking the callback page, the helper received and exchanged the
+authorization successfully. The installed helper enrolled, discovered the actual
+server catalog, created the unique TXT, independently read its exact content,
+reverified unique name/type/value/ID before deletion, deleted only that ID, and
+separately confirmed absence. Private evidence remains outside tracked source;
+no credentials or account identifiers are published. Refresh tokens discarded.
+Initial private harness Windows CMD quoting failed before enrollment/upstream
+calls; corrected direct installed CLI framing passed. This is installed-helper
+protocol evidence, not browser host discovery or Settings trusted-click proof.
+No existing record changed. Browser UI/restart/denial and full release acceptance
+remain separate open gates; no merge or Store publication performed.
+
 ## October 14 shareable-summary addition
 
 Lead-approved roadmap gate16 is implemented locally: transcript viewer More

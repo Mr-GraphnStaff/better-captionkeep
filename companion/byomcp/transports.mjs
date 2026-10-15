@@ -101,7 +101,25 @@ export function secureFetch(resource, getAuthorization, {resolve = lookup, send 
 
 export function createSdkAdapters({getAuthorization = async () => null, remoteFetchFactory = secureFetch,cloudflareActions=[]} = {}) {
   const clients = new Set();
-  async function connect(profile) {
+  async function catalogTools(client) {
+    const tools=[],seen=new Set(),names=new Set();let cursor='';
+    for(let page=0;page<10;page++) {
+      const result=await client.listTools({cursor},{timeout:60000});
+      if(!Array.isArray(result.tools)) throw Error('invalid-catalog');
+      for(const tool of result.tools) {
+        if(!tool || !/^[a-zA-Z0-9_.-]{1,128}$/.test(tool.name) || names.has(tool.name)) throw Error('invalid-catalog');
+        names.add(tool.name);
+      }
+      tools.push(...result.tools);
+      if(tools.length>100 || contracts.bytes(tools)>65536) throw Error('inventory-limit');
+      if(!result.nextCursor) return tools;
+      if(typeof result.nextCursor!=='string' || result.nextCursor.length>1024 || seen.has(result.nextCursor)) throw Error('inventory-limit');
+      seen.add(result.nextCursor);cursor=result.nextCursor;
+    }
+    throw Error('inventory-limit');
+  }
+  async function connect(profile,signal) {
+    if(signal?.aborted) throw Error('cancelled');
     // Negotiate a mutually supported MCP wire revision with the official SDK.
     // The helper's approval/native-envelope version is a separate contract;
     // supporting a 2025 server does not relax any schema or action approval.
@@ -120,9 +138,33 @@ export function createSdkAdapters({getAuthorization = async () => null, remoteFe
         {fetch:remoteFetchFactory(profile.resource, getAuthorization)});
     }
     clients.add(client);
+    if(signal) signal.addEventListener('abort',()=>{client.close().catch(()=>{});},{once:true});
+    if(signal?.aborted) {clients.delete(client);await client.close();throw Error('cancelled');}
     try {await client.connect(transport); return client;} catch {clients.delete(client); await client.close().catch(() => {}); throw new Error('connection-failed');}
   }
   const adapter = {
+    async catalog(profile) {
+      if(profile.toolAccess!=='catalog') throw Error('catalog-denied');
+      const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),60000);deadline.unref?.();
+      let client;
+      try {
+        client=await connect(profile,controller.signal);
+        return await Promise.all((await catalogTools(client)).map(async tool=>({name:tool.name,
+          ...(tool.title!==undefined?{title:tool.title}:{}),...(tool.description!==undefined?{description:tool.description}:{}),
+          inputSchema:structuredClone(tool.inputSchema),schemaDigest:await contracts.digest({input:tool.inputSchema,output:tool.outputSchema || null}),effect:'write'})));
+      } finally {clearTimeout(deadline);if(client){clients.delete(client);await client.close();}}
+    },
+    async catalogInvoke(profile,proposal,signal,{assertDispatch=async()=>{throw Error('dispatch-unapproved');}}={}) {
+      if(profile.toolAccess!=='catalog' || signal?.aborted) throw Error('catalog-denied');
+      const client=await connect(profile,signal);
+      try {
+        const tool=(await catalogTools(client)).find(value=>value.name===proposal.tool);
+        if(!tool || await contracts.digest({input:tool.inputSchema,output:tool.outputSchema || null})!==proposal.schemaDigest) throw Error('schema-changed');
+        await assertDispatch();
+        if(signal?.aborted) throw Error('cancelled');
+        return await client.callTool({name:proposal.tool,arguments:structuredClone(proposal.arguments)},{signal,timeout:60000});
+      } finally {clients.delete(client);await client.close();}
+    },
     async observeCloudflareDns(profile,action,args) {
       const parameters=compileCloudflareDns(profile,action,args,'observe'),client=await connect(profile);
       try {

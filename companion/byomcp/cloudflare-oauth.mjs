@@ -172,15 +172,24 @@ function checkedScope(value,allowed,limit=2048) {
   const permitted=new Set(allowed.split(/\s+/).filter(Boolean)),parts=[...new Set(scope.split(/\s+/).filter(Boolean))];
   if(parts.some(part=>!permitted.has(part)))throw sanitized('scope-validation');return parts.join(' ');
 }
-export function readOnlyCloudflareScopes(metadata) {
+function cloudflareScopeCatalog(metadata) {
   checkMetadata(new URL(`${ISSUER}/.well-known/oauth-authorization-server`),metadata);
   const scopes=metadata.scopes_supported,required=['user:read','account:read','offline_access'];
   if(!Array.isArray(scopes) || !scopes.length || scopes.length>1024 || new Set(scopes).size!==scopes.length
       || scopes.some(scope=>typeof scope!=='string' || scope.length>160 || !/^[a-zA-Z0-9:._/-]+$/.test(scope))
       || required.some(scope=>!scopes.includes(scope)))throw sanitized();
+  return scopes;
+}
+export function readOnlyCloudflareScopes(metadata) {
+  const scopes=cloudflareScopeCatalog(metadata),required=['user:read','account:read','offline_access'];
   const selected=scopes.filter(scope=>required.includes(scope) || ['read','metadata_read','monitoring','report'].includes(scope.split(/[:.]/).at(-1)));
   const value=selected.join(' ');
   if(selected.length<=required.length || value.length>16384)throw sanitized();
+  return value;
+}
+export function fullAccessCloudflareScopes(metadata) {
+  const scopes=cloudflareScopeCatalog(metadata),value=scopes.join(' ');
+  if(scopes.length<=3 || value.length>16384)throw sanitized();
   return value;
 }
 function validRecord(record,expected) {
@@ -189,9 +198,11 @@ function validRecord(record,expected) {
 }
 
 export async function authorizeCloudflare({storePath,credentialReference,profileId=credentialReference,onAuthorizationUrl,signal,timeoutMs=300000,
-  store,fetchFn,now=()=>Date.now(),authFunction=auth,serverFactory=createServer,allowOfflineAccess=false,readOnlySessionPreset=false}={}) {
+  store,fetchFn,now=()=>Date.now(),authFunction=auth,serverFactory=createServer,allowOfflineAccess=false,readOnlySessionPreset=false,fullAccessSessionPreset=false}={}) {
   validateStorePath(storePath);const expected=binding(credentialReference,profileId);
-  if(typeof onAuthorizationUrl!=='function' || typeof allowOfflineAccess!=='boolean' || typeof readOnlySessionPreset!=='boolean' || signal?.aborted)throw sanitized();
+  if(typeof onAuthorizationUrl!=='function' || typeof allowOfflineAccess!=='boolean' || typeof readOnlySessionPreset!=='boolean'
+      || typeof fullAccessSessionPreset!=='boolean' || readOnlySessionPreset && fullAccessSessionPreset || signal?.aborted)throw sanitized();
+  const sessionPreset=readOnlySessionPreset || fullAccessSessionPreset;
   const vault=store || createWindowsCredentialStore({storePath}),controller=new AbortController();
   const rawFetch=fetchFn || createCloudflareOAuthFetch({signal:controller.signal});
   let tokenHttpStatus;
@@ -237,18 +248,20 @@ export async function authorizeCloudflare({storePath,credentialReference,profile
   const abort=()=>{phase='authorization-expired';controller.abort();fail(sanitized());server.close();};
   const timer=setTimeout(abort,Math.max(1,Math.min(timeoutMs,300000)));signal?.addEventListener('abort',abort,{once:true});
   try {
-    if(readOnlySessionPreset) {
+    if(sessionPreset) {
       phase='read-only-catalog';
       const response=await guarded(fetcher(`${ISSUER}/.well-known/oauth-authorization-server`));
-      if(!response.ok)throw sanitized();requestedScopes=readOnlyCloudflareScopes(await response.json());
+      if(!response.ok)throw sanitized();
+      const metadata=await response.json();
+      requestedScopes=fullAccessSessionPreset?fullAccessCloudflareScopes(metadata):readOnlyCloudflareScopes(metadata);
     }
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
     redirectUrl=`http://127.0.0.1:${server.address().port}/callback`;
     const provider={redirectUrl,clientMetadata:{client_name:'Better CaptionKeep user-owned helper',redirect_uris:[redirectUrl],
-      grant_types:allowOfflineAccess && !readOnlySessionPreset?['authorization_code','refresh_token']:['authorization_code'],response_types:['code'],token_endpoint_auth_method:'none'},
+      grant_types:allowOfflineAccess && !sessionPreset?['authorization_code','refresh_token']:['authorization_code'],response_types:['code'],token_endpoint_auth_method:'none'},
       state:()=>state,clientInformation:()=>clientInformation,saveClientInformation:value=>{if(value.issuer!==ISSUER)throw sanitized();clientInformation=structuredClone(value);},
-      tokens:()=>tokens,saveTokens:value=>{tokenValue(value);tokens={...structuredClone(value),scope:checkedScope(value.scope,requestedScopes,readOnlySessionPreset?16384:2048)};
-        if(!allowOfflineAccess || readOnlySessionPreset)delete tokens.refresh_token;
+      tokens:()=>tokens,saveTokens:value=>{tokenValue(value);tokens={...structuredClone(value),scope:checkedScope(value.scope,requestedScopes,sessionPreset?16384:2048)};
+        if(!allowOfflineAccess || sessionPreset)delete tokens.refresh_token;
         expiresAt=now()+Math.min(86400,Number(value.expires_in || 0))*1000;},
       saveCodeVerifier:value=>{verifier=value;},codeVerifier:()=>verifier,
       saveDiscoveryState:value=>{checkMetadata(new URL(`${ISSUER}/.well-known/oauth-authorization-server`),value.authorizationServerMetadata);
@@ -266,7 +279,7 @@ export async function authorizeCloudflare({storePath,credentialReference,profile
     phase='token-exchange';
     if(await guarded(authFunction(provider,{serverUrl:RESOURCE,authorizationCode:result.code,iss:result.iss,scope:requestedScopes,fetchFn:fetcher}))!=='AUTHORIZED'
         || controller.signal.aborted || !tokens || !Number.isFinite(expiresAt) || expiresAt<=now())throw sanitized('token-validation');
-    const consentMode=readOnlySessionPreset?'cloudflare-read-only-session':allowOfflineAccess?'explicit-offline-access':'minimal-session';
+    const consentMode=fullAccessSessionPreset?'cloudflare-full-access-session':readOnlySessionPreset?'cloudflare-read-only-session':allowOfflineAccess?'explicit-offline-access':'minimal-session';
     phase='private-storage';await vault.write({...expected,clientInformation,tokens,expiresAt,consentMode});
     return {authorized:true,issuer:ISSUER,resource:RESOURCE,credentialReference,profileId,expiresAt,consentMode};
   } catch(cause) {
@@ -286,7 +299,7 @@ export async function getCloudflareAuthorization(profile,{storePath,store,fetchF
     const record=await vault.read();if(!validRecord(record,expected))throw sanitized();
     const current=tokenValue(record.tokens);
     if(record.expiresAt>now()+30000)return `Bearer ${current}`;
-    if(record.consentMode==='cloudflare-read-only-session')throw sanitized();
+    if(['cloudflare-read-only-session','cloudflare-full-access-session'].includes(record.consentMode))throw sanitized();
     if(typeof record.tokens.refresh_token!=='string' || !record.tokens.refresh_token || record.tokens.refresh_token.length>16384)throw sanitized();
     // Refresh only. This never calls auth(), DCR, browser callbacks, or consent.
     const refreshed=await refreshFunction(ISSUER,{metadata:{issuer:ISSUER,token_endpoint:`${ISSUER}/token`,token_endpoint_auth_methods_supported:['none']},

@@ -29,8 +29,10 @@ configuration and requests native messaging only on Connect; reviewed writes
 remain off by default and each action needs a separate exact approval. Typed
 Cloudflare existing-record updates and directory lookup contracts use independent
 readback before a result can be pinned as a separate source-linked Receipt.
-The official Cloudflare endpoint has a narrow generated-code adapter; arbitrary
-MCP tools are not automatically compatible. The offline helper bundle requires
+Explicitly enrolled catalog profiles also expose the complete MCP tool catalog
+in Settings, including writes. Each call requires review and separate approval of
+its exact JSON arguments; generic returned data is not a verified Receipt.
+The offline helper bundle requires
 Node.js 22+, separate native registration and separately provisioned credentials.
 Synthetic tests do not establish installed-host, authenticated provider or
 five-browser acceptance. See [helper setup and limits](companion/byomcp/README.md).

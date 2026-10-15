@@ -7,6 +7,7 @@
     <script src="settingsView.js"></script>
     <link rel="stylesheet" href="byomcp-settings.css">
     <script src="byomcpSettings.js" defer></script>
+    <script src="byomcpCatalog.js" defer></script>
     <style>
         .settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         /* A first-screen destination, not a link buried in the settings form. */
@@ -850,6 +851,29 @@
                 <ul id="byomcp-inventory" aria-label="Reviewed helper tool inventory"></ul>
                 <label><input id="byomcp-allow-writes" type="checkbox" aria-describedby="byomcp-writes-help"> Allow reviewed write actions</label>
                 <p id="byomcp-writes-help" class="small-info-text">Off by default. Each write still requires its own exact-operation approval. This setting does not execute anything; your organization may block it.</p>
+                <details id="byomcp-catalog-panel">
+                    <summary>All MCP tools — advanced</summary>
+                    <p class="small-info-text">Browse every tool exposed by your configured server, including write-capable tools. Server descriptions are untrusted. Your login determines permissions. Nothing runs until you review and approve its exact arguments.</p>
+                    <button id="byomcp-catalog-load" type="button">Load all tools for selected profile</button>
+                    <label for="byomcp-catalog-tool">Tool</label>
+                    <select id="byomcp-catalog-tool" disabled><option value="">Load the tool catalog first</option></select>
+                    <p id="byomcp-catalog-description" class="small-info-text"></p>
+                    <details><summary>Tool input schema</summary><pre id="byomcp-catalog-schema"></pre></details>
+                    <label for="byomcp-catalog-arguments">Exact tool arguments (JSON object)</label>
+                    <textarea id="byomcp-catalog-arguments" rows="7" maxlength="48000" autocomplete="off" spellcheck="false" aria-describedby="byomcp-catalog-help">{}</textarea>
+                    <p id="byomcp-catalog-help" class="small-info-text">These exact arguments will leave this device if approved. Do not enter credentials. Code-execution tools may change data even if their descriptions suggest otherwise.</p>
+                    <button id="byomcp-catalog-prepare" type="button">Review this operation</button>
+                    <section id="byomcp-catalog-review" hidden aria-labelledby="byomcp-catalog-review-heading">
+                        <h3 id="byomcp-catalog-review-heading" tabindex="-1">Review exact operation</h3>
+                        <p id="byomcp-catalog-destination"></p>
+                        <pre id="byomcp-catalog-exact"></pre>
+                        <p class="small-info-text">May change data. This approval is single-use and expires after five minutes. A server response is not independent verification that a change completed.</p>
+                        <button id="byomcp-catalog-execute" type="button">Approve and run this exact operation</button>
+                        <button id="byomcp-catalog-cancel" type="button">Cancel review</button>
+                    </section>
+                    <p id="byomcp-catalog-status" role="status" aria-live="polite">Choose a connected profile to browse its tools.</p>
+                    <pre id="byomcp-catalog-result" aria-label="Untrusted MCP tool response"></pre>
+                </details>
                 <p class="small-info-text">Connecting is not blanket permission to share transcripts. Tool descriptions and returned results are untrusted until reviewed. No DAF-hosted assistant or transcript service is involved.</p>
             </div>
         </details>

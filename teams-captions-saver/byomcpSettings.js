@@ -47,9 +47,10 @@
         const profiles = Array.isArray(status.profiles) ? status.profiles.slice(0, 20).filter(profile => identifier(profile?.id)
             && profile.verified === true && ['stdio', 'streamable-http'].includes(profile.transport)
             && Number.isSafeInteger(profile.revision) && profile.revision > 0).map(profile => ({id:profile.id,
-            label:clean(profile.label) || profile.id, transport:profile.transport, revision:profile.revision})) : [];
+            label:clean(profile.label) || profile.id, transport:profile.transport, revision:profile.revision,
+            ...(profile.toolAccess==='catalog'?{toolAccess:'catalog'}:{})})) : [];
         return {verified:true, enabled:status.enabled === true, allowWrites:status.allowWrites === true, profiles,
-            label:`Helper ${clean(status.helperVersion, 40) || 'version unavailable'} verified. ${status.enabled === true ? 'Connection enabled; every evidence request still needs review.' : 'Helper connected; actions remain off. Review a profile to check approved actions.'}` + diagnosticLabel(response?.diagnostic)};
+            label:`Helper ${clean(status.helperVersion, 40) || 'version unavailable'} verified. ${profiles.some(profile=>profile.toolAccess==='catalog') ? 'Helper connected; the full tool catalog is available for explicit operation review.' : status.enabled === true ? 'Connection enabled; every evidence request still needs review.' : 'Helper connected; actions remain off. Review a profile to check approved actions.'}` + diagnosticLabel(response?.diagnostic)};
     }
     function inventoryView(response, profile) {
         const inventory = response?.ok === true ? response.inventory : null;

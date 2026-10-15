@@ -44,7 +44,8 @@
             if (!IDENTIFIER.test(profile.id) || ids.has(profile.id) || !['stdio','streamable-http'].includes(profile.transport)
                 || !Number.isSafeInteger(profile.revision) || profile.revision < 1 || !HASH.test(profile.profileDigest)
                 || profile.verified !== true || profile.enrolled !== true || typeof profile.inventoryVerified !== 'boolean'
-                || typeof profile.label !== 'string' || profile.label.length > 120) throw new Error('invalid-helper-profile');
+                || typeof profile.label !== 'string' || profile.label.length > 120
+                || profile.toolAccess !== undefined && profile.toolAccess !== 'catalog') throw new Error('invalid-helper-profile');
             ids.add(profile.id);
         }
         return structuredClone(status);
@@ -194,6 +195,18 @@
             finally {stop('user-disconnected');if (storage?.remove) await storage.remove(BINDING_KEY);}
             return {protocolVersion:1,enrollmentVerified:false,enabled:false,profiles:[]};
         }
+        async function catalogRequest(operation,profileId,fields,sender) {
+            if (!senderAllowed(sender)) throw new Error('sender-denied');
+            const expected=generation;await allowed(expected);
+            const profile=binding?.status.profiles.find(item=>item.id===profileId && item.toolAccess==='catalog');
+            if(!profile || !port)throw new Error('profile-unavailable');
+            if(operation==='tool-execute' && (await readPolicy()).allowWrites!==true)throw new Error('write-policy-denied');
+            await allowed(expected);
+            if(operation==='tool-execute' && (generation!==expected || policySnapshot()?.disabled!==false
+                || policySnapshot()?.allowWrites!==true))throw new Error('write-policy-denied');
+            const result=await request(operation,{enrollmentId:binding.enrollmentId,profileId,...fields});
+            await allowed(expected);return structuredClone(result);
+        }
         async function getCapacity() {
             const expected=generation;await allowed(expected);
             if(!binding || !port) return null;
@@ -219,7 +232,10 @@
         }});
         api?.permissions?.onRemoved?.addListener(removed => {if (removed.permissions?.includes('nativeMessaging')) stop('permission-revoked');});
         function takeResultProof(jobId) {const proof=resultProofs.get(jobId);resultProofs.delete(jobId);return proof ? structuredClone(proof) : null;}
-        return Object.freeze({localStatus,connectFromGesture,connectGranted,inventory,disconnect,transport,takeResultProof,getCapacity});
+        return Object.freeze({localStatus,connectFromGesture,connectGranted,inventory,disconnect,transport,takeResultProof,getCapacity,
+            toolCatalog:(profileId,sender)=>catalogRequest('tool-catalog',profileId,{},sender),
+            prepareTool:(profileId,tool,args,sender)=>catalogRequest('tool-prepare',profileId,{tool,arguments:args},sender),
+            executeTool:(profileId,proposalId,proposalDigest,sender)=>catalogRequest('tool-execute',profileId,{proposalId,proposalDigest},sender)});
     }
     root.CaptionKeepByomcpNativeClient = Object.freeze({HOST_NAME,BINDING_KEY,create,validateStatus});
     if (typeof module !== 'undefined' && module.exports) module.exports = root.CaptionKeepByomcpNativeClient;

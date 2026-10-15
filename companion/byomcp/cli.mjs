@@ -66,7 +66,7 @@ export async function launch(argv,{input=process.stdin,output=process.stdout,env
     // enrollment decision. No unattended self-enrollment from a webpage.
     confirmLocalUser:async()=>config.enabled===true});
   const helper=createNativeSession(authority,context,{adapters,readPolicy:async()=>({disabled:await contracts.digest(await loadConfiguration(filename))!==originalDigest}),
-    verifyConsent:async()=>true, // Only allowlisted enrolled native callers; browser worker owns the one-click sealed approval.
+    verifyConsent:async()=>true, // Only OS-allowlisted enrolled callers; browser worker owns exact typed or catalog proposal approval.
     authorizeOperation:controls.authorizeOperation,verifyWrite:async()=>true,
     verifyResultProof:controls.verifyResultProof,requireResultProof:true,
     // Measure the explicitly configured browser storage volume, not an

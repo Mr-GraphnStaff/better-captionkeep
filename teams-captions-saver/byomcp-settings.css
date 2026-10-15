@@ -7,3 +7,9 @@
 #byomcp-settings button:disabled { cursor:not-allowed; }
 #byomcp-inventory { padding-inline-start:20px; font-size:13px; }
 #byomcp-inventory li { margin-block:8px; }
+#byomcp-catalog-panel { margin-block: 1rem; }
+#byomcp-catalog-panel label { display: block; margin-block: .75rem .25rem; }
+#byomcp-catalog-panel button { max-width: 100%; white-space: normal; min-height: 44px; }
+#byomcp-catalog-panel textarea { width: 100%; box-sizing: border-box; min-height: 8rem; resize: vertical; font: inherit; background: var(--ck-surface); color: var(--ck-text); }
+#byomcp-catalog-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 22rem; overflow: auto; }
+#byomcp-catalog-review { border: 1px solid var(--ck-border); border-radius: .75rem; padding: 1rem; margin-block: 1rem; }

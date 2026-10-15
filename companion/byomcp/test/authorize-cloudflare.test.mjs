@@ -9,7 +9,7 @@ const setup={configurationPath:path.resolve('synthetic-config.json'),profileId:p
 test('explicit setup opens only the authorization URL through an argument array and requests no offline access',async()=>{
   let opened=0;
   const result=await signInCloudflare({...setup,load:async()=>configuration,authorize:async options=>{
-    assert.equal(options.allowOfflineAccess,false);assert.equal(options.readOnlySessionPreset,false);assert.equal(options.storePath,configuration.oauthStorePath);
+    assert.equal(options.allowOfflineAccess,false);assert.equal(options.readOnlySessionPreset,false);assert.equal(options.fullAccessSessionPreset,false);assert.equal(options.storePath,configuration.oauthStorePath);
     await options.onAuthorizationUrl('https://mcp.cloudflare.com/authorize?synthetic=1');return {authorized:true};
   },open:(executable,args,options)=>{
     opened++;assert.equal(executable,process.execPath);assert.deepEqual(args,['https://mcp.cloudflare.com/authorize?synthetic=1']);
@@ -32,6 +32,16 @@ test('read-only preset requires explicit setup opt-in and never enables refresh 
   await signInCloudflare({...setup,readOnlySessionPreset:true,load:async()=>configuration,authorize:async options=>{
     assert.equal(options.readOnlySessionPreset,true);assert.equal(options.allowOfflineAccess,false);return {authorized:true};
   }});
+});
+
+test('full-access session setup is explicit, mutually exclusive and still requests no persistent refresh grant',async()=>{
+  let attempts=0;
+  const authorize=async options=>{attempts++;assert.equal(options.fullAccessSessionPreset,true);
+    assert.equal(options.readOnlySessionPreset,false);assert.equal(options.allowOfflineAccess,false);return {authorized:true};};
+  await signInCloudflare({...setup,fullAccessSessionPreset:true,load:async()=>configuration,authorize});
+  await assert.rejects(signInCloudflare({...setup,fullAccessSessionPreset:true,readOnlySessionPreset:true,load:async()=>configuration,authorize}));
+  await assert.rejects(signInCloudflare({...setup,fullAccessSessionPreset:'yes',load:async()=>configuration,authorize}));
+  assert.equal(attempts,1);
 });
 
 test('CLI failure output contains only fixed stage/reason and bounded numeric HTTP status',()=>{

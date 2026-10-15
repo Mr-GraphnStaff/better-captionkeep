@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
-import {authorizeCloudflare,authorizationFailureDiagnostic,getCloudflareAuthorization,createWindowsCredentialStore,createCloudflareOAuthFetch,readOnlyCloudflareScopes,DPAPI_SCRIPT,ISSUER,RESOURCE} from '../cloudflare-oauth.mjs';
+import {authorizeCloudflare,authorizationFailureDiagnostic,getCloudflareAuthorization,createWindowsCredentialStore,createCloudflareOAuthFetch,readOnlyCloudflareScopes,fullAccessCloudflareScopes,DPAPI_SCRIPT,ISSUER,RESOURCE} from '../cloudflare-oauth.mjs';
 const storePath='C:\\CaptionKeepPrivate\\cloudflare.dpapi';
 const profile={id:'cloudflare-test',credentialReference:'cloudflare-token',transport:'remote',resource:RESOURCE};
 function fixture() {
@@ -220,5 +220,38 @@ test('scope, token validation, network and unknown failures remain distinct with
       assert(!JSON.stringify(error).includes(hostile));assert.equal(error.cause,undefined);return true;
     });
     assert.equal(f.record(),null);
+  }
+});
+
+test('full-access session requires explicit mode, uses only issuer-advertised catalog and never persists refresh access',async()=>{
+  const f=fixture();f.metadata.scopes_supported.push('zone:read','zone:write','tokens:edit');
+  const expected=fullAccessCloudflareScopes(f.metadata);
+  const result=await finishAuthorization(f,url=>url,{fullAccessSessionPreset:true,allowOfflineAccess:true});
+  assert.equal(result.consentMode,'cloudflare-full-access-session');assert.equal(f.record().consentMode,result.consentMode);
+  assert.equal(f.record().tokens.scope,expected);assert.equal(f.record().tokens.refresh_token,undefined);
+  assert.deepEqual(JSON.parse(f.seen.find(item=>item.path==='/register').body).grant_types,['authorization_code']);
+  assert.equal(JSON.parse(f.seen.find(item=>item.path==='/register').body).scope,expected);
+  f.record().expiresAt=0;f.record().tokens.refresh_token='SYNTHETIC_UNEXPECTED_REFRESH';let refreshes=0;
+  await assert.rejects(getCloudflareAuthorization(profile,{storePath,store:f.store,refreshFunction:async()=>{refreshes++;}}));
+  assert.equal(refreshes,0);
+});
+
+test('full-access session rejects conflicting presets, foreign metadata, unknown grants and unbounded catalogs without auto-escalation',async()=>{
+  const conflicting=fixture();
+  await assert.rejects(finishAuthorization(conflicting,url=>url,{fullAccessSessionPreset:true,readOnlySessionPreset:true}));
+  assert.equal(conflicting.seen.length,0);
+  for(const change of [{issuer:'https://foreign.invalid'},
+    {scopes_supported:['user:read','account:read','offline_access','invalid scope:write']},
+    {scopes_supported:Array.from({length:1025},(_,index)=>`scope${index}:write`)}]) {
+    const f=fixture();assert.throws(()=>fullAccessCloudflareScopes({...f.metadata,...change}));
+  }
+  for(const mode of ['minimal','read-only','full-unknown']) {
+    const f=fixture();f.metadata.scopes_supported.push('zone:read','zone:write');const original=f.fetchFn;
+    f.fetchFn=async(input,init)=>{const response=await original(input,init),value=await response.json();
+      if(new URL(input).pathname==='/token')value.scope=mode==='full-unknown'?'user:read account:read zone:write foreign:write':'user:read account:read zone:write';
+      return new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}});
+    };
+    await assert.rejects(finishAuthorization(f,url=>url,{readOnlySessionPreset:mode==='read-only',fullAccessSessionPreset:mode==='full-unknown'}));
+    assert.equal(f.record(),null);assert.equal(f.seen.filter(item=>item.path==='/token').length,1);
   }
 });

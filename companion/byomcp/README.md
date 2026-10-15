@@ -28,10 +28,11 @@ The embedding native launcher must establish
 caller identity/enrollment and trusted consent verification before use; passing
 a claimed caller string from a webpage is not enrollment. None is installed.
 
-Native operations: status, inventory, invoke, cancel, disconnect. Every message
+Native operations: status, inventory, invoke, cancel, disconnect, plus the explicit
+catalog-profile operations described below. Every message
 includes version1, requestId, enrollmentId and profileId where applicable.
-Settings must be limited to status/inventory/disconnect; metadata grants cannot
-authorize a tool call. Native framing and `serveNative` are executable embedding
+Metadata grants cannot authorize a tool call. The separately enrolled catalog lane
+permits reviewed Settings execution. Native framing and `serveNative` are executable embedding
 entrypoints, not a deployed browser host. The response limit is1MiB; larger
 results fail closed. The application budget reserves1024bytes for the native
 wrapper; request IDs are capped at64characters. App quotas are separate.
@@ -67,6 +68,35 @@ schemas/results reject. Binding verification is not proof that an answer is
 factually correct or that an arbitrary server is read-only.
 
 ## Evidence and remaining work
+
+### Full catalog opt-in (October 15 development)
+
+An OS-local reviewed profile may set `toolAccess:catalog`, included in its profile
+digest. This exposes the complete discovered MCP catalog, including writes.
+All generic tools conservatively require the write gate; server annotations do
+not establish safety. Discovery/preparation do not execute tools. Execution also
+requires the browser reviewed-write setting and current organizational policy.
+
+`tool-catalog` returns bounded schemas; `tool-prepare` seals exact profile, revision,
+tool, schema digest and arguments into a five-minute one-use proposal.
+`tool-execute` accepts only that proposal ID/digest. Settings requires a second
+trusted approval of the displayed operation. Disconnect, schema drift, expiry,
+changed configuration and policy revocation fail closed. Unknown outcomes are
+never retried automatically; native input closure revokes pending execution.
+Both stdio and remote HTTP use this contract. No meeting content is added
+automatically. Generic results remain untrusted data, not verified Receipts.
+
+The separate Cloudflare Windows OAuth CLI accepts explicit `--full-access-session`
+only with broad user-approved consent; this is not the default and cannot be
+combined with read-only mode. Refresh tokens are discarded. Expiry requires fresh
+explicit sign-in. Existing IDE credentials are never imported.
+
+561 extension tests, 77 helper tests and a synthetic rendered tool-review fixture
+passed locally. A separately authorized installed-helper Cloudflare test created,
+independently read, identity-checked, deleted and confirmed absence of one unique
+temporary TXT record, without changing existing DNS. This proves authenticated
+installed-helper execution, not browser Settings end-to-end, restart acceptance
+or five-browser certification.
 
 ### Enrollment and installer-template slice
 

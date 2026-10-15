@@ -45,17 +45,19 @@ test('malformed configured profiles and changed profile digest reject before enr
   await assert.rejects(validateConfiguredProfiles([{...valid,secret:'must-not-configure-here'}]),/config/);
   await assert.rejects(validateConfiguredProfiles([valid,valid]),/profile/);
 });
-test('actual native split-frame fixture exposes selectable enrolled metadata and inventory contains no transcript',async()=>{
+test('actual native split-frame fixture exposes selectable enrolled metadata and inventory contains no transcript',{timeout:5000},async()=>{
   const manager=await authority({confirmLocalUser:async()=>true});const challenge=manager.challenge(context,['remote-profile']);
   const enrollment=await manager.complete(context,challenge.nonce);let inspections=0;
   const helper=manager.helper(context,enrollment.enrollmentId,{readPolicy:async()=>({disabled:false}),adapters:{remote:{
     inspect:async configured=>{inspections++;assert(!JSON.stringify(configured).includes('transcript'));return [{name:'synthetic_read',schemaDigest:'b'.repeat(64)}];}
   }}});
   const input=new PassThrough(),output=new PassThrough(),chunks=[];output.on('data',chunk=>chunks.push(chunk));
+  const liveDecoder=new NativeDecoder();let replyCount=0;
+  const received=new Promise(resolve=>output.on('data',chunk=>{replyCount+=liveDecoder.push(chunk).length;if(replyCount===2) resolve();}));
   const completed=new Promise(resolve=>output.on('end',resolve));serveNative(input,output,helper);
   const statusMessage={version:1,requestId:randomUUID(),enrollmentId:enrollment.enrollmentId,operation:'status'};
   const first=encodeNative(statusMessage);input.write(first.subarray(0,3));input.write(first.subarray(3));
-  input.end(encodeNative({...statusMessage,requestId:randomUUID(),operation:'inventory',profileId:'remote-profile'}));await completed;
+  input.write(encodeNative({...statusMessage,requestId:randomUUID(),operation:'inventory',profileId:'remote-profile'}));await received;input.end();await completed;
   const decoder=new NativeDecoder();const replies=decoder.push(Buffer.concat(chunks));decoder.end();
   assert.equal(replies.length,2);const status=replies.find(reply=>reply.requestId===statusMessage.requestId).result;
   assert.equal(status.protocolVersion,1);assert.equal(status.profiles[0].transport,'streamable-http');
@@ -64,7 +66,7 @@ test('actual native split-frame fixture exposes selectable enrolled metadata and
   const inventory=replies.find(reply=>reply.requestId!==statusMessage.requestId).result;
   assert.equal(inspections,1);assert.match(inventory.tools[0].profileGrantId,/^[a-zA-Z0-9._-]{1,100}$/);
   assert.equal(ui.inventoryView({ok:true,inventory},uiStatus.profiles[0]).length,1);
-  await manager.revoke(context,enrollment.enrollmentId);
+  // Closing the native channel itself revokes the enrollment.
   await assert.rejects(helper.handle(statusMessage),/enrolled/);
 });
 test('installer generation is dry-run only and preserves exact Chromium/Firefox allowlisting',()=>{

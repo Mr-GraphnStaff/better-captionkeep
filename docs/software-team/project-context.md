@@ -29,6 +29,15 @@ and local Core remains independent. Required does not mean implemented/accepted.
 
 ## Team and ownership
 
+October 15 scope clarification: the lead requires the full discovered MCP catalog,
+including writes, not a metadata-only or typed-action-only connection. Explicit
+catalog profiles now support sealed, one-use exact-operation review; generic
+responses remain unverified data, separate from typed readback Receipts.
+An authorized installed-helper Cloudflare TXT add/read/delete test passed with
+independent cleanup confirmation. Settings end-to-end and five separate live
+browser certifications remain open. Full-access OAuth was explicitly approved
+for this session; refresh tokens are discarded. No unrelated writes authorized.
+
 Four actual agents perform grouped discipline passes, not fictitious employees:
 
 | Owner | Active disciplines | Owned deliverables |

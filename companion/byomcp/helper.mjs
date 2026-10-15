@@ -1,4 +1,5 @@
 import {createRequire} from 'node:module';
+import {createCatalogSession} from './catalog-session.mjs';
 const require = createRequire(import.meta.url);
 export const contracts = require('../../teams-captions-saver/evidenceActionContracts.js');
 const MAX_RECORDS = 50, MAX_BYTES = 8 * 1024 * 1024, CORE_RESERVE = 16 * 1024 * 1024;
@@ -13,26 +14,31 @@ export function createHelper({caller, allowedCallers = [], enrollmentId, profile
   const jobs = new Map();
   const verifiedProfiles = new Set();
   let disconnected = false;
+  const catalog=createCatalogSession({contracts,verifyConsent,readPolicy,now,isDisconnected:()=>disconnected});
   let admission = Promise.resolve();
   const serial = action => {const result = admission.then(action); admission = result.catch(() => {}); return result;};
   const status = record => ({jobId:record.approval.payload.jobId, state:record.state, result:record.result || null,
     ...(record.proof ? {proof:record.proof} : {})});
   const usedBytes = () => [...jobs.values()].reduce((sum, record) => sum + contracts.bytes(record.approval) + (record.result ? contracts.bytes(record.result) : contracts.LIMITS.resultBytes), 0);
+  async function close() {
+    disconnected=true;catalog.disconnect();
+    for(const record of jobs.values()) {record.controller.abort();if(!record.result) record.state='cancelled';}
+    await Promise.allSettled(Object.values(adapters).map(adapter=>adapter.disconnect?.()));
+    return {disconnected:true};
+  }
 
   async function handle(message) {
     message = structuredClone(message);
     if (!message || message.version !== 1 || message.enrollmentId !== enrollmentId || typeof message.requestId !== 'string'
         || message.requestId.length > 64) throw new Error('invalid-message');
-    if (contracts.bytes(message) > 98304 || Object.keys(message).some(key => !['version','requestId','enrollmentId','operation','profileId','approval','jobId'].includes(key))) throw new Error('unexpected-fields');
+    if (contracts.bytes(message) > 98304 || Object.keys(message).some(key => !['version','requestId','enrollmentId','operation','profileId','approval','jobId','tool','arguments','proposalId','proposalDigest'].includes(key))) throw new Error('unexpected-fields');
     if (message.operation === 'status') return {helperVersion:'0.1.0', protocolVersion:1,mcpProtocolVersion:contracts.PROTOCOL_VERSION,enabled:false,
       enrollmentVerified:!disconnected, profiles:[...configured.values()].map(profile => ({id:profile.id,label:profile.label || profile.id,
         transport:profile.transport==='remote'?'streamable-http':'stdio',revision:profile.revision,profileDigest:profile.profileDigest,
-        verified:!disconnected,enrolled:!disconnected,inventoryVerified:!disconnected && verifiedProfiles.has(profile.id),toolCount:profile.tools.length}))};
+        verified:!disconnected,enrolled:!disconnected,inventoryVerified:!disconnected && verifiedProfiles.has(profile.id),toolCount:profile.tools.length,
+        ...(profile.toolAccess==='catalog'?{toolAccess:'catalog'}:{})}))};
     if (message.operation === 'disconnect') {
-      disconnected = true;
-      for (const record of jobs.values()) {record.controller.abort(); if (!record.result) record.state = 'cancelled';}
-      await Promise.allSettled(Object.values(adapters).map(adapter => adapter.disconnect?.()));
-      return {disconnected:true};
+      return close();
     }
     if (disconnected) throw new Error('disconnected');
     const policy = await readPolicy();
@@ -44,6 +50,11 @@ export function createHelper({caller, allowedCallers = [], enrollmentId, profile
     }
     const profile = configured.get(message.profileId);
     if (!profile || !adapters[profile.transport]) throw new Error('unsupported-profile');
+    if (['tool-catalog','tool-prepare','tool-execute'].includes(message.operation)) {
+      const extra=message.operation==='tool-prepare'?['tool','arguments']:message.operation==='tool-execute'?['proposalId','proposalDigest']:[];
+      if(Object.keys(message).some(key=>!['version','requestId','enrollmentId','operation','profileId',...extra].includes(key))) throw Error('unexpected-fields');
+      return catalog.handle(message,profile,adapters[profile.transport],enrollmentId);
+    }
     if (message.operation === 'inventory') {
       const inventory = await adapters[profile.transport].inspect(structuredClone(profile));
       if (!Array.isArray(inventory) || inventory.length > 100 || contracts.bytes(inventory) > 65536) throw new Error('inventory-limit');
@@ -117,5 +128,5 @@ export function createHelper({caller, allowedCallers = [], enrollmentId, profile
     }
     return status(record);
   }
-  return Object.freeze({handle});
+  return Object.freeze({handle,close});
 }

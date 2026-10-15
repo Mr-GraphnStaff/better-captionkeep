@@ -79,7 +79,9 @@
                 || Object.keys(value).some(key=>!keys.includes(key))) throw new Error('request-invalid');
         }
         async function settings(message,sender,onStage) {
-            exact(message,['message','operation','profileId','revision','configuration','enabled']);
+            exact(message,['message','operation','profileId','revision','configuration','enabled','tool','arguments','proposalId','proposalDigest']);
+            if(['catalog','prepare-tool','execute-tool'].includes(message.operation)
+                && !['/popup.html','/settings.html'].includes(new URL(sender.url).pathname))throw new Error('sender-denied');
             const setupOperation = ['configure','connect','allow-writes'].includes(message.operation);
             if (setupOperation) {
                 const path = new URL(sender.url).pathname;
@@ -116,6 +118,7 @@
             }
             const expected = revision;
             try {await enabled();} catch {
+                if(['catalog','prepare-tool','execute-tool'].includes(message.operation))throw new Error('policy-denied');
                 const policy = await readPolicy();
                 if (message.operation === 'status' && policy?.setupDisabled === false) return unavailable('not-connected');
                 return unavailable('policy-denied');
@@ -134,6 +137,23 @@
                 if (typeof adapter.inventory !== 'function') throw new Error('helper-unavailable');
                 const inventory = await adapter.inventory(message.profileId,message.revision,sender);
                 await current();return {ok:true,inventory};
+            }
+            if(['catalog','prepare-tool','execute-tool'].includes(message.operation)) {
+                if(!/^[a-zA-Z0-9._-]{1,100}$/.test(message.profileId || ''))throw new Error('request-invalid');
+                if(message.operation==='catalog') {
+                    exact(message,['message','operation','profileId']);
+                    const catalog=await adapter.toolCatalog(message.profileId,sender);await current();return {ok:true,catalog};
+                }
+                if(message.operation==='prepare-tool') {
+                    exact(message,['message','operation','profileId','tool','arguments']);
+                    const proposal=await adapter.prepareTool(message.profileId,message.tool,message.arguments,sender);
+                    await current();return {ok:true,proposal};
+                }
+                exact(message,['message','operation','profileId','proposalId','proposalDigest']);
+                if(!/^[a-f0-9]{64}$/.test(message.proposalDigest || ''))throw new Error('request-invalid');
+                if((await enabled()).allowWrites!==true)throw new Error('write-policy-denied');
+                const result=await adapter.executeTool(message.profileId,message.proposalId,message.proposalDigest,sender);
+                await current();return {ok:true,result};
             }
             throw new Error('operation-unavailable');
         }
