@@ -1,5 +1,19 @@
 # 6.0 Software Team execution ledger
 
+## October 15: user rejects MCP onboarding
+
+Lead reports inability to set up their own MCP with current instructions and
+states the feature must be substantially easier to be usable. M01 is a reported
+FAIL, not merely an unrun test. Exact installed build/browser and first failing
+step are unknown; do not claim an independently reproduced transport error.
+Source inspection confirms dependence on externally prepared binding JSON and
+missing guided setup. High-severity release blocker #170 is public and linked
+to Azure Task348. Required correction is user-facing one-time helper setup and
+guided Add service/sign-in/verify/first reviewed operation for both transports;
+no routine manual JSON/hash/browser-ID/registry editing. Implementation and fresh
+independent no-coaching acceptance remain open. No permissions or live resources
+changed during this defect intake.
+
 ## October 15: tester-facing acceptance packet
 
 Lead requested a practical document to begin QA. Added TESTER-ACCEPTANCE-6.0.md:

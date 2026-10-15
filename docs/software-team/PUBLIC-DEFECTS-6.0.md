@@ -1,5 +1,15 @@
 # Public 6.0 defect and scope-gap register
 
+October 15 user acceptance failure: [#170](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/170),
+high-severity BYOMCP onboarding release blocker, linked to Azure Task348.
+The lead could not set up their own MCP using supplied guidance (M01 FAIL).
+Current source requires externally prepared binding JSON; no guided end-to-end
+setup exists. Exact installed build/first failing step remain unrecorded, so
+this is not a newly diagnosed OAuth/transport fault. Required acceptance: a fresh
+tester configures local and remote services without developer edits/coaching,
+hand-edited JSON, hashes, browser IDs or registry entries. Prior helper DNS success
+does not close this defect. No fix implemented or retest passed yet.
+
 Recorded October 14, 2026. Each issue below was reread from GitHub after creation.
 Confirmed defects and explicit scope gaps are public; two feature requests are
 labeled as scope gaps rather than fabricated runtime bugs. Source paths and
