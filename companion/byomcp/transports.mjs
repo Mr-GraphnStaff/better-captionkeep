@@ -134,8 +134,9 @@ export function createSdkAdapters({getAuthorization = async () => null, remoteFe
       transport = new StdioClientTransport({command:profile.executable,args:[...profile.args],cwd:profile.cwd,
         env:{},stderr:'ignore',maxBufferSize:contracts.LIMITS.resultBytes});
     } else {
+      const identity=Object.freeze({id:profile.id,revision:profile.revision,profileDigest:profile.profileDigest});
       transport = new StreamableHTTPClientTransport(new URL(profile.resource),
-        {fetch:remoteFetchFactory(profile.resource, getAuthorization)});
+        {fetch:remoteFetchFactory(profile.resource, resource=>getAuthorization(resource,identity))});
     }
     clients.add(client);
     if(signal) signal.addEventListener('abort',()=>{client.close().catch(()=>{});},{once:true});

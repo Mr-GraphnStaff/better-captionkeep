@@ -37,21 +37,35 @@ export function parseLaunch(argv,allowedCallers) {
   if(matches.length!==1) throw Error('native-caller-unverified');
   return {...matches[0],hostName:'com.daftech.captionkeep.byomcp'};
 }
+// Select credentials by the enrolled profile, never by shared service URL.
+// The snapshot is private: a later mutation of a caller's profile cannot retarget it.
+export function createProfileAuthorization(profiles,{env=process.env,oauthStorePath,
+  cloudflareAuthorization=getCloudflareAuthorization}={}) {
+  const configured=structuredClone(profiles);
+  return async (resource,identity) => {
+    if(!identity || typeof identity.id!=='string' || !Number.isSafeInteger(identity.revision)
+        || !/^[a-f0-9]{64}$/.test(identity.profileDigest || '')) return null;
+    const matches=configured.filter(profile=>profile.transport==='remote' && profile.resource===resource
+      && profile.id===identity.id && profile.revision===identity.revision && profile.profileDigest===identity.profileDigest);
+    if(matches.length!==1) return null;
+    const profile=matches[0],{profileDigest,...definition}=profile;
+    if(await contracts.digest(definition)!==profileDigest) return null;
+    if(resource===CLOUDFLARE_RESOURCE && oauthStorePath) {
+      return cloudflareAuthorization(structuredClone(profile),{storePath:oauthStorePath});
+    }
+    const token=env[profile.credentialReference];
+    if(typeof token!=='string' || !token || /[\r\n]/.test(token)) return null;
+    return `Bearer ${token}`;
+  };
+}
 export async function launch(argv,{input=process.stdin,output=process.stdout,env=process.env}={}) {
   const filename=argv[1],config=await loadConfiguration(filename);
   const registry=config.browserConfiguration,context=parseLaunch(argv,registry.allowedCallers);
   await runtime.validateConfiguration(registry,{contracts,browserTarget:context.browser,caller:context.caller});
   const entries=registry.profiles,profiles=entries.map(entry=>entry.profile);
   const originalDigest=await contracts.digest(config);
-  const adapters=createSdkAdapters({cloudflareActions:entries,getAuthorization:async resource=>{
-    const profile=profiles.find(entry=>entry.transport==='remote' && entry.resource===resource);
-    if(profile && resource===CLOUDFLARE_RESOURCE && config.oauthStorePath) {
-      return getCloudflareAuthorization(profile,{storePath:config.oauthStorePath});
-    }
-    const token=profile && env[profile.credentialReference];
-    if(typeof token!=='string' || !token || /[\r\n]/.test(token)) return null;
-    return `Bearer ${token}`;
-  }});
+  const adapters=createSdkAdapters({cloudflareActions:entries,getAuthorization:createProfileAuthorization(profiles,
+    {env,oauthStorePath:config.oauthStorePath})});
   const controls=createControlledActions({entries,readState:async(profile,action,args)=>{
     if(isCloudflareDnsProfile(profile,action)) return adapters.remote.observeCloudflareDns(profile,action,args);
     const verifier=config.verificationTools.find(item=>item.profileId===profile.id && item.actionTool===action.tool);
