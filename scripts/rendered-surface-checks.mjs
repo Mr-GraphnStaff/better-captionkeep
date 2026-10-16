@@ -1,10 +1,69 @@
-import {spawn} from 'node:child_process';
+import {spawn,execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createServer} from 'node:http';
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const execute = promisify(execFile);
+
+function waitForBrowserExit(child, timeoutMs) {
+  if (!child || child.pid === undefined || child.exitCode !== null || child.signalCode) return Promise.resolve(true);
+  return new Promise(resolve => {
+    const finished = exited => {clearTimeout(timer);child.removeListener('exit',onExit);resolve(exited);};
+    const onExit = () => finished(true);
+    const timer = setTimeout(() => finished(false),timeoutMs);
+    child.once('exit',onExit);
+  });
+}
+
+async function terminateBrowserTree(child) {
+  if (process.platform === 'win32') {
+    // Kill only this invocation's spawned tree, before its parent can orphan children.
+    if (!Number.isSafeInteger(child.pid) || child.pid <= 0) throw new Error('Invalid browser process identity.');
+    await execute(path.join(process.env.SystemRoot,'System32','taskkill.exe'),
+      ['/PID',String(child.pid),'/T','/F'],{windowsHide:true,timeout:10000});
+  } else child.kill('SIGKILL');
+}
+
+export async function cleanupChromiumSurface({child,cdp,profile,temporaryRoot=os.tmpdir()},
+  {terminate=terminateBrowserTree,remove=rm,exitTimeoutMs=3000} = {}) {
+  const root=path.resolve(temporaryRoot),resolved=path.resolve(profile),prefix=path.join(root,'captionkeep-surface-');
+  if (path.dirname(resolved)!==root || !resolved.startsWith(prefix) || resolved===prefix) {
+    throw new Error('Unsafe Chromium surface cleanup path.');
+  }
+  try {
+    // Closing only the launcher leaves Windows browser descendants holding files
+    // and inherited stderr handles. Ask the browser to exit before killing a tree.
+    if (cdp) {try {await cdp.send('Browser.close');} catch { /* A closing socket may reject its final reply. */ }}
+    if (!await waitForBrowserExit(child,exitTimeoutMs)) {
+      try {await terminate(child);} catch(error) {
+        if (!await waitForBrowserExit(child,exitTimeoutMs)) throw error;
+      }
+      if (!await waitForBrowserExit(child,exitTimeoutMs)) throw new Error('Browser did not exit during surface cleanup.');
+    }
+  } finally {cdp?.close();}
+  // Retry transient Windows locks only for the checked directory created by mkdtemp.
+  // A persistent lock still fails the gate.
+  await remove(resolved,{recursive:true,force:true,maxRetries:8,retryDelay:250});
+}
+
+export async function waitForPageTarget(port,{timeoutMs=10000,intervalMs=100,
+  targets=async () => {
+    const response=await fetch(`http://127.0.0.1:${port}/json/list`);
+    if (!response.ok) throw new Error('Browser debugging target request failed.');
+    return response.json();
+  }} = {}) {
+  const deadline=Date.now()+timeoutMs;
+  do {
+    const page=(await targets()).find(target => target.type==='page' && target.webSocketDebuggerUrl);
+    if (page) return page;
+    if (Date.now()>=deadline) break;
+    await delay(intervalMs);
+  } while (true);
+  throw new Error('Browser page debugging target is unavailable within the startup budget.');
+}
 
 export function validateSurfaceResult(result, exceptions = []) {
   if (exceptions.length) throw new Error(`Browser script exception: ${exceptions.join('; ')}`);
@@ -224,9 +283,7 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
       try { port = (await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]; break; } catch { await delay(100); }
     }
     if (!port) throw new Error('Browser did not open a debugging connection within the 30-second startup budget.');
-    const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
-    const page = targets.find(target => target.type === 'page');
-    if (!page?.webSocketDebuggerUrl) throw new Error('Browser page debugging target is unavailable.');
+    const page = await waitForPageTarget(port);
     cdp = await connection(page.webSocketDebuggerUrl);
     await cdp.send('Runtime.enable');
     await cdp.send('Page.enable');
@@ -292,14 +349,8 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
     }
     throw error;
   } finally {
-    cdp?.close();
-    if (child && child.exitCode === null) {
-      const closed = new Promise(resolve => child.once('exit',resolve));
-      child.kill();
-      await Promise.race([closed,delay(3000)]);
-    }
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
-    await rm(profile,{recursive:true,force:true,maxRetries:4,retryDelay:200});
+    await cleanupChromiumSurface({child,cdp,profile});
   }
 }

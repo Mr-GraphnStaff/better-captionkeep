@@ -8,6 +8,29 @@ async function evaluate(cdp, expression) {
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
     return result.result.value;
 }
+async function waitForExtrasReady(cdp,{timeoutMs=5000,intervalMs=25}={}) {
+    const deadline=Date.now()+timeoutMs;
+    do {
+        const ready=await evaluate(cdp,`location.pathname.endsWith('/extras.html') &&
+            new URLSearchParams(location.search).get('session') === 'synthetic-moment' &&
+            document.readyState === 'complete' && typeof preview === 'function' &&
+            typeof globalThis.CaptionKeepMeetingExtras?.normalize === 'function' &&
+            document.getElementById('meeting')?.textContent === 'Saved meeting' &&
+            document.getElementById('load-extras')?.disabled === false &&
+            !!document.getElementById('image-confirm') && !!document.getElementById('export-image')`);
+        if(ready) return;
+        if(Date.now()>=deadline) break;
+        await new Promise(resolve=>setTimeout(resolve,intervalMs));
+    } while(true);
+    throw new Error('Expected Capture Moment document and initialized extras controls did not become ready.');
+}
+test('extras readiness waits for the navigated document and preserves permanent failure',async()=>{
+    let reads=0;
+    await waitForExtrasReady({async send(){return {result:{value:++reads===3}};}},{timeoutMs:100,intervalMs:1});
+    assert.equal(reads,3);
+    await assert.rejects(waitForExtrasReady({async send(){return {result:{value:false}};}},{timeoutMs:0}),/did not become ready/);
+    await assert.rejects(waitForExtrasReady({async send(){return {exceptionDetails:{text:'synthetic readiness exception'}};}}),/synthetic readiness exception/);
+});
 const workspaceChecks = `(async () => {
     const checks = [];
     const add = (name, passed) => checks.push({name, passed:!!passed});
@@ -192,7 +215,7 @@ test('real Chrome checks constrained workspace keyboard, source-bound reviewed a
                 }
                 if (surface === 'handoff') {
                     await cdp.send('Page.navigate', {url:await evaluate(cdp, "new URL('extras.html?session=synthetic-moment&historical=true',location.href).href")});
-                    await new Promise(resolve => setTimeout(resolve,400));
+                    await waitForExtrasReady(cdp);
                     return evaluate(cdp, `(async () => {
                         const checks = [], downloads = [];
                         chrome.downloads.download = async request => {downloads.push(request); return 1;};

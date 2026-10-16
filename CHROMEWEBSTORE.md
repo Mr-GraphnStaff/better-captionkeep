@@ -4,7 +4,13 @@ Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-14
+> Last Updated: 2026-10-15
+
+October 15 development-only onboarding repair: guided nonsecret setup-request
+preparation and a separate helper preparation assistant are being added. They
+do not constitute one-click installation, generic OAuth support or accepted
+onboarding. Native permissions remain explicit; no automatic tool execution or
+new publisher service. Refresh Settings screenshots after acceptance, not now.
 
 6.0 optional permission review: `nativeMessaging` is requested only when the
 user explicitly chooses Connect in Settings. It connects to the separately

@@ -1,6 +1,8 @@
 import {readFile, writeFile} from 'node:fs/promises';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 
 const BROWSERS = ['chrome', 'edge', 'brave', 'firefox', 'opera'];
 const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom',
@@ -34,6 +36,66 @@ export function validateReleaseStatus(record, version) {
   }
   if (record.state === 'released' && GATES.some(gate => !record.releaseGates[gate])) throw new Error('Release still has open gates');
   return record;
+}
+
+// CAP-09/10/12: promotion consumes evidence for the same immutable candidate.
+// The normal development/package gate intentionally does not invoke this guard.
+export async function verifyStorePromotion({channel, action, target, packagePath, version,
+  read = readFile, identity, now = Date.now(), root = fileURLToPath(new URL('../', import.meta.url))} = {}) {
+  if (!['chrome', 'edge'].includes(channel)) throw new Error('Invalid Store promotion channel');
+  assertVerifiableStoreAction(action);
+  const record = JSON.parse(await read(path.join(root, 'docs/release-state/6.0.json'), 'utf8'));
+  const manifest = JSON.parse(await read(path.join(root, 'teams-captions-saver/manifest.json'), 'utf8'));
+  validateReleaseStatus(record, manifest.version);
+  if (record.state !== 'candidate' || !record.candidate.frozen) throw new Error('Store promotion requires a frozen candidate');
+  if (version && version !== record.version) throw new Error('Store promotion version mismatch');
+  for (const gate of ['fullScopeAcceptance','accessibilityAndFailureUat','artworkApproved','unchangedWindow']) {
+    if (!record.releaseGates[gate]) throw new Error(`Store promotion gate remains open: ${gate}`);
+  }
+  const candidate = record.candidate, evidence = candidate.promotion;
+  const bound = value => value?.commit === candidate.commit && value.hashes
+    && ARTIFACTS.every(name => value.hashes[name] === candidate.hashes[name]);
+  if (!bound(evidence) || typeof evidence.approvedBy !== 'string' || !evidence.approvedBy.trim()
+      || evidence.approvedBy.length > 200) throw new Error('Missing or stale candidate promotion approval');
+  if (typeof target !== 'string' || !target || evidence.targets?.[channel] !== target) {
+    throw new Error('Store target differs from candidate approval');
+  }
+  if (!bound(evidence.uat) || evidence.uat.passed !== true) throw new Error('Missing or stale candidate UAT evidence');
+  if (!bound(evidence.permissionDelta) || evidence.permissionDelta.approved !== true) throw new Error('Missing or stale permission delta approval');
+  for (const check of [evidence.uat, evidence.permissionDelta]) {
+    const report = check.report;
+    if (!report || typeof report.path !== 'string' || !report.path || report.path.includes('\\')
+        || report.path.split('/').some(part => !part || part === '.' || part === '..')
+        || path.isAbsolute(report.path) || /^[a-z]:/i.test(report.path)
+        || !/^[a-f0-9]{64}$/i.test(report.sha256 || '')) throw new Error('Missing candidate acceptance report identity');
+    if (createHash('sha256').update(await read(path.join(root, report.path))).digest('hex') !== report.sha256.toLowerCase()) {
+      throw new Error('Candidate acceptance report changed');
+    }
+  }
+  const started = Date.parse(evidence.unchangedSince);
+  if (typeof evidence.unchangedSince !== 'string' || !Number.isFinite(started) || !Number.isFinite(now)
+      || started > now || now - started < 48 * 60 * 60 * 1000) throw new Error('Candidate has not completed the 48-hour unchanged window');
+  const observed = identity ? await identity() : {
+    commit: execFileSync('git', ['rev-parse','HEAD'], {cwd:root,encoding:'utf8',windowsHide:true}).trim(),
+    // Updating evidence/generated status views does not change the reviewed source.
+    changes: execFileSync('git', ['status','--porcelain','--untracked-files=normal'], {cwd:root,encoding:'utf8',windowsHide:true})
+      .split(/\r?\n/).filter(Boolean).filter(line => !['docs/release-state/6.0.json',...statusDocuments].includes(line.slice(3)))
+  };
+  if (observed?.commit !== candidate.commit || !Array.isArray(observed.changes) || observed.changes.length) {
+    throw new Error('Candidate source commit changed or worktree contains unreviewed changes');
+  }
+  const filename = packagePath || path.join(root, 'dist', 'prod',
+    channel === 'chrome' ? `better_captionkeep-chrome-${record.version}.zip` : `better_captionkeep-${record.version}.zip`);
+  const bytes = await read(filename);
+  const digest = createHash('sha256').update(bytes).digest('hex');
+  if (digest !== candidate.hashes[`${channel}-store`].toLowerCase()) throw new Error('Store package differs from frozen candidate hash');
+  return {bytes, packagePath:filename, version:record.version, sha256:digest};
+}
+
+export function assertVerifiableStoreAction(action) {
+  if (action === 'publish-staged' || action?.startsWith('submit-existing')) {
+    throw new Error('Existing Store drafts cannot be verified against the candidate bytes. Use a fresh upload-and-submit action; staged publication requires independently verified immutable remote revision evidence and is disabled.');
+  }
 }
 
 export function renderReleaseStatus(record) {

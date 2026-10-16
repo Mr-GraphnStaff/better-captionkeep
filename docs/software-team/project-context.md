@@ -1,8 +1,10 @@
 # Better CaptionKeep 6.0 execution context
 
-Date: October 14, 2026. Team lead: David Farris.
-Source: P:/Projects/better-captionkeep-6.0, branch codex/6.0.
-Review starting revision: 360cae2. Public 5.4 checkout stays unchanged.
+Date: October 16, 2026. Team lead: David Farris.
+Active source: C:/Projects/better-captionkeep-6.0 inside WinDev2407Eval, branch codex/6.0.
+VM handoff HEAD: 7baceaf9cb392a8b7a67f976f7bd1fdfb4f21ad7, with preserved dirty work.
+Host P:/Projects/better-captionkeep-6.0 is read-only through redirected TSCLIENT/P.
+Historical review starting revision: 360cae2. Public 5.4 checkout stays unchanged.
 
 ## Assignment and authority
 
@@ -28,6 +30,32 @@ secrets remain outside sync/log/export, submissions are explicit and selected,
 and local Core remains independent. Required does not mean implemented/accepted.
 
 ## Team and ownership
+
+October 16 superseding status: David directly resumed this VM chat and assigned
+it sole implementation ownership. The host team and its automation remain paused;
+do not start a competing scheduler or write to the redirected host checkout.
+Coordinator owns integration. Environment audit is complete for core tooling,
+locked dependencies, guest terminal, native controls and the managed browser.
+User-level Software Team is installed separately; app project registration and
+outbound host-chat routing remain environment gaps recorded in EXECUTION-6.0.md.
+No merge, Store submission/publication, DNS/directory operation or broader OAuth
+grant is authorized. Automated/synthetic checks are authorized; the lead has no
+live meeting test accounts, so live provider acceptance remains blocked.
+
+Historical HOST evidence: installed helper framing/challenge and isolated actual-
+Brave minimal discovery succeeded, while normal host Settings Connect still
+reported host-not-found. This is not VM acceptance and does not justify copying
+host credentials, profiles or registration. VM isolated minimal/wrapper probes
+currently report host-not-found without an installed helper; new private setup
+has not yet passed real installation. Do not infer a speculative registry fix.
+
+October 15 active onboarding repair: lead-reported M01 failure is #170, linked to
+Task348. Three actual assignments cover helper preparation, guided Settings and
+independent QA; coordinator owns integration/runbook and release honesty. See
+[onboarding acceptance contract](MCP-ONBOARDING-6.0.md). Preparation removes manual
+configuration authoring but is not complete installation/authentication or a
+closed acceptance case. Existing connections must be preserved; no live helper,
+permission, authentication or resource changes are part of these implementation tests.
 
 October 15 scope clarification: the lead requires the full discovered MCP catalog,
 including writes, not a metadata-only or typed-action-only connection. Explicit

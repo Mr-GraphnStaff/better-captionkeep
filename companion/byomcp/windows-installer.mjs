@@ -50,6 +50,9 @@ function assertAcl(acl,{privateFile=false,protectedDirectory=false,ancestor=fals
   const trusted=new Set([acl.currentSid,SYSTEM,ADMINS,TRUSTED_INSTALLER]);
   if(!trusted.has(acl.owner) || privateFile && acl.owner!==acl.currentSid || protectedDirectory && acl.protected!==true) fail('unsafe-permissions');
   for(const entry of acl.allow) {
+    // Inherit-only entries apply to descendants, not this inspected object.
+    // Each actual descendant on the installation path is checked separately.
+    if(entry.inheritOnly===true) continue;
     // Creating a sibling beneath C:\ is not permission to replace this existing
     // owner-controlled directory. Delete-child/delete/ACL-change rights are.
     if(!trusted.has(entry.sid) && (privateFile || (ancestor?entry.replace??entry.write:entry.write)===true)) fail('unsafe-permissions');
@@ -171,7 +174,7 @@ try {
   $item=if([IO.Directory]::Exists([string]$r.path)){[IO.DirectoryInfo]::new([string]$r.path)}else{[IO.FileInfo]::new([string]$r.path)}
   $a=$item.GetAccessControl(); $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
   $allow=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]) | Where-Object {$_.AccessControlType -eq 'Allow'} | ForEach-Object {
-   @{sid=$_.IdentityReference.Value;write=([int64]$_.FileSystemRights -band 852310) -ne 0;replace=([int64]$_.FileSystemRights -band 852032) -ne 0}
+   @{sid=$_.IdentityReference.Value;inheritOnly=($_.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0;write=([int64]$_.FileSystemRights -band 852310) -ne 0;replace=([int64]$_.FileSystemRights -band 852032) -ne 0}
   })
   @{owner=$a.GetOwner([Security.Principal.SecurityIdentifier]).Value;currentSid=$sid;protected=$a.AreAccessRulesProtected;allow=$allow} | ConvertTo-Json -Compress -Depth 5
  } else {
@@ -181,7 +184,11 @@ try {
   $base=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser,$view)
   $sub=([string]$r.key).Substring(5); $key=$null
   try {
-   if($r.operation -eq 'read') { $key=$base.OpenSubKey($sub); $v=if($null -eq $key){$null}else{$key.GetValue('', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}; ConvertTo-Json -InputObject $v -Compress }
+   if($r.operation -eq 'read') {
+    $key=$base.OpenSubKey($sub); $v=if($null -eq $key){$null}else{$key.GetValue('', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}
+    # Windows PowerShell 5.1 emits no JSON for null; preserve the missing-registration result explicitly.
+    if($null -eq $v){[Console]::Write('null')}else{ConvertTo-Json -InputObject $v -Compress}
+   }
    elseif($r.operation -eq 'write') {$key=$base.CreateSubKey($sub);$key.SetValue('',[string]$r.value,[Microsoft.Win32.RegistryValueKind]::String);[Console]::Write('true')}
    elseif($r.operation -eq 'remove') {$key=$base.OpenSubKey($sub,$true);if($null -ne $key){$key.DeleteValue('',$false)};[Console]::Write('true')}
    else {throw 'operation'}

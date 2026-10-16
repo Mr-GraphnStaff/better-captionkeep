@@ -114,6 +114,19 @@ test('benign ancestor create-directory permission is not confused with child rep
   const g=await fixture();g.io.volume=async()=> 'Network';
   await assert.rejects(repairWindowsRegistration(g.options,{io:g.io,confirmed:true}),/unsafe-filesystem/);assert.equal(g.writes.length,0);
 });
+test('inherit-only ancestor rules do not grant rights on the inspected object; effective descendant rights still deny',async()=>{
+  const f=await fixture();
+  const inherited={sid:'S-1-5-11',inheritOnly:true,write:true,replace:true};
+  f.acls.set('C:\\',{owner:sid,currentSid:sid,protected:false,allow:[inherited]});
+  assert.equal((await inspectWindowsInstallation(f.options,{io:f.io})).valid,true);
+  inherited.inheritOnly=false;
+  assert.equal((await inspectWindowsInstallation(f.options,{io:f.io})).valid,false);
+  inherited.inheritOnly=true;
+  f.acls.set(root,{owner:sid,currentSid:sid,protected:true,allow:[{sid:'S-1-5-11',write:true,replace:true}]});
+  assert.equal((await inspectWindowsInstallation(f.options,{io:f.io})).valid,false);
+  assert.equal(f.writes.length,0);
+});
+
 test('wrong origin, extra origin, altered launcher and invalid profile digest never register',async()=>{
   for(const variant of ['origin','extra','launcher','digest']) {
     const f=await fixture();

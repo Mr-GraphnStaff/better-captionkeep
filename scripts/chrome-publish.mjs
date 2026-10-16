@@ -1,5 +1,6 @@
-import { access, appendFile, readFile } from 'node:fs/promises';
+import { appendFile } from 'node:fs/promises';
 import path from 'node:path';
+import {verifyStorePromotion, assertVerifiableStoreAction} from './release-status.mjs';
 import { pathToFileURL } from 'node:url';
 
 const API_ROOT = 'https://chromewebstore.googleapis.com';
@@ -164,13 +165,6 @@ export async function main(options = {}) {
   const env = options.env || process.env;
   const fetchImpl = options.fetchImpl || fetch;
   const sleepImpl = options.sleepImpl || sleep;
-  const clientId = requiredEnv('CHROME_CLIENT_ID', env);
-  const clientSecret = requiredEnv('CHROME_CLIENT_SECRET', env);
-  const refreshToken = requiredEnv('CHROME_REFRESH_TOKEN', env);
-  const resourceName = itemResourceName(
-    requiredEnv('CHROME_PUBLISHER_ID', env),
-    requiredEnv('CHROME_EXTENSION_ID', env),
-  );
   const action = env.CHROME_ACTION || 'preflight';
   const allowedActions = [
     'preflight',
@@ -185,6 +179,19 @@ export async function main(options = {}) {
   if (!allowedActions.includes(action)) {
     throw new Error(`CHROME_ACTION must be one of: ${allowedActions.join(', ')}`);
   }
+  assertVerifiableStoreAction(action);
+
+  const promotion = !['preflight','cancel-submission'].includes(action)
+    ? await verifyStorePromotion({...options.promotion, channel:'chrome', action,
+      target:env.CHROME_EXTENSION_ID, packagePath:env.CHROME_PACKAGE_PATH ? path.resolve(env.CHROME_PACKAGE_PATH) : undefined,
+      version:env.STORE_RELEASE_VERSION?.trim()}) : null;
+  const clientId = requiredEnv('CHROME_CLIENT_ID', env);
+  const clientSecret = requiredEnv('CHROME_CLIENT_SECRET', env);
+  const refreshToken = requiredEnv('CHROME_REFRESH_TOKEN', env);
+  const resourceName = itemResourceName(
+    requiredEnv('CHROME_PUBLISHER_ID', env),
+    requiredEnv('CHROME_EXTENSION_ID', env),
+  );
 
   const token = await accessToken(clientId, clientSecret, refreshToken, fetchImpl);
   const initialStatus = await fetchStatus(resourceName, token, fetchImpl);
@@ -225,77 +232,9 @@ export async function main(options = {}) {
     return;
   }
 
-  if (action === 'publish-staged') {
-    if (!initialStatus.submittedItemRevisionStatus) {
-      throw new Error('Chrome has no submitted revision to publish from staged state');
-    }
-    console.log('Publishing the approved Chrome staged submission');
-    const publishResponse = await fetchImpl(`${API_ROOT}/v2/${resourceName}:publish`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        publishType: 'STAGED_PUBLISH',
-        skipReview: false,
-        blockOnWarnings: true,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    });
-    const publishResult = await expectJson(publishResponse, 'Chrome staged publication');
-    console.log(`Chrome accepted staged publication. State: ${publishResult.state || 'submitted'}`);
-    await writeStepSummary(env, ['', `- Staged publication result: \`${publishResult.state || 'submitted'}\``]);
-    return publishResult;
-  }
-
   assertNoActiveSubmission(initialStatus);
-  if (action.startsWith('submit-existing-')) {
-    const uploadState = normalizeUploadState(initialStatus.lastAsyncUploadState);
-    if (uploadState && uploadState !== 'SUCCEEDED') {
-      throw new Error(`Chrome draft is not ready to submit; last upload state is ${uploadState}`);
-    }
-    if (!uploadState) {
-      console.log(
-        'Chrome status did not retain the completed upload state; submitting the previously verified draft',
-      );
-    }
-    const publishType = publishTypeForAction(action);
-    console.log(
-      publishType === 'DEFAULT_PUBLISH'
-        ? 'Submitting the verified Chrome draft for review with immediate publication after approval'
-        : 'Submitting the verified Chrome draft for review with staged publishing',
-    );
-    const publishResponse = await fetchImpl(`${API_ROOT}/v2/${resourceName}:publish`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        publishType,
-        skipReview: false,
-        blockOnWarnings: true,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    });
-    const publishResult = await expectJson(publishResponse, 'Chrome review submission');
-    console.log(`Chrome accepted the extension update for review. State: ${publishResult.state || 'submitted'}`);
-    await writeStepSummary(env, [
-      '',
-      `- Review submission: \`${publishResult.state || 'submitted'}\``,
-      `- Publication mode: \`${publishType}\``,
-    ]);
-    return publishResult;
-  }
 
-  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-  const expectedVersion = env.STORE_RELEASE_VERSION?.trim() || packageJson.version;
-  const packagePath = env.CHROME_PACKAGE_PATH
-    ? path.resolve(env.CHROME_PACKAGE_PATH)
-    : path.resolve('dist', 'chrome-store', packageNameForVersion(expectedVersion));
-  await access(packagePath);
-  const packageBytes = await readFile(packagePath);
+  const {version:expectedVersion, packagePath, bytes:packageBytes} = promotion;
   console.log(`Uploading ${path.basename(packagePath)} to the Chrome Web Store`);
   const uploadResponse = await fetchImpl(`${API_ROOT}/upload/v2/${resourceName}:upload`, {
     method: 'POST',

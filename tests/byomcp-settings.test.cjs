@@ -54,10 +54,15 @@ test('repeat checking invalidates prior reviewed inventory and filters unsafe pr
     current = {ok:true,status:{...status.status,profiles:[{...profile,id:'https://secret.example/?token=secret'}, {...profile,verified:false}]}};
     await controller.check(); assert.equal(controller.getState().reviewed,null); assert.equal(controller.getState().profiles.length,0);
 });
-test('settings markup has no credential, endpoint or command entry and preserves disclosure', () => {
+test('settings permits only nonsecret guided setup fields and preserves disclosure', () => {
     const html = readFileSync(require.resolve('../teams-captions-saver/popup.html'),'utf8');
     const section = html.split('id="byomcp-settings"')[1].split('id="privacy-settings"')[0];
-    assert(!/type="(?:password|text|url)"/.test(section)); assert(section.includes('aria-live="polite"'));
+    const setupFields = [...section.matchAll(/<input\b[^>]*type="(?:password|text|url)"[^>]*>/g)].map(match => match[0]);
+    assert.equal(setupFields.length,2);
+    assert(setupFields.some(field => /id="byomcp-setup-label"/.test(field) && /type="text"/.test(field)));
+    assert(setupFields.some(field => /id="byomcp-setup-resource"/.test(field) && /type="url"/.test(field)));
+    assert(!setupFields.some(field => /type="password"/.test(field)));
+    assert(section.includes('aria-live="polite"'));
     assert(section.includes('type="file" accept=".json,application/json"'));
     assert(section.includes('I reviewed this non-secret helper configuration'));
     assert(section.includes('Nothing from your meetings is sent'));

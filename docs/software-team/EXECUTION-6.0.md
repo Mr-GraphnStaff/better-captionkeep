@@ -1,5 +1,201 @@
 # 6.0 Software Team execution ledger
 
+## October 16 VM release-preparation increments
+
+Windows NEW-install development CLI now packages with the helper. It reviews the
+exact request/runtime/package/registry plan before INSTALL, provisions only a new
+private root, refuses existing registrations and persists an ownership receipt.
+Removal reviews the exact receipt/target before REMOVE and retains files and
+credentials. Independent security/QA review found no remaining blocker within
+this bounded increment. Real Windows execution exposed an unnecessary WRITE_OWNER
+request; the corrected adapter verifies existing ownership and persists only the
+Access section, then reads back exact protected owner/System/Admin permissions.
+Actual ACL test passed separately; default helper suite has 128 passed, one
+explicit opt-in ACL test skipped, zero failures.
+
+An isolated VM installation from the hash-verified helper ZIP passed. Actual Brave
+minimal and production-native-client-wrapper probes returned challenge-ok and
+wrapper-challenge-ok respectively; completion was denied by the diagnostic guard.
+Receipt-owned unregistering succeeded; both registry views again return an absent
+default value (the empty key is intentionally retained). Synthetic configuration
+and package files remain private for inspection. No provider request, MCP server
+or tool execution, authentication or host-state copy occurred. This is not normal
+Settings/no-coaching acceptance. Issue170 retains Azure Task348/Feature318 linkage.
+Signed/standalone distribution, existing-profile/account preservation and generic
+vendor-owned sign-in remain unfinished release work.
+
+Store promotion scripts now verify accepted candidate/commit/hash/report/target
+evidence before credentials/network and upload the already verified byte snapshot.
+Existing remote draft/staged publication paths are disabled because a local
+receipt or version cannot prove remote bytes. Independent review caught and
+removed that unsafe shortcut. The 48-hour timestamp is explicitly a release-owner
+attestation, not independently measured continuous freeze. Focused stubbed tests
+pass 27/27; development status still validates without fabricating readiness.
+Confirmed release defect is public #171; specific Azure defect linkage awaits
+authenticated Boards access (established release parent is Epic335).
+
+Browser smoke now closes the browser before its socket, waits for process-tree
+shutdown, validates its created temp directory before bounded lock retries, and
+waits for a page target. Actual Edge/Opera each passed 67 rendered assertions.
+Parallel testing exposed a delayed Node exit-notification race after taskkill;
+the correction waits the existing bounded exit budget and retains real failures.
+Focused cleanup/rendered checks pass 15/15; full extension suite passes 591/591,
+zero skipped. Lint and surface audit pass. Public test-harness defect is #172;
+its specific Azure linkage likewise awaits access. No defect is closed merely
+from these tests. The integrated candidate packaging gate is the next check;
+source remains development/unfrozen, and no Store action or merge is authorized.
+
+## October 16 VM environment readiness and single-writer ownership
+
+The lead directly resumed this VM chat and assigned it implementation ownership;
+host source and host engineering remain read-only/paused. No competing scheduler
+was created. The host source still matches the 471-file handoff baseline, with
+the original seven tracked modifications and twelve untracked source files.
+All newer VM work remains preserved; the older ZIP was not reapplied.
+
+Environment audit verified WinDev2407Eval / Microsoft Virtual Machine in both
+terminal and native Computer Use. The managed in-app browser read a unique proof
+page served only at guest 127.0.0.1, matching the terminal proof and hostname.
+Native Explorer focus/read control also succeeded. No host desktop was targeted.
+
+Verified tools: Git 2.55.0, gh 2.102.0, Node 24.20.0 (meets >=22), npm 11.19.0,
+system PowerShell 7.6.7 (bundled PATH runtime 7.6.5), Windows PowerShell 5.1,
+VS Code 1.141.2 and ripgrep 15.2.0. Chrome 155.0.8059.85, Edge 155.0.4283.45,
+Brave 155.1.97.59, Firefox 157.0.1 and Opera 137.0.6036.39 are installed.
+The actual desktop package is OpenAI.Codex 26.1013.3656.0 (ChatGPT.exe), separate
+from codex-cli 0.163.0-alpha.10.2. No working tool was blindly reinstalled.
+All 44 root and 13 helper installed dependency versions match their lockfiles;
+npm ls is clean for both. Dependencies were not copied from the host.
+
+Installed the complete 17-file portable project Software Team package as a
+separate VM user skill at C:/Users/User/.agents/skills/software-team. All hashes
+match the project package and all relative links resolve; project skills were
+not overwritten. No redirected host C: share exists, so parity with the newer
+host-global persona package remains optional/unverified. No plugin cache copied.
+
+Guest Balanced AC sleep changed from 900 seconds to Never (0); AC hibernate was
+already Never and remains 0. Queried effective values after both commands. DC
+values remain sleep 600 seconds / hibernate 0. Prior values, rollback commands
+and after-query are retained in the VM transfer evidence directory. Hyper-V
+reports S1/S2/S3 and hibernation unavailable due firmware/Device Guard; no security,
+lock, authentication, auto-login or host power settings were changed. Guest power
+settings cannot prevent host sleep/shutdown/reboot or network loss.
+
+Remaining environment limits: the saved app project currently points C:/Project,
+not C:/Projects/better-captionkeep-6.0, and this chat is projectless in app metadata.
+Registering the actual repo as the primary local project requires the user's app
+UI; no supported project-creation tool is exposed and desktop-app UI automation
+is prohibited by the installed Computer Use skill. Commands continue explicitly
+in the correct local repo. The connected GitHub tool reads the expected commit;
+gh CLI is unauthenticated and Azure CLI is absent. No credentials were imported.
+Outbound messages to the authorized host chat failed because its thread/host
+could not be resolved (reported unavailable durable host); incoming handoffs
+arrive, but two-way delivery is not established. Do not report those failed
+messages as sent. Live meeting acceptance remains blocked by unavailable test
+accounts, per the lead's instruction to use automated/synthetic checks.
+
+## October 16 VM restoration and missing-registration diagnosis
+
+Terminal and Computer Use both report WinDev2407Eval; terminal hardware reports
+Microsoft Virtual Machine. Host source is accessible at the redirected
+`\\TSCLIENT\P\Projects\better-captionkeep-6.0` and was accessed read-only.
+The transfer ZIP matches its SHA256SUMS.txt. The host HEAD is
+7baceaf9cb392a8b7a67f976f7bd1fdfb4f21ad7 on codex/6.0; all 471 manifest source
+hashes and the seven-modified/twelve-untracked source status match the package.
+Restored an independent clone at `C:\Projects\better-captionkeep-6.0`.
+All 471 restored hashes matched, including original mixed line endings, and the
+reconstructed original seven-file full-index patch has SHA-256
+3a6145257ccddb6b32bb4de9710facd5de3dc02bb2673e68215154a872ea5174.
+Stale clone index sizes were refreshed only for paths whose clean hash equaled
+HEAD; no changes were staged. Dependencies were installed from lockfiles.
+No host credentials, OAuth stores, profiles, native registrations or dependencies
+were copied. Transfer verification logs and synthetic rendered artifacts remain
+outside the checkout in the VM transfer directory.
+
+Restored extension suite: 574/574, zero skipped; lint and development build pass.
+The initial helper run was 111/112: the real Windows OS adapter rejected a missing
+native-host registry key as os-unavailable. Read-only isolation showed ACL and
+volume checks succeed, while a missing registry key produces empty stdout:
+Windows PowerShell 5.1 ConvertTo-Json emits no output for null. Corrected the
+registry-read branch in createWindowsInstallerIo's fixed OS script to emit the
+JSON literal null explicitly; other serialization and strict parsing remain.
+Installer tests now pass 15/15 and full helper tests 112/112, zero skipped.
+The fix is local and unpublished; it does not establish the host Brave root cause.
+Independent review reran all 15 installer tests and the actual missing-key read.
+Additional injected-executor probes preserved null and existing string values;
+empty/malformed output and process failures still reject os-unavailable. No
+actionable finding in this bounded fix; installed-host acceptance is unchanged.
+
+The VM has no CaptionKeep Chrome/Edge current-user registration at the checked
+keys. Actual isolated Brave minimal and production-wrapper challenge probes
+return host-not-found; neither completes enrollment, changes registration, reads
+credentials, authenticates a provider or executes a tool. This is VM evidence,
+not a rerun against the host's installed user profile. Issue #170 / Azure Task348
+and Feature318 remain open; independent no-coaching onboarding and host-installed
+browser acceptance remain outstanding. PR137 remains draft; no release approval.
+
+## October 16 checkpoint: preserve multiple service profiles
+
+PR137 c45263e is green in GitHub validation/CodeQL and Azure Lifecycle773.
+The installed Windows command launcher also answered a framed local challenge
+and exited0; that is still not browser-owned discovery/launch acceptance.
+
+Added pure changeProfileRegistry() for safe add/update/remove transformations.
+Both current/result registries use the existing strict validator; operations
+require the expected whole-registry digest, and replacements/removals also bind
+the exact profile ID, revision and digest. Unrelated profiles, callers and grants
+are preserved. The function snapshots inputs before awaiting; final-profile
+removal requires a separate disconnect flow under the nonempty-registry contract.
+Six new synthetic tests and full helper suite112/112 pass. This does not persist
+changes: the future caller must atomically compare previousDigest before saving.
+No UI wiring, concurrent Cloudflare OAuth store, credentials, native registration
+or provider operation is supplied by this increment. Independent security/QA
+reran all six tests and additional typed-action preservation checks; no blocking
+finding in this pure-module scope. Existing browser-control limitation is unchanged; work continued
+on this independent onboarding requirement rather than fabricating acceptance.
+
+## October 16: implementation resumed; installed helper handshake verified
+
+The lead explicitly resumed work until resolution after the failed Brave setup.
+Coordinator owns integration; bounded active assignments cover browser discovery
+diagnostics and a safe existing-installation Windows registration repair module.
+Neither assignment constitutes a signed production installer or accepted setup.
+
+Read-only inspection found the registered manifest, launcher, Node runtime and
+configuration present with the supplied extension caller allowlisted. A real
+framed enrollment-challenge sent to the installed helper returned successfully
+and the process exited cleanly. No enrollment completion, provider login,
+inventory or tool operation was requested. The browser-reported host-not-found
+cause is not established; do not infer it from absent Brave-specific registry
+entries. Browser control initialization failed in the available runtime, leaving
+actual installed-browser connection verification outstanding.
+
+The old markup test incorrectly rejected the explicitly permitted nonsecret
+guided service label and HTTPS URL. It now permits exactly those two fields,
+still rejects password fields and preserves the disclosure assertions. Focused
+Settings/setup/native-client tests: 28/28 passed. Full extension rerun: 567/567
+passed; lint passed. Multi-account credential resolution formerly selected the
+first matching resource URL; it now binds resource, profile ID, revision and
+definition digest. Five synthetic regressions and the helper suite (104/104 at
+that checkpoint) passed. This is not live multi-account provider acceptance.
+
+Independent security/QA found Windows ACL-adapter and standard-ancestor problems
+in the registration-repair increment despite passing mock tests. These were
+corrected and real read-only Windows ACL/volume/registry checks now pass. Final
+helper suite: 106/106 passed, zero skipped. The
+module is a bounded existing-installation registration repair, not a signed
+distribution, complete installer, generic OAuth flow or safe profile merger.
+The global Cloudflare OAuth store still contains one account record; the new
+profile binding fails closed, but concurrent Cloudflare OAuth accounts remain
+unfinished. No live registration, credentials or provider resources changed.
+The independently reviewed runtime/account-binding and bounded registration
+repair files are committed as c45263e. Other onboarding, setup-test, packaging,
+prototype and context edits remain local and must not be represented as included
+in that commit. The local helper ZIP verified after source authors froze their
+files; it is a development distribution, not a signed standalone installer.
+Public issue170 has the sanitized diagnostic evidence; it remains open and
+linked to Azure Task348 / Feature318. No release readiness claim.
+
 ## October 15: user rejects MCP onboarding
 
 Lead reports inability to set up their own MCP with current instructions and
