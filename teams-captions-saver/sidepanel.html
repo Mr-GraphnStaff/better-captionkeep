@@ -35,15 +35,15 @@
     <main>
         <section class="meeting-bar" aria-labelledby="meeting-heading">
             <div class="section-heading">
-                <h2 id="meeting-heading">Current meeting</h2>
-                <span id="capture-state" class="status-pill">Connecting</span>
+                <h2 id="meeting-heading" tabindex="-1">Live workspace</h2>
+                <span id="capture-state" class="status-pill">No meeting</span>
             </div>
             <p id="meeting-title" class="meeting-title">Open Teams, Meet, or Zoom Web.</p>
             <p id="meeting-provider" class="muted"></p>
             <div id="meeting-source-controls" class="meeting-source-controls" hidden>
                 <div class="source-control-heading">
                     <strong>Meeting sources</strong>
-                    <span>Off until you choose them</span>
+                    <span id="source-control-summary">Choose what to enable</span>
                 </div>
                 <div class="source-control-actions">
                     <button id="enable-live-captions" class="primary" type="button">Enable live captions</button>
@@ -55,20 +55,21 @@
             <p id="board-status" class="muted" role="status" aria-live="polite"></p>
         </section>
 
-        <nav class="workspace-tabs" aria-label="Live workspace views" role="tablist">
+        <section id="workspace-empty" class="workspace-empty" hidden>
+            <h2>Waiting for captions</h2>
+            <p>Turn on meeting captions. Captured words will appear here automatically.</p>
+        </section>
+
+        <nav class="workspace-tabs" aria-label="Live workspace views" role="tablist" hidden>
             <button id="transcript-tab" class="workspace-tab active" type="button" role="tab" aria-controls="transcript-view" aria-selected="true">Transcript</button>
-            <button id="notes-tab" class="workspace-tab" type="button" role="tab" aria-controls="notes-view" aria-selected="false" tabindex="-1">Notes <span id="note-count">0</span></button>
-            <button id="moments-tab" class="workspace-tab" type="button" role="tab" aria-controls="moments-view" aria-selected="false" tabindex="-1">Moments <span id="moment-count">0</span></button>
-            <button id="evidence-tab" class="workspace-tab" type="button" role="tab" aria-controls="evidence-view" aria-selected="false" tabindex="-1">Evidence <span id="marker-count">0</span></button>
-            <button id="templates-tab" class="workspace-tab" type="button" role="tab" aria-controls="templates-view" aria-selected="false" tabindex="-1">Templates</button>
-            <button id="ask-tab" class="workspace-tab" type="button" role="tab" aria-controls="ask-view" aria-selected="false" tabindex="-1">Ask <span id="answer-count">0</span></button>
+            <button id="notes-tab" class="workspace-tab" type="button" role="tab" aria-controls="notes-view" aria-selected="false" tabindex="-1">Notes <span id="note-count" class="count-badge" hidden></span></button>
+            <button id="tools-tab" class="workspace-tab" type="button" role="tab" aria-controls="tools-view" aria-selected="false" tabindex="-1">Tools</button>
         </nav>
 
-        <section id="transcript-view" class="workspace-view" role="tabpanel" aria-labelledby="transcript-tab" tabindex="0">
+        <section id="transcript-view" class="workspace-view" role="tabpanel" aria-labelledby="transcript-tab" tabindex="0" hidden>
             <div class="section-heading">
                 <h2 id="latest-heading">Conversation</h2>
                 <div class="section-actions">
-                    <button id="capture-moment" class="moment-button" type="button">Capture Moment</button>
                     <button id="open-transcript" class="text-button" type="button">Full transcript</button>
                 </div>
             </div>
@@ -103,11 +104,6 @@
             </div>
         </section>
 
-        <section id="moments-view" class="workspace-view" role="tabpanel" aria-labelledby="moments-tab" tabindex="0" hidden>
-            <div class="section-heading"><div><h2 id="moments-heading">Captured Moments</h2><p class="muted">Reviewed local images bound to this transcript snapshot.</p></div><button id="capture-moment-secondary" class="moment-button" type="button">Capture Moment</button></div>
-            <ol id="moment-list" class="artifact-list"><li class="empty">No Moments kept for this meeting.</li></ol>
-        </section>
-
         <section id="notes-view" class="workspace-view" role="tabpanel" aria-labelledby="notes-tab" tabindex="0" hidden>
             <div class="section-heading"><div><h2 id="notes-heading">Live Notes</h2><p class="muted">Generate a cited draft, review it, then keep it separately from the transcript.</p></div><button id="generate-notes" class="primary" type="button">Generate notes now</button></div>
             <section class="rolling-notes-card" aria-labelledby="rolling-notes-heading">
@@ -137,51 +133,68 @@
             <ol id="notes-list" class="artifact-list"><li class="empty">No reviewed notes kept for this meeting.</li></ol>
         </section>
 
-        <section id="evidence-view" class="workspace-view" role="tabpanel" aria-labelledby="evidence-tab" tabindex="0" hidden>
-            <h2 id="markers-heading">Evidence markers</h2>
-            <label for="marker-session">Evidence board</label>
-            <select id="marker-session" aria-label="Choose an evidence board"></select>
-            <div class="actions">
-                <button id="copy-board" disabled>Copy</button>
-                <button id="download-board" disabled>Markdown</button>
-                <button id="email-board" disabled>Email follow-up</button>
-                <button id="download-bundle" disabled>Provenance JSON</button>
-            </div>
-            <ol id="marker-list" class="marker-list">
-                <li class="empty">No markers for this meeting yet.</li>
-            </ol>
-            <details><summary>Verified action receipts <span id="action-receipt-count">0</span></summary>
-                <p class="muted">Separately approved actions with verified results, kept alongside their source citations.</p>
-                <ol id="action-receipt-list" class="artifact-list"><li class="empty">No verified action receipts kept for this meeting.</li></ol>
+        <section id="tools-view" class="workspace-view tools-view" role="tabpanel" aria-labelledby="tools-tab" tabindex="0" hidden>
+            <div class="section-heading"><div><h2 id="tools-heading">Tools</h2><p class="muted">Open a tool only when you need it.</p></div></div>
+            <details id="moments-tool" class="tool-disclosure">
+                <summary>Capture a moment <span id="moment-count" class="count-badge" hidden></span></summary>
+                <section id="moments-view" class="tool-section" aria-labelledby="moments-heading">
+                    <div class="section-heading"><div><h3 id="moments-heading">Captured moments</h3><p class="muted">Reviewed local images bound to this transcript snapshot.</p></div><button id="capture-moment-secondary" class="moment-button" type="button">Capture a moment</button></div>
+                    <ol id="moment-list" class="artifact-list"><li class="empty">No moments kept for this meeting.</li></ol>
+                </section>
+            </details>
+            <details id="evidence-tool" class="tool-disclosure">
+                <summary>Evidence <span id="marker-count" class="count-badge" hidden></span></summary>
+                <section id="evidence-view" class="tool-section" aria-labelledby="markers-heading">
+                    <h3 id="markers-heading">Evidence markers</h3>
+                    <label for="marker-session">Evidence board</label>
+                    <select id="marker-session" aria-label="Choose an evidence board"></select>
+                    <div class="actions">
+                        <button id="copy-board" disabled>Copy</button>
+                        <button id="download-board" disabled>Markdown</button>
+                        <button id="email-board" disabled>Email follow-up</button>
+                        <button id="download-bundle" disabled>Provenance JSON</button>
+                    </div>
+                    <ol id="marker-list" class="marker-list"><li class="empty">No markers for this meeting yet.</li></ol>
+                    <details><summary>Verified action receipts <span id="action-receipt-count">0</span></summary>
+                        <p class="muted">Separately approved actions with verified results, kept alongside their source citations.</p>
+                        <ol id="action-receipt-list" class="artifact-list"><li class="empty">No verified action receipts kept for this meeting.</li></ol>
+                    </details>
+                </section>
+            </details>
+            <details id="ask-tool" class="tool-disclosure">
+                <summary>Ask this transcript <span id="answer-count" class="count-badge" hidden></span></summary>
+                <section id="ask-view" class="tool-section" aria-labelledby="ask-heading">
+                    <h3 id="ask-heading">Ask this transcript</h3>
+                    <p class="muted">The reviewed handoff is bound to the transcript snapshot visible now. Keep the answer only after checking every citation.</p>
+                    <label for="ask-question">Question</label>
+                    <textarea id="ask-question" rows="4" maxlength="1000" placeholder="What decision was made, and who owns the next step?"></textarea>
+                    <button id="prepare-question" class="primary" type="button">Review question handoff</button>
+                    <div class="answer-review">
+                        <label for="answer-draft">Reviewed answer</label>
+                        <textarea id="answer-draft" rows="9" maxlength="100000" placeholder="Paste the reviewed answer here. Include caption citations such as C0001."></textarea>
+                        <div class="artifact-actions"><button id="save-answer" class="primary" type="button">Keep reviewed answer</button><button id="clear-answer" type="button">Clear draft</button></div>
+                        <button id="answer-not-established" type="button">The transcript does not establish an answer</button>
+                        <p class="muted">Saved answers remain separate from the source transcript and require valid caption citations.</p>
+                    </div>
+                    <ol id="answer-list" class="artifact-list"><li class="empty">No reviewed answers kept for this meeting.</li></ol>
+                </section>
+            </details>
+            <details id="templates-tool" class="tool-disclosure">
+                <summary>Templates</summary>
+                <section id="templates-view" class="tool-section" aria-labelledby="templates-heading">
+                    <h3 id="templates-heading">Meeting templates</h3>
+                    <p class="muted">Choose reusable instructions for your next reviewed notes handoff. Template versions stay separate from the captured words.</p>
+                    <label for="workspace-template-select">Template</label>
+                    <select id="workspace-template-select"></select>
+                    <p id="workspace-template-version" class="muted"></p>
+                    <label for="workspace-template-preview">Saved instructions</label>
+                    <textarea id="workspace-template-preview" rows="7" readonly></textarea>
+                    <button id="workspace-template-use" class="primary" type="button">Review notes with this template</button>
+                    <p><a href="settings.html#intelligence-settings" target="_blank" rel="noopener">Create, edit, import, or export templates in All Settings</a></p>
+                </section>
             </details>
         </section>
-        <section id="ask-view" class="workspace-view" role="tabpanel" aria-labelledby="ask-tab" tabindex="0" hidden>
-            <h2 id="ask-heading">Ask this transcript</h2>
-            <p class="muted">The reviewed handoff is bound to the transcript snapshot visible now. Keep the answer only after checking every citation.</p>
-            <label for="ask-question">Question</label>
-            <textarea id="ask-question" rows="4" maxlength="1000" placeholder="What decision was made, and who owns the next step?"></textarea>
-            <button id="prepare-question" class="primary" type="button">Review question handoff</button>
-            <div class="answer-review">
-                <label for="answer-draft">Reviewed answer</label>
-                <textarea id="answer-draft" rows="9" maxlength="100000" placeholder="Paste the reviewed answer here. Include caption citations such as C0001."></textarea>
-                <div class="artifact-actions"><button id="save-answer" class="primary" type="button">Keep reviewed answer</button><button id="clear-answer" type="button">Clear draft</button></div>
-                <button id="answer-not-established" type="button">The transcript does not establish an answer</button>
-                <p class="muted">Saved answers remain separate from the source transcript and require valid caption citations.</p>
-            </div>
-            <ol id="answer-list" class="artifact-list"><li class="empty">No reviewed answers kept for this meeting.</li></ol>
-        </section>
-        <section id="templates-view" class="workspace-view" role="tabpanel" aria-labelledby="templates-tab" tabindex="0" hidden>
-            <h2>Meeting templates</h2>
-            <p class="muted">Choose reusable instructions for your next reviewed notes handoff. Template versions stay separate from the captured words.</p>
-            <label for="workspace-template-select">Template</label>
-            <select id="workspace-template-select"></select>
-            <p id="workspace-template-version" class="muted"></p>
-            <label for="workspace-template-preview">Saved instructions</label>
-            <textarea id="workspace-template-preview" rows="7" readonly></textarea>
-            <button id="workspace-template-use" class="primary" type="button">Review notes with this template</button>
-            <p><a href="settings.html#intelligence-settings" target="_blank" rel="noopener">Create, edit, import, or export templates in All Settings</a></p>
-        </section>
-        <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
+        <p class="daf-tech-signature" hidden><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>
     <dialog id="on-the-fly-dialog" aria-labelledby="on-the-fly-dialog-title">
         <form method="dialog">

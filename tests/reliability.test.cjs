@@ -1778,8 +1778,8 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanel.includes('>Transcript</button>'));
     assert(sidepanel.includes('id="follow-latest"'));
     assert(sidepanel.includes('>Full transcript</button>'));
-    assert(sidepanel.includes('id="capture-moment"'));
-    for(const id of ['moments-tab','notes-tab','ask-tab','moment-list','notes-draft','prepare-question','answer-draft','save-answer','answer-list']) assert(sidepanel.includes(`id="${id}"`));
+    assert(sidepanel.includes('id="capture-moment-secondary"'));
+    for(const id of ['tools-tab','moments-tool','evidence-tool','ask-tool','templates-tool','notes-tab','moment-list','notes-draft','prepare-question','answer-draft','save-answer','answer-list']) assert(sidepanel.includes(`id="${id}"`));
     assert(sidepanel.includes('derivedArtifacts.js'));
     const viewerScript=read('viewer.js');
     assert(!viewerScript.includes('choose View Transcript'));
@@ -1812,6 +1812,12 @@ test('all target manifests expose the local Evidence Board through the side pane
     assert(sidepanelScript.includes('CaptionKeepWebMail.compose'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrub(rawSubject, scrubOptions)'));
     assert(sidepanelScript.includes('CaptionKeepPrivacyScrubber.scrubEvidenceBundle(bundle, scrubOptions)'));
+});
+test('release source normalizes text bytes and ignores generated QA evidence',()=>{
+    const attributes=readProject('.gitattributes');
+    const ignore=readProject('.gitignore');
+    assert.match(attributes,/^\* text=auto eol=lf$/m);
+    assert.match(ignore,/^\/output\/$/m);
 });
 test('6.0 build system stages every committed browser target with native workspace adaptation',()=>{
     const packageJson=JSON.parse(readProject('package.json'));

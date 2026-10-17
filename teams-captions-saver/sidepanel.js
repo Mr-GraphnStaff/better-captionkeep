@@ -10,25 +10,24 @@
         closePanel: document.getElementById('close-panel'),
         meetingTitle: document.getElementById('meeting-title'),
         meetingProvider: document.getElementById('meeting-provider'),
+        meetingHeading: document.getElementById('meeting-heading'),
         meetingSourceControls: document.getElementById('meeting-source-controls'),
+        sourceControlSummary: document.getElementById('source-control-summary'),
         meetingSourceStatus: document.getElementById('meeting-source-status'),
         enableLiveCaptions: document.getElementById('enable-live-captions'),
         openAttendeePanel: document.getElementById('open-attendee-panel'),
         requestTeamsTranscription: document.getElementById('request-teams-transcription'),
         latestCaption: document.getElementById('latest-caption'),
         latestMeta: document.getElementById('latest-meta'),
+        workspaceEmpty: document.getElementById('workspace-empty'),
+        workspaceTabs: document.querySelector('.workspace-tabs'),
+        signature: document.querySelector('.daf-tech-signature'),
         transcriptTab: document.getElementById('transcript-tab'),
-        momentsTab: document.getElementById('moments-tab'),
         notesTab: document.getElementById('notes-tab'),
-        evidenceTab: document.getElementById('evidence-tab'),
-        askTab: document.getElementById('ask-tab'),
-        templatesTab: document.getElementById('templates-tab'),
+        toolsTab: document.getElementById('tools-tab'),
         transcriptView: document.getElementById('transcript-view'),
-        momentsView: document.getElementById('moments-view'),
         notesView: document.getElementById('notes-view'),
-        evidenceView: document.getElementById('evidence-view'),
-        askView: document.getElementById('ask-view'),
-        templatesView: document.getElementById('templates-view'),
+        toolsView: document.getElementById('tools-view'),
         workspaceTemplateSelect: document.getElementById('workspace-template-select'),
         workspaceTemplateVersion: document.getElementById('workspace-template-version'),
         workspaceTemplatePreview: document.getElementById('workspace-template-preview'),
@@ -52,7 +51,6 @@
         emailBoard: document.getElementById('email-board'),
         downloadBundle: document.getElementById('download-bundle'),
         openTranscript: document.getElementById('open-transcript'),
-        captureMoment: document.getElementById('capture-moment'),
         captureMomentSecondary: document.getElementById('capture-moment-secondary'),
         momentCount: document.getElementById('moment-count'),
         momentList: document.getElementById('moment-list'),
@@ -112,6 +110,9 @@
     let workspaceTemplates = [];
     let draftSessionId = '';
     let lastContextError = '';
+    let contextFailure = '';
+    let activeWorkspaceView = 'transcript';
+    let workspaceWasAvailable = false;
     const meetingDrafts = new Map();
     const rollingNotesStore = CaptionKeepRollingNotesStore.create({storage:chrome.storage, readPolicy:refreshEnterprisePolicy});
 
@@ -135,15 +136,21 @@
         if (elements.boardStatus.textContent !== message) elements.boardStatus.textContent = message;
     }
 
+    function contextFailureMessage(error) {
+        const detail = String(error?.message || '');
+        return /No active meeting tab|not a supported meeting surface|Receiving end does not exist|Could not establish connection/i.test(detail)
+            ? ''
+            : 'Live workspace could not connect. Reload the meeting page or reopen the workspace.';
+    }
+
     function switchView(view) {
         const views = {
             transcript: [elements.transcriptTab, elements.transcriptView],
-            moments: [elements.momentsTab, elements.momentsView],
             notes: [elements.notesTab, elements.notesView],
-            evidence: [elements.evidenceTab, elements.evidenceView],
-            templates: [elements.templatesTab, elements.templatesView],
-            ask: [elements.askTab, elements.askView]
+            tools: [elements.toolsTab, elements.toolsView]
         };
+        if (!views[view]) return;
+        activeWorkspaceView = view;
         for (const [name, [tab, panel]] of Object.entries(views)) {
             const active = name === view;
             panel.hidden = !active;
@@ -275,8 +282,11 @@
         const supported = ['Microsoft Teams', 'Google Meet', 'Zoom Web'].includes(provider);
         const controls = currentContext?.meetingControls || {};
         const inMeeting = currentContext?.isInMeeting === true;
+        const hasTranscript = Boolean(currentContext?.transcriptArray?.length);
+        const sourceFailed = currentContext?.captureState === 'source unavailable';
         const isTeams = provider === 'Microsoft Teams';
-        elements.meetingSourceControls.hidden = !supported;
+        elements.meetingSourceControls.hidden = !supported || !inMeeting || (hasTranscript && !sourceFailed);
+        elements.sourceControlSummary.textContent = controls.liveCaptions ? 'Captions enabled' : sourceFailed ? 'Captions need attention' : 'Choose what to enable';
         elements.openAttendeePanel.hidden = !isTeams;
         elements.requestTeamsTranscription.hidden = !isTeams;
         elements.enableLiveCaptions.disabled = !inMeeting || controls.liveCaptions === true;
@@ -305,27 +315,54 @@
         const ready = rawCaptureState === 'capturing';
         const paused = rawCaptureState === 'paused';
         const failed = rawCaptureState === 'source unavailable';
+        const ended = ['ended', 'meeting ended'].includes(rawCaptureState);
+        const inMeeting = currentContext?.isInMeeting === true;
+        const retainedSession = transcript.length > 0 && (inMeeting || paused || failed || ended);
+        const hasContext = inMeeting || retainedSession;
+        const workspaceAvailable = retainedSession;
         document.body.classList.toggle('capture-ready', ready);
         document.body.classList.toggle('capture-paused', paused);
         document.body.classList.toggle('capture-error', failed);
-        elements.captureState.textContent = ready ? 'Live'
+        document.body.classList.toggle('workspace-disconnected', !hasContext);
+        document.body.classList.toggle('workspace-waiting', hasContext && !workspaceAvailable);
+        elements.captureState.textContent = contextFailure ? 'Needs attention'
+            : !hasContext ? 'No meeting'
             : failed ? 'Needs attention'
-                : paused ? 'Off'
-                    : ['ended', 'meeting ended'].includes(rawCaptureState) ? 'Ended' : 'Connecting';
+                : paused ? 'Paused'
+                    : ended ? 'Ended'
+                        : ready && workspaceAvailable ? 'Live' : 'Waiting for captions';
         elements.captureState.title = rawCaptureState;
-        elements.meetingTitle.textContent = currentContext?.meetingTitle || 'Open Teams, Meet, or Zoom Web.';
-        elements.meetingProvider.textContent = currentContext?.providerLabel
-            ? `${currentContext.providerLabel} · ${rawCaptureState}`
-            : '';
+        elements.meetingHeading.textContent = hasContext ? 'Current meeting' : 'Live workspace';
+        elements.meetingTitle.textContent = hasContext ? (currentContext?.meetingTitle || 'Meeting') : 'Open Teams, Meet, or Zoom Web.';
+        elements.meetingProvider.textContent = contextFailure || (!hasContext
+            ? 'Join a supported meeting and turn on captions. This workspace will start automatically.'
+            : workspaceAvailable ? `${currentContext.providerLabel} · ${rawCaptureState}`
+                : `${currentContext.providerLabel} · waiting for captions`);
         renderMeetingSourceControls();
+        const focusedInWorkspace = document.activeElement?.closest('.workspace-tabs, .workspace-view');
+        elements.workspaceTabs.hidden = !workspaceAvailable;
+        elements.workspaceEmpty.hidden = !hasContext || workspaceAvailable;
+        elements.signature.hidden = !workspaceAvailable;
+        if (!workspaceAvailable) {
+            elements.transcriptView.hidden = true;
+            elements.notesView.hidden = true;
+            elements.toolsView.hidden = true;
+            if (focusedInWorkspace) elements.meetingHeading.focus();
+        } else if (!workspaceWasAvailable) {
+            switchView('transcript');
+            setStatus('Live workspace ready.');
+        } else {
+            switchView(activeWorkspaceView);
+        }
+        workspaceWasAvailable = workspaceAvailable;
         elements.latestCaption.textContent = latest?.Text || 'Waiting for a stable captured caption…';
         elements.latestCaption.hidden = true;
         elements.latestMeta.textContent = latest
             ? `${board.evidenceId(transcript.length - 1)} · ${latest.Time || 'time unavailable'} · ${latest.Name || 'Unknown speaker'}`
             : '';
         elements.markLatest.disabled = selectedCaptionIndex === null;
-        elements.captureMoment.disabled = !currentContext?.isInMeeting;
         elements.captureMomentSecondary.disabled = !currentContext?.isInMeeting;
+        elements.captureMomentSecondary.hidden = !currentContext?.isInMeeting || ended;
         elements.generateNotes.disabled = !transcript.length;
         elements.workspaceTemplateUse.disabled = !transcript.length || !!enterprisePolicy.disableAiHandoff;
         elements.saveNotes.disabled = !transcript.length;
@@ -782,7 +819,9 @@
         } else {
             for (const marker of [...markers].reverse()) elements.markerList.append(markerNode(marker));
         }
-        elements.markerCount.textContent = String(markers.length);
+        elements.markerCount.hidden = markers.length === 0;
+        elements.markerCount.textContent = markers.length ? String(markers.length) : '';
+        elements.markerCount.setAttribute?.('aria-label', `${markers.length} saved evidence marker${markers.length === 1 ? '' : 's'}`);
         elements.copyBoard.disabled = !markers.length || !!enterprisePolicy.disableClipboard;
         elements.downloadBoard.disabled = !markers.length || !!enterprisePolicy.disableFileExport;
         elements.emailBoard.disabled = !markers.length || !!enterprisePolicy.disableEvidenceEmail;
@@ -820,6 +859,7 @@
                 setFollowLatest(true);
             }
             currentContext = next;
+            contextFailure = '';
             if (sessionChanged) {
                 selectedSessionId = next.sessionId;
                 await loadDerivedArtifacts();
@@ -848,6 +888,7 @@
         } catch (error) {
             switchDraftSession('');
             currentContext = null;
+            contextFailure = contextFailureMessage(error);
             derivedArtifacts = [];
             rollingNotesState = null;
             renderContext();
@@ -856,8 +897,8 @@
             transcriptSignature = '';
             renderTranscript();
             renderMarkers();
-            lastContextError = error.message;
-            setStatus(error.message);
+            lastContextError = contextFailure || 'Waiting for a supported meeting.';
+            setStatus(lastContextError);
         } finally {
             polling = false;
         }
@@ -943,6 +984,11 @@
     }
 
     function renderDerivedArtifacts() {
+        const showCount = (element, count, noun) => {
+            element.hidden = count === 0;
+            element.textContent = count ? String(count) : '';
+            element.setAttribute?.('aria-label', `${count} saved ${noun}${count === 1 ? '' : 's'}`);
+        };
         const receipts = derivedArtifacts.filter(item => item.kind === 'action-result' && item.status === 'user-confirmed'
             && item.generator === 'byomcp-verified-action' && item.payload?.receipt?.jobId === item.payload.jobId
             && /^[a-f0-9]{64}$/.test(item.payload.receipt.receiptDigest || ''));
@@ -966,9 +1012,9 @@
         const moments = derivedArtifacts.filter(item => item.kind === 'moment' && item.status !== 'deleted');
         const notes = derivedArtifacts.filter(item => item.kind === 'live-notes' && item.status !== 'deleted');
         const answers = derivedArtifacts.filter(item => item.kind === 'answer' && item.status !== 'deleted');
-        elements.momentCount.textContent = String(moments.length);
-        elements.noteCount.textContent = String(notes.length);
-        elements.answerCount.textContent = String(answers.length);
+        showCount(elements.momentCount, moments.length, 'moment');
+        showCount(elements.noteCount, notes.length, 'note');
+        showCount(elements.answerCount, answers.length, 'answer');
         elements.momentList.replaceChildren();
         if (!moments.length) {
             const empty = document.createElement('li');
@@ -1403,7 +1449,6 @@
     elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
-    elements.captureMoment.addEventListener('click', () => void captureMoment().catch(error => setStatus(error.message)));
     elements.captureMomentSecondary.addEventListener('click', () => void captureMoment().catch(error => setStatus(error.message)));
     elements.generateNotes.addEventListener('click', () => void openTranscriptHandoff('live_notes').catch(error => setStatus(error.message)));
     elements.workspaceTemplateSelect.addEventListener('change', showWorkspaceTemplate);
@@ -1563,13 +1608,10 @@
     }, {passive:true});
     elements.transcriptSearch.addEventListener('input', () => {clearOnTheFly(); setFollowLatest(false); conversationWindowStart = 0; renderTranscript();});
     elements.transcriptTab.addEventListener('click', () => switchView('transcript'));
-    elements.momentsTab.addEventListener('click', () => switchView('moments'));
     elements.notesTab.addEventListener('click', () => switchView('notes'));
-    elements.evidenceTab.addEventListener('click', () => switchView('evidence'));
-    elements.askTab.addEventListener('click', () => switchView('ask'));
-    elements.templatesTab.addEventListener('click', () => switchView('templates'));
-    document.querySelector('.workspace-tabs').addEventListener('keydown', event => {
-        const tabs = [...document.querySelectorAll('.workspace-tabs [role="tab"]')];
+    elements.toolsTab.addEventListener('click', () => switchView('tools'));
+    elements.workspaceTabs.addEventListener('keydown', event => {
+        const tabs = [...elements.workspaceTabs.querySelectorAll('[role="tab"]:not([hidden])')];
         const currentIndex = tabs.indexOf(document.activeElement);
         if (currentIndex < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();

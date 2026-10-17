@@ -39,8 +39,9 @@ test('unavailable and unresponsive Teams controls do not report success', async 
 });
 
 function workspace(controls, inMeeting = true) {
-    const elements = Object.fromEntries(['meetingSourceControls', 'openAttendeePanel', 'requestTeamsTranscription',
-        'enableLiveCaptions', 'meetingSourceStatus'].map(key => [key, {setAttribute(name, value) {this[name] = value;}}]));
+    const elements = Object.fromEntries(['meetingSourceControls', 'sourceControlSummary', 'openAttendeePanel',
+        'requestTeamsTranscription', 'enableLiveCaptions', 'meetingSourceStatus']
+        .map(key => [key, {setAttribute(name, value) {this[name] = value;}}]));
     const context = vm.createContext({elements, currentContext:{providerLabel:'Microsoft Teams', isInMeeting:inMeeting, meetingControls:controls}});
     const text = source('sidepanel.js');
     vm.runInContext(text.slice(text.indexOf('    function renderMeetingSourceControls()'), text.indexOf('    function renderContext()')) + '\nrenderMeetingSourceControls();', context);

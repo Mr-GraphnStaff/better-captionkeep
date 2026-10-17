@@ -35,14 +35,9 @@ const workspaceChecks = `(async () => {
     const checks = [];
     const add = (name, passed) => checks.push({name, passed:!!passed});
     const settleTheme = async () => {await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); await Promise.all(document.getAnimations().map(animation=>animation.finished.catch(()=>{})));};
-    const key = value => document.querySelector('.workspace-tabs').dispatchEvent(new KeyboardEvent('keydown', {key:value, bubbles:true, cancelable:true}));
-    document.getElementById('transcript-tab').focus(); key('End');
-    add('Workspace End key selects Ask', document.activeElement.id === 'ask-tab' && !document.getElementById('ask-view').hidden);
-    key('ArrowLeft');
-    add('Workspace arrow key selects Templates', document.activeElement.id === 'templates-tab' && !document.getElementById('templates-view').hidden);
-    add('Templates exposes versioned instructions', document.getElementById('workspace-template-select').options.length >= 5 && /Version 1/.test(document.getElementById('workspace-template-version').textContent));
-    key('Home');
-    add('Workspace Home key restores Transcript', document.activeElement.id === 'transcript-tab' && !document.getElementById('transcript-view').hidden);
+    add('Disconnected workspace shows a truthful no-meeting state', document.getElementById('capture-state').textContent === 'No meeting');
+    add('Disconnected workspace hides tabs and deep tools', document.querySelector('.workspace-tabs').hidden && document.getElementById('transcript-view').hidden && document.getElementById('tools-view').hidden);
+    add('Disconnected workspace does not expose raw transport errors', !document.querySelector('main').innerText.includes('Receiving end does not exist'));
     add('Selection actions are hidden until a caption is chosen', document.getElementById('on-the-fly-bar').hidden);
     add('Narrow workspace has no document overflow', document.documentElement.scrollWidth <= innerWidth + 1);
     const luminance = color => {
@@ -79,6 +74,17 @@ const workspaceChecks = `(async () => {
     chrome.tabs.create = async () => ({});
     chrome.runtime.sendMessage = async message => { if (message.message === 'save_derived_artifact') requests.push(structuredClone(message)); return {ok:true, artifacts:message.artifact ? [message.artifact] : [], markers:[]}; };
     await new Promise(resolve => setTimeout(resolve,1350));
+    add('Live transcript hides contradictory source setup card', document.getElementById('meeting-source-controls').hidden);
+    add('First caption announces workspace readiness once', document.getElementById('board-status').textContent === 'Live workspace ready.');
+    const key = value => document.querySelector('.workspace-tabs').dispatchEvent(new KeyboardEvent('keydown', {key:value,bubbles:true,cancelable:true}));
+    document.getElementById('transcript-tab').focus(); key('End');
+    add('Workspace End key selects Tools', document.activeElement.id === 'tools-tab' && !document.getElementById('tools-view').hidden);
+    key('ArrowLeft');
+    add('Workspace arrow key selects Notes', document.activeElement.id === 'notes-tab' && !document.getElementById('notes-view').hidden);
+    document.getElementById('templates-tool').open = true;
+    add('Templates exposes versioned instructions', document.getElementById('workspace-template-select').options.length >= 5 && /Version 1/.test(document.getElementById('workspace-template-version').textContent));
+    key('Home');
+    add('Workspace Home key restores Transcript', document.activeElement.id === 'transcript-tab' && !document.getElementById('transcript-view').hidden);
     const rows = [...document.querySelectorAll('.caption-select')];
     add('Conversation reads in source chronology', rows.map(row => row.dataset.captionIndex).join(',') === '0,1');
     add('No per-row Mark or On the Fly action clutter', document.querySelectorAll('.caption-mark,.caption-research').length === 0);
