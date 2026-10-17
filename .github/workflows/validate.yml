@@ -77,6 +77,4 @@ jobs:
             dist/prod/browser-package-hashes.json
             dist/prod/release-provenance.json
             dist/prod/*.cdx.json
-            dist/prod/better-captionkeep-byomcp-helper-*.zip
-            dist/prod/byomcp-helper-hashes.json
             dist/prod/browser-packages/

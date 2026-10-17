@@ -5,13 +5,31 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 
 const BROWSERS = ['chrome', 'edge', 'brave', 'firefox', 'opera'];
-const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom',
-  'byomcp-helper', 'byomcp-sbom', 'byomcp-hashes'];
+const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom'];
 const GATES = ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'artworkApproved',
   'unchangedWindow', 'storeApproval', 'publicParity', 'installedUpgrade'];
 const START = '<!-- captionkeep-6.0-status:start -->';
 const END = '<!-- captionkeep-6.0-status:end -->';
 export const statusDocuments = ['readme.md', 'docs/RELEASE-6.0.md', 'docs/wiki/Release-Status.md'];
+const candidateMetadataDocuments = new Set(['docs/release-state/6.0.json', ...statusDocuments]);
+
+export function inspectCandidateIdentity({root, candidateCommit} = {}) {
+  if (!/^[a-f0-9]{40}$/i.test(candidateCommit || '')) throw new Error('Invalid frozen candidate source commit');
+  const run = args => execFileSync('git', args, {cwd:root, encoding:'utf8', windowsHide:true}).trim();
+  const head = run(['rev-parse','HEAD']);
+  if (head !== candidateCommit) {
+    try {
+      execFileSync('git', ['merge-base','--is-ancestor',candidateCommit,head], {cwd:root,stdio:'ignore',windowsHide:true});
+    } catch {
+      throw new Error('Frozen candidate source is not an ancestor of the release metadata commit');
+    }
+  }
+  const committed = head === candidateCommit ? [] : run(['diff','--name-only',`${candidateCommit}..${head}`])
+    .split(/\r?\n/).filter(Boolean).filter(file => !candidateMetadataDocuments.has(file));
+  const working = run(['status','--porcelain','--untracked-files=normal'])
+    .split(/\r?\n/).filter(Boolean).filter(line => !candidateMetadataDocuments.has(line.slice(3)));
+  return {commit:candidateCommit, head, changes:[...committed, ...working]};
+}
 
 export function validateReleaseStatus(record, version) {
   if (record.product !== 'Better CaptionKeep' || record.version !== version) throw new Error('Release identity mismatch');
@@ -27,15 +45,40 @@ export function validateReleaseStatus(record, version) {
   if (!Number.isInteger(record.boardEpic) || record.boardEpic <= 0) throw new Error('Missing authoritative Board epic');
   if (!record.candidate || typeof record.candidate.frozen !== 'boolean') throw new Error('Missing candidate state');
   if (record.state === 'development' && record.candidate.frozen) throw new Error('Development cannot claim a frozen candidate');
+  if (Object.keys(record.candidate.hashes || {}).some(name => /byomcp/i.test(name))) {
+    throw new Error('Deferred MCP artifacts cannot be promoted with 6.0');
+  }
   if (record.state !== 'development') {
     if (!record.candidate.frozen || !/^[a-f0-9]{40}$/i.test(record.candidate.commit || '')
-        || !record.candidate.hashes || ARTIFACTS.some(name => !/^[a-f0-9]{64}$/i.test(record.candidate.hashes[name] || ''))) throw new Error('Frozen candidate requires exact commit and artifact hashes for all browser/Store packages, SBOM and BYOMCP helper evidence');
+        || !record.candidate.hashes || ARTIFACTS.some(name => !/^[a-f0-9]{64}$/i.test(record.candidate.hashes[name] || ''))) throw new Error('Frozen candidate requires exact commit and artifact hashes for all browser/Store packages and SBOM');
     if (!BROWSERS.every(browser => record.liveCertification[browser] === 'passed')
         || !record.releaseGates.fullScopeAcceptance || !record.releaseGates.accessibilityAndFailureUat
         || !record.releaseGates.artworkApproved) throw new Error('Candidate acceptance/certification remains open');
   }
   if (record.state === 'released' && GATES.some(gate => !record.releaseGates[gate])) throw new Error('Release still has open gates');
   return record;
+}
+
+export function requireFrozenCandidate(record) {
+  if (record.state !== 'candidate' || !record.candidate?.frozen) {
+    throw new Error('Release packaging requires an explicitly frozen candidate');
+  }
+  return record;
+}
+
+export function verifyCandidateArtifacts(record, {commit, hashes, workingTreeDirty = false} = {}) {
+  if (record.state === 'development') return {verified:false, reason:'development'};
+  requireFrozenCandidate(record);
+  if (commit !== record.candidate.commit) throw new Error('Built source commit differs from the frozen candidate');
+  if (workingTreeDirty) throw new Error('Frozen candidate build contains unreviewed working-tree changes');
+  for (const name of ARTIFACTS) {
+    const actual = hashes?.[name];
+    if (!/^[a-f0-9]{64}$/i.test(actual || '')
+        || actual.toLowerCase() !== record.candidate.hashes[name].toLowerCase()) {
+      throw new Error(`Built artifact differs from frozen candidate: ${name}`);
+    }
+  }
+  return {verified:true};
 }
 
 // CAP-09/10/12: promotion consumes evidence for the same immutable candidate.
@@ -75,12 +118,9 @@ export async function verifyStorePromotion({channel, action, target, packagePath
   const started = Date.parse(evidence.unchangedSince);
   if (typeof evidence.unchangedSince !== 'string' || !Number.isFinite(started) || !Number.isFinite(now)
       || started > now || now - started < 48 * 60 * 60 * 1000) throw new Error('Candidate has not completed the 48-hour unchanged window');
-  const observed = identity ? await identity() : {
-    commit: execFileSync('git', ['rev-parse','HEAD'], {cwd:root,encoding:'utf8',windowsHide:true}).trim(),
-    // Updating evidence/generated status views does not change the reviewed source.
-    changes: execFileSync('git', ['status','--porcelain','--untracked-files=normal'], {cwd:root,encoding:'utf8',windowsHide:true})
-      .split(/\r?\n/).filter(Boolean).filter(line => !['docs/release-state/6.0.json',...statusDocuments].includes(line.slice(3)))
-  };
+  // candidate.commit identifies the reviewed source commit. A later metadata-only
+  // commit records hashes and gates without creating an impossible self-reference.
+  const observed = identity ? await identity() : inspectCandidateIdentity({root, candidateCommit:candidate.commit});
   if (observed?.commit !== candidate.commit || !Array.isArray(observed.changes) || observed.changes.length) {
     throw new Error('Candidate source commit changed or worktree contains unreviewed changes');
   }
@@ -119,6 +159,7 @@ async function main() {
   const record = JSON.parse(await readFile(path.join(root, 'docs/release-state/6.0.json'), 'utf8'));
   const manifest = JSON.parse(await readFile(path.join(root, 'teams-captions-saver/manifest.json'), 'utf8'));
   validateReleaseStatus(record, manifest.version);
+  if (process.argv.includes('--require-candidate')) requireFrozenCandidate(record);
   for (const file of statusDocuments) {
     const absolute = path.join(root, file);
     const text = await readFile(absolute, 'utf8');

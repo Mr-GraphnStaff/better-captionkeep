@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const {execFileSync} = require('node:child_process');
 const root = path.join(__dirname, '..');
 const loadRecord = () => JSON.parse(fs.readFileSync(path.join(root, 'docs/release-state/6.0.json'), 'utf8'));
 const load = () => import('../scripts/release-status.mjs');
@@ -28,8 +30,6 @@ test('candidate and release labels cannot hide unverified browsers or open gates
   record.candidate = {frozen:true, commit:'a'.repeat(40), hashes:{chrome:'b'.repeat(64)}};
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /all browser/);
   for (const key of ['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom']) record.candidate.hashes[key] = 'b'.repeat(64);
-  assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /BYOMCP helper/);
-  for (const key of ['byomcp-helper','byomcp-sbom','byomcp-hashes']) record.candidate.hashes[key] = 'b'.repeat(64);
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /acceptance\/certification/);
   record.requiredBrowsers.pop();
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Five-browser/);
@@ -60,7 +60,7 @@ test('6.0 requires exactly five browsers and cannot silently reintroduce archive
 function promotionFixture() {
   const bytes = Buffer.from('synthetic immutable candidate');
   const digest = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
-  const hashes = Object.fromEntries(['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom','byomcp-helper','byomcp-sbom','byomcp-hashes'].map(key=>[key,digest]));
+  const hashes = Object.fromEntries(['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom'].map(key=>[key,digest]));
   const commit = 'a'.repeat(40), now = Date.parse('2026-10-16T12:00:00Z');
   const bound = {commit,hashes:{...hashes}};
   const record = {product:'Better CaptionKeep',version:'6.0.0',branch:'codex/6.0',state:'candidate',
@@ -116,5 +116,49 @@ test('local receipts cannot authorize existing-draft or staged publication actio
     const f=promotionFixture();let reads=0;const read=f.read;f.read=async(...args)=>{reads++;return read(...args);};
     await assert.rejects(verifyStorePromotion({...f,channel,action}),/Existing Store drafts cannot be verified/);
     assert.equal(reads,0);
+  }
+});
+
+test('6.0 refuses stale helper hashes in release evidence', async () => {
+  const api = await load(), record = loadRecord();
+  record.candidate.hashes = {'byomcp-helper':'b'.repeat(64)};
+  assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Deferred MCP/);
+});
+
+test('candidate artifact verification binds the frozen commit, clean tree and every shipping hash', async () => {
+  const api = await load(), fixture = promotionFixture(), record = fixture.record;
+  assert.deepEqual(api.verifyCandidateArtifacts(record, {commit:record.candidate.commit, hashes:record.candidate.hashes}), {verified:true});
+  assert.throws(() => api.verifyCandidateArtifacts(record, {commit:'b'.repeat(40), hashes:record.candidate.hashes}), /source commit/);
+  assert.throws(() => api.verifyCandidateArtifacts(record, {commit:record.candidate.commit, hashes:record.candidate.hashes, workingTreeDirty:true}), /working-tree/);
+  const changed = {...record.candidate.hashes, chrome:'c'.repeat(64)};
+  assert.throws(() => api.verifyCandidateArtifacts(record, {commit:record.candidate.commit, hashes:changed}), /chrome/);
+  const development = loadRecord();
+  assert.deepEqual(api.verifyCandidateArtifacts(development, {commit:'unbound', hashes:{}}), {verified:false, reason:'development'});
+});
+
+test('candidate source identity permits a later metadata-only freeze commit without self-reference', async () => {
+  const api = await load(), repo = fs.mkdtempSync(path.join(os.tmpdir(), 'captionkeep-candidate-'));
+  const git = args => execFileSync('git', args, {cwd:repo, encoding:'utf8', windowsHide:true}).trim();
+  try {
+    git(['init']); git(['config','user.name','Synthetic Test']); git(['config','user.email','test@example.invalid']);
+    fs.mkdirSync(path.join(repo, 'teams-captions-saver'), {recursive:true});
+    fs.writeFileSync(path.join(repo, 'teams-captions-saver', 'service_worker.js'), 'source');
+    git(['add','.']); git(['commit','-m','candidate source']);
+    const sourceCommit = git(['rev-parse','HEAD']);
+    fs.mkdirSync(path.join(repo, 'docs', 'release-state'), {recursive:true});
+    fs.writeFileSync(path.join(repo, 'docs', 'release-state', '6.0.json'), '{}');
+    for (const file of api.statusDocuments) {
+      const absolute = path.join(repo, file); fs.mkdirSync(path.dirname(absolute), {recursive:true}); fs.writeFileSync(absolute, 'status');
+    }
+    git(['add','.']); git(['commit','-m','freeze metadata']);
+    const identity = api.inspectCandidateIdentity({root:repo, candidateCommit:sourceCommit});
+    assert.equal(identity.commit, sourceCommit);
+    assert.notEqual(identity.head, sourceCommit);
+    assert.deepEqual(identity.changes, []);
+    fs.writeFileSync(path.join(repo, 'teams-captions-saver', 'service_worker.js'), 'changed source');
+    const dirtyIdentity = api.inspectCandidateIdentity({root:repo, candidateCommit:sourceCommit});
+    assert(dirtyIdentity.changes.some(change => change.includes('service_worker.js')));
+  } finally {
+    fs.rmSync(repo, {recursive:true, force:true});
   }
 });

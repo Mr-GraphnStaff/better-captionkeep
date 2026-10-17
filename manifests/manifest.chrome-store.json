@@ -19,7 +19,6 @@
     "sidePanel",
     "identity"
   ],
-  "optional_permissions": ["nativeMessaging"],
   "side_panel": {
     "default_path": "sidepanel.html"
   },

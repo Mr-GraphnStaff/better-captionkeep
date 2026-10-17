@@ -23,23 +23,12 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including th
 
 > **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).
 
-> **6.0 development status:** The `codex/6.0` line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries and an optional user-owned BYOMCP helper are implemented locally with synthetic integration coverage. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, separate extension/helper SBOMs and provenance support review. Full-roadmap acceptance, installed helper/authentication, five separate live browser/provider certifications, artwork approval, candidate freeze, Store approval and installed-upgrade testing remain open.
+> **6.0 development status:** The `codex/6.0` line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. Remaining in-scope acceptance, five separate live browser/provider certifications, artwork approval, candidate freeze, Store approval and installed-upgrade testing remain open.
 
 ### Current 5.4 capabilities
 
-**6.0 BYOMCP development addition:** an optional user-owned helper now connects
-reviewed local stdio and remote MCP profiles. Settings imports nonsecret reviewed
-configuration and requests native messaging only on Connect; reviewed writes
-remain off by default and each action needs a separate exact approval. Typed
-Cloudflare existing-record updates and directory lookup contracts use independent
-readback before a result can be pinned as a separate source-linked Receipt.
-Explicitly enrolled catalog profiles also expose the complete MCP tool catalog
-in Settings, including writes. Each call requires review and separate approval of
-its exact JSON arguments; generic returned data is not a verified Receipt.
-The offline helper bundle requires
-Node.js 22+, separate native registration and separately provisioned credentials.
-Synthetic tests do not establish installed-host, authenticated provider or
-five-browser acceptance. See [helper setup and limits](companion/byomcp/README.md).
+**6.0 MCP scope:** BYOMCP is deferred to a later release. Shipping 6.0 excludes MCP connections, native messaging and helper/tool-execution controls. Local capture, archives, exports, reviewed BYOAI handoff and existing receipt readability remain. Earlier MCP development is preserved separately; it is not a shipping feature or a completed acceptance claim.
+
 
 **6.0 development addition:** the transcript viewer's More transcript tools
 includes a separate reviewed shareable-summary workflow. Explicit excerpt

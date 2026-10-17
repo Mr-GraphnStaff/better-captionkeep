@@ -107,13 +107,13 @@ test('helper packaging refuses native dependency binaries and mismatched install
   });
 });
 
-test('release helper gate prepares, tests, audits and packages before source-bound verification', async () => {
+test('6.0 release gate excludes helper work while preserving explicit development commands', async () => {
   const pkg = JSON.parse(await readFile(path.resolve(__dirname,'../package.json'),'utf8'));
   const command = pkg.scripts['release:candidate'];
   for (const name of ['setup:helper','test:helper','security:audit:helper','package:helper']) {
-    assert(pkg.scripts[name]); assert(command.includes(`npm run ${name}`));
+    assert(pkg.scripts[name]); assert(!command.includes(`npm run ${name}`));
   }
-  assert(command.indexOf('npm run setup:helper') < command.indexOf('npm run test:helper'));
-  assert(command.indexOf('npm run package:helper') < command.indexOf('node scripts/verify-release.mjs'));
+  assert(command.includes('npm run test:release'));
+  assert(command.includes('node scripts/verify-release.mjs'));
   assert(!/publish:|native-host-install|reg add/i.test(command));
 });

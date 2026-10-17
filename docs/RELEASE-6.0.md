@@ -1,5 +1,7 @@
 # Better CaptionKeep 6.0 Development Gate
 
+> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.

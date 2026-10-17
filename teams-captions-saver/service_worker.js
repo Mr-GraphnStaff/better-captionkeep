@@ -3,69 +3,9 @@
 if (typeof importScripts === 'function') {
     importScripts('configuration.js', 'privacyScrubber.js', 'sessionManager.js', 'graphTranscriptConnector.js',
         'correctionManager.js', 'exportProfiles.js', 'meetingExtras.js', 'derivedArtifacts.js', 'graphRuntimeConfig.js', 'evidenceMarkerStore.js', 'captureTabProtection.js',
-        'evidenceActionContracts.js', 'evidenceActionJobs.js', 'browserRuntimeConfig.js',
-        'byomcpNativeClient.js', 'byomcpRuntimeAdapter.js', 'byomcpWorkerBridge.js');
+        'browserRuntimeConfig.js');
 }
 let historyQueue = Promise.resolve();
-// Optional actions have a separate writer/queue. Core capture never depends on
-// helper availability, pairing, provider responses, or job recovery success.
-const BYOMCP_CONFIGURATION_KEY = 'byomcp_trusted_configuration_v1';
-let byomcpPolicySnapshot = {disabled:true,setupDisabled:true};
-async function readByomcpPolicy() {
-    if (typeof chrome.storage.managed?.get !== 'function') throw new Error('managed-policy-unavailable');
-    const managed = await chrome.storage.managed.get(null);
-    const user = await chrome.storage.sync.get(['byomcpEnabled','byomcpAllowWrites','profanityFilterEnabled','customScrubTerms']);
-    const {settings} = CaptionKeepConfiguration.applyPolicy(user,managed);
-    const setupDisabled = settings.disableByomcp === true || settings.disableAiHandoff === true || settings.disableSessionHistory === true;
-    byomcpPolicySnapshot = {disabled:setupDisabled || settings.byomcpEnabled !== true, setupDisabled,
-        disableSessionHistory:settings.disableSessionHistory === true,requireScrubbed:true,
-        allowWrites:!setupDisabled && settings.byomcpAllowWrites === true && settings.disableByomcpWrites !== true,
-        profanityFilterEnabled:settings.profanityFilterEnabled,customScrubTerms:settings.customScrubTerms || []};
-    return byomcpPolicySnapshot;
-}
-const byomcpAdapter = globalThis.CaptionKeepByomcpRuntimeAdapter?.create({chrome,
-    browserTarget:globalThis.CaptionKeepBrowserRuntime?.target || 'unsupported',
-    readPolicy:readByomcpPolicy,getPolicySnapshot:() => byomcpPolicySnapshot,
-    readTrustedConfiguration:async () => (await chrome.storage.local.get(BYOMCP_CONFIGURATION_KEY))[BYOMCP_CONFIGURATION_KEY],
-    onRevoked:() => byomcpRuntime?.bump()
-});
-const byomcpRuntime = globalThis.CaptionKeepByomcpWorkerBridge ? CaptionKeepByomcpWorkerBridge.create({
-    chrome,
-    adapter:byomcpAdapter, readPolicy:readByomcpPolicy, preserveTypedArguments:true,
-    getCapacity:async () => byomcpAdapter?.getCapacity(),
-    setEnabled:async enabled => {
-        await chrome.storage.sync.set({byomcpEnabled:enabled === true});
-        await readByomcpPolicy();
-    },
-    configure:async (configuration,sender) => {
-        const validated = await CaptionKeepByomcpRuntimeAdapter.validateConfiguration(configuration,{
-            contracts:CaptionKeepEvidenceActionContracts,browserTarget:CaptionKeepBrowserRuntime.target,
-            caller:CaptionKeepBrowserRuntime.target === 'firefox' ? chrome.runtime.id : chrome.runtime.getURL('')});
-        await byomcpAdapter.disconnect(sender);
-        await chrome.storage.local.set({[BYOMCP_CONFIGURATION_KEY]:validated});
-        await chrome.storage.sync.set({byomcpEnabled:false,byomcpAllowWrites:false});
-        await readByomcpPolicy();
-    },
-    setWritePermission:async enabled => {
-        const policy = await readByomcpPolicy();
-        if (policy.setupDisabled) throw new Error('policy-denied');
-        const managed = await chrome.storage.managed.get(null);
-        if (enabled && managed.disableByomcpWrites === true) throw new Error('write-denied');
-        await chrome.storage.sync.set({byomcpAllowWrites:enabled === true});
-        await readByomcpPolicy();
-    },
-    materializeResult:retainByomcpReceipt,
-    getSource:async sessionId => {
-        const source = await findCorrectionSource(sessionId);
-        return source ? CaptionKeepByomcpWorkerBridge.describeSource(sessionId,source.transcript,source.recordedAt) : null;
-    }
-}) : null;
-// SessionManager uses this narrowly scoped cleanup facade, never transport APIs.
-globalThis.CaptionKeepByomcpRetention = byomcpRuntime ? {
-    removeSources:identities=>byomcpRuntime.removeSources(identities),
-    clearExcept:preserve=>byomcpRuntime.clearExcept(preserve)
-} : null;
-byomcpRuntime?.recover().catch(() => {});
 const captureTabProtection = CaptionKeepCaptureTabProtection.create({
     tabs:chrome.tabs,storage:chrome.storage.local,
     readCaptureState:async tabId => await chrome.tabs.sendMessage(tabId,{message:'get_status'})
@@ -214,82 +154,6 @@ async function findCorrectionSource(sessionId) {
         }
     }
     return null;
-}
-
-// Only the worker's verified-job pin path can create an action receipt. Normal
-// derivative-save messages cannot invent verified external work.
-async function retainByomcpReceipt(status) {
-    const operation = historyQueue.then(async () => {
-        const policy = await readByomcpPolicy();
-        if (policy.disabled || policy.disableSessionHistory || status.state !== 'pinned') throw new Error('receipt-denied');
-        const ledger = (await chrome.storage.local.get(CaptionKeepEvidenceActionJobs.KEY))[CaptionKeepEvidenceActionJobs.KEY];
-        const record = ledger?.jobs?.[status.jobId];
-        if (!record || record.state !== 'pinned' || record.revision !== status.revision || !record.result || !record.proof) throw new Error('receipt-unverified');
-        const approval = record.approval, sourceId = approval.payload.source.sessionId;
-        const source = await findCorrectionSource(sourceId);
-        if (!source) throw new Error('source-unavailable');
-        const described = await CaptionKeepByomcpWorkerBridge.describeSource(sourceId,source.transcript,source.recordedAt);
-        if (described?.sourceDigest !== approval.payload.source.sourceDigest) throw new Error('source-changed');
-        const receipt = await byomcpAdapter.getVerifiedReceipt(status.jobId);
-        const profile = await byomcpAdapter.getReviewedProfile(approval.payload.connection.id);
-        // Initial job verification consumes the native reply proof exactly once.
-        // Pin reads the already-verified private receipt and rechecks its full
-        // digest/bindings, rather than attempting to consume that proof again.
-        if (!receipt || !profile || !await byomcpAdapter.verifyOperation(profile,approval)) throw new Error('receipt-unverified');
-        const {receiptDigest,...receiptBody} = receipt;
-        if (receiptDigest !== record.proof.receiptDigest || await CaptionKeepEvidenceActionContracts.digest(receiptBody) !== receiptDigest
-            || receipt.jobId !== status.jobId || receipt.approvalDigest !== approval.approvalDigest
-            || receipt.sourceDigest !== approval.payload.source.sourceDigest || receipt.profileDigest !== profile.profileDigest
-            || receipt.resultDigest !== await CaptionKeepEvidenceActionContracts.digest(record.result)) throw new Error('receipt-unverified');
-        const result = CaptionKeepEvidenceActionContracts.validateResult(approval,record.result);
-        const sourceKeys = [...new Set(result.citations)];
-        const evidenceIds = sourceKeys.map(key => described.captions.find(caption => caption.key === key)?.evidenceId);
-        if (evidenceIds.some(id => !id)) throw new Error('receipt-citations-invalid');
-        const scrubOptions = {customTerms:policy.customScrubTerms,profanityFilterEnabled:!!policy.profanityFilterEnabled};
-        const artifact = CaptionKeepDerivedArtifacts.normalize({id:`action-${status.jobId}`,kind:'action-result',
-            sessionId:sourceId,sourceTranscriptSha256:await CaptionKeepEvidenceActionContracts.digest(source.transcript),
-            sourceRevision:described.revision,sourceCaptionCount:source.transcript.length,sourceKeys,evidenceIds,
-            createdAt:approval.payload.createdAt,createdBy:'user',generator:'byomcp-verified-action',status:'user-confirmed',
-            payload:{text:CaptionKeepPrivacyScrubber.scrub(result.answer,scrubOptions).text,
-                receipt,jobId:status.jobId,approvalDigest:approval.approvalDigest}});
-        validateDerivedSource(artifact,source);
-        const fresh = await readByomcpPolicy();
-        if (fresh.disabled || fresh.disableSessionHistory) throw new Error('receipt-denied');
-        const surviving = await findCorrectionSource(sourceId);
-        if (!surviving || (await CaptionKeepByomcpWorkerBridge.describeSource(sourceId,surviving.transcript,surviving.recordedAt))?.sourceDigest !== described.sourceDigest) throw new Error('source-changed');
-        const key = CaptionKeepDerivedArtifacts.storageKey(sourceId);
-        const current = (await chrome.storage.local.get(key))[key];
-        const previous = CaptionKeepDerivedArtifacts.normalizeCollection(current);
-        const replaced = previous.find(item=>item.id === artifact.id);
-        if (!replaced && previous.length >= CaptionKeepDerivedArtifacts.MAX_PER_SESSION) throw new Error('receipt-capacity');
-        await chrome.storage.local.set({[key]:CaptionKeepDerivedArtifacts.upsert(current,artifact)});
-        try {
-            const afterPolicy = await readByomcpPolicy();
-            const afterSource = await findCorrectionSource(sourceId);
-            if (afterPolicy.disabled || afterPolicy.disableSessionHistory || !afterSource
-                || (await CaptionKeepByomcpWorkerBridge.describeSource(sourceId,afterSource.transcript,afterSource.recordedAt))?.sourceDigest !== described.sourceDigest
-                || !await byomcpAdapter.getVerifiedReceipt(status.jobId)) throw new Error('receipt-revoked');
-        } catch (error) {
-            // Roll back only this write if it still owns the exact artifact.
-            // Never replace a later writer's record or restore a whole stale list.
-            const latest = (await chrome.storage.local.get(key))[key];
-            if (Array.isArray(latest) && latest.some(item=>item.id === artifact.id
-                && CaptionKeepEvidenceActionContracts.canonical(item) === CaptionKeepEvidenceActionContracts.canonical(artifact))) {
-                const rollback = latest.filter(item=>item.id !== artifact.id);
-                let restorePrevious = false;
-                try {
-                    const rollbackPolicy = await readByomcpPolicy();
-                    restorePrevious = !rollbackPolicy.disabled && !rollbackPolicy.disableSessionHistory;
-                } catch { /* Unknown authority cannot restore a sensitive receipt. */ }
-                if (replaced && restorePrevious) rollback.push(replaced);
-                await chrome.storage.local.set({[key]:rollback});
-            }
-            throw error;
-        }
-        return {artifactId:artifact.id};
-    });
-    historyQueue = operation.catch(() => {});
-    return operation;
 }
 
 async function correctionAuthority(sessionId, historical, requireSource = true) {
@@ -664,21 +528,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 chrome.tabs.onRemoved?.addListener(tabId => captureTabProtection.forget(tabId).catch(() => {}));
 
 chrome.storage.onChanged.addListener((_changes, areaName) => {
-    byomcpRuntime?.storageChanged(_changes,areaName);
-    if (areaName === 'local' && Object.keys(_changes).some(key=>key !== 'byomcp_jobs_v1')) {
-        byomcpRuntime?.reconcileSources().catch(() => {});
-    }
     if (areaName === 'managed') queueManagedHistoryPolicy().catch(error => console.warn('[CaptionKeep] Could not apply managed history policy:', error.message));
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id) return false;
-    if (['byomcp_settings','byomcp_action'].includes(message?.message)) {
-        if (!byomcpRuntime) {sendResponse({ok:false,error:'helper-unavailable'});return false;}
-        byomcpRuntime.handle(message,sender).then(sendResponse,()=>sendResponse({ok:false,error:'operation-not-verified'}));
-        return true;
-    }
-    if (['delete_session','clear_sessions','retry_archive','save_session_history'].includes(message?.message)) byomcpRuntime?.bump();
     if (message?.message === 'get_capture_surface') {
         const providerId = String(message.providerId || 'meeting').toLowerCase().replace(/[^a-z0-9-]/g, '');
         const tabId = sender.tab?.id;
@@ -693,7 +547,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         'get_derived_artifacts','save_derived_artifact','delete_derived_artifact','update_evidence_markers',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
         'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript','set_capture_tab_protection']);
-    if (!handled.has(message?.message)) return false;
+    if (!handled.has(message?.message)) {
+        sendResponse({ok:false,error:'unsupported-operation'});
+        return false;
+    }
     if (sender.id !== chrome.runtime.id) return false;
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
         'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_disconnect',
@@ -937,7 +794,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         throw new Error('Local meeting retention is disabled by your organization.');
                     }
                     const artifact = CaptionKeepDerivedArtifacts.normalize(message.artifact);
-                    if (artifact.kind === 'action-result') throw new Error('Action receipts require a verified BYOMCP result and explicit pin.');
+                    if (artifact.kind === 'action-result') throw new Error('Creating action receipts is not supported in this release.');
                     if (artifact.sessionId !== String(message.sessionId || '').trim()) throw new Error('Artifact source does not match the active meeting.');
                     validateDerivedSource(artifact, authority.source);
                     if (policy.settings.forceScrubbedExport && artifact.payload.screenshot) {

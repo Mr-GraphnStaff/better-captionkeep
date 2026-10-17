@@ -168,7 +168,7 @@ test('Chrome cancels an active review without uploading or publishing', async ()
 function promotionFixture() {
   const bytes = Buffer.from('synthetic immutable candidate');
   const digest = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
-  const hashes = Object.fromEntries(['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom','byomcp-helper','byomcp-sbom','byomcp-hashes'].map(key=>[key,digest]));
+  const hashes = Object.fromEntries(['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom'].map(key=>[key,digest]));
   const commit = 'a'.repeat(40), now = Date.parse('2026-10-16T12:00:00Z');
   const bound = {commit,hashes:{...hashes}};
   const record = {product:'Better CaptionKeep',version:'6.0.0',branch:'codex/6.0',state:'candidate',

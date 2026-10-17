@@ -1,10 +1,11 @@
+// Retained deferred-module unit tests; active shipping UI acceptance lives in mcp-removed-ui.test.cjs.
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {readFileSync} = require('node:fs');
-const {existsSync} = require('node:fs');
-const {mkdtemp,rm} = require('node:fs/promises');
-const path = require('node:path');
-const os = require('node:os');
+
+
+
+
+
 const {statusView, inventoryView, parseConfiguration, createController} = require('../teams-captions-saver/byomcpSettings.js');
 const profile = {id:'test-profile', label:'Synthetic profile', transport:'stdio', revision:1, verified:true};
 const tool = {name:'captionkeep_get_caption_sources', schemaDigest:'a'.repeat(64), compatible:true, approved:true, profileGrantId:'synthetic-grant', effect:'read'};
@@ -54,21 +55,6 @@ test('repeat checking invalidates prior reviewed inventory and filters unsafe pr
     current = {ok:true,status:{...status.status,profiles:[{...profile,id:'https://secret.example/?token=secret'}, {...profile,verified:false}]}};
     await controller.check(); assert.equal(controller.getState().reviewed,null); assert.equal(controller.getState().profiles.length,0);
 });
-test('settings permits only nonsecret guided setup fields and preserves disclosure', () => {
-    const html = readFileSync(require.resolve('../teams-captions-saver/popup.html'),'utf8');
-    const section = html.split('id="byomcp-settings"')[1].split('id="privacy-settings"')[0];
-    const setupFields = [...section.matchAll(/<input\b[^>]*type="(?:password|text|url)"[^>]*>/g)].map(match => match[0]);
-    assert.equal(setupFields.length,2);
-    assert(setupFields.some(field => /id="byomcp-setup-label"/.test(field) && /type="text"/.test(field)));
-    assert(setupFields.some(field => /id="byomcp-setup-resource"/.test(field) && /type="url"/.test(field)));
-    assert(!setupFields.some(field => /type="password"/.test(field)));
-    assert(section.includes('aria-live="polite"'));
-    assert(section.includes('type="file" accept=".json,application/json"'));
-    assert(section.includes('I reviewed this non-secret helper configuration'));
-    assert(section.includes('Nothing from your meetings is sent'));
-    assert(section.includes('id="byomcp-review" type="button" disabled'));
-});
-
 test('explicit connection requires granted browser permission and a fresh policy check', async () => {
     const calls = []; let denied = false;
     const controller = createController({policy:async () => ({disableByomcp:denied}),send:async message => {
@@ -110,60 +96,4 @@ test('write consent defaults off, requires fresh policy, and import resets it wi
     await controller.allowWrites(false); assert.equal(controller.getState().allowWrites,false);
     await controller.allowWrites(true); await controller.configure('{}',true); assert.notEqual(controller.getState().allowWrites,true);
     assert(calls.every(message=>['allow-writes','configure'].includes(message.operation)));
-});
-
-test('workspace source hashing dependencies precede workspace and main script', () => {
-    const html = readFileSync(require.resolve('../teams-captions-saver/sidepanel.html'),'utf8');
-    for (const file of ['correctionManager.js','evidenceActionContracts.js','byomcpWorkerBridge.js']) {
-        assert.equal(html.split(`src="${file}"`).length,2);
-        assert(html.indexOf(`src="${file}"`) < html.indexOf('src="byomcpWorkspace.js"'));
-    }
-});
-test('actual Chrome renders off-by-default BYOMCP enrollment and fails closed on absent backend', {skip:!existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')}, async () => {
-    const {runChromiumSurface} = await import('../scripts/rendered-surface-checks.mjs');
-    const temporary = await mkdtemp(path.join(os.tmpdir(),'byomcp-settings-render-'));
-    try {
-        const result = await runChromiumSurface('C:/Program Files/Google/Chrome/Application/chrome.exe',path.resolve(__dirname,'../teams-captions-saver'),path.join(temporary,'settings.png'), {
-            afterSurface:async (surface,cdp) => {
-                if (surface !== 'settings') return null;
-                const evaluated = await cdp.send('Runtime.evaluate',{returnByValue:true,awaitPromise:true,expression:`(async () => {
-                    const checks=[], add=(name,passed)=>checks.push({name,passed:!!passed});
-                    const section=document.getElementById('byomcp-settings'); section.open=true;
-                    section.scrollIntoView();
-                    add('BYOMCP remains in advanced Settings',!!section.closest('.settings-container') && document.documentElement.dataset.view==='settings');
-                    add('Verified profile controls initially disabled',document.getElementById('byomcp-profile').disabled && document.getElementById('byomcp-review').disabled);
-                    const calls=[]; chrome.runtime.sendMessage=async message=>{calls.push(message); return {};};
-                    chrome.storage.managed.get=async()=>({});
-                    const check=document.getElementById('byomcp-check'); check.focus(); check.click(); await new Promise(resolve=>setTimeout(resolve,30));
-                    add('Missing worker contract is visibly unsupported, not connected',/cannot verify/.test(document.getElementById('byomcp-status').textContent) && document.getElementById('byomcp-profile').disabled);
-                    add('Checking only sends status, never evidence or invocation',calls.length===1 && calls[0].operation==='status' && Object.keys(calls[0]).length===2);
-                    add('Operation restores reachable keyboard focus',document.activeElement===check && !check.disabled);
-                    chrome.storage.managed.get=async()=>({disableByomcp:true}); check.click(); await new Promise(resolve=>setTimeout(resolve,30));
-                    add('Managed denial does not contact helper',calls.length===1 && /organization/.test(document.getElementById('byomcp-status').textContent));
-                    chrome.storage.managed.get=async()=>({}); check.click(); await new Promise(resolve=>setTimeout(resolve,30));
-                    const ordered=[];
-                    chrome.permissions={request:options=>{ordered.push('permission'); return Promise.resolve(options.permissions[0]==='nativeMessaging');}};
-                    chrome.runtime.sendMessage=async message=>{
-                        ordered.push(message.operation);
-                        return message.operation==='connect' ? {ok:true,status:{protocolVersion:1,enrollmentVerified:true,enabled:true,helperVersion:'synthetic',profiles:[]}} : {ok:true};
-                    };
-                    const connect=document.getElementById('byomcp-connect'); connect.click();
-                    add('Permission requested synchronously in Connect gesture before worker request',ordered.join(',')==='permission');
-                    await new Promise(resolve=>setTimeout(resolve,30));
-                    add('Verified explicit Connect renders connected, without evidence request',ordered.join(',')==='permission,connect' && /Connection enabled/.test(document.getElementById('byomcp-status').textContent) && connect.disabled);
-                    const file=document.getElementById('byomcp-configuration-file'), reviewed=document.getElementById('byomcp-configuration-reviewed'), configure=document.getElementById('byomcp-configure');
-                    const transfer=new DataTransfer(); transfer.items.add(new File(['{"version":1}'],'synthetic-binding.json',{type:'application/json'}));
-                    file.files=transfer.files; file.dispatchEvent(new Event('change'));
-                    add('Choosing configuration resets explicit confirmation',!reviewed.checked && configure.disabled);
-                    reviewed.checked=true; reviewed.dispatchEvent(new Event('change')); configure.click(); await new Promise(resolve=>setTimeout(resolve,40));
-                    add('Reviewed configuration import does not connect or release evidence',ordered.join(',')==='permission,connect,configure' && /Connection remains off/.test(document.getElementById('byomcp-status').textContent));
-                    add('Import resets configuration file and review checkbox',file.files.length===0 && !reviewed.checked && configure.disabled);
-                    return {checks};
-                })()`});
-                if (evaluated.exceptionDetails) throw new Error(evaluated.exceptionDetails.text);
-                return evaluated.result.value;
-            }
-        });
-        assert(result.checks.some(check=>check.name==='Managed denial does not contact helper' && check.passed));
-    } finally {await rm(temporary,{recursive:true,force:true});}
 });

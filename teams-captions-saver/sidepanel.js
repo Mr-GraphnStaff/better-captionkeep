@@ -5,17 +5,6 @@
     const MAX_MARKERS = 500;
     const POLL_INTERVAL_MS = 1200;
     const board = globalThis.CaptionKeepEvidenceBoard;
-    // Connected actions are explicit, separately reviewed workflows, never caption-triggered calls.
-    const connectedActionSelect=document.getElementById('byomcp-action-profile');
-    const connectedActionStatus=document.getElementById('byomcp-action-status');
-    const connectedActionReview=document.getElementById('byomcp-review-action');
-    let connectedActions=[];
-    const connectedActionComponent=CaptionKeepByomcpWorkspace.createComponent({document,
-        backend:CaptionKeepByomcpWorkspace.runtimeBackend(chrome.runtime),
-        stillCurrent:source=>currentContext?.sessionId===source.sessionId
-            && CaptionKeepRollingNotes.sourceRevision(currentContext.transcriptArray)===source.localFingerprint
-            && onTheFlyEvidence?.evidenceId===source.captions[0]?.evidenceId
-            && onTheFlyEvidence?.text===source.localSelectedText});
     const elements = {
         captureState: document.getElementById('capture-state'),
         closePanel: document.getElementById('close-panel'),
@@ -1524,41 +1513,6 @@
         const index = Number.parseInt(choose.dataset.captionIndex, 10);
         if (index === selectedCaptionIndex) clearOnTheFly({restoreFocus:true});
         else selectForOnTheFly(index);
-    });
-    document.getElementById('byomcp-check-actions').addEventListener('click',async()=>{
-        connectedActions=[];connectedActionSelect.replaceChildren();connectedActionSelect.disabled=true;connectedActionReview.disabled=true;
-        connectedActionStatus.textContent='Checking enrolled helper profiles. No meeting evidence is sent.';
-        try {
-            const response=await chrome.runtime.sendMessage({message:'byomcp_settings',operation:'status'});
-            if(response?.ok!==true || response.status?.enrollmentVerified!==true)throw new Error('unavailable');
-            for(const profile of response.status.profiles || []) {
-                if(profile.verified!==true)continue;
-                const inventory=await chrome.runtime.sendMessage({message:'byomcp_settings',operation:'inventory',profileId:profile.id,revision:profile.revision});
-                if(inventory?.ok!==true || inventory.inventory?.profileId!==profile.id || inventory.inventory?.revision!==profile.revision)continue;
-                for(const tool of inventory.inventory.tools || []) {
-                    // A reviewed named adapter, not a tool's description, supplies the supported form kind.
-                    if(tool.compatible!==true || tool.approved!==true || !['dns-change','directory-lookup'].includes(tool.actionKind))continue;
-                    connectedActions.push({id:profile.id,revision:profile.revision,tool:tool.name,schemaDigest:tool.schemaDigest,
-                        profileGrantId:tool.profileGrantId,effect:tool.effect,kind:tool.actionKind,compatible:true,approved:true});
-                }
-            }
-            for(const [index,profile] of connectedActions.entries()) {const option=document.createElement('option');option.value=String(index);option.textContent=`${profile.id} · ${profile.kind==='dns-change'?'DNS record change':'Work directory lookup'} · ${profile.effect}`;connectedActionSelect.append(option);}
-            connectedActionSelect.disabled=!connectedActions.length;connectedActionReview.disabled=!connectedActions.length;
-            connectedActionStatus.textContent=connectedActions.length ? 'Choose a reviewed action. Execution still requires a separate exact-operation approval.' : 'No reviewed compatible action profile is available. No evidence has been sent.';
-        } catch {connectedActionStatus.textContent='The enrolled helper is unavailable or unsupported. No evidence has been sent; local capture continues.';}
-    });
-    connectedActionReview.addEventListener('click',async()=>{
-        try {
-            const request=selectionRequestSnapshot(),context=structuredClone(currentContext);
-            const profile=connectedActions[Number(connectedActionSelect.value)];
-            const caption=context.transcriptArray[selectedCaptionIndex];
-            if(!profile || !caption || !globalThis.CaptionKeepByomcpWorkerBridge?.describeSource)throw new Error('unavailable');
-            const source=await CaptionKeepByomcpWorkerBridge.describeSource(context.sessionId,context.transcriptArray,context.recordingStartTime || context.sessionId);
-            assertSelectionRequest(request);
-            const selected=source.captions[selectedCaptionIndex];if(!selected)throw new Error('unavailable');
-            connectedActionComponent.open({source:{...source,captions:[selected],
-                localFingerprint:CaptionKeepRollingNotes.sourceRevision(context.transcriptArray),localSelectedText:request.evidence.text},profile});
-        } catch {connectedActionStatus.textContent='The source or action profile changed. Select current evidence and check the helper again.';}
     });
     elements.transcriptList.addEventListener('keydown', event => {
         const choose = event.target.closest('.caption-select');

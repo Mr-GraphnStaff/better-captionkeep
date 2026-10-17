@@ -1,3 +1,4 @@
+// DEFERRED MCP: pre-removal test source retained for future work. Not a 6.0 shipping acceptance check.
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {mkdtemp,rm}=require('node:fs/promises');

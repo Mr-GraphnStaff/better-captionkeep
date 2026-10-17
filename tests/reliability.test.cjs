@@ -1721,8 +1721,8 @@ test('extension pages use only packaged scripts and settings use progressive dis
     assert(!popup.includes('assistantBridgeAuth.js'));
     const manifest=JSON.parse(read('manifest.json'));
     assert(!manifest.permissions.includes('alarms'));
-    assert(manifest.optional_permissions?.includes('nativeMessaging'));
-    assert(!manifest.permissions.includes('nativeMessaging'), 'optional BYOMCP must not require native access for Core');
+    assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
+    assert(!manifest.permissions.includes('nativeMessaging'), '6.0 does not ship native messaging');
     assert(!manifest.optional_host_permissions.includes('https://*/*'));
 });
 test('managed release restrictions are enforced across extension action surfaces',()=>{

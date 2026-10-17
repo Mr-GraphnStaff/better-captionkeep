@@ -4,6 +4,7 @@ import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packageExtension } from './package-extension.mjs';
+import {canonicalizeSbomText} from './canonicalize-sbom.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const prodDir = path.join(projectRoot, 'dist', 'prod');
@@ -37,7 +38,7 @@ const sbomText = execFileSync(
   {cwd: projectRoot, encoding: 'utf8', windowsHide: true, maxBuffer: 10 * 1024 * 1024}
 );
 const sbomPath = path.join(prodDir, `better-captionkeep-${manifest.version}.cdx.json`);
-await writeFile(sbomPath, `${sbomText.trim()}\n`, 'utf8');
+await writeFile(sbomPath, canonicalizeSbomText(sbomText), 'utf8');
 
 const certification = {
   product: 'Better CaptionKeep',

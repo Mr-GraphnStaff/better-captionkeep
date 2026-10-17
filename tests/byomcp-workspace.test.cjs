@@ -1,9 +1,6 @@
+// Standalone deferred-module unit coverage only. Removed-UI rendered case preserved in fixtures/deferred-mcp/byomcp-workspace.test.cjs.txt.
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {readFileSync,existsSync}=require('node:fs');
-const {mkdtemp,rm}=require('node:fs/promises');
-const path=require('node:path');
-const os=require('node:os');
 const {createWorkflow,runtimeBackend}=require('../teams-captions-saver/byomcpWorkspace.js');
 const hash='a'.repeat(64), schema='b'.repeat(64), digest='c'.repeat(64);
 function request(){return {source:{sessionId:'synthetic-meeting',sourceDigest:hash,revision:'1',captions:[{key:'one',evidenceId:'C0001',text:'Synthetic proposed DNS change'}]},
@@ -92,48 +89,4 @@ test('preview cannot substitute source session, caption keys or tool schema',asy
         const f=fixture(), original=f.backend.prepare;f.backend.prepare=async input=>{const response=await original(input);mutate(response.preview);return response;};
         f.workflow.open(request());await assert.rejects(f.workflow.prepare({}));assert.equal(f.workflow.getState().phase,'unavailable');
     }
-});
-test('actual Chrome component contains focus, fits narrow viewport and exposes no false approval without backend',{skip:!existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')},async()=>{
-    const {runChromiumSurface}=await import('../scripts/rendered-surface-checks.mjs');
-    const temporary=await mkdtemp(path.join(os.tmpdir(),'byomcp-workspace-render-'));
-    try {
-        const source=readFileSync(require.resolve('../teams-captions-saver/byomcpWorkspace.js'),'utf8');
-        const css=readFileSync(path.resolve(__dirname,'../teams-captions-saver/byomcp-workspace.css'),'utf8');
-        await runChromiumSurface('C:/Program Files/Google/Chrome/Application/chrome.exe',path.resolve(__dirname,'../teams-captions-saver'),path.join(temporary,'settings.png'),{
-            afterSurface:async(surface,cdp)=>{
-                if(surface!=='workspace')return null;
-                await cdp.send('Emulation.setDeviceMetricsOverride',{width:300,height:900,deviceScaleFactor:1,mobile:false});
-                const injected=await cdp.send('Runtime.evaluate',{returnByValue:true,awaitPromise:true,expression:`${source}\n(() => {
-                    const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);
-                    const opener=document.getElementById('open-transcript');opener.focus();
-                    globalThis.__actionComponent=CaptionKeepByomcpWorkspace.createComponent({document,stillCurrent:()=>true});
-                    __actionComponent.open(${JSON.stringify(request())});
-                    const dialog=__actionComponent.dialog,bounds=dialog.getBoundingClientRect();
-                    return {checks:[{name:'Native approval modal contains focus',passed:dialog.open&&dialog.contains(document.activeElement)},
-                        {name:'Action modal fits300px',passed:bounds.left>=0&&bounds.right<=innerWidth&&dialog.scrollWidth<=dialog.clientWidth},
-                        {name:'Unavailable backend leaves execute disabled',passed:[...dialog.querySelectorAll('button')].find(button=>button.textContent.includes('Approve')).disabled&&/unavailable/.test(dialog.querySelector('[role=status]').textContent)},
-                        {name:'Explicit fields do not collect secrets',passed:![...dialog.querySelectorAll('input')].some(input=>/password|token|secret|command/.test(input.name))}]};
-                })()`});
-                if(injected.exceptionDetails)throw new Error(injected.exceptionDetails.text);
-                await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-                await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-                await new Promise(resolve=>setTimeout(resolve,30));
-                const closed=await cdp.send('Runtime.evaluate',{returnByValue:true,expression:"!__actionComponent.dialog.open && document.activeElement.id==='open-transcript'"});
-                injected.result.value.checks.push({name:'Escape restores originating focus without dispatch',passed:closed.result.value});
-                const integrated=await cdp.send('Runtime.evaluate',{returnByValue:true,awaitPromise:true,expression:`(async()=>{
-                    const calls=[];chrome.runtime.sendMessage=async message=>{if(message.message.startsWith('byomcp_')){calls.push(message);return {ok:false,error:'helper-unavailable'};}return {ok:true,markers:[],artifacts:[]};};
-                    chrome.tabs.query=async()=>[{id:12,url:'https://meet.google.com/synthetic-test'}];
-                    chrome.tabs.sendMessage=async()=>({sessionId:'2026-10-14T10:00:00.000Z',isInMeeting:true,capturing:true,captureState:'capturing',providerLabel:'Google Meet',
-                        transcriptArray:[{key:'integration-one',Name:'Synthetic speaker',Text:'Synthetic selected evidence',capturedAt:'2026-10-14T10:00:00.000Z'}]});
-                    await new Promise(resolve=>setTimeout(resolve,1400));document.querySelector('.caption-select').click();
-                    document.getElementById('byomcp-check-actions').click();await new Promise(resolve=>setTimeout(resolve,30));
-                    return {checks:[{name:'Actual workspace entry fails closed without enrolled backend',passed:document.getElementById('byomcp-review-action').disabled&&/unavailable/.test(document.getElementById('byomcp-action-status').textContent)},
-                        {name:'Actual workspace helper check sends metadata only',passed:calls.length===1&&calls[0].message==='byomcp_settings'&&calls[0].operation==='status'&&Object.keys(calls[0]).length===2}]};
-                })()`});
-                if(integrated.exceptionDetails)throw new Error(integrated.exceptionDetails.exception?.description || integrated.exceptionDetails.text);
-                injected.result.value.checks.push(...integrated.result.value.checks);
-                return injected.result.value;
-            }
-        });
-    }finally{await rm(temporary,{recursive:true,force:true});}
 });

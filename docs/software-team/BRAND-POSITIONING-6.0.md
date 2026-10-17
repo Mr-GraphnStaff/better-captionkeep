@@ -1,6 +1,7 @@
 # 6.0 brand and positioning decision brief
 
-2026-10-14. Actual product-marketing/launch role pass, not a vote by invented
+2026-10-14, updated for the October 16 no-MCP shipping decision. Actual
+product-marketing/launch role pass, not a vote by invented
 employees. Draft recommendation for the lead; no name, Store listing, package
 identity, publisher metadata or code is changed by this document.
 
@@ -8,8 +9,9 @@ identity, publisher metadata or code is changed by this document.
 
 **For 6.0, retain Better CaptionKeep and broaden its descriptor.** Stop describing
 it only as a caption saver. Use **Meeting evidence. Reviewed work.** as the
-near-term positioning line. If the newly approved BYOMCP action workflow passes
-its release gates, a fuller descriptor is **Meeting evidence & approved actions**.
+near-term positioning line. The deferred BYOMCP workflow is not part of 6.0
+positioning or launch approval. A future release may separately evaluate
+**Meeting evidence & approved actions** after implementation and acceptance.
 
 **Long term, prefer a broader umbrella over “Better”**: evaluate CaptionKeep as
 the low-disruption transition, and **DAF-TECH OutcomeKeep** as the strongest
@@ -42,12 +44,12 @@ The assistant/model/service belongs to the user, not a required DAF cloud.
 | Can describe current development accurately | Must remain qualified until proven |
 | --- | --- |
 | Local caption preservation, real transcript workspace, reviewed Notes/Ask and source-linked derivatives, Templates, Moment review/export, advanced privacy/settings controls | Certified five-browser/provider operation, complete assistive-technology acceptance, Store-approved/public 6.0 |
-| BYOMCP Settings status/inventory/disconnect slice with default-off/fail-closed controls | Complete helper installation/enrollment, selected-evidence dispatch, Cloudflare DNS execution/readback, Microsoft 365 directory lookup and returned action Receipts |
+| Shipping 6.0 excludes MCP setup/connection/action surfaces and preserves historical receipt readability | Any future MCP installation/enrollment, dispatch, provider operation or returned-action claims |
 
-The Settings slice has bounded tests; it is not evidence that connected actions
-ship. The newly approved bridge remains required 6.0 scope, not a marketing
-promise to conceal unfinished implementation. See [BYOMCP UX](BYOMCP-UX-6.0.md)
-and the [release acceptance matrix](UX-RELEASE-ACCEPTANCE-6.0.md).
+Historical MCP tests are not evidence that connected actions ship. MCP is
+deferred and must not appear in 6.0 launch claims or artifacts. See the
+[preserved BYOMCP UX contract](BYOMCP-UX-6.0.md) and the current
+[release acceptance matrix](UX-RELEASE-ACCEPTANCE-6.0.md).
 
 ## Category reality
 
@@ -147,6 +149,6 @@ with intended users. Ask what they think the product does, who controls external
 actions, and whether a connected tool call is automatic. Record real responses;
 no fabricated panels, preferences or customer testimonials.
 
-Launch approval still requires completed BYOMCP gates, exact-product artwork,
+Launch approval requires the verified no-MCP boundary, exact-product artwork,
 copy parity and controlled upgrade evidence. Branding clarifies the product;
 it cannot stand in for delivering it.

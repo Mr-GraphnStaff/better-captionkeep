@@ -5,11 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="settingsView.js"></script>
-    <link rel="stylesheet" href="byomcp-settings.css">
-    <script src="byomcpSettings.js" defer></script>
-    <script src="byomcpCatalog.js" defer></script>
     <script src="browserRuntimeConfig.js" defer></script>
-    <script src="byomcpSetup.js" defer></script>
     <style>
         .settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         /* A first-screen destination, not a link buried in the settings form. */
@@ -830,95 +826,6 @@
             </div>
             <button id="settingsOpenWorkspace" type="button">Open the Live Workspace</button>
             <p class="small-info-text">Nothing is submitted to an AI service automatically. Your approved workspace opens only after the review screen.</p>
-        </details>
-
-        <details class="settings-group" id="byomcp-settings">
-            <summary>Connections — Bring Your Own MCP</summary>
-            <section id="byomcp-setup" aria-labelledby="byomcp-setup-heading">
-                <h3 id="byomcp-setup-heading" tabindex="-1">Connect your MCP service</h3>
-                <p id="byomcp-setup-progress" class="small-info-text">Step 1 of 4 — One-time setup</p>
-                <div data-byomcp-setup-step="intro">
-                    <p>Services use a helper installed on this computer. Its browser registration is normally a one-time step for this extension. This preparation assistant currently creates a new setup; adding services to an existing setup is not yet guided.</p>
-                    <p class="small-info-text">This guided preparation does not install software or sign you in. A reviewed helper package and a local setup step are still required. Credentials never belong in this page.</p>
-                    <button id="byomcp-setup-start" type="button">Start guided setup</button>
-                </div>
-                <div data-byomcp-setup-step="service" hidden>
-                    <form id="byomcp-setup-form" action="#byomcp-setup" method="post" novalidate>
-                        <fieldset><legend>Where does your MCP service run?</legend>
-                            <label><input type="radio" name="mcp-transport" value="remote" id="byomcp-setup-remote" checked> Remote service — HTTPS address</label>
-                            <label><input type="radio" name="mcp-transport" value="stdio" id="byomcp-setup-stdio"> Local program — choose it during local setup</label>
-                        </fieldset>
-                        <label for="byomcp-setup-label">Service name (required)</label>
-                        <input id="byomcp-setup-label" name="mcp-label" type="text" required maxlength="120" autocomplete="off" aria-describedby="byomcp-setup-status">
-                        <div id="byomcp-setup-resource-field">
-                            <label for="byomcp-setup-resource">MCP HTTPS address (required for remote services)</label>
-                            <input id="byomcp-setup-resource" name="mcp-resource" type="url" maxlength="2048" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://service.example/mcp" aria-describedby="byomcp-setup-resource-help byomcp-setup-status">
-                            <p id="byomcp-setup-resource-help" class="small-info-text">Use the service's MCP endpoint, not its sign-in page. Do not include credentials, query parameters or a fragment. Nothing is fetched from this address by the wizard.</p>
-                        </div>
-                        <p class="small-info-text">The setup request contains this installed extension's binding and the service name/address only. Local program paths, arguments and secrets are chosen outside the browser.</p>
-                        <button id="byomcp-setup-download" type="submit">Download setup request</button>
-                    </form>
-                </div>
-                <div data-byomcp-setup-step="local" hidden>
-                    <p>Use your downloaded request with the reviewed helper package's local setup assistant. It prepares configuration and a registration plan, not an installed connection.</p>
-                    <p class="small-info-text">From the helper package's folder, run <code>node companion/byomcp/setup.mjs --request &lt;absolute-request-path&gt; --output &lt;new-private-folder&gt; --save</code>. Review its prompts before saving. Register the helper separately using its generated plan. A one-click installer and merging an existing setup are not available yet.</p>
-                    <p class="small-info-text">Remote service authentication remains a separate local step. This wizard cannot reuse a VS Code login or start service sign-in.</p>
-                    <p class="small-info-text">Preparation only: native installation and private credential-store permissions are not completed by this assistant. Do not start sign-in until those prerequisites are verified. A supported one-click installer is still pending.</p>
-                    <button id="byomcp-setup-import" type="button">Choose generated browser binding</button>
-                    <button id="byomcp-setup-next" type="button">Continue to connection check</button>
-                </div>
-                <div data-byomcp-setup-step="connect" hidden>
-                    <p>First import and confirm the generated binding below. Then select <strong>Connect enrolled helper</strong> yourself to approve browser permission.</p>
-                    <div class="actions-row"><button id="byomcp-setup-connect" type="button">Go to Connect button</button><button id="byomcp-setup-verify" type="button">Check connection result</button></div>
-                    <p class="small-info-text">A verified helper is not proof of service authentication or a completed action. Select its profile and use All MCP tools below to discover available tools; nothing runs just by checking.</p>
-                </div>
-                <p id="byomcp-setup-status" role="status" aria-live="polite" aria-atomic="true">Setup has not started. MCP remains optional.</p>
-                <button id="byomcp-setup-back" type="button" hidden>Back</button>
-            </section>
-            <p class="small-info-text">Optional and off by default. Both local stdio and remote HTTP connections use a helper you install and enroll. Configure services and credentials in that helper, never in this extension.</p>
-            <p class="small-info-text">Checking the helper reviews its status and tool inventory only. Nothing from your meetings is sent. Each later evidence request requires its own destination, tool and evidence review.</p>
-            <details id="byomcp-installation"><summary>Advanced installation, enrollment and reviewed configuration</summary>
-                <p class="small-info-text">Install the reviewed helper package separately, confirm its identity locally and configure your own service profile there. Existing registrations in another application are not automatically shared. Never export credentials or OAuth tokens from that application. This extension does not install software or run pasted commands.</p>
-                <p id="byomcp-configuration-help" class="small-info-text">Import only a non-secret helper binding JSON supplied by your locally reviewed setup. Importing does not enable a connection. Credentials stay in the helper. If the helper is unavailable, local capture continues.</p>
-                <label for="byomcp-configuration-file">Non-secret helper configuration (JSON, up to 128 KiB)</label>
-                <input id="byomcp-configuration-file" type="file" accept=".json,application/json" aria-describedby="byomcp-configuration-help byomcp-status">
-                <label><input id="byomcp-configuration-reviewed" type="checkbox"> I reviewed this non-secret helper configuration and authorize its browser/profile bindings</label>
-                <button id="byomcp-configure" type="button" disabled>Import reviewed configuration</button>
-            </details>
-            <p id="byomcp-status" class="small-info-text" role="status" aria-live="polite">Off by default. Check your installed helper when you choose to connect.</p>
-            <div class="byomcp-fields">
-                <div class="actions-row"><button id="byomcp-check" type="button">Check connection status</button><button id="byomcp-connect" type="button">Connect enrolled helper</button></div>
-                <label for="byomcp-profile" class="setting-label">Verified helper profile</label>
-                <select id="byomcp-profile" aria-describedby="byomcp-status" disabled><option value="">Choose a verified profile</option></select>
-                <div class="actions-row"><button id="byomcp-review" type="button" disabled>Review tool inventory</button><button id="byomcp-disconnect" type="button" disabled>Disconnect helper</button></div>
-                <ul id="byomcp-inventory" aria-label="Reviewed helper tool inventory"></ul>
-                <label><input id="byomcp-allow-writes" type="checkbox" aria-describedby="byomcp-writes-help"> Allow reviewed write actions</label>
-                <p id="byomcp-writes-help" class="small-info-text">Off by default. Each write still requires its own exact-operation approval. This setting does not execute anything; your organization may block it.</p>
-                <details id="byomcp-catalog-panel">
-                    <summary>All MCP tools — advanced</summary>
-                    <p class="small-info-text">Browse every tool exposed by your configured server, including write-capable tools. Server descriptions are untrusted. Your login determines permissions. Nothing runs until you review and approve its exact arguments.</p>
-                    <button id="byomcp-catalog-load" type="button">Load all tools for selected profile</button>
-                    <label for="byomcp-catalog-tool">Tool</label>
-                    <select id="byomcp-catalog-tool" disabled><option value="">Load the tool catalog first</option></select>
-                    <p id="byomcp-catalog-description" class="small-info-text"></p>
-                    <details><summary>Tool input schema</summary><pre id="byomcp-catalog-schema"></pre></details>
-                    <label for="byomcp-catalog-arguments">Exact tool arguments (JSON object)</label>
-                    <textarea id="byomcp-catalog-arguments" rows="7" maxlength="48000" autocomplete="off" spellcheck="false" aria-describedby="byomcp-catalog-help">{}</textarea>
-                    <p id="byomcp-catalog-help" class="small-info-text">These exact arguments will leave this device if approved. Do not enter credentials. Code-execution tools may change data even if their descriptions suggest otherwise.</p>
-                    <button id="byomcp-catalog-prepare" type="button">Review this operation</button>
-                    <section id="byomcp-catalog-review" hidden aria-labelledby="byomcp-catalog-review-heading">
-                        <h3 id="byomcp-catalog-review-heading" tabindex="-1">Review exact operation</h3>
-                        <p id="byomcp-catalog-destination"></p>
-                        <pre id="byomcp-catalog-exact"></pre>
-                        <p class="small-info-text">May change data. This approval is single-use and expires after five minutes. A server response is not independent verification that a change completed.</p>
-                        <button id="byomcp-catalog-execute" type="button">Approve and run this exact operation</button>
-                        <button id="byomcp-catalog-cancel" type="button">Cancel review</button>
-                    </section>
-                    <p id="byomcp-catalog-status" role="status" aria-live="polite">Choose a connected profile to browse its tools.</p>
-                    <pre id="byomcp-catalog-result" aria-label="Untrusted MCP tool response"></pre>
-                </details>
-                <p class="small-info-text">Connecting is not blanket permission to share transcripts. Tool descriptions and returned results are untrusted until reviewed. No DAF-hosted assistant or transcript service is involved.</p>
-            </div>
         </details>
 
         <details class="settings-group" id="privacy-settings">

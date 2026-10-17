@@ -1,5 +1,7 @@
 # Better CaptionKeep 6.0 Product and Release Roadmap
 
+> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+
 ## North star
 
 Version 6.0 is the full product step, not a reskin. The everyday journey is one
@@ -87,27 +89,16 @@ templates, and every advanced control.
 - Do not include images, attendee reports, other meetings, or earlier questions
   unless the user explicitly selects them in a later reviewed design.
 
-### 5a. Bring Your Own MCP (BYOMCP)
+### 5a. Bring Your Own MCP (BYOMCP) — deferred; excluded from 6.0
 
-The lead explicitly included an opt-in BYOMCP bridge in 6.0 on October 14, 2026.
-This connects to a user's own MCP setup, not a publisher-operated assistant.
-It is required release scope. The concrete browser adapter, runnable optional
-helper, both transports, typed action approval, independent readback and Receipt
-pinning are implemented locally. Synthetic integration is not installed-browser
-or authenticated provider acceptance; those checks remain required.
-
-- Keep connection setup and advanced controls in Settings; disabled by default.
-- Preserve local Core capture without an MCP connection or identity dependency.
-- Review the destination, available tools and selected evidence before an
-  explicit submission. Never automatically send the entire transcript.
-- Preserve select/preview/submit/monitor/cancel/receive/verify/pin, with
-  source-bound returned artifacts and human review before promotion.
-- Define local stdio and remote MCP transport/enrollment contracts before
-  implementation, with least-privilege permissions and managed denial.
-- Connection secrets do not enter sync storage, logs, exports, fixtures or
-  source control. No DAF-TECH-hosted endpoint or service is implied.
-- Complete the new trust-boundary design, negative tests and native/browser
-  integration acceptance before claiming this requirement complete.
+The lead removed BYOMCP from shipping 6.0 on October 16, 2026. Do not include
+connection or tool-execution controls, native-messaging permission, executable
+MCP runtime modules or a helper payload in this release. Capture, archives,
+exports, reviewed BYOAI handoff and historical receipt read/delete remain.
+The earlier implementation is retained for future work; its former acceptance
+contract is not a current 6.0 gate. A later release must independently complete
+supported installation, service preservation, authentication, browser-native
+operation and recovery before shipping. See [deferred scope](deferred/byomcp/README.md).
 
 ### 5b. Reviewed shareable summaries and export labels
 
@@ -172,7 +163,7 @@ is [archived for a later major version](deferred/safari/README.md); it is not a
 | 12 | Separate five-browser/provider certification | Asserted Windows renderer checks passed in Chrome, Edge and Brave; Firefox screenshot captured only; all 15 live provider cells and Opera runtime acceptance remain open |
 | 13 | Frozen storefront bundle and release candidate | Five-browser packages, hashes, SBOM and Store art regenerated October 14; final provenance, owner approval and candidate freeze remain open |
 | 14 | Controlled promotion, public parity, and upgrade smoke | Open |
-| 15 | Opt-in BYOMCP bridge and reviewed Evidence Actions | Concrete helper/transport/Settings/Receipt path implemented with synthetic integration coverage; native installation, real authentication, provider and five-browser acceptance open |
+| 15 | BYOMCP — deferred by lead on October 16 | Excluded from shipping 6.0; preserved implementation and future acceptance remain separate. Verify no executable MCP surface, native permission or helper payload in this release. |
 | 16 | Reviewed shareable summary and export labels | Implemented with independent synthetic privacy and rendered UI checks; user/installed-browser acceptance open; no privilege or safe-distribution guarantee |
 
 ## Non-negotiable source model

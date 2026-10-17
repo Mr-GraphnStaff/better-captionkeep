@@ -3,9 +3,36 @@
   "version": "6.0.0",
   "branch": "codex/6.0",
   "state": "development",
-  "candidate": {"frozen": false, "commit": null, "hashes": null},
-  "requiredBrowsers": ["chrome", "edge", "brave", "firefox", "opera"],
-  "liveCertification": {"chrome": "pending", "edge": "pending", "brave": "pending", "firefox": "pending", "opera": "pending"},
-  "releaseGates": {"fullScopeAcceptance": false, "accessibilityAndFailureUat": false, "artworkApproved": false, "unchangedWindow": false, "storeApproval": false, "publicParity": false, "installedUpgrade": false},
-  "boardEpic": 335
+  "candidate": {
+    "frozen": false,
+    "commit": null,
+    "hashes": null
+  },
+  "requiredBrowsers": [
+    "chrome",
+    "edge",
+    "brave",
+    "firefox",
+    "opera"
+  ],
+  "liveCertification": {
+    "chrome": "pending",
+    "edge": "pending",
+    "brave": "pending",
+    "firefox": "pending",
+    "opera": "pending"
+  },
+  "releaseGates": {
+    "fullScopeAcceptance": false,
+    "accessibilityAndFailureUat": false,
+    "artworkApproved": false,
+    "unchangedWindow": false,
+    "storeApproval": false,
+    "publicParity": false,
+    "installedUpgrade": false
+  },
+  "boardEpic": 335,
+  "deferredFeatures": [
+    "byomcp"
+  ]
 }

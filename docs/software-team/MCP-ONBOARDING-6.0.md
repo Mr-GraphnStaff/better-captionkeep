@@ -1,5 +1,7 @@
 # MCP onboarding repair — 6.0 acceptance contract
 
+> **Deferred from shipping 6.0 by the lead on October 16, 2026.** This document preserves unfinished MCP work for a later release. It is not a current installation procedure or active 6.0 acceptance gate. No future release is pre-approved.
+
 October 15, 2026. Public blocker: [#170](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/170).
 User acceptance: **FAIL**. A working remote transport does not make setup usable.
 
@@ -62,7 +64,7 @@ known friction point, even when the file itself is generated automatically.
 
 ## Test and reporting boundary
 
-Use [M01–M10 in the tester packet](TESTER-ACCEPTANCE-6.0.md) plus preparation
+Use [historical M01–M10 cases](../deferred/byomcp/TESTER-ACCEPTANCE.md) plus preparation
 regressions for rejected fields, modified identities, unsafe output paths,
 existing-output refusal and no external effects by default. Test artifacts and
 fixtures contain synthetic data only. Temporary filesystem tests do not establish

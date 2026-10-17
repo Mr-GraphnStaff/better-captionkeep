@@ -1,8 +1,10 @@
 # Better CaptionKeep 6.0 — hands-on QA and acceptance
 
+> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+
 Prepared October 15, 2026 for David Farris and invited testers.
-Scope: the complete 6.0 product, not just the latest MCP repair.
-Source baseline: `4408bdd` on `codex/6.0`. **Development testing, not a frozen
+Scope: the complete shipping 6.0 product with MCP excluded.
+Source baseline: record the exact clean candidate commit supplied by the build owner. **Development testing, not a frozen
 release candidate or release certification.** Record the actual installed build
 below; version `6.0.0` alone does not identify its contents.
 
@@ -11,7 +13,7 @@ below; version `6.0.0` alone does not identify its contents.
 Start with **Brave + a private Teams test meeting**, a second participant and
 made-up meeting content. Run the first-session checks below before the deeper
 sections. Repeat the provider journey on Meet and Zoom Web afterward.
-You can begin core testing without installing or connecting an MCP helper.
+Do not install or connect an MCP helper for 6.0 testing.
 
 Do not use confidential workplace meetings, real personal records or production
 changes as test material. This document does not authorize an external write,
@@ -27,7 +29,7 @@ directory lookup, installation, account grant, Store submission or publication.
 | Extension version / ID / actual loaded folder | |
 | Source commit and clean/dirty status supplied by build owner | |
 | ZIP SHA-256, if using a supplied package | |
-| Helper version / transport / configuration revision, if applicable | |
+| Confirm no MCP helper/native payload is included in the tested package | |
 | Clean profile, existing development installation, or real Store upgrade | |
 | Relevant policy restrictions / prerequisites missing | |
 
@@ -122,37 +124,15 @@ BYOAI tests require a separately approved destination and synthetic text only.
 | P08 | If enabled, request meeting-chat snapshot and translation. Test unavailable capability; use only synthetic chat. | Chat capture explains loaded-row limits, not full history. Translation is separately labeled; unsupported browser/language has an honest fallback, not silent cloud upload. |
 | P09 | Create a shareable summary from explicit excerpts. Review/edit for intended recipients; test confidentiality and privileged label choices; copy/export/print. Edit after review. | Original preserved; edits invalidate review. Default stamp is CONFIDENTIAL — DRAFT — REVIEW REQUIRED; reviewed stamp is CONFIDENTIAL — FOR AUTHORIZED RECIPIENTS ONLY. Recipient review required before copy/export. Privileged label requires explicit legal-guidance confirmation, not an automated determination. No automatic email/AI send or hidden transcript/source metadata in email output. Inspect actual PDF/clipboard contents. |
 
-## BYOMCP — setup and operation acceptance
+## MCP exclusion — 6.0 shipping checks
 
-**Current limitation:** a piloted setup wizard and unified beginner runbook are
-not implemented at this baseline. Current setup uses a separately installed
-helper, reviewed nonsecret configuration and Settings. Do not mark onboarding
-accepted because an engineer completed it for you. Core tests can proceed while
-MCP prerequisites are BLOCKED. See [helper technical setup](../../companion/byomcp/README.md).
-
-Repeat the applicable cases separately for **remote HTTP through the helper** and
-**local stdio through the helper**, and per supported browser. Cloudflare's earlier
-remote TXT test proved installed-helper execution, NOT the browser approval flow.
-Use a controlled fixture/test service and a reviewed no-op or synthetic read tool.
-Tool names/descriptions are not proof of harmlessness; inspect exact arguments.
+MCP is deferred. Do not install a helper, grant native permission or attempt service sign-in for this release. The [historical MCP cases](../deferred/byomcp/TESTER-ACCEPTANCE.md) remain future work.
 
 | ID | What to do | Expected result |
 | --- | --- | --- |
-| M01 | Start clean with MCP off; capture a meeting. Open Connections and attempt guided setup without verbal developer coaching. | Core works independently. Setup should guide install/add service/sign-in/check/first operation and explain current progress. Missing wizard is recorded as a required UX gap. No arbitrary command is run by the extension. |
-| M02 | With a build-owner-prepared helper/configuration for this exact browser ID, open All Settings → Connections — Bring Your Own MCP. Expand installation/enrollment, choose the supplied nonsecret binding JSON, review its identity and import. | Credentials never entered/imported into extension. Wrong browser/caller/digest rejected. No connection/tool execution merely from import. Record any developer assistance. |
-| M03 | Select Connect enrolled helper. First deny native permission, then retry and allow for the intended helper. Test missing/wrong helper in an isolated prepared environment. | Distinct actionable state; controls recover, no endless disabled panel. Connect alone does not execute tools or transmit captions. |
-| M04 | For the remote service, follow helper-owned authorization with a separately approved test account/grant, then Check connection status. Test cancel/expiry. | Requested scopes visible; no IDE credential copying. Browser and provider grants are separate. Return page failure is not success without helper confirmation. Expired/denied authorization explains recovery; no silent sign-in. |
-| M05 | Choose Verified helper profile → All MCP tools — advanced → Load all tools for selected profile. Inspect names/schema. | Full discovered catalog, including writes, available for review; no tool invoked by discovery. Malicious descriptions stay inert. Wrong/stale profile rejected, not empty false success. |
-| M06 | With writes off, prepare an agreed synthetic no-op/read operation. Then enable Allow reviewed write actions and review again. | Preparation does not execute. Generic tools conservatively need the write gate even if called read-only. The toggle grants no blanket execution permission. Managed denial still wins. |
-| M07 | Enter reviewed exact JSON; select Review this operation. Compare destination/tool/arguments; cancel. Repeat and select Approve and run this exact operation once. | Only the displayed approved operation is dispatched once. Editing arguments/profile or disconnecting invalidates review. Returned generic data is labeled untrusted, not independently verified success. No automatic follow-up calls. |
-| M08 | With a controlled delayed fixture, close/disconnect before dispatch, double-click approve, let a proposal expire, change policy, and interrupt a response after dispatch. | No dispatch after revocation, no duplicate operation, no expired approval. Unknown outcome stays unknown and is not automatically retried. Closing does not promise remote undo. Core remains usable. |
-| M09 | In a separately configured typed action workflow, select synthetic meeting evidence, preview exact action/resource/current/proposed state, approve, inspect result and pin a Receipt. | Outbound scope matches review. Independent readback required before verified Receipt; stale state, source changes, fabricated citations or mismatched result rejected. Generic catalog responses must not masquerade as this typed verified path. |
-| M10 | Restart browser/helper, reconnect, remove access and exercise uninstall instructions in a disposable setup. | State is honest, old approvals cannot replay, no auto-send. Provider revocation is separate from Disconnect. Missing removal/recovery instructions block deployment acceptance. |
-
-**Real-write boundary:** this document is not permission to change DNS, send mail,
-create tickets or query real people. Any later live write test needs its own exact
-account/resource/action approval, unique test data, verified cleanup and recorded
-unknown-outcome procedure. Do not repeat the previous DNS test automatically.
+| D01 | Inspect the exact installed 6.0 package manifest and Settings/Live Workspace. | No nativeMessaging permission, MCP setup/connection/catalog/action controls, helper payload or native execution modules. Advanced core settings and reviewed BYOAI handoff remain available. |
+| D02 | Open a synthetic archive containing a pre-existing action receipt, then delete it through ordinary controls. | Historical receipt remains readable and removable; no new MCP operation, sign-in or connection is attempted. |
+| D03 | Run normal capture/history/export/On the Fly cases on this same build and inspect extension errors. | Core works; no missing-script error or native-helper dependency. Optional helper files, credentials and dormant historical settings are not purged. |
 
 ## Failure, privacy, archive and upgrade
 
@@ -211,10 +191,10 @@ Team lead/coordinator handles tracker entry if tester lacks access.
 - Tester / date / exact build identity: ______
 
 This packet covers the sixteen [roadmap gates](../ROADMAP-6.0.md): F/U cover
-1–3, P/R source checks cover 4–9, browser matrix covers 10/12, U/R/M cover 11,
-M covers 15, and P09 covers 16. Gates 13/14 additionally require release-owner
+1–3, P/R source checks cover 4–9, browser matrix covers 10/12, U/R/D cover 11,
+D01–D03 cover the gate 15 no-MCP boundary, and P09 covers 16. Gates 13/14 additionally require release-owner
 evidence: clean frozen artifact/hash/provenance, final matching artwork/copy,
-extension/helper SBOMs, manifest permission delta, unchanged 48-hour window,
+extension SBOM, manifest permission delta, unchanged 48-hour window,
 authorized submission/approval, public parity and real installed upgrade.
 Gate 10 also requires owner evidence for stable capability IDs and one package
 per browser without paid feature tiers; the browser matrix alone cannot prove it.

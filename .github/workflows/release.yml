@@ -46,11 +46,13 @@ jobs:
         if: github.event_name == 'push'
         env:
           RELEASE_TAG: ${{ github.ref_name }}
-        run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
+        run: |
+          node scripts/check-release-ref.mjs "$RELEASE_TAG"
+          node scripts/release-status.mjs --require-candidate
 
-      - name: Generate runtime SBOM
+      - name: Generate root production-dependency SBOM
         shell: bash
-        run: npm sbom --omit=dev --sbom-format=cyclonedx > dist/prod/better-captionkeep-sbom.cdx.json
+        run: npm sbom --omit=dev --sbom-format=cyclonedx | node scripts/canonicalize-sbom.mjs > dist/prod/better-captionkeep-sbom.cdx.json
 
       - name: Record package checksums
         shell: bash
@@ -61,6 +63,10 @@ jobs:
           printf 'RELEASE_VERSION=%s\n' "$version" >> "$GITHUB_ENV"
           (
             cd dist/prod
+            if find . -iname "*byomcp*" -print -quit | grep -q .; then
+              echo "Deferred MCP payload cannot be promoted with 6.0."
+              exit 1
+            fi
             # Preserve the Store-only checksum contract used by Azure promotion.
             sha256sum better_captionkeep-*.zip > SHA256SUMS.txt
             # The complete distribution has a separate manifest. GitHub release
@@ -68,9 +74,6 @@ jobs:
             files=(
               "better_captionkeep-${version}.zip"
               "better_captionkeep-chrome-${version}.zip"
-              "better-captionkeep-byomcp-helper-${version}.zip"
-              "better-captionkeep-byomcp-helper-${version}.cdx.json"
-              byomcp-helper-hashes.json
               "better-captionkeep-${version}.cdx.json"
               browser-package-hashes.json
               browser-certification.json
@@ -94,9 +97,6 @@ jobs:
         with:
           subject-path: |
             dist/prod/better_captionkeep-*.zip
-            dist/prod/better-captionkeep-byomcp-helper-${{ env.RELEASE_VERSION }}.zip
-            dist/prod/better-captionkeep-byomcp-helper-${{ env.RELEASE_VERSION }}.cdx.json
-            dist/prod/byomcp-helper-hashes.json
             dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
             dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
             dist/prod/browser-package-hashes.json
@@ -119,9 +119,6 @@ jobs:
           if-no-files-found: error
           path: |
             dist/prod/better_captionkeep-*.zip
-            dist/prod/better-captionkeep-byomcp-helper-${{ env.RELEASE_VERSION }}.zip
-            dist/prod/better-captionkeep-byomcp-helper-${{ env.RELEASE_VERSION }}.cdx.json
-            dist/prod/byomcp-helper-hashes.json
             dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
             dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
             dist/prod/browser-package-hashes.json
@@ -146,9 +143,6 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" \
             dist/prod/better_captionkeep-*.zip \
-            "dist/prod/better-captionkeep-byomcp-helper-${RELEASE_VERSION}.zip" \
-            "dist/prod/better-captionkeep-byomcp-helper-${RELEASE_VERSION}.cdx.json" \
-            dist/prod/byomcp-helper-hashes.json \
             dist/prod/browser-packages/better-captionkeep-*-${RELEASE_VERSION}.zip \
             "dist/prod/better-captionkeep-${RELEASE_VERSION}.cdx.json" \
             dist/prod/browser-package-hashes.json \

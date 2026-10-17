@@ -26,8 +26,7 @@ async function fixture(run) {
     const version = '6.0.0';
     const files = [
       `better_captionkeep-${version}.zip`,`better_captionkeep-chrome-${version}.zip`,
-      `better-captionkeep-byomcp-helper-${version}.zip`,`better-captionkeep-byomcp-helper-${version}.cdx.json`,
-      'byomcp-helper-hashes.json',`better-captionkeep-${version}.cdx.json`,
+      `better-captionkeep-${version}.cdx.json`,
       'browser-package-hashes.json','browser-certification.json','release-provenance.json','better-captionkeep-sbom.cdx.json',
       ...['chrome','edge','brave','firefox','opera'].map(browser => `browser-packages/better-captionkeep-${browser}-${version}.zip`)
     ];
@@ -48,7 +47,7 @@ async function fixture(run) {
   }
 }
 
-test('actual release checksum command covers helper, all five browsers and evidence while preserving Store-only contract', async () => {
+test('actual release checksum command covers all five browsers and evidence while preserving Store-only contract', async () => {
   await fixture(async ({root,files,version,execute}) => {
     execute();
     const readChecksums = async name => new Map((await readFile(path.join(root,'dist/prod',name),'utf8')).trim().split('\n').map(line => {
@@ -66,9 +65,9 @@ test('actual release checksum command covers helper, all five browsers and evide
   });
 });
 
-test('actual release checksum command fails when a required helper asset is missing', async () => {
+test('actual release checksum command fails when a required browser asset is missing', async () => {
   await fixture(async ({root,version,execute}) => {
-    await rm(path.join(root,'dist/prod',`better-captionkeep-byomcp-helper-${version}.zip`));
+    await rm(path.join(root,'dist/prod',`browser-packages/better-captionkeep-chrome-${version}.zip`));
     assert.throws(execute,error => error.status !== 0);
   });
 });
@@ -76,9 +75,6 @@ test('actual release checksum command fails when a required helper asset is miss
 test('attestation, workflow upload and future draft release include complete distribution artifacts', async () => {
   const workflow = (await readFile(workflowPath,'utf8')).replaceAll('\r\n','\n');
   const required = [
-    'dist/prod/better-captionkeep-byomcp-helper-${{ env.RELEASE_VERSION }}.zip',
-    'dist/prod/better-captionkeep-byomcp-helper-${{ env.RELEASE_VERSION }}.cdx.json',
-    'dist/prod/byomcp-helper-hashes.json',
     'dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip',
     'dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json',
     'dist/prod/browser-package-hashes.json','dist/prod/browser-certification.json',
@@ -94,8 +90,10 @@ test('attestation, workflow upload and future draft release include complete dis
   assert(draft.includes('--draft --verify-tag'));
   assert(draft.includes("if: github.event_name == 'push'"));
   const validation = await readFile(path.resolve(__dirname,'../.github/workflows/validate.yml'),'utf8');
-  assert(validation.includes('dist/prod/better-captionkeep-byomcp-helper-*.zip'));
-  assert(validation.includes('dist/prod/byomcp-helper-hashes.json'));
   assert(validation.includes('dist/prod/*.cdx.json'));
   assert(validation.includes('dist/prod/browser-packages/'));
+  assert(!/better-captionkeep-byomcp-helper|byomcp-helper-hashes/.test(validation));
+  for(const name of ['Attest release provenance','Upload workflow artifact','Create draft GitHub release']) assert(!/byomcp/i.test(step(workflow,name)));
 });
+
+test('release checksum command rejects stale helper distribution payload',async()=>{await fixture(async({root,execute})=>{await writeFile(path.join(root,'dist/prod/byomcp-helper-hashes.json'),'{}');assert.throws(execute,error=>error.status!==0);});});

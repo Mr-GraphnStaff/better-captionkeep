@@ -6,22 +6,7 @@ The Store package contains no shared Microsoft Entra tenant or application ident
 
 > Last Updated: 2026-10-15
 
-October 15 development-only onboarding repair: guided nonsecret setup-request
-preparation and a separate helper preparation assistant are being added. They
-do not constitute one-click installation, generic OAuth support or accepted
-onboarding. Native permissions remain explicit; no automatic tool execution or
-new publisher service. Refresh Settings screenshots after acceptance, not now.
-
-6.0 optional permission review: `nativeMessaging` is requested only when the
-user explicitly chooses Connect in Settings. It connects to the separately
-installed, user-owned BYOMCP helper for reviewed local stdio or remote MCP
-actions. It is not required for local transcript capture and no helper starts
-on ordinary page load. The helper keeps separately provisioned credentials out
-of browser storage. Exact tool/schema grants, source-bound previews, fresh
-managed-policy checks and separate write approval constrain invocation. The
-helper package requires Node.js 22 or later; browser-native installation and
-authenticated provider acceptance remain pending. This is proposed 6.0 review
-copy, not a change to a published 5.4 listing or a Store approval claim.
+October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The package does not request nativeMessaging, ship a native helper, connect MCP services or expose MCP operation controls. Reviewed BYOAI handoff remains available. Earlier helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
 
 6.0 development review: the Live Workspace now puts chronological conversation
 first, with optional selected-caption actions and explicit Follow latest. Local
@@ -138,7 +123,7 @@ Workflow & Planning
 
 **Single Purpose**
 
-Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares selected evidence through an optional user-owned MCP helper. Reviewed MCP actions require separate approval and do not change the original transcript.
+Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares it through a reviewed handoff. The extension does not connect to MCP services or execute external tools in version 6.0.
 
 **Primary Language**
 

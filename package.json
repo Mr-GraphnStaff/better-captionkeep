@@ -31,9 +31,10 @@
     "build:intune:chrome": "node scripts/build-intune-bundle.mjs deployment/intune/profile.chrome.json dist/prod/intune-chrome chrome",
     "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json dist/prod/intune-local-only edge",
     "store:metadata:check": "node scripts/check-store-metadata.mjs",
-    "release:candidate": "npm run release:status:check && npm run setup:helper && npm run test:helper && npm run security:audit:helper && npm test && npm run lint && npm run audit:surfaces && npm run security:audit && npm run store:metadata:check && npm run clean:dist && npm run build:targets && npm run build:browsers && npm run package:browsers && npm run test:browser-surfaces && npm run build && npm run build:chrome-store && npm run build:intune && npm run package:helper && node scripts/verify-release.mjs",
+    "release:candidate": "npm run release:status:check && npm run test:release && npm run lint && npm run audit:surfaces && npm run security:audit && npm run store:metadata:check && npm run clean:dist && npm run build:targets && npm run build:browsers && npm run package:browsers && npm run test:browser-surfaces && npm run build && npm run build:chrome-store && npm run build:intune && node scripts/verify-release.mjs",
     "publish:edge": "node scripts/edge-publish.mjs",
-    "publish:chrome": "node scripts/chrome-publish.mjs"
+    "publish:chrome": "node scripts/chrome-publish.mjs",
+    "test:release": "node scripts/test-release.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

@@ -1,6 +1,6 @@
 {
   "manifestVersion": "6.0.0",
-  "singlePurpose": "Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares selected evidence through an optional user-owned MCP helper. Reviewed MCP actions require separate approval and do not change the original transcript.",
+  "singlePurpose": "Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares it through a reviewed handoff. The extension does not connect to MCP services or execute external tools in version 6.0.",
   "providers": [
     "Microsoft Teams",
     "Google Meet",
@@ -14,9 +14,7 @@
     "sidePanel": "Used to display one unified live workspace for captured captions and source-linked evidence alongside the supported meeting page. The side panel is opened only by the user and does not transmit transcript data to a developer-operated service.",
     "identity": "Used when the user chooses Connect Microsoft 365 after entering an organization-owned tenant ID and client ID. It opens an interactive tenant-specific Microsoft Entra authorization-code flow with PKCE so the user can find recent Teams meetings and explicitly import an authorized official transcript. Tokens stay in browser session storage; no shared application identity or client secret is embedded."
   },
-  "optionalPermissionJustifications": {
-    "nativeMessaging": "Requested only when the user explicitly selects Connect for the optional BYOMCP integration. It connects to the separately installed, user-owned local helper for reviewed MCP actions using approved user-owned endpoints or local stdio profiles. No helper starts on page load or from caption text, and the browser remains responsible for the optional permission prompt. Local caption capture, transcript review and export do not depend on this permission or on installing the helper."
-  },
+  "optionalPermissionJustifications": {},
   "oauthScopeJustifications": {
     "openid": "Confirms the identity returned by Microsoft during the interactive organizational sign-in flow.",
     "profile": "Displays the connected Microsoft 365 account label so the user can verify which organizational account is active.",

@@ -51,7 +51,7 @@ test('browser-specific runtime identity is verified exactly rather than excluded
   } finally {await rm(source,{recursive:true,force:true});await rm(staged,{recursive:true,force:true});}
 });
 
-test('actual Edge Store staging preserves Store manifest and packages exact Edge native-host identity',async()=>{
+test('actual Edge Store staging preserves Store manifest and packages exact Edge runtime identity',async()=>{
   const dist=await mkdtemp(path.join(os.tmpdir(),'captionkeep-edge-store-'));
   const root=path.resolve(__dirname,'..'),source=path.join(root,'teams-captions-saver');
   try {
@@ -68,7 +68,7 @@ test('actual Edge Store staging preserves Store manifest and packages exact Edge
     assert.equal(entries.get('browserRuntimeConfig.js').toString(), 'globalThis.CaptionKeepBrowserRuntime = Object.freeze({"target":"edge"});\n');
     assert.deepEqual(JSON.parse(entries.get('manifest.json')),JSON.parse(await readFile(expectedManifest,'utf8')));
     await assert.rejects(verifyPackageSource(source,{zipPath,browserTarget:'brave',expectedManifest}),/source mismatch/);
-    await assert.rejects(packageExtension(source,output,'wrong_identity','edge'),/runtime identity mismatch/);
+    await assert.rejects(packageExtension(staged,output,'wrong_identity','brave'),/runtime identity mismatch/);
     const otherManifest=path.join(dist,'wrong-manifest.json');
     await writeFile(otherManifest,JSON.stringify({...JSON.parse(await readFile(expectedManifest,'utf8')),name:'Wrong Store identity'}));
     await assert.rejects(verifyPackageSource(source,{zipPath,browserTarget:'edge',expectedManifest:otherManifest}),/manifest identity mismatch/);

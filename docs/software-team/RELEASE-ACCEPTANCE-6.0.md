@@ -1,5 +1,7 @@
 # Better CaptionKeep 6.0 release acceptance matrix
 
+> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+
 **Testing now? Start with the [hands-on tester packet](TESTER-ACCEPTANCE-6.0.md)**
 for setup identity, click-by-click cases, expected results and blank run records.
 This matrix retains dated audit evidence; its older implementation observations
@@ -89,7 +91,7 @@ Owners are accountable disciplines, not invented named employees or deadlines.
 | 12 Separate five-browser/provider certification | Renderer assertions in Chrome/Edge/Brave; Firefox screenshot only; all live provider cells pending | All 15 cells below, not inferred from shared engines | QA: execute exact-package provider protocol per browser |
 | 13 Frozen candidate, artwork/copy/hashes/SBOM | Packaging/source ZIP parity, hashes/SBOM/provenance scripts, art generation and release-status validation | Final clean artifact identity, owner-approved current art/copy/privacy, candidate declaration and unchanged window | Release + product: read final pipeline evidence, review actual product art, then freeze approved digest |
 | 14 Controlled promotion, public parity, upgrade | Development-state views and publish script tests; no publication implied | Controlled submission, review receipts, public version/copy/art/privacy and real installed upgrade | Release + lead: only after previous gates and applicable authorization; maintain release open until post-upgrade smoke |
-| 15 Opt-in user-owned BYOMCP bridge | Lead inclusion decision; architecture and UX contracts drafted; security review in progress | Transport/credential/permission/enrollment choices, implementation, tool consent, durable jobs, cancellation, source-bound result verification and pinning, five-browser integration | Architecture + engineering + security + UI: resolve the design choices, implement both profiles and execute the adversarial/native acceptance contract; Core remains independent |
+| 15 Deferred user-owned BYOMCP bridge | Removed from the shipping 6.0 boundary by the October 16 lead decision; implementation and historical evidence are preserved | Not a 6.0 release gate. Shipping artifacts must omit MCP UI, runtime, native permission and helper payloads while retaining historical receipt display/delete | Future-release architecture + engineering + security + UI work only; Core 6.0 remains independent |
 
 ### Lead-approved gate 16: shareable summary and labels
 
@@ -170,23 +172,25 @@ Canadian French/Spanish translation, legal, accessibility or full-surface review
 | Reviewed language/UI/Store/user/admin/privacy materials | Non-English previews not professionally accepted | Product + qualified language reviewer: approve terminology and final-version materials |
 | GDPR/Quebec roles, ROPA/DPIA/PIA, rights/retention/transfer review | Existing plan only, not adopter legal approval | Adopting organization DPO/counsel: actual deployment assessment; product cannot certify their compliance |
 
-These are retained acceptance requirements. They must not be declared satisfied
-because catalogs build or the local English interface passes tests.
+The following section is preserved as historical planning evidence for the
+deferred MCP program. It is not active 6.0 acceptance scope and must not be
+used to block or certify the no-MCP 6.0 release.
 
 ## Evidence Actions: #318–332
 
-**Lead decision:** include the opt-in BYOMCP (user-owned MCP) bridge before the
-6.0 release. It is required design/build/test scope, not a deferred enhancement
-and not implemented by this acceptance audit. Architecture and UX are preparing
-the contract before code; assurance will review it before bridge implementation.
+**Superseded historical decision:** an earlier plan included the opt-in BYOMCP
+(user-owned MCP) bridge in 6.0. David's final October 16 decision removed it from
+shipping 6.0 and deferred repair, enrollment, authentication and provider work
+to a later release. The material below remains only as preserved future-work
+evidence; it is not an active 6.0 requirement.
 CaptionKeep does not become a publisher-operated AI host. Core remains usable
 without the bridge; there is no automatic transcript release and no secrets in
-browser sync. The retained program below must be reconciled with that approved
-BYOMCP contract, rather than silently relabeled complete or removed.
-The lead subsequently refined this to operation-specific controlled write
+browser sync. The retained program below must be reconciled before any later
+release reintroduces BYOMCP, rather than silently relabeled complete.
+The earlier plan subsequently refined this to operation-specific controlled write
 profiles: reviewed Cloudflare DNS changes with exact sealed approval and verified
 readback receipts, plus authorized Microsoft 365 person lookup/disambiguation.
-This is additional 6.0 design/build/test scope, not permission for this team to
+This is deferred future design/build/test scope, not permission for this team to
 change DNS or query actual employee profiles. Historical read-only criteria
 remain visible below; their proposed successor ADR must explicitly distinguish
 reviewed read profiles from write profiles, actual tool/server contracts,

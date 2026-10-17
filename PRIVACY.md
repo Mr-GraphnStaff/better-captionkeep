@@ -62,33 +62,9 @@ The use of user data is limited to providing or improving the extension's single
 
 Better CaptionKeep's use and transfer of user data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements.
 
-## Optional BYOMCP in the 6.0 development line
+## MCP release boundary
 
-Local capture does not require MCP. Only an explicit Settings connection asks
-for optional native-messaging permission and starts the separately installed
-user-owned helper. Both local stdio and remote HTTPS MCP use that helper;
-Better CaptionKeep supplies no mandatory remote processing service. Reviewed
-configuration in local extension storage contains tool/resource identities and
-schema grants, not tokens. Credentials are separately provisioned to the helper
-environment, never imported from another application's authenticated session.
-
-An action sends only the reviewed request to the selected tool. Caption excerpts
-use the chosen Privacy Scrubber mode, but exact operational identifiers and
-values (for example a DNS record's old and requested IP addresses) cannot be
-silently masked without changing the approved operation. They are shown in the
-action preview and sent as approved. The Cloudflare compiler sends typed record
-operations, not caption text. Users must authorize the destination and disclosed
-values. Remote tools and local MCP subprocesses have their own access, retention
-and security policies; the extension does not sandbox a user-installed MCP
-program or revoke its separately held credentials on Disconnect.
-
-Independently verified, explicitly pinned results are stored as separate
-source-linked action Receipts. They do not replace the transcript. Source
-deletion and managed retention restrictions apply to these local derivatives;
-they cannot recall a completed remote operation or delete a provider's logs.
-Unknown outcomes are not automatically resubmitted. Native installation,
-authenticated provider behavior and browser certification remain unverified
-until the corresponding release acceptance tests are recorded.
+MCP integration is deferred from version 6.0. This release does not request native messaging, connect to a native helper or MCP service, authenticate MCP providers, or execute external MCP tools. Existing saved records and historical action receipts remain readable and deletable through the normal local archive controls. The extension does not uninstall separately installed helpers or purge their credentials. Reviewed BYOAI handoff remains an explicit user-controlled copy/export action.
 
 ## Retention and controls
 

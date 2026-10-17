@@ -1,5 +1,7 @@
 # MCP guided preparation — development preview
 
+> **Deferred from shipping 6.0 by the lead on October 16, 2026.** This document preserves unfinished MCP work for a later release. It is not a current installation procedure or active 6.0 acceptance gate. No future release is pre-approved.
+
 This is the first repair increment for the failed 6.0 onboarding test, **not a
 complete installation guide**. It removes manual configuration authoring but does
 not yet let a fresh user complete the full journey independently. Do not repeat
@@ -66,53 +68,6 @@ helper; reviewed profile merging and upgrade/removal remain unfinished.
 
 ## Continue only with an already supported, prepared installation
 
-### October 16 Windows development installation increment
-
-The reviewed helper ZIP now also includes `companion/byomcp/windows-setup.mjs`.
-It supports a NEW per-user Windows installation, with exact local review and
-owner-only configuration, without hand-editing the registry:
-
-```text
-node companion/byomcp/windows-setup.mjs --request <absolute-request-file> --output <new-private-output-folder> --install
-```
-
-Run from the complete reviewed package in a trusted local folder, with Node.js
-22+ installed separately. The output's existing parent must already be private;
-unsafe or writable ancestors are refused. Do not change existing directory
-permissions to bypass a refusal. The default without `--install` is an in-memory
-preview. Review the exact browser identity, service, executable/arguments or
-remote address, package/runtime paths and registration target before typing
-**INSTALL**. For Brave/Opera, `--registration-convention chrome` records a
-separate review of that browser's registration convention; it is not automatic
-browser certification.
-
-The command creates a new protected directory, writes generated configuration,
-validates it and registers the exact binding. Existing directories or native
-registrations are refused; profiles and credentials are not replaced or merged.
-It prints the nonsecret browser-binding path for the deliberate import below.
-Sign-in and MCP operations do not run during installation.
-
-To unregister this installation, use its printed receipt path:
-
-```text
-node companion/byomcp/windows-setup.mjs --remove <absolute-registration-receipt-file>
-```
-
-Review the exact removal target and type **REMOVE**. Only the unchanged,
-receipt-owned registration value is removed; files and credentials are retained.
-Cancellation changes nothing. A failed partial installation reports retained
-files and whether its owned registration rollback succeeded; do not delete or
-overwrite an unrelated registration to retry.
-
-The VM's isolated actual-Brave challenge tests passed after a new installation,
-and receipt-owned unregistering restored the original absent registration value.
-Both minimal and production-client-wrapper probes requested one challenge only;
-no enrollment completion, provider request or tool execution occurred. This is
-development integration evidence, not normal Settings/no-coaching acceptance.
-The signed/standalone distribution, existing-profile addition/upgrade and generic
-sign-in gaps below remain open. Do not present this command as a completed
-consumer onboarding fix.
-
 The wizard can point to the existing binding-import and **Connect enrolled helper**
 controls. Choose the generated binding, review it and deliberately import it.
 Select Connect yourself to request browser permission; the guide does not click
@@ -126,9 +81,10 @@ verified typed action Receipt. Disconnect does not revoke the provider's grant.
 
 ## Acceptance still open
 
-Missing signed/standalone helper distribution, complete credential-store/sign-in setup, safe
+Missing helper distribution/installer, private credential-store setup, safe
 existing-profile addition and generic service sign-in are product work, not
 instructions for the tester to solve. Issue [#170](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/170)
-remains a release blocker. Use [M01–M10](software-team/TESTER-ACCEPTANCE-6.0.md)
+remains a blocker for any future release that reintroduces MCP, not for the
+no-MCP 6.0 scope. Use [M01–M10](deferred/byomcp/TESTER-ACCEPTANCE.md)
 to record actual results; no pass follows from generating files or reading this
 guide. Safari is deferred; macOS helper template preparation is not Safari support.

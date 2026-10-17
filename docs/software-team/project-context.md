@@ -1,10 +1,10 @@
 # Better CaptionKeep 6.0 execution context
 
-Date: October 16, 2026. Team lead: David Farris.
-Active source: C:/Projects/better-captionkeep-6.0 inside WinDev2407Eval, branch codex/6.0.
-VM handoff HEAD: 7baceaf9cb392a8b7a67f976f7bd1fdfb4f21ad7, with preserved dirty work.
-Host P:/Projects/better-captionkeep-6.0 is read-only through redirected TSCLIENT/P.
-Historical review starting revision: 360cae2. Public 5.4 checkout stays unchanged.
+> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+
+Date: October 14, 2026. Team lead: David Farris.
+Source: P:/Projects/better-captionkeep-6.0, branch codex/6.0.
+Review starting revision: 360cae2. Public 5.4 checkout stays unchanged.
 
 ## Assignment and authority
 
@@ -22,32 +22,23 @@ Chrome, Edge, Brave, Firefox, and Opera. The lead removed Safari completely from
 6.0 on October 14, 2026, reserving it for a later major version. Its groundwork
 is archived under `docs/deferred/safari`; no Safari release gate remains active.
 
-On October 14 the lead explicitly required the opt-in bridge before 6.0 release
-and clarified it is BYOMCP (Bring Your Own MCP), connecting to user-owned MCP
-setups rather than publisher-hosted AI. Roadmap gate 15 records this scope.
-Architecture, UX and security contracts precede runtime implementation; connection
-secrets remain outside sync/log/export, submissions are explicit and selected,
-and local Core remains independent. Required does not mean implemented/accepted.
+On October 14 the lead initially required an opt-in BYOMCP bridge. The final
+October 16 decision superseded that plan: MCP is excluded from shipping 6.0 and
+deferred. Roadmap gate 15 now verifies the no-MCP shipping boundary. The
+architecture, UX and security material remains historical future-work evidence;
+local Core remains independent.
 
 ## Team and ownership
 
-October 16 superseding status: David directly resumed this VM chat and assigned
-it sole implementation ownership. The host team and its automation remain paused;
-do not start a competing scheduler or write to the redirected host checkout.
-Coordinator owns integration. Environment audit is complete for core tooling,
-locked dependencies, guest terminal, native controls and the managed browser.
-User-level Software Team is installed separately; app project registration and
-outbound host-chat routing remain environment gaps recorded in EXECUTION-6.0.md.
-No merge, Store submission/publication, DNS/directory operation or broader OAuth
-grant is authorized. Automated/synthetic checks are authorized; the lead has no
-live meeting test accounts, so live provider acceptance remains blocked.
-
-Historical HOST evidence: installed helper framing/challenge and isolated actual-
-Brave minimal discovery succeeded, while normal host Settings Connect still
-reported host-not-found. This is not VM acceptance and does not justify copying
-host credentials, profiles or registration. VM isolated minimal/wrapper probes
-currently report host-not-found without an installed helper; new private setup
-has not yet passed real installation. Do not infer a speculative registry fix.
+Historical pre-deferral status: the lead briefly resumed MCP implementation.
+That work stopped when the October 16 no-MCP shipping decision superseded it.
+No MCP installer, registration, authentication or provider task below is an
+active 6.0 assignment; the preserved implementation and user state remain for a
+later explicitly authorized release.
+Installed helper framing/challenge succeeds locally. Exact Brave extension path,
+permission, both registry views and launcher were inspected, but browser-native
+connection acceptance remains unverified while browser control is unavailable.
+Do not invent a Brave registry repair from absent vendor-specific keys.
 
 October 15 active onboarding repair: lead-reported M01 failure is #170, linked to
 Task348. Three actual assignments cover helper preparation, guided Settings and
@@ -108,7 +99,7 @@ including inherited CAP controls #298-307, multilingual adoption #308-313 and
 Evidence Actions #318-332. None of those commitments was deleted or represented
 as completed by the public 5.4 release.
 
-The roadmap now has sixteen gates, including required BYOMCP (15) and the
+The roadmap has sixteen gates; gate 15 now enforces MCP exclusion for shipping 6.0, and gate 16 covers the
 lead-approved reviewed shareable summary and export labels (16). Task #347 under
 UI Feature #336 links public feature #151 and pre-release policy defects
 #152/#153. Separate summary review is not a legal privilege determination;
@@ -126,7 +117,7 @@ for issue links. Failed CLI calls are not counted as applied changes.
 
 ## Verification and remaining constraints
 
-October 14 integration continuation: the optional BYOMCP helper, concrete native
+Historical October 14 integration evidence: the optional BYOMCP helper, concrete native
 adapter, Settings connection/write consent, typed action jobs and actual Receipt
 retention are implemented locally. Official Cloudflare DNS uses a finite compiler
 and separate readback, not arbitrary meeting-supplied code. Registered Cloudflare
@@ -134,8 +125,9 @@ access in Codex passed an identity check only; no credentials were copied and no
 CaptionKeep installed-host or authenticated provider acceptance is implied.
 Helper packaging now includes its own dependency audit, offline SDK sources,
 license files, SBOM and independently verified source/hash evidence. These
-artifacts are mandatory for any future frozen candidate. Full release acceptance
-remains open; local integration is not publication or browser certification.
+artifacts may be required by a future release that reintroduces MCP, but they are
+forbidden from the 6.0 shipping boundary. Full 6.0 release acceptance remains
+open; historical local integration is not publication or browser certification.
 
 Cloudflare helper-owned OAuth now has independent synthetic coverage, including
 the explicitly approved read-only session preset and refresh-token discard.

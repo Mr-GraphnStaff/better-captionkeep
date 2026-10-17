@@ -351,7 +351,6 @@ class SessionManager {
         if (sessionId === 'transcriptBackup' || sessionId.startsWith('backup_')) {
             const stored = await chrome.storage.local.get(sessionId);
             const stableId = stored[sessionId]?.recordingStartTime || sessionId;
-            await globalThis.CaptionKeepByomcpRetention?.removeSources([sessionId,stableId]);
             await this.removeEvidenceMarkers([sessionId, stableId]);
             await this.removeTemporaryArtifacts([sessionId, stableId]);
             const correctionKeys = [sessionId, stableId].map(value => {
@@ -373,7 +372,6 @@ class SessionManager {
 
             // Delete all chunks
             const preserveSource = preserveSources.has(String(metadata.sourceSessionId || metadata.id));
-            await globalThis.CaptionKeepByomcpRetention?.removeSources(this.sourceIdentities(metadata).filter(id=>!preserveSources.has(id)));
             const keysToDelete = this.sessionKeys(metadata, !preserveSource);
             const data = await chrome.storage.local.get(null);
             keysToDelete.push(...this.ownedGenerationKeys(metadata.id, data));
@@ -561,7 +559,6 @@ class SessionManager {
         const index = Array.isArray(initialData.session_index) ? initialData.session_index : [];
         // Clear completed history without erasing a meeting that is still recording.
         const active = preserveActive ? this.activeSourceIdentities(initialData) : new Set();
-        await globalThis.CaptionKeepByomcpRetention?.clearExcept(active);
         const temporaryActive = this.activeSourceIdentities(initialData);
         
         for (const session of index) {

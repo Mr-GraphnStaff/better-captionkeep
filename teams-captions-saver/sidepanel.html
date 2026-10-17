@@ -6,15 +6,11 @@
     <title>Better CaptionKeep Live Workspace</title>
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="sidepanel.css">
-    <link rel="stylesheet" href="byomcp-workspace.css">
     <script src="theme.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="localization.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
     <script src="correctionManager.js" defer></script>
-    <script src="evidenceActionContracts.js" defer></script>
-    <script src="byomcpWorkerBridge.js" defer></script>
-    <script src="byomcpWorkspace.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
     <script src="derivedArtifacts.js" defer></script>
     <script src="rollingNotes.js" defer></script>
@@ -92,14 +88,6 @@
             <div id="on-the-fly-bar" class="instant-research-bar" hidden>
                 <div class="selection-heading"><strong id="on-the-fly-label">Selected caption</strong><button id="clear-on-the-fly" class="text-button" type="button" aria-label="Clear caption selection">Clear</button></div>
                 <span id="on-the-fly-preview"></span>
-                <details class="byomcp-selection-actions"><summary>Connected actions — Bring Your Own MCP</summary>
-                    <p>No action runs from meeting words alone. Check your enrolled helper, then choose a reviewed compatible action.</p>
-                    <button id="byomcp-check-actions" type="button">Check enrolled action profiles</button>
-                    <label for="byomcp-action-profile">Reviewed action</label>
-                    <select id="byomcp-action-profile" disabled><option value="">No verified action available</option></select>
-                    <button id="byomcp-review-action" type="button" disabled>Review selected evidence and action</button>
-                    <p id="byomcp-action-status" role="status" aria-live="polite">Off until a compatible helper profile is available. Local capture continues.</p>
-                </details>
                 <div class="mark-controls">
                     <select id="marker-kind" aria-label="Marker type"></select>
                     <button id="mark-latest" class="primary" disabled>Mark selection</button>

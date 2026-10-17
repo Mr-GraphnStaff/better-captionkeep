@@ -1,5 +1,7 @@
 # Optional BYOMCP helper prototype
 
+> **Deferred from shipping 6.0 by the lead on October 16, 2026.** This document preserves unfinished MCP work for a later release. It is not a current installation procedure or active 6.0 acceptance gate. No future release is pre-approved.
+
 Private, separate Node.js 22 package. Core local caption capture does not depend
 on this helper. The extension requests optional `nativeMessaging` only after an
 explicit Connect gesture. This package does not automatically install a native
@@ -14,29 +16,6 @@ schema, policy, source-binding or action-approval checks.
 
 Run from this directory: `npm ci --ignore-scripts`, then `npm test`.
 From the project root also run `node --test tests/byomcp-contracts.test.cjs`.
-
-## Windows NEW-install development command
-
-The complete reviewed package includes `windows-setup.mjs`. Run `node
-companion/byomcp/windows-setup.mjs --help` from the extracted package root.
-Supply the browser-generated nonsecret setup request and a NEW output directory
-beneath an already private parent. Without `--install`, preparation is in-memory
-only. With `--install`, review the exact caller/service/runtime/package/registry
-plan and type INSTALL locally. The command protects only its newly created root,
-validates the generated files and refuses existing registrations/directories.
-It never authenticates, starts an MCP server, discovers tools or executes them.
-
-Import the printed generated browser binding and explicitly connect in Settings
-after installation. `--remove <absolute-receipt>` separately reviews and removes
-only the unchanged receipt-owned registration value; all files/credentials stay.
-Do not keep a private installation beneath a group-writable source checkout.
-See [the development guide](../../docs/BYOMCP-GUIDED-SETUP.md) in the source tree.
-
-An isolated VM NEW install, actual-Brave minimal/production-wrapper challenge and
-owned unregistering passed. These challenge-only checks do not establish normal
-Settings onboarding, authentication or a tool operation. Node/runtime distribution,
-signed installer delivery, existing-profile merging/upgrades and generic sign-in
-remain release work; the preparation/CLI route is not no-coaching acceptance.
 
 ## Embedding contract
 

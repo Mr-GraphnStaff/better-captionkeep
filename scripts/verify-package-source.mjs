@@ -1,3 +1,4 @@
+import {excludedShippingPath,assertShippingEntries,shippingEntries} from './shipping-boundary.mjs';
 import {readFile, readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {inflateRawSync} from 'node:zlib';
@@ -44,9 +45,11 @@ export function zipEntries(bytes) {
   return entries;
 }
 
-export async function verifyPackageSource(source, {directory, zipPath, allowedDifferences = ['manifest.json'], browserTarget, expectedManifest} = {}) {
+export async function verifyPackageSource(source, {directory, zipPath, allowedDifferences = ['manifest.json'], browserTarget, expectedManifest, allowedExtraPaths=[]} = {}) {
   if (!directory && !zipPath) throw new Error('A staged directory or ZIP is required.');
   const entries = zipPath ? zipEntries(await readFile(zipPath)) : null;
+  const actualEntries=entries || await shippingEntries(directory);
+  assertShippingEntries(actualEntries);
   if (browserTarget && !['chrome','edge','brave','opera','firefox'].includes(browserTarget)) throw new Error('Unsupported package browser target');
   if (expectedManifest) {
     const expected = JSON.parse(await readFile(expectedManifest,'utf8'));
@@ -54,7 +57,7 @@ export async function verifyPackageSource(source, {directory, zipPath, allowedDi
     if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Package manifest identity mismatch: ${zipPath || directory}`);
   }
   const allowed = new Set(allowedDifferences);
-  const files = await sourceFiles(source);
+  const files = (await sourceFiles(source)).filter(name=>!excludedShippingPath(name));
   for (const name of files) {
     if (allowed.has(name)) continue;
     const expected = name === 'browserRuntimeConfig.js' && browserTarget && browserTarget !== 'chrome'
@@ -63,10 +66,10 @@ export async function verifyPackageSource(source, {directory, zipPath, allowedDi
     const actual = entries ? entries.get(name) : await readFile(path.join(directory, name));
     if (!actual || !actual.equals(expected)) throw new Error(`Package source mismatch: ${name} in ${zipPath || directory}`);
   }
-  if (entries) {
+  {
     const expectedNames = new Set(files);
-    for (const name of entries.keys()) {
-      if (!name.endsWith('/') && !expectedNames.has(name)) throw new Error(`Unexpected package source: ${name}`);
+    for (const name of actualEntries.keys()) {
+      if (!name.endsWith('/') && !expectedNames.has(name) && !allowedExtraPaths.some(extra=>name===extra || extra.endsWith('/') && name.startsWith(extra))) throw new Error(`Unexpected package source: ${name}`);
     }
   }
   return {checkedFiles:files.length - allowed.size};

@@ -1,6 +1,7 @@
+// Deferred setup module and synthetic fixture tests only; no shipped onboarding acceptance implied.
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const fs=require('node:fs');
+
 const setup=require('../teams-captions-saver/byomcpSetup.js');
 const environment={os:'win',browser:'chrome',extensionId:'a'.repeat(32)};
 test('setup request copies exact installed binding and service fields only; local paths, arguments and credentials never enter it',()=>{
@@ -70,12 +71,4 @@ test('mounted wizard initializes without permissions, native calls, status messa
     assert(document.elements.get('byomcp-setup-resource-field').hidden);
     document.elements.get('byomcp-setup-label').value='';document.elements.get('byomcp-setup-form').emit('submit',{preventDefault(){}});await settle();
     assert.equal(document.elements.get('byomcp-setup-label').getAttribute('aria-invalid'),'true');assert(document.elements.get('byomcp-setup-label').focused);
-});
-test('markup keeps advanced controls, external CSP-safe scripts, accessible progress and truthful preparation limitations',()=>{
-    const html=fs.readFileSync('teams-captions-saver/popup.html','utf8');
-    assert(html.indexOf('src="browserRuntimeConfig.js"')<html.indexOf('src="byomcpSetup.js"'));
-    for(const id of ['byomcp-connect','byomcp-configuration-file','byomcp-configure','byomcp-setup-back','byomcp-setup-status'])assert(html.includes(`id="${id}"`));
-    assert.match(html,/id="byomcp-setup-status" role="status" aria-live="polite"/);
-    assert.match(html,/--request.*--output.*--save/);assert.match(html,/private credential-store permissions are not completed/);
-    assert(!/on(?:click|submit)=/.test(html));
 });

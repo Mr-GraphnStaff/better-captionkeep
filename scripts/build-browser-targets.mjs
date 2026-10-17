@@ -1,3 +1,4 @@
+import {excludedShippingPath,assertShippingDirectory} from './shipping-boundary.mjs';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -64,7 +65,7 @@ async function stageTarget(target) {
   await cp(sourceDir, targetDir, {
     recursive: true,
     filter(sourcePath) {
-      return path.basename(sourcePath).toLowerCase() !== 'manifest.json';
+      return path.basename(sourcePath).toLowerCase() !== 'manifest.json' && !excludedShippingPath(path.relative(sourceDir,sourcePath));
     }
   });
   if (target === 'dev' || target === 'uat') {
@@ -111,6 +112,7 @@ async function stageTarget(target) {
     `${JSON.stringify(manifest, null, 2)}\n`,
     'utf8'
   );
+  await assertShippingDirectory(targetDir);
   console.log(`Staged ${target} extension at ${targetDir}`);
 }
 

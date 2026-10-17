@@ -117,10 +117,8 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace('`identity`', '`removed-identity`')),
     /missing current Store value: `identity`/
   );
-  assert.throws(
-    () => validateChromeWebStoreDossier(manifest, metadata, dossier.replaceAll('`nativeMessaging`', '`removed-native-messaging`')),
-    /missing current Store value: `nativeMessaging`/
-  );
+  assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
+  assert(!Object.hasOwn(metadata.optionalPermissionJustifications || {}, 'nativeMessaging'));
 });
 
 test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () => {

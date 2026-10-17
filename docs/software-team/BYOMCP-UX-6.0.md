@@ -1,10 +1,16 @@
-# BYOMCP: 6.0 UX contract
+# BYOMCP: preserved future UX contract
+
+> **Superseded for shipping 6.0 on October 16, 2026.** David removed MCP from
+> the 6.0 release and deferred this contract. It remains historical future-work
+> evidence only; it is not an active 6.0 gate or authorization to implement,
+> install, authenticate, connect or invoke a provider.
 
 Date: 2026-10-14. **Implementation contract; local implementation and synthetic
 integration checks exist, installed-browser/provider certification remains open.**
-Lead decision: include an opt-in **Bring Your Own MCP** bridge in version 6.0.
-This is not a deferred feature, a DAF-hosted assistant, or publisher transcript
-storage. Engineering/security contract review precedes UI implementation.
+Historical decision: an earlier plan included an opt-in **Bring Your Own MCP**
+bridge in version 6.0. The October 16 decision superseded it and deferred the
+feature. It must not become a DAF-hosted assistant or publisher transcript
+store. Future engineering/security contract review precedes reintroduction.
 Lead transport decision: an optional locally installed helper mediates **both**
 local stdio and remote HTTP profiles. The extension does not directly store
 remote credentials or contact arbitrary MCP endpoints. See the draft
@@ -205,4 +211,5 @@ idempotency and result/provenance schema. Then implement and independently test:
 - Browser-specific remote/native operation and accessible full journey.
 
 No claim of bridge readiness follows from this document or existing Notes/Ask
-tests. The full 6.0 acceptance matrix must include this newly approved scope.
+tests. A future release that reintroduces MCP needs its own approved acceptance
+matrix; shipping 6.0 instead verifies the explicit no-MCP boundary.
