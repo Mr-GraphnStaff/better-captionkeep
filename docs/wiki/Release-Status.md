@@ -1,5 +1,12 @@
 # Release Status
 
+<!-- captionkeep-6.0-status:start -->
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> This status does not change historical 5.4 publication records.
+<!-- captionkeep-6.0-status:end -->
+
 Last verified: **October 14, 2026**.
 
 | Channel | Version | Status |
@@ -7,7 +14,7 @@ Last verified: **October 14, 2026**.
 | Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
 | Microsoft Edge Add-ons | 5.4.0 and DAF-TECH listing refresh public; post-upgrade smoke pending | Microsoft's official listing serves version 5.4.0 and, as verified October 14, the refreshed description plus all five 5.4 screenshots. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
 | Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
-| Active development release | None | Version 5.4.0 is frozen at Production commit `515819599bcd0c9e3d6d97852d36ef3517e68ac8`. New product work must use a later development lane. |
+| Active development release | 6.0.0 | Full-scope development on `codex/6.0`, tracked in Azure Boards Epic #335. Not frozen, certified, submitted, or public. Public 5.4.0 stays unchanged. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 

@@ -1,0 +1,12 @@
+.byomcp-workspace { box-sizing:border-box; width:min(760px,calc(100vw - 24px)); max-height:calc(100vh - 24px); overflow:auto; background:var(--ck-surface); color:var(--ck-text); border:1px solid var(--ck-border); border-radius:24px; padding:20px; }
+.byomcp-workspace::backdrop { background:rgb(0 0 0 / 65%); }
+.byomcp-workspace h2 { margin-block:0 8px; }
+.byomcp-workspace fieldset { border:1px solid var(--ck-border); border-radius:12px; padding:12px; }
+.byomcp-workspace label { display:block; margin-block:12px; }
+.byomcp-workspace input { display:block; width:100%; min-width:0; box-sizing:border-box; padding:10px; font:inherit; color:var(--ck-text); background:var(--ck-field); border:1px solid var(--ck-border); border-radius:8px; }
+.byomcp-workspace input[type="checkbox"] { display:inline-block; width:auto; margin-inline-start:8px; accent-color:var(--ck-primary); }
+.byomcp-workspace button { width:auto; margin-block:8px; margin-inline-end:8px; padding:10px; white-space:normal; font:inherit; color:var(--ck-text); background:var(--ck-surface-soft); border:1px solid var(--ck-border); border-radius:8px; }
+.byomcp-workspace pre,.byomcp-workspace .byomcp-identity,.byomcp-workspace li { white-space:pre-wrap; overflow-wrap:anywhere; }
+.byomcp-workspace pre { max-height:280px; overflow:auto; border-inline-start:3px solid var(--ck-primary); padding:10px; }
+.byomcp-workspace :is(button,input):focus-visible { outline:3px solid var(--ck-primary); outline-offset:3px; }
+.byomcp-workspace button:disabled { opacity:.6; cursor:not-allowed; }

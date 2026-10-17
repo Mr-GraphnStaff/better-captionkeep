@@ -8,6 +8,25 @@ const UI_ELEMENTS = {
     saveDropdownButton: document.getElementById('saveDropdownButton'),
     saveOptions: document.getElementById('saveOptions'),
     liveWorkspaceButton: document.getElementById('liveWorkspaceButton'),
+    openLastTranscriptButton: document.getElementById('openLastTranscriptButton'),
+    settingsOpenWorkspace: document.getElementById('settingsOpenWorkspace'),
+    intelligenceTemplateSelect: document.getElementById('intelligenceTemplateSelect'),
+    intelligenceTemplateName: document.getElementById('intelligenceTemplateName'),
+    intelligenceTemplateInstructions: document.getElementById('intelligenceTemplateInstructions'),
+    intelligenceTemplateSave: document.getElementById('intelligenceTemplateSave'),
+    intelligenceTemplateDuplicate: document.getElementById('intelligenceTemplateDuplicate'),
+    intelligenceTemplateDelete: document.getElementById('intelligenceTemplateDelete'),
+    intelligenceTemplateExport: document.getElementById('intelligenceTemplateExport'),
+    intelligenceTemplateImport: document.getElementById('intelligenceTemplateImport'),
+    intelligenceTemplateFile: document.getElementById('intelligenceTemplateFile'),
+    intelligenceTemplateStatus: document.getElementById('intelligenceTemplateStatus'),
+    v6ProviderMark: document.getElementById('v6-provider-mark'),
+    v6ProviderName: document.getElementById('v6-provider-name'),
+    v6ProviderDetail: document.getElementById('v6-provider-detail'),
+    v6ProviderState: document.getElementById('v6-provider-state'),
+    v6StatusOrbit: document.getElementById('v6-status-orbit'),
+    v6StatusBand: document.getElementById('v6-status-band'),
+    v6ReadyTitle: document.getElementById('v6-ready-title'),
     themeSelect: document.getElementById('themeSelect'),
     uiLocaleSelect: document.getElementById('uiLocaleSelect'),
     defaultSaveFormatSelect: document.getElementById('defaultSaveFormat'),
@@ -69,12 +88,200 @@ let currentEnterprisePolicy = {};
 let graphConnected = false;
 let graphConfigured = false;
 let graphBusy = false;
+let currentMeetingTab = null;
+let currentMeetingStatus = {};
+let hasSavedSessions = false;
 const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://login.microsoftonline.com/*',
     'https://graph.microsoft.com/*'
 ]);
 const runtimeManifest = chrome.runtime.getManifest();
 const isFullSettingsPage = new URL(location.href).searchParams.get('view') === 'settings';
+let currentProviderLabel = '';
+let customMeetingTemplates = [];
+
+function selectedMeetingTemplate() {
+    return [...CaptionKeepPromptTemplates.BUILT_INS, ...customMeetingTemplates]
+        .find(template => template.id === UI_ELEMENTS.intelligenceTemplateSelect?.value);
+}
+
+function showMeetingTemplate() {
+    const template = selectedMeetingTemplate();
+    if (!template || !UI_ELEMENTS.intelligenceTemplateName) return;
+    UI_ELEMENTS.intelligenceTemplateName.value = template.name;
+    UI_ELEMENTS.intelligenceTemplateInstructions.value = template.instructions;
+    UI_ELEMENTS.intelligenceTemplateDelete.disabled = !customMeetingTemplates.some(item => item.id === template.id);
+}
+
+function renderMeetingTemplates(selectedId = '') {
+    const select = UI_ELEMENTS.intelligenceTemplateSelect;
+    if (!select) return;
+    select.replaceChildren();
+    for (const template of [...CaptionKeepPromptTemplates.BUILT_INS, ...customMeetingTemplates]) {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = customMeetingTemplates.some(item => item.id === template.id)
+            ? `Local · ${template.name} · v${template.version}`
+            : `Built-in · ${template.name} · v${template.version}`;
+        select.append(option);
+    }
+    if ([...select.options].some(option => option.value === selectedId)) select.value = selectedId;
+    showMeetingTemplate();
+}
+
+async function initializeMeetingTemplates() {
+    if (!UI_ELEMENTS.intelligenceTemplateSelect) return;
+    const stored = await chrome.storage.local.get(CaptionKeepPromptTemplates.STORAGE_KEY);
+    customMeetingTemplates = CaptionKeepPromptTemplates.sanitize(stored[CaptionKeepPromptTemplates.STORAGE_KEY]);
+    renderMeetingTemplates();
+}
+
+async function saveMeetingTemplate() {
+    const name = UI_ELEMENTS.intelligenceTemplateName.value.trim();
+    const instructions = UI_ELEMENTS.intelligenceTemplateInstructions.value.trim();
+    if (!name || !instructions) throw new Error('Enter a template name and reusable instructions.');
+    const selected = selectedMeetingTemplate();
+    const existing = customMeetingTemplates.find(item => item.id === selected?.id);
+    if (!existing && customMeetingTemplates.length >= 20) throw new Error('Delete a local template before adding another (limit 20).');
+    const template = existing ? CaptionKeepPromptTemplates.revise(existing, {name, instructions})
+        : {id:`custom-${crypto.randomUUID()}`, name, instructions, version:1};
+    customMeetingTemplates = CaptionKeepPromptTemplates.sanitize([
+        ...customMeetingTemplates.filter(item => item.id !== template.id), template
+    ]);
+    await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
+    renderMeetingTemplates(template.id);
+    UI_ELEMENTS.intelligenceTemplateStatus.textContent = 'Template saved locally. No meeting content was stored.';
+}
+
+async function deleteMeetingTemplate() {
+    const selected = selectedMeetingTemplate();
+    if (!customMeetingTemplates.some(item => item.id === selected?.id)) throw new Error('Built-in templates cannot be deleted.');
+    customMeetingTemplates = customMeetingTemplates.filter(item => item.id !== selected.id);
+    await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
+    renderMeetingTemplates();
+    UI_ELEMENTS.intelligenceTemplateStatus.textContent = 'Local template deleted.';
+}
+
+async function duplicateMeetingTemplate() {
+    const selected = selectedMeetingTemplate();
+    if (!selected) throw new Error('Select a template to duplicate.');
+    if (customMeetingTemplates.length >= 20) throw new Error('Delete a local template before adding another (limit 20).');
+    const template = {id:`custom-${crypto.randomUUID()}`, name:`${selected.name} copy`.slice(0, 80), instructions:selected.instructions, version:1};
+    customMeetingTemplates = CaptionKeepPromptTemplates.sanitize([...customMeetingTemplates, template]);
+    await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
+    renderMeetingTemplates(template.id);
+    UI_ELEMENTS.intelligenceTemplateStatus.textContent = 'Template duplicated locally. The original is unchanged.';
+}
+
+function exportMeetingTemplates() {
+    const blob = new Blob([`${JSON.stringify({version:1, templates:customMeetingTemplates}, null, 2)}\n`], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'better-captionkeep-meeting-templates.json';
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    UI_ELEMENTS.intelligenceTemplateStatus.textContent = `${customMeetingTemplates.length} local template${customMeetingTemplates.length === 1 ? '' : 's'} exported.`;
+}
+
+async function importMeetingTemplates(file) {
+    if (!file || file.size > 1000000) throw new Error('Choose a template JSON file smaller than 1 MB.');
+    const parsed = JSON.parse(await file.text());
+    const imported = CaptionKeepPromptTemplates.sanitize(parsed?.templates);
+    if (!imported.length) throw new Error('No valid local templates were found in that file.');
+    customMeetingTemplates = CaptionKeepPromptTemplates.mergeImported(customMeetingTemplates, imported);
+    await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:customMeetingTemplates});
+    renderMeetingTemplates(imported[0].id);
+    UI_ELEMENTS.intelligenceTemplateStatus.textContent = `${imported.length} template${imported.length === 1 ? '' : 's'} imported locally.`;
+}
+
+function providerForUrl(url = '') {
+    if (/^https:\/\/teams\.(?:microsoft\.com|cloud\.microsoft)(?:\/|$)/.test(url)) return {label:'Microsoft Teams', mark:'T', className:'teams'};
+    if (/^https:\/\/meet\.google\.com(?:\/|$)/.test(url)) return {label:'Google Meet', mark:'M', className:'meet'};
+    if (/^https:\/\/app\.zoom\.us\/wc(?:\/|$)/.test(url)) return {label:'Zoom Web', mark:'Z', className:'zoom'};
+    return {label:'Supported meeting required', mark:'•', className:''};
+}
+
+function setV6Provider(tab) {
+    const provider = providerForUrl(tab?.url);
+    currentProviderLabel = provider.label;
+    if (!UI_ELEMENTS.v6ProviderName) return;
+    UI_ELEMENTS.v6ProviderName.textContent = provider.label;
+    UI_ELEMENTS.v6ProviderMark.textContent = provider.mark;
+    UI_ELEMENTS.v6ProviderMark.className = `v6-provider-mark ${provider.className}`.trim();
+}
+
+function updateV6State({capturing = false, isInMeeting = false, captureState = '', checkpointError = '', captionCount = 0, trackingAllowed = true} = {}) {
+    if (!UI_ELEMENTS.v6StatusOrbit) return;
+    const ready = trackingAllowed && isInMeeting && capturing && !checkpointError && captureState !== 'source unavailable';
+    const paused = isInMeeting && !trackingAllowed;
+    const sourceUnavailable = isInMeeting && trackingAllowed && captureState === 'source unavailable';
+    const errored = isInMeeting && trackingAllowed && (!!checkpointError || sourceUnavailable);
+    const visualState = ready ? 'ready' : errored ? 'error' : paused ? 'paused' : isInMeeting ? 'starting' : 'unavailable';
+    currentMeetingStatus = {capturing, isInMeeting, captureState, checkpointError, captionCount, trackingAllowed, ready, errored};
+    document.documentElement.dataset.meetingState = isInMeeting ? 'active' : 'inactive';
+    UI_ELEMENTS.v6StatusOrbit.classList.remove('ready', 'starting', 'paused', 'error', 'unavailable', 'not-ready');
+    UI_ELEMENTS.v6StatusOrbit.classList.add(visualState);
+    UI_ELEMENTS.v6StatusBand.textContent = ready ? 'Live' : errored ? 'Attention' : paused ? 'Off' : isInMeeting ? 'Starting' : 'Waiting';
+    UI_ELEMENTS.v6ProviderState.textContent = ready ? 'Live' : errored ? 'Needs attention' : paused ? 'Off by you' : isInMeeting ? 'Starting' : 'Waiting';
+    UI_ELEMENTS.v6ProviderState.classList.remove('ready', 'starting', 'paused', 'error');
+    if (visualState !== 'unavailable') UI_ELEMENTS.v6ProviderState.classList.add(visualState);
+    UI_ELEMENTS.v6ProviderDetail.textContent = ready
+        ? `${captionCount} ${captionCount === 1 ? 'caption' : 'captions'} preserved`
+        : errored ? (checkpointError ? 'The last capture checkpoint failed' : 'Meeting captions are unavailable; existing text is preserved')
+            : paused ? 'Live transcript capture is off in Settings'
+            : isInMeeting ? 'Meeting found · live transcript is starting' : 'Open or join a supported meeting';
+    UI_ELEMENTS.v6ReadyTitle.textContent = ready
+        ? 'Live transcript is on'
+        : errored ? 'Capture needs attention'
+        : paused ? 'Live transcript is paused'
+            : isInMeeting ? 'Starting live transcript…' : 'Open a meeting to begin';
+    UI_ELEMENTS.liveWorkspaceButton.disabled = !isInMeeting;
+    UI_ELEMENTS.liveWorkspaceButton.textContent = ready ? 'Open Live Workspace'
+        : errored ? 'Try live transcript again'
+            : paused ? 'Resume live transcript' : isInMeeting ? 'Turn on meeting captions' : 'Waiting for a meeting';
+    UI_ELEMENTS.openLastTranscriptButton.disabled = captionCount < 1 && !hasSavedSessions;
+}
+
+async function openLastLiveTranscript() {
+    if (currentMeetingTab?.id && currentMeetingStatus.captionCount > 0) {
+        const response = await chrome.tabs.sendMessage(currentMeetingTab.id, {message:'get_captions_for_viewing'});
+        if (!response?.ok) throw new Error(response?.error || 'The live transcript could not be opened.');
+        window.close();
+        return;
+    }
+    const sessions = await new SessionManager().getSessionIndex();
+    const latest = sessions[0];
+    if (!latest?.id) throw new Error('No live or saved transcript is available yet.');
+    await chrome.tabs.create({url:chrome.runtime.getURL(`viewer.html?session=${encodeURIComponent(latest.id)}`)});
+    window.close();
+}
+
+async function enableCaptionsFromPopup() {
+    const tab = currentMeetingTab || await getActiveMeetingTab();
+    if (!tab?.id) throw new Error('Return to the active meeting tab and try again.');
+    UI_ELEMENTS.liveWorkspaceButton.disabled = true;
+    UI_ELEMENTS.liveWorkspaceButton.textContent = 'Starting live transcript…';
+    if (currentMeetingStatus.trackingAllowed === false) {
+        await chrome.storage.sync.set({trackCaptions:true});
+        currentMeetingStatus.trackingAllowed = true;
+    }
+    const response = await chrome.tabs.sendMessage(tab.id, {message:'enable_live_captions'});
+    if (!response?.ok) throw new Error(response?.error || 'The meeting did not expose its caption control.');
+    UI_ELEMENTS.statusMessage.textContent = response.state === 'active'
+        ? 'Captions are on. Better CaptionKeep is connecting to the caption stream.'
+        : 'Live transcript requested. The meeting may take a moment to expose its caption stream.';
+    UI_ELEMENTS.statusMessage.style.color = 'var(--ck-warning)';
+    UI_ELEMENTS.liveWorkspaceButton.textContent = 'Caption request sent';
+    setTimeout(async () => {
+        try {
+            const status = await chrome.tabs.sendMessage(tab.id, {message:'get_status'});
+            if (status) await updateStatusUI(status);
+        } catch (error) {
+            console.debug('[Better CaptionKeep] Caption status refresh is waiting for the meeting:', error.message);
+        }
+    }, 800);
+}
 
 // --- Error Handling ---
 function safeExecute(fn, context = '', fallback = null) {
@@ -138,6 +345,10 @@ async function getScrubOptions() {
 async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeeting, attendeeCount, captureState, checkpointError, transcriptionState, transcriptionDetail }) {
     const { statusMessage } = UI_ELEMENTS;
     const { trackCaptions, trackAttendees } = await chrome.storage.sync.get(['trackCaptions', 'trackAttendees']);
+    updateV6State({capturing, captionCount, isInMeeting, captureState, checkpointError, trackingAllowed:trackCaptions !== false});
+    if (Number.isInteger(currentMeetingTab?.id)) {
+        chrome.runtime.sendMessage({message:'update_badge_status', capturing:trackCaptions !== false && capturing, tabId:currentMeetingTab.id}).catch(() => {});
+    }
     
     if (checkpointError || captureState === 'source unavailable') {
         statusMessage.textContent = checkpointError || 'Caption source unavailable — capture may be incomplete. Existing text is preserved.';
@@ -153,7 +364,9 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
                 status += `, ${attendeeCount} attendees`;
             }
             status += ')';
-            if (transcriptionState === 'running') {
+            if (currentProviderLabel !== 'Microsoft Teams') {
+                status += ' Local capture is working.';
+            } else if (transcriptionState === 'running') {
                 status += ' Official Microsoft 365 transcription is running.';
             } else if (transcriptionState === 'requested') {
                 status += ' Microsoft 365 transcription was requested; Teams will confirm when it starts.';
@@ -790,16 +1003,46 @@ function setupEventListeners() {
     });
     UI_ELEMENTS.liveWorkspaceButton?.addEventListener('click', async () => {
         try {
-            const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
-            if (!tab?.windowId) throw new Error('No active browser window is available.');
-            await chrome.sidePanel.setOptions({enabled: true, path: 'sidepanel.html'});
-            await chrome.sidePanel.open({windowId: tab.windowId});
+            if (currentMeetingStatus.isInMeeting && !currentMeetingStatus.ready) {
+                await enableCaptionsFromPopup();
+                return;
+            }
+            await CaptionKeepBrowserCompat.openWorkspace();
             window.close();
         } catch (error) {
-            console.error('[Better CaptionKeep] Could not open the live workspace:', error);
-            chrome.tabs.create({url: chrome.runtime.getURL('sidepanel.html')});
+            console.error('[Better CaptionKeep] Primary meeting action failed:', error);
+            UI_ELEMENTS.statusMessage.textContent = error.message;
+            UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
+            UI_ELEMENTS.liveWorkspaceButton.disabled = false;
+            UI_ELEMENTS.liveWorkspaceButton.textContent = currentMeetingStatus.isInMeeting && !currentMeetingStatus.ready
+                ? currentMeetingStatus.trackingAllowed === false ? 'Resume live transcript' : 'Start captions now'
+                : 'Keep this meeting';
         }
     });
+    UI_ELEMENTS.openLastTranscriptButton?.addEventListener('click', () => void openLastLiveTranscript().catch(error => {
+        UI_ELEMENTS.statusMessage.textContent = error.message;
+        UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
+    }));
+    UI_ELEMENTS.settingsOpenWorkspace?.addEventListener('click', async () => {
+        try {
+            await CaptionKeepBrowserCompat.openWorkspace();
+        } catch (error) {
+            console.error('[Better CaptionKeep] Could not open the live workspace:', error);
+            await chrome.tabs.create({url: chrome.runtime.getURL('sidepanel.html')});
+        }
+    });
+    UI_ELEMENTS.intelligenceTemplateSelect?.addEventListener('change', showMeetingTemplate);
+    UI_ELEMENTS.intelligenceTemplateSave?.addEventListener('click', () => void saveMeetingTemplate()
+        .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; }));
+    UI_ELEMENTS.intelligenceTemplateDelete?.addEventListener('click', () => void deleteMeetingTemplate()
+        .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; }));
+    UI_ELEMENTS.intelligenceTemplateExport?.addEventListener('click', exportMeetingTemplates);
+    UI_ELEMENTS.intelligenceTemplateDuplicate?.addEventListener('click', () => void duplicateMeetingTemplate()
+        .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; }));
+    UI_ELEMENTS.intelligenceTemplateImport?.addEventListener('click', () => UI_ELEMENTS.intelligenceTemplateFile.click());
+    UI_ELEMENTS.intelligenceTemplateFile?.addEventListener('change', event => void importMeetingTemplates(event.target.files?.[0])
+        .catch(error => { UI_ELEMENTS.intelligenceTemplateStatus.textContent = error.message; })
+        .finally(() => { event.target.value = ''; }));
     if (UI_ELEMENTS.themeSelect) {
         UI_ELEMENTS.themeSelect.addEventListener('change', async (event) => {
             await CaptionKeepTheme.set(event.target.value);
@@ -1098,11 +1341,14 @@ async function initializeSessionHistory() {
         // Check if we have saved sessions and update button text
         const sessionManager = new SessionManager();
         const sessions = await sessionManager.getSessionIndex();
+        hasSavedSessions = Boolean(sessions?.length);
+        const liveCaptionCount = Number(currentMeetingStatus.captionCount) || 0;
+        UI_ELEMENTS.openLastTranscriptButton.disabled = liveCaptionCount < 1 && !hasSavedSessions;
         
         if (sessions && sessions.length > 0) {
-            UI_ELEMENTS.historyButton.innerHTML = `📁 View Previous Sessions (${sessions.length})`;
+            UI_ELEMENTS.historyButton.textContent = `Open Meeting Receipts (${sessions.length}) →`;
         } else {
-            UI_ELEMENTS.historyButton.innerHTML = '📁 No Previous Sessions';
+            UI_ELEMENTS.historyButton.textContent = 'No Meeting Receipts yet';
         }
     } catch (error) {
         console.log('[Session History] Initialization skipped:', error.message);
@@ -1296,21 +1542,24 @@ async function initializePopup() {
     if (isFullSettingsPage) {
         document.querySelector('.settings-header').textContent = 'All settings';
         document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
-        if (location.hash === '#microsoft365' && UI_ELEMENTS.graphAdminDetails) {
+        if ((location.hash === '#microsoft365' || location.hash === '#graphTranscriptSection') && UI_ELEMENTS.graphAdminDetails) {
             UI_ELEMENTS.graphTranscriptSection.open = true;
             UI_ELEMENTS.graphAdminDetails.open = true;
-            UI_ELEMENTS.graphAdminDetails.scrollIntoView({block:'start'});
         }
     }
     await loadSettings();
+    await initializeMeetingTemplates();
     setupEventListeners();
     await refreshGraphStatus();
     await initializeSessionHistory(); // Initialize session history
 
     const tab = await getActiveMeetingTab();
+    currentMeetingTab = tab;
+    setV6Provider(tab);
     if (!tab) {
         UI_ELEMENTS.statusMessage.textContent = 'Open Teams, Zoom Web, or Google Meet to begin.';
         UI_ELEMENTS.statusMessage.style.color = 'var(--ck-text-muted)';
+        updateV6State();
         return;
     }
 
@@ -1334,11 +1583,13 @@ async function initializePopup() {
             console.log("Content script not ready. This is normal if the meeting page was just opened.");
             UI_ELEMENTS.statusMessage.innerHTML = 'Please refresh your meeting tab (F5) to activate the extension.';
             UI_ELEMENTS.statusMessage.style.color = 'var(--ck-warning)';
+            updateV6State({isInMeeting:true, captureState:'initializing'});
             
         } else {
             console.error("Unexpected error:", error.message);
             UI_ELEMENTS.statusMessage.textContent = "Connection error. Please refresh your meeting tab and try again.";
             UI_ELEMENTS.statusMessage.style.color = 'var(--ck-danger)';
+            updateV6State({isInMeeting:true, captureState:'source unavailable', checkpointError:error.message});
         }
     }
 }

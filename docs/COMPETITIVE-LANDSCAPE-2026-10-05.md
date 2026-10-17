@@ -1,5 +1,11 @@
 # Browser-extension competitive landscape — updated October 10, 2026
 
+> **Historical research / superseded product scope — October 14, 2026:** Safari
+> competitor findings remain point-in-time research, not a support commitment.
+> The lead removed Safari completely from 6.0; groundwork is
+> [archived for a later major version](deferred/safari/README.md). Current 6.0
+> scope is Chrome, Edge, Brave, Firefox, and Opera, tested separately.
+
 Status: **point-in-time public-Store research and next-release decision input**.
 
 This review supersedes the discovery coverage in

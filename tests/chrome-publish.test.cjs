@@ -112,60 +112,13 @@ test('Chrome preflight proves credentials and item identity without uploading', 
   ]);
 });
 
-test('Chrome submits an existing verified draft when fetchStatus omits completed upload state', async () => {
-  const { main } = await import('../scripts/chrome-publish.mjs');
-  const requests = [];
-  const fetchImpl = async (url, options = {}) => {
-    requests.push({
-      url: String(url),
-      method: options.method || 'GET',
-      body: typeof options.body === 'string' ? JSON.parse(options.body) : null,
-    });
-    if (String(url).includes('oauth2.googleapis.com/token')) {
-      return new Response(JSON.stringify({ access_token: 'access-token' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    if (String(url).endsWith(':fetchStatus')) {
-      return new Response(JSON.stringify({
-        itemId: 'nabjdlnkkaonnbnimnmnhjcbigceebml',
-        publishedItemRevisionStatus: {
-          state: 'PUBLISHED',
-          distributionChannels: [{ crxVersion: '5.1.0' }],
-        },
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    return new Response(JSON.stringify({ state: 'PENDING_REVIEW' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  };
-
-  await main({
-    env: {
-      CHROME_ACTION: 'submit-existing-auto',
-      CHROME_CLIENT_ID: 'client-id',
-      CHROME_CLIENT_SECRET: 'client-secret',
-      CHROME_REFRESH_TOKEN: 'refresh-token',
-      CHROME_PUBLISHER_ID: 'publisher-id',
-      CHROME_EXTENSION_ID: 'nabjdlnkkaonnbnimnmnhjcbigceebml',
-    },
-    fetchImpl,
-  });
-
-  assert.deepEqual(requests.at(-1), {
-    url: 'https://chromewebstore.googleapis.com/v2/publishers/publisher-id/items/nabjdlnkkaonnbnimnmnhjcbigceebml:publish',
-    method: 'POST',
-    body: {
-      publishType: 'DEFAULT_PUBLISH',
-      skipReview: false,
-      blockOnWarnings: true,
-    },
-  });
+test('Chrome refuses unverifiable existing drafts before authentication', async () => {
+  const {main}=await import('../scripts/chrome-publish.mjs');
+  for(const action of ['submit-existing-staged','submit-existing-auto','publish-staged']) {
+    let calls=0;
+    await assert.rejects(main({promotion:promotionFixture(),env:{CHROME_ACTION:action},fetchImpl:async()=>{calls++;throw Error('network forbidden');}}),/Existing Store drafts cannot be verified/);
+    assert.equal(calls,0);
+  }
 });
 
 test('Chrome cancels an active review without uploading or publishing', async () => {
@@ -210,4 +163,59 @@ test('Chrome cancels an active review without uploading or publishing', async ()
     url: 'https://chromewebstore.googleapis.com/v2/publishers/publisher-id/items/nabjdlnkkaonnbnimnmnhjcbigceebml:cancelSubmission',
     method: 'POST',
   });
+});
+
+function promotionFixture() {
+  const bytes = Buffer.from('synthetic immutable candidate');
+  const digest = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
+  const hashes = Object.fromEntries(['chrome','edge','brave','firefox','opera','chrome-store','edge-store','sbom'].map(key=>[key,digest]));
+  const commit = 'a'.repeat(40), now = Date.parse('2026-10-16T12:00:00Z');
+  const bound = {commit,hashes:{...hashes}};
+  const record = {product:'Better CaptionKeep',version:'6.0.0',branch:'codex/6.0',state:'candidate',
+    requiredBrowsers:['chrome','edge','brave','firefox','opera'],
+    liveCertification:Object.fromEntries(['chrome','edge','brave','firefox','opera'].map(key=>[key,'passed'])),
+    releaseGates:{fullScopeAcceptance:true,accessibilityAndFailureUat:true,artworkApproved:true,unchangedWindow:true,storeApproval:true,publicParity:false,installedUpgrade:false},boardEpic:335,
+    candidate:{frozen:true,commit,hashes,promotion:{...bound,approvedBy:'Synthetic reviewer',targets:{chrome:'nabjdlnkkaonnbnimnmnhjcbigceebml',edge:'product-id'},unchangedSince:'2026-10-14T12:00:00Z',
+      uat:{...bound,passed:true,report:{path:'docs/uat.txt',sha256:digest}},permissionDelta:{...bound,approved:true,report:{path:'docs/permissions.txt',sha256:digest}},uploads:{
+        chrome:{commit,sha256:digest,version:'6.0.0',target:'nabjdlnkkaonnbnimnmnhjcbigceebml'},
+        edge:{commit,sha256:digest,version:'6.0.0',target:'product-id'}}}}};
+  return {record,bytes,now,target:'nabjdlnkkaonnbnimnmnhjcbigceebml',identity:async()=>({commit,changes:[]}),read:async filename=>{
+    if(filename.endsWith('6.0.json'))return JSON.stringify(record);
+    if(filename.endsWith('manifest.json'))return JSON.stringify({version:'6.0.0'});
+    return bytes;
+  }};
+}
+
+test('chrome mutations fail closed before credentials or any Store network request', async()=>{
+  const {main}=await import('../scripts/chrome-publish.mjs');
+  for(const action of ["upload-only","submit-staged","submit-auto","submit-existing-staged","submit-existing-auto","publish-staged"]) {
+    let calls=0;
+    const env={CHROME_ACTION:action,EDGE_CERTIFICATION_NOTES:'Synthetic notes',CHROME_EXTENSION_ID:'nabjdlnkkaonnbnimnmnhjcbigceebml',EDGE_PRODUCT_ID:'product-id'};
+    await assert.rejects(main({env,fetchImpl:async()=>{calls++;throw Error('network forbidden');}}),/frozen candidate|Existing Store drafts cannot be verified/);
+    assert.equal(calls,0,action);
+    for(const corrupt of [
+      f=>{delete f.record.candidate.promotion.uat;},
+      f=>{f.record.candidate.promotion.permissionDelta.commit='b'.repeat(40);},
+      f=>{f.now-=1;},
+      f=>{f.identity=async()=>({commit:'b'.repeat(40),changes:[]});},
+      f=>{const read=f.read;f.read=async(filename,...args)=>filename.endsWith('.zip')?Buffer.from('changed'):read(filename,...args);}
+    ]) {
+      const promotion=promotionFixture();corrupt(promotion);
+      await assert.rejects(main({env,promotion,fetchImpl:async()=>{calls++;throw Error('network forbidden');}}));
+      assert.equal(calls,0,action);
+    }
+  }
+});
+
+test('Chrome uploads the verified package snapshot even if disk changes during authentication',async()=>{
+  const {main}=await import('../scripts/chrome-publish.mjs');
+  const promotion=promotionFixture(),read=promotion.read;let authenticated=false,uploaded;
+  promotion.read=async(filename,...args)=>filename.endsWith('.zip')&&authenticated?Buffer.from('changed after authentication'):read(filename,...args);
+  await main({promotion,env:{CHROME_ACTION:'upload-only',CHROME_CLIENT_ID:'test',CHROME_CLIENT_SECRET:'test',CHROME_REFRESH_TOKEN:'test',
+    CHROME_PUBLISHER_ID:'test',CHROME_EXTENSION_ID:'nabjdlnkkaonnbnimnmnhjcbigceebml'},fetchImpl:async(url,options={})=>{
+      if(String(url).includes('oauth2.googleapis.com')){authenticated=true;return Response.json({access_token:'synthetic'});}
+      if(String(url).endsWith(':fetchStatus'))return Response.json({});
+      uploaded=options.body;return Response.json({uploadState:'SUCCEEDED',crxVersion:'6.0.0'});
+    }});
+  assert.deepEqual(uploaded,promotion.bytes);
 });

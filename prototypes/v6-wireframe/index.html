@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive Better CaptionKeep 6.0 Meeting Receipt wireframe">
+  <title>Better CaptionKeep 6.0 — Working Wireframe</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#prototype">Skip to prototype</a>
+
+  <header class="studio-bar">
+    <div class="studio-brand">
+      <img src="../../branding/daf-tech/daf-tech-sphere.png" alt="" width="38" height="38">
+      <div>
+        <strong>Better CaptionKeep 6.0</strong>
+        <span>Working visual prototype</span>
+      </div>
+    </div>
+
+    <div class="studio-controls">
+      <div class="browser-picker" aria-label="Certified browser preview">
+        <span>Previewing</span>
+        <select id="browser-picker">
+          <option>Google Chrome</option>
+          <option>Microsoft Edge</option>
+          <option>Brave</option>
+          <option>Mozilla Firefox</option>
+          <option>Opera</option>
+        </select>
+      </div>
+      <div class="readiness-picker" aria-label="Prototype readiness state">
+        <span>State</span>
+        <select id="readiness-picker">
+          <option value="ready">Ready</option>
+          <option value="not-ready">Not ready</option>
+        </select>
+      </div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="true" aria-label="Switch to light theme">
+        <span aria-hidden="true">☀</span>
+        <span class="theme-label">Light theme</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="studio-layout">
+    <aside class="prototype-map" aria-label="Prototype screens">
+      <p class="eyebrow">6.0 experience</p>
+      <h1>Keep the meeting.<br>Own the record.</h1>
+      <p class="map-intro">A calm, source-linked meeting record without a bot, mandatory account, or publisher cloud.</p>
+
+      <nav class="screen-nav">
+        <button class="screen-link active" data-screen="ready">
+          <span>01</span>
+          <span><strong>Ready</strong><small>One clear action</small></span>
+        </button>
+        <button class="screen-link" data-screen="live">
+          <span>02</span>
+          <span><strong>Live meeting</strong><small>Visible capture health</small></span>
+        </button>
+        <button class="screen-link" data-screen="receipt">
+          <span>03</span>
+          <span><strong>Meeting Receipt</strong><small>Review, then share</small></span>
+        </button>
+        <button class="screen-link" data-screen="settings">
+          <span>04</span>
+          <span><strong>Settings</strong><small>Complexity backstage</small></span>
+        </button>
+      </nav>
+
+      <div class="principle-card">
+        <span class="principle-mark">Local</span>
+        <p>The captured source remains separate from corrections and AI-derived suggestions.</p>
+      </div>
+    </aside>
+
+    <section class="prototype-stage" id="prototype" aria-live="polite">
+      <div class="browser-frame">
+        <div class="browser-chrome">
+          <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="address-bar">
+            <span class="lock" aria-hidden="true">●</span>
+            <span id="browser-label">Google Chrome</span>
+            <span class="address">teams.microsoft.com</span>
+          </div>
+          <button class="toolbar-icon" aria-label="Better CaptionKeep extension">B</button>
+        </div>
+
+        <div class="meeting-canvas" aria-hidden="true">
+          <div class="meeting-person person-one"><span>DF</span></div>
+          <div class="meeting-person person-two"><span>AM</span></div>
+          <div class="meeting-caption">Avery: Let’s make the October 24 pilot our target.</div>
+        </div>
+
+        <section class="extension-surface popup-surface orb-panel is-visible" data-surface="ready" aria-labelledby="ready-title">
+          <header class="extension-header compact">
+            <div class="product-lockup">
+              <img src="../../branding/daf-tech/daf-tech-sphere.png" alt="" width="32" height="32">
+              <div><strong>Better CaptionKeep</strong><span>Meeting record</span></div>
+            </div>
+            <button class="icon-button open-settings" aria-label="Open settings">⋯</button>
+          </header>
+
+          <div class="popup-content">
+            <div class="provider-line">
+              <span class="provider-badge teams">T</span>
+              <div><strong>Microsoft Teams</strong><span id="provider-detail">Captions available</span></div>
+              <span class="ready-dot" id="provider-status">Ready</span>
+            </div>
+
+            <div class="hero-action">
+              <span class="status-orbit" aria-hidden="true">
+                <img src="../../branding/daf-tech/daf-tech-sphere.png" alt="" width="96" height="96">
+                <span class="status-band" id="status-band">Ready</span>
+              </span>
+              <h2 id="ready-title">Keep this meeting?</h2>
+              <p id="ready-copy">Preserve the captions you can see and create a local Meeting Receipt when you finish.</p>
+              <button class="primary-button" id="start-capture">Keep this meeting</button>
+            </div>
+
+            <div class="privacy-note">
+              <span aria-hidden="true">⌂</span>
+              <p><strong>Stays on this device</strong><br>No meeting bot or Better CaptionKeep account.</p>
+            </div>
+
+            <button class="last-record-link go-receipt">Open last Meeting Receipt <span>→</span></button>
+          </div>
+        </section>
+
+        <section class="extension-surface workspace-surface orb-panel" data-surface="live" aria-labelledby="live-title">
+          <header class="extension-header">
+            <div>
+              <span class="live-kicker"><i></i> Keeping this meeting</span>
+              <h2 id="live-title">Product planning</h2>
+            </div>
+            <button class="secondary-button compact-button finish-meeting">Finish</button>
+          </header>
+
+          <div class="capture-health good">
+            <div class="health-icon" aria-hidden="true">✓</div>
+            <div><strong>Capture looks healthy</strong><span>18 minutes · 42 caption moments kept</span></div>
+            <button class="text-button" id="show-health">Details</button>
+          </div>
+
+          <div class="health-details" id="health-details" hidden>
+            <div><span>Source</span><strong>Displayed captions</strong></div>
+            <div><span>Checkpoints</span><strong>Current</strong></div>
+            <div><span>Speakers</span><strong>2 recognized</strong></div>
+          </div>
+
+          <div class="live-transcript">
+            <div class="transcript-heading">
+              <h3>Live captions <span id="live-caption-count"></span></h3>
+              <button class="icon-button" aria-label="Search transcript">⌕</button>
+            </div>
+            <div id="live-caption-list"></div>
+            <button class="demo-feed-button" id="add-demo-caption">＋ Simulate next caption</button>
+          </div>
+
+          <div class="workspace-actions">
+            <div class="mark-action">
+              <select id="marker-kind" aria-label="Moment type">
+                <option>Decision</option>
+                <option>Action item</option>
+                <option>Question</option>
+                <option>Risk</option>
+                <option>Follow-up</option>
+                <option>Important moment</option>
+              </select>
+              <button class="secondary-button" id="mark-moment">＋ Mark</button>
+            </div>
+            <button class="primary-button finish-meeting">Finish meeting</button>
+          </div>
+          <div class="toast" id="marker-toast" role="status" hidden>Moment marked and linked to its source.</div>
+        </section>
+
+        <section class="extension-surface receipt-surface" data-surface="receipt" aria-labelledby="receipt-title">
+          <header class="receipt-topbar">
+            <button class="back-button go-ready" aria-label="Back to ready screen">←</button>
+            <div class="product-lockup receipt-lockup">
+              <img src="../../branding/daf-tech/daf-tech-sphere.png" alt="" width="28" height="28">
+              <span>Meeting Receipt</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button compact-button" id="history-button">History</button>
+              <button class="secondary-button compact-button" id="share-button">Share</button>
+              <button class="icon-button" aria-label="More receipt actions">⋯</button>
+            </div>
+          </header>
+
+          <div class="receipt-content">
+            <div class="receipt-title-row">
+              <div>
+                <p class="eyebrow">Product planning</p>
+                <h2 id="receipt-title">What happened, ready to review.</h2>
+                <p>October 12, 2026 · 42 minutes · Microsoft Teams</p>
+              </div>
+              <span class="source-stamp">Captured source</span>
+            </div>
+
+            <div class="source-summary">
+              <div class="source-score">92<span>%</span></div>
+              <div>
+                <strong>Good capture</strong>
+                <p>Two brief gaps were detected. One speaker needs review.</p>
+              </div>
+              <button class="text-button" id="open-capture-details">View capture details</button>
+            </div>
+
+            <section class="receipt-section">
+              <div class="section-title-row">
+                <div><span class="section-number">01</span><h3>Decisions & commitments</h3></div>
+                <span class="review-count" id="review-count">2 need review</span>
+              </div>
+              <div id="receipt-items"></div>
+            </section>
+
+            <section class="receipt-section transcript-section">
+              <div class="section-title-row">
+                <div><span class="section-number">02</span><h3>Captured transcript</h3></div>
+                <button class="secondary-button compact-button">Search</button>
+              </div>
+
+              <div id="receipt-transcript"></div>
+            </section>
+
+            <details class="advanced-tools">
+              <summary>Advanced tools</summary>
+              <div class="tool-grid">
+                <button id="correct-names">Correct names</button><button id="translate-preview">Translate</button><button id="scrub-preview">Mask sensitive details</button>
+                <button id="handoff-preview">Use with AI</button><button id="export-source">Export source data</button><button id="provenance-preview">View provenance</button>
+              </div>
+            </details>
+
+            <div class="receipt-finish">
+              <div><strong id="finish-title">Review the proposed items</strong><span id="finish-note">Nothing will be sent or shared automatically.</span></div>
+              <button class="primary-button" id="review-finish">Review & finish</button>
+            </div>
+          </div>
+
+          <div class="share-menu" id="share-menu" hidden>
+            <strong>Share a reviewed copy</strong>
+            <button data-export-format="docx">Word document <span>→</span></button>
+            <button data-export-format="md">Markdown <span>→</span></button>
+            <button data-export-format="txt">Plain text <span>→</span></button>
+            <button id="copy-reviewed">Copy reviewed text <span>→</span></button>
+          </div>
+        </section>
+
+        <section class="extension-surface settings-surface" data-surface="settings" aria-labelledby="settings-title">
+          <aside class="settings-nav">
+            <div class="product-lockup settings-lockup">
+              <img src="../../branding/daf-tech/daf-tech-sphere.png" alt="" width="32" height="32">
+              <div><strong>Better CaptionKeep</strong><span>Version 6.0</span></div>
+            </div>
+            <button class="settings-link active">Capture</button>
+            <button class="settings-link">Privacy</button>
+            <button class="settings-link">Saving</button>
+            <button class="settings-link">Organization</button>
+            <button class="settings-link">Troubleshooting</button>
+            <button class="settings-back go-ready">← Back to meeting</button>
+          </aside>
+
+          <div class="settings-content">
+            <p class="eyebrow">Settings</p>
+            <h2 id="settings-title">Capture</h2>
+            <p class="settings-intro">Choose how Better CaptionKeep preserves the captions already displayed in your meetings.</p>
+
+            <div class="setting-card">
+              <div><strong>Start each meeting myself</strong><span>Better CaptionKeep waits for you to select “Keep this meeting.”</span></div>
+              <label class="switch"><input type="checkbox" checked><span></span></label>
+            </div>
+            <div class="setting-card">
+              <div><strong>Show capture health</strong><span>Warn me about gaps, interruptions, and uncertain speakers.</span></div>
+              <label class="switch"><input type="checkbox" checked><span></span></label>
+            </div>
+            <div class="setting-card">
+              <div><strong>Finish when the meeting ends</strong><span>Create the local Meeting Receipt automatically after capture has started.</span></div>
+              <label class="switch"><input type="checkbox" checked><span></span></label>
+            </div>
+
+            <section class="provider-settings">
+              <h3>Meeting providers</h3>
+              <div class="provider-row"><span class="provider-badge teams">T</span><div><strong>Microsoft Teams</strong><span>Ready · Live captions and official imports</span></div><span class="connected-state">On</span></div>
+              <div class="provider-row"><span class="provider-badge meet">G</span><div><strong>Google Meet</strong><span>Ready · Live captions</span></div><span class="connected-state">On</span></div>
+              <div class="provider-row"><span class="provider-badge zoom">Z</span><div><strong>Zoom Web</strong><span>Ready · Speaker names may be unavailable</span></div><span class="connected-state">On</span></div>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <div class="stage-caption">
+        <div><span class="caption-label">Current screen</span><strong id="screen-caption">Ready — one clear decision before capture begins</strong></div>
+        <div class="prototype-note">Working model · simulated captions stay in this browser</div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="capture-dialog">
+    <form method="dialog">
+      <button class="dialog-close" value="cancel" aria-label="Close">×</button>
+      <p class="eyebrow">Capture details</p>
+      <h2>Know what this record can prove.</h2>
+      <div class="detail-list">
+        <div><span class="detail-status good">✓</span><p><strong>Captured source</strong><br>These words were preserved from captions displayed during the meeting.</p></div>
+        <div><span class="detail-status warn">!</span><p><strong>Two brief gaps</strong><br>The meeting tab stopped reporting captions for a combined 18 seconds.</p></div>
+        <div><span class="detail-status neutral">?</span><p><strong>One uncertain speaker</strong><br>The caption surface did not provide a reliable name.</p></div>
+      </div>
+      <p class="boundary-copy">This is a reviewable captured record, not a platform-certified or legal record.</p>
+      <button class="primary-button" value="default">Done</button>
+    </form>
+  </dialog>
+
+  <dialog id="model-dialog">
+    <form method="dialog">
+      <button class="dialog-close" value="cancel" aria-label="Close">×</button>
+      <p class="eyebrow" id="model-dialog-kicker">Working model</p>
+      <h2 id="model-dialog-title">Details</h2>
+      <div id="model-dialog-body"></div>
+      <div class="model-dialog-actions" id="model-dialog-actions"></div>
+    </form>
+  </dialog>
+
+  <script src="../../teams-captions-saver/evidenceBoard.js"></script>
+  <script src="../../teams-captions-saver/privacyScrubber.js"></script>
+  <script src="../../teams-captions-saver/handoffPackage.js"></script>
+  <script src="../../teams-captions-saver/exportProfiles.js"></script>
+  <script src="../../teams-captions-saver/correctionManager.js"></script>
+  <script src="working-model.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

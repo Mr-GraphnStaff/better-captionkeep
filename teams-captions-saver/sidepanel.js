@@ -10,19 +10,32 @@
         closePanel: document.getElementById('close-panel'),
         meetingTitle: document.getElementById('meeting-title'),
         meetingProvider: document.getElementById('meeting-provider'),
+        meetingHeading: document.getElementById('meeting-heading'),
         meetingSourceControls: document.getElementById('meeting-source-controls'),
+        sourceControlSummary: document.getElementById('source-control-summary'),
         meetingSourceStatus: document.getElementById('meeting-source-status'),
         enableLiveCaptions: document.getElementById('enable-live-captions'),
         openAttendeePanel: document.getElementById('open-attendee-panel'),
         requestTeamsTranscription: document.getElementById('request-teams-transcription'),
         latestCaption: document.getElementById('latest-caption'),
         latestMeta: document.getElementById('latest-meta'),
+        workspaceEmpty: document.getElementById('workspace-empty'),
+        workspaceTabs: document.querySelector('.workspace-tabs'),
+        signature: document.querySelector('.daf-tech-signature'),
         transcriptTab: document.getElementById('transcript-tab'),
-        evidenceTab: document.getElementById('evidence-tab'),
+        notesTab: document.getElementById('notes-tab'),
+        toolsTab: document.getElementById('tools-tab'),
         transcriptView: document.getElementById('transcript-view'),
-        evidenceView: document.getElementById('evidence-view'),
+        notesView: document.getElementById('notes-view'),
+        toolsView: document.getElementById('tools-view'),
+        workspaceTemplateSelect: document.getElementById('workspace-template-select'),
+        workspaceTemplateVersion: document.getElementById('workspace-template-version'),
+        workspaceTemplatePreview: document.getElementById('workspace-template-preview'),
+        workspaceTemplateUse: document.getElementById('workspace-template-use'),
         transcriptCount: document.getElementById('transcript-count'),
         transcriptSearch: document.getElementById('transcript-search'),
+        followLatest: document.getElementById('follow-latest'),
+        transcriptWindowNote: document.getElementById('transcript-window-note'),
         transcriptList: document.getElementById('transcript-list'),
         markerKind: document.getElementById('marker-kind'),
         markerNote: document.getElementById('marker-note'),
@@ -31,11 +44,37 @@
         markerCount: document.getElementById('marker-count'),
         markerSession: document.getElementById('marker-session'),
         markerList: document.getElementById('marker-list'),
+        actionReceiptCount: document.getElementById('action-receipt-count'),
+        actionReceiptList: document.getElementById('action-receipt-list'),
         copyBoard: document.getElementById('copy-board'),
         downloadBoard: document.getElementById('download-board'),
         emailBoard: document.getElementById('email-board'),
         downloadBundle: document.getElementById('download-bundle'),
         openTranscript: document.getElementById('open-transcript'),
+        captureMomentSecondary: document.getElementById('capture-moment-secondary'),
+        momentCount: document.getElementById('moment-count'),
+        momentList: document.getElementById('moment-list'),
+        noteCount: document.getElementById('note-count'),
+        notesDraft: document.getElementById('notes-draft'),
+        notesList: document.getElementById('notes-list'),
+        generateNotes: document.getElementById('generate-notes'),
+        saveNotes: document.getElementById('save-notes'),
+        clearNotes: document.getElementById('clear-notes'),
+        rollingNotesState: document.getElementById('rolling-notes-state'),
+        rollingNotesToggle: document.getElementById('rolling-notes-toggle'),
+        rollingNotesUpdate: document.getElementById('rolling-notes-update'),
+        rollingNotesInterval: document.getElementById('rolling-notes-interval'),
+        rollingNotesStatus: document.getElementById('rolling-notes-status'),
+        rollingNotesDraft: document.getElementById('rolling-notes-draft'),
+        rollingNotesReview: document.getElementById('rolling-notes-review'),
+        rollingNotesRevisions: document.getElementById('rolling-notes-revisions'),
+        askQuestion: document.getElementById('ask-question'),
+        prepareQuestion: document.getElementById('prepare-question'),
+        answerCount: document.getElementById('answer-count'),
+        answerDraft: document.getElementById('answer-draft'),
+        answerList: document.getElementById('answer-list'),
+        saveAnswer: document.getElementById('save-answer'),
+        clearAnswer: document.getElementById('clear-answer'),
         onTheFlyBar: document.getElementById('on-the-fly-bar'),
         onTheFlyLabel: document.getElementById('on-the-fly-label'),
         onTheFlyPreview: document.getElementById('on-the-fly-preview'),
@@ -50,6 +89,7 @@
     };
     let currentContext = null;
     let allMarkers = [];
+    let persistedMarkers = new Map();
     let selectedSessionId = '';
     let polling = false;
     let transcriptSignature = '';
@@ -57,6 +97,24 @@
     let enterpriseLocked = new Set();
     let scrubOptions = {};
     let onTheFlyEvidence = null;
+    let selectedCaptionIndex = null;
+    let followLatest = true;
+    let autoScrollUntil = 0;
+    let conversationWindowStart = 0;
+    let derivedArtifacts = [];
+    let rollingNotesState = null;
+    let rollingNotesBusy = false;
+    let rollingPreparedInput = null;
+    let rollingPreparedSource = null;
+    let rollingCatchupTimer = null;
+    let workspaceTemplates = [];
+    let draftSessionId = '';
+    let lastContextError = '';
+    let contextFailure = '';
+    let activeWorkspaceView = 'transcript';
+    let workspaceWasAvailable = false;
+    const meetingDrafts = new Map();
+    const rollingNotesStore = CaptionKeepRollingNotesStore.create({storage:chrome.storage, readPolicy:refreshEnterprisePolicy});
 
     async function refreshEnterprisePolicy() {
         const user = await chrome.storage.sync.get([
@@ -75,17 +133,86 @@
     }
 
     function setStatus(message) {
-        elements.boardStatus.textContent = message;
+        if (elements.boardStatus.textContent !== message) elements.boardStatus.textContent = message;
+    }
+
+    function contextFailureMessage(error) {
+        const detail = String(error?.message || '');
+        return /No active meeting tab|not a supported meeting surface|Receiving end does not exist|Could not establish connection/i.test(detail)
+            ? ''
+            : 'Live workspace could not connect. Reload the meeting page or reopen the workspace.';
     }
 
     function switchView(view) {
-        const showEvidence = view === 'evidence';
-        elements.transcriptView.hidden = showEvidence;
-        elements.evidenceView.hidden = !showEvidence;
-        elements.transcriptTab.classList.toggle('active', !showEvidence);
-        elements.evidenceTab.classList.toggle('active', showEvidence);
-        elements.transcriptTab.setAttribute('aria-selected', String(!showEvidence));
-        elements.evidenceTab.setAttribute('aria-selected', String(showEvidence));
+        const views = {
+            transcript: [elements.transcriptTab, elements.transcriptView],
+            notes: [elements.notesTab, elements.notesView],
+            tools: [elements.toolsTab, elements.toolsView]
+        };
+        if (!views[view]) return;
+        activeWorkspaceView = view;
+        for (const [name, [tab, panel]] of Object.entries(views)) {
+            const active = name === view;
+            panel.hidden = !active;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-selected', String(active));
+            tab.tabIndex = active ? 0 : -1;
+        }
+        if (document.activeElement?.closest('.workspace-view[hidden]')) views[view]?.[0].focus();
+    }
+
+    function switchDraftSession(sessionId) {
+        if (draftSessionId === sessionId) return;
+        if (draftSessionId) meetingDrafts.set(draftSessionId, {notes:elements.notesDraft.value, question:elements.askQuestion.value, answer:elements.answerDraft.value});
+        const drafts = meetingDrafts.get(sessionId) || {};
+        elements.notesDraft.value = drafts.notes || '';
+        elements.askQuestion.value = drafts.question || '';
+        elements.answerDraft.value = drafts.answer || '';
+        draftSessionId = sessionId || '';
+        if (meetingDrafts.size > 50) meetingDrafts.delete(meetingDrafts.keys().next().value);
+    }
+
+    function selectedWorkspaceTemplate() {
+        return workspaceTemplates.find(template => template.id === elements.workspaceTemplateSelect.value);
+    }
+
+    function showWorkspaceTemplate() {
+        const template = selectedWorkspaceTemplate();
+        elements.workspaceTemplatePreview.value = template?.instructions || '';
+        elements.workspaceTemplateVersion.textContent = template ? `Version ${template.version} · saved instructions are read-only here` : 'No template selected.';
+    }
+
+    async function loadWorkspaceTemplates() {
+        const selected = elements.workspaceTemplateSelect.value;
+        const stored = await chrome.storage.local.get(CaptionKeepPromptTemplates.STORAGE_KEY);
+        workspaceTemplates = [...CaptionKeepPromptTemplates.BUILT_INS, ...CaptionKeepPromptTemplates.sanitize(stored[CaptionKeepPromptTemplates.STORAGE_KEY])];
+        elements.workspaceTemplateSelect.replaceChildren();
+        for (const template of workspaceTemplates) {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = `${template.name} · v${template.version}`;
+            elements.workspaceTemplateSelect.append(option);
+        }
+        if (workspaceTemplates.some(template => template.id === selected)) elements.workspaceTemplateSelect.value = selected;
+        showWorkspaceTemplate();
+    }
+
+    function reviewSnapshotKey(mode, sessionId) {
+        return `review_source_${mode}_${encodeURIComponent(sessionId)}`;
+    }
+
+    async function reviewedSource(mode, question = '') {
+        const fallback = currentContext ? structuredClone(currentContext) : null;
+        if (!fallback?.sessionId || !chrome.storage.session) return fallback;
+        const key = reviewSnapshotKey(mode, fallback.sessionId);
+        const snapshot = (await chrome.storage.session.get(key))[key];
+        if (!snapshot) return fallback;
+        if (snapshot.context?.sessionId !== fallback.sessionId || !Array.isArray(snapshot.context.transcriptArray)
+            || !Number.isFinite(snapshot.createdAt) || Date.now() - snapshot.createdAt < 0 || Date.now() - snapshot.createdAt > 60 * 60 * 1000
+            || (mode === 'transcript_qa' && snapshot.question !== board.cleanInline(question))) {
+            throw new Error('This reviewed handoff expired or its question changed. Prepare a new handoff before keeping this draft.');
+        }
+        return snapshot.context;
     }
 
     function selectedMarkers() {
@@ -139,17 +266,7 @@
     }
 
     async function closePanel() {
-        const tab = await activeMeetingTab();
-        if (!tab?.windowId) throw new Error('No active browser window is available.');
-        if (typeof chrome.sidePanel.close === 'function') {
-            await chrome.sidePanel.close({windowId: tab.windowId});
-            return;
-        }
-
-        // Chrome/Edge versions before sidePanel.close() can close a global panel
-        // by disabling it. The popup re-enables it before the next explicit open.
-        await chrome.sidePanel.setOptions({enabled: false});
-        window.close();
+        await CaptionKeepBrowserCompat.closeWorkspace();
     }
 
     async function requestContext() {
@@ -165,14 +282,19 @@
         const supported = ['Microsoft Teams', 'Google Meet', 'Zoom Web'].includes(provider);
         const controls = currentContext?.meetingControls || {};
         const inMeeting = currentContext?.isInMeeting === true;
+        const hasTranscript = Boolean(currentContext?.transcriptArray?.length);
+        const sourceFailed = currentContext?.captureState === 'source unavailable';
         const isTeams = provider === 'Microsoft Teams';
-        elements.meetingSourceControls.hidden = !supported;
+        elements.meetingSourceControls.hidden = !supported || !inMeeting || (hasTranscript && !sourceFailed);
+        elements.sourceControlSummary.textContent = controls.liveCaptions ? 'Captions enabled' : sourceFailed ? 'Captions need attention' : 'Choose what to enable';
         elements.openAttendeePanel.hidden = !isTeams;
         elements.requestTeamsTranscription.hidden = !isTeams;
         elements.enableLiveCaptions.disabled = !inMeeting || controls.liveCaptions === true;
         elements.enableLiveCaptions.textContent = controls.liveCaptions ? 'Live captions enabled' : 'Enable live captions';
-        elements.openAttendeePanel.disabled = !inMeeting || controls.attendeeAllowed === false || controls.attendees === true;
-        elements.openAttendeePanel.textContent = controls.attendees ? 'Attendee capture enabled' : 'Open attendee panel';
+        const attendeePanelOpen = controls.attendeePanelOpen === true;
+        elements.openAttendeePanel.disabled = !inMeeting || (!attendeePanelOpen && controls.attendeeAllowed === false);
+        elements.openAttendeePanel.textContent = attendeePanelOpen ? 'Close attendee panel' : 'Open attendee panel';
+        elements.openAttendeePanel.setAttribute('aria-expanded', String(attendeePanelOpen));
         elements.requestTeamsTranscription.disabled = !inMeeting || ['checking', 'running', 'requested'].includes(controls.transcriptionState);
         elements.requestTeamsTranscription.textContent = controls.transcriptionState === 'running'
             ? 'Teams transcript running'
@@ -189,15 +311,162 @@
     function renderContext() {
         const transcript = currentContext?.transcriptArray || [];
         const latest = transcript.at(-1);
-        elements.captureState.textContent = currentContext?.captureState || 'Not connected';
-        elements.meetingTitle.textContent = currentContext?.meetingTitle || 'Open Teams, Meet, or Zoom Web.';
-        elements.meetingProvider.textContent = currentContext?.providerLabel || '';
+        const rawCaptureState = currentContext?.captureState || 'not connected';
+        const ready = rawCaptureState === 'capturing';
+        const paused = rawCaptureState === 'paused';
+        const failed = rawCaptureState === 'source unavailable';
+        const ended = ['ended', 'meeting ended'].includes(rawCaptureState);
+        const inMeeting = currentContext?.isInMeeting === true;
+        const retainedSession = transcript.length > 0 && (inMeeting || paused || failed || ended);
+        const hasContext = inMeeting || retainedSession;
+        const workspaceAvailable = retainedSession;
+        document.body.classList.toggle('capture-ready', ready);
+        document.body.classList.toggle('capture-paused', paused);
+        document.body.classList.toggle('capture-error', failed);
+        document.body.classList.toggle('workspace-disconnected', !hasContext);
+        document.body.classList.toggle('workspace-waiting', hasContext && !workspaceAvailable);
+        elements.captureState.textContent = contextFailure ? 'Needs attention'
+            : !hasContext ? 'No meeting'
+            : failed ? 'Needs attention'
+                : paused ? 'Paused'
+                    : ended ? 'Ended'
+                        : ready && workspaceAvailable ? 'Live' : 'Waiting for captions';
+        elements.captureState.title = rawCaptureState;
+        elements.meetingHeading.textContent = hasContext ? 'Current meeting' : 'Live workspace';
+        elements.meetingTitle.textContent = hasContext ? (currentContext?.meetingTitle || 'Meeting') : 'Open Teams, Meet, or Zoom Web.';
+        elements.meetingProvider.textContent = contextFailure || (!hasContext
+            ? 'Join a supported meeting and turn on captions. This workspace will start automatically.'
+            : workspaceAvailable ? `${currentContext.providerLabel} · ${rawCaptureState}`
+                : `${currentContext.providerLabel} · waiting for captions`);
         renderMeetingSourceControls();
+        const focusedInWorkspace = document.activeElement?.closest('.workspace-tabs, .workspace-view');
+        elements.workspaceTabs.hidden = !workspaceAvailable;
+        elements.workspaceEmpty.hidden = !hasContext || workspaceAvailable;
+        elements.signature.hidden = !workspaceAvailable;
+        if (!workspaceAvailable) {
+            elements.transcriptView.hidden = true;
+            elements.notesView.hidden = true;
+            elements.toolsView.hidden = true;
+            if (focusedInWorkspace) elements.meetingHeading.focus();
+        } else if (!workspaceWasAvailable) {
+            switchView('transcript');
+            setStatus('Live workspace ready.');
+        } else {
+            switchView(activeWorkspaceView);
+        }
+        workspaceWasAvailable = workspaceAvailable;
         elements.latestCaption.textContent = latest?.Text || 'Waiting for a stable captured caption…';
+        elements.latestCaption.hidden = true;
         elements.latestMeta.textContent = latest
             ? `${board.evidenceId(transcript.length - 1)} · ${latest.Time || 'time unavailable'} · ${latest.Name || 'Unknown speaker'}`
             : '';
-        elements.markLatest.disabled = !latest;
+        elements.markLatest.disabled = selectedCaptionIndex === null;
+        elements.captureMomentSecondary.disabled = !currentContext?.isInMeeting;
+        elements.captureMomentSecondary.hidden = !currentContext?.isInMeeting || ended;
+        elements.generateNotes.disabled = !transcript.length;
+        elements.workspaceTemplateUse.disabled = !transcript.length || !!enterprisePolicy.disableAiHandoff;
+        elements.saveNotes.disabled = !transcript.length;
+        elements.prepareQuestion.disabled = !transcript.length;
+        renderRollingNotes();
+    }
+
+    function rollingNotesEmptyState() {
+        return CaptionKeepRollingNotes.emptyState(currentContext?.sessionId || 'unavailable');
+    }
+
+    function renderRollingNotes() {
+        const state = rollingNotesState || rollingNotesEmptyState();
+        const hasMeeting = Boolean(currentContext?.sessionId);
+        const hasTranscript = Boolean(currentContext?.transcriptArray?.length);
+        const label = !state.enabled ? 'Off' : state.paused ? 'Paused' : state.failureCount >= 3 ? 'Needs attention' : 'Running';
+        elements.rollingNotesState.textContent = label;
+        elements.rollingNotesToggle.disabled = !hasMeeting || rollingNotesBusy;
+        elements.rollingNotesToggle.textContent = !state.enabled ? 'Start rolling notes' : state.paused ? 'Resume rolling notes' : 'Pause rolling notes';
+        elements.rollingNotesUpdate.disabled = !hasTranscript || !state.enabled || rollingNotesBusy;
+        elements.rollingNotesInterval.disabled = !hasMeeting || rollingNotesBusy;
+        elements.rollingNotesInterval.value = String(state.intervalMs);
+        elements.rollingNotesDraft.value = state.draft;
+        elements.rollingNotesReview.disabled = !state.draft;
+        const status = state.lastError
+            ? `${state.lastError} (${state.failureCount}/3 attempts)`
+            : state.lastUpdatedAt
+                ? `Last updated ${artifactTime(state.lastUpdatedAt)} · ${state.processedCaptionCount} captions processed.`
+                : state.enabled ? 'Waiting for enough new captions.' : 'Start when you want local rolling evidence notes.';
+        elements.rollingNotesStatus.textContent = status;
+        elements.rollingNotesRevisions.replaceChildren();
+        if (!state.revisions.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No rolling updates yet.';
+            elements.rollingNotesRevisions.append(empty);
+            return;
+        }
+        for (const revision of [...state.revisions].reverse()) {
+            const item = document.createElement('li');
+            item.textContent = `${artifactTime(revision.createdAt)} · ${revision.evidenceIds[0]}–${revision.evidenceIds.at(-1)}${revision.status === 'superseded' ? ' · Superseded by corrected source' : ''}`;
+            elements.rollingNotesRevisions.append(item);
+        }
+    }
+
+    async function saveRollingNotesState() {
+        if (!currentContext?.sessionId || !rollingNotesState) return;
+        await rollingNotesStore.save(CaptionKeepRollingNotes.storageKey(currentContext.sessionId), rollingNotesState);
+    }
+
+    async function loadRollingNotesState() {
+        if (!currentContext?.sessionId) {
+            rollingNotesState = null;
+            renderRollingNotes();
+            return;
+        }
+        const key = CaptionKeepRollingNotes.storageKey(currentContext.sessionId);
+        const stored = await rollingNotesStore.load(key);
+        rollingNotesState = CaptionKeepRollingNotes.normalizeState(stored, currentContext.sessionId);
+        renderRollingNotes();
+    }
+
+    async function updateRollingNotes({force = false, catchup = false} = {}) {
+        if (rollingNotesBusy || !currentContext?.sessionId || !rollingNotesState?.enabled) return;
+        const transcript = currentContext.transcriptArray || [];
+        if (rollingPreparedInput !== transcript) {
+            rollingPreparedInput = transcript;
+            rollingPreparedSource = CaptionKeepRollingNotes.prepareSource(transcript);
+        }
+        const sourceChanged = CaptionKeepRollingNotes.processedSourceChanged(rollingPreparedSource, rollingNotesState);
+        if (!force && !catchup && !sourceChanged && rollingNotesState.lastUpdatedAt
+            && Date.now() - Date.parse(rollingNotesState.lastUpdatedAt) < rollingNotesState.intervalMs) return;
+        rollingNotesBusy = true;
+        renderRollingNotes();
+        try {
+            const result = CaptionKeepRollingNotes.update(rollingPreparedSource, rollingNotesState, {force});
+            rollingNotesState = result.state;
+            if (result.changed || result.reason === 'duplicate' || result.reason === 'empty') await saveRollingNotesState();
+            if (result.changed && !rollingNotesState.paused && rollingNotesState.processedCaptionCount < transcript.length) {
+                clearTimeout(rollingCatchupTimer);
+                rollingCatchupTimer = setTimeout(() => void updateRollingNotes({catchup:true}).catch(error => setStatus(error.message)), 0);
+            }
+        } catch (error) {
+            rollingNotesState = CaptionKeepRollingNotes.recordFailure(rollingNotesState, error);
+            await saveRollingNotesState().catch(() => {});
+        } finally {
+            rollingNotesBusy = false;
+            renderRollingNotes();
+        }
+    }
+
+    async function toggleRollingNotes() {
+        if (!currentContext?.sessionId) throw new Error('Connect to a captured meeting first.');
+        if (!rollingNotesState) await loadRollingNotesState();
+        if (!rollingNotesState.enabled) {
+            rollingNotesState = {...rollingNotesState, enabled:true, paused:false, failureCount:0, lastError:''};
+            await saveRollingNotesState();
+            await updateRollingNotes({force:true});
+            return;
+        }
+        rollingNotesState = {...rollingNotesState, paused:!rollingNotesState.paused, failureCount:0, lastError:''};
+        await saveRollingNotesState();
+        if (!rollingNotesState.paused) await updateRollingNotes({force:true});
+        renderRollingNotes();
     }
 
     async function runMeetingControl(message, pendingMessage) {
@@ -206,6 +475,7 @@
         const buttonByMessage = {
             enable_live_captions: elements.enableLiveCaptions,
             open_attendee_panel: elements.openAttendeePanel,
+            close_attendee_panel: elements.openAttendeePanel,
             request_teams_transcription: elements.requestTeamsTranscription
         };
         const button = buttonByMessage[message];
@@ -223,31 +493,40 @@
 
     function captionNode(caption, index) {
         const item = document.createElement('li');
-        const heading = document.createElement('div');
+        item.dataset.captionKey = String(caption.key || index);
+        const choose = document.createElement('button');
+        choose.type = 'button';
+        choose.className = 'caption-select';
+        choose.dataset.captionIndex = String(index);
+        choose.tabIndex = -1;
+        choose.setAttribute('aria-pressed', 'false');
+        choose.title = `${board.evidenceId(index)} · Choose this caption`;
+        const heading = document.createElement('span');
         heading.className = 'caption-heading';
-        const meta = document.createElement('span');
-        meta.className = 'caption-id';
-        meta.textContent = `${board.evidenceId(index)} · ${caption.Time || 'time unavailable'} · ${caption.Name || 'Unknown speaker'}`;
-        const mark = document.createElement('button');
-        mark.type = 'button';
-        mark.className = 'caption-mark';
-        mark.dataset.captionIndex = String(index);
-        mark.textContent = 'Mark';
-        const onTheFly = document.createElement('button');
-        onTheFly.type = 'button';
-        onTheFly.className = 'caption-research';
-        onTheFly.dataset.onTheFlyIndex = String(index);
-        onTheFly.textContent = 'On the Fly';
-        const actions = document.createElement('div');
-        actions.className = 'caption-row-actions';
-        actions.append(mark, onTheFly);
-        heading.append(meta, actions);
-        const text = document.createElement('p');
+        const speaker = document.createElement('span');
+        speaker.className = 'caption-speaker';
+        speaker.textContent = caption.Name || 'Unknown speaker';
+        const time = document.createElement('span');
+        time.className = 'caption-time';
+        time.textContent = caption.Time || '';
+        heading.append(speaker, time);
+        const text = document.createElement('span');
         text.className = 'caption-text';
         text.dataset.captionIndex = String(index);
         text.textContent = caption.Text;
-        item.append(heading, text);
+        choose.append(heading, text);
+        item.append(choose);
         return item;
+    }
+
+    function setFollowLatest(enabled, {scroll = false} = {}) {
+        followLatest = enabled;
+        elements.followLatest.setAttribute('aria-pressed', String(enabled));
+        elements.followLatest.title = enabled ? 'Pause automatic scrolling to new captions.' : 'Resume following new captions.';
+        if (enabled && scroll && !elements.transcriptView.hidden) {
+            autoScrollUntil = Date.now() + 300;
+            elements.transcriptList.lastElementChild?.scrollIntoView({block:'end', behavior:'auto'});
+        }
     }
 
     function selectForOnTheFly(captionIndex, selectedText = '') {
@@ -258,18 +537,42 @@
             evidenceId: board.evidenceId(captionIndex),
             speaker: caption.Name || 'Unknown speaker',
             time: caption.Time || 'time unavailable',
-            text
+            text,
+            sourceKey:caption.key || '',
+            sourceFingerprint:CaptionKeepRollingNotes.sourceRevision([caption])
         };
-        elements.onTheFlyLabel.textContent = `${onTheFlyEvidence.evidenceId} · ${onTheFlyEvidence.speaker}`;
+        selectedCaptionIndex = captionIndex;
+        setFollowLatest(false);
+        elements.onTheFlyLabel.textContent = onTheFlyEvidence.speaker;
         elements.onTheFlyPreview.textContent = text;
         elements.onTheFlyBar.hidden = false;
-        setStatus('On the Fly selection is local. Choose a task when ready.');
+        elements.markLatest.disabled = false;
+        for (const button of elements.transcriptList.querySelectorAll('.caption-select')) {
+            const selected = Number(button.dataset.captionIndex) === captionIndex;
+            button.setAttribute('aria-pressed', String(selected));
+            button.closest('li').classList.toggle('selected', selected);
+            button.tabIndex = selected ? 0 : -1;
+        }
     }
 
-    function clearOnTheFly() {
+    function clearOnTheFly({restoreFocus = false} = {}) {
+        const index = selectedCaptionIndex;
         onTheFlyEvidence = null;
+        selectedCaptionIndex = null;
         elements.onTheFlyBar.hidden = true;
         elements.onTheFlyQuestion.value = '';
+        elements.markerNote.value = '';
+        for (const details of elements.onTheFlyBar.querySelectorAll('details')) details.open = false;
+        const selection = window.getSelection();
+        if (selection?.rangeCount && elements.transcriptList.contains(selection.anchorNode)) selection.removeAllRanges();
+        elements.markLatest.disabled = true;
+        const buttons = [...elements.transcriptList.querySelectorAll('.caption-select')];
+        for (const [position, button] of buttons.entries()) {
+            button.setAttribute('aria-pressed', 'false');
+            button.closest('li').classList.remove('selected');
+            button.tabIndex = Number(button.dataset.captionIndex) === index || (index === null && position === 0) ? 0 : -1;
+        }
+        if (restoreFocus) (buttons.find(button => Number(button.dataset.captionIndex) === index) || elements.transcriptSearch).focus({preventScroll:true});
     }
 
     function openOnTheFlyDialog() {
@@ -278,13 +581,32 @@
         elements.onTheFlyDialog.showModal();
     }
 
-    function buildOnTheFlyPrompt(taskId, question = '') {
+    function selectionRequestSnapshot() {
+        if (!onTheFlyEvidence || !currentContext?.sessionId) throw new Error('Choose a caption or select its words first.');
+        return {context:{sessionId:currentContext.sessionId, meetingTitle:currentContext.meetingTitle, providerLabel:currentContext.providerLabel},
+            evidence:structuredClone(onTheFlyEvidence)};
+    }
+
+    function selectionStillMatches(request) {
+        if (currentContext?.sessionId !== request.context.sessionId || !onTheFlyEvidence
+            || onTheFlyEvidence.evidenceId !== request.evidence.evidenceId || onTheFlyEvidence.text !== request.evidence.text) return false;
+        const index = Number.parseInt(request.evidence.evidenceId.slice(1), 10) - 1;
+        const caption = request.evidence.sourceKey ? currentContext.transcriptArray?.find(item => item.key === request.evidence.sourceKey)
+            : currentContext.transcriptArray?.[index];
+        return !!caption && CaptionKeepRollingNotes.sourceRevision([caption]) === request.evidence.sourceFingerprint;
+    }
+
+    function assertSelectionRequest(request) {
+        if (!selectionStillMatches(request)) throw new Error('The selected words or active meeting changed. Choose the current caption and try again.');
+    }
+
+    function buildOnTheFlyPrompt(taskId, question = '', request = selectionRequestSnapshot()) {
         const prompt = CaptionKeepAiTasks.buildPrompt({
             taskId,
             question,
-            meetingTitle: currentContext?.meetingTitle || 'Meeting',
-            providerLabel: currentContext?.providerLabel || 'Meeting platform',
-            evidence: [onTheFlyEvidence]
+            meetingTitle: request.context.meetingTitle || 'Meeting',
+            providerLabel: request.context.providerLabel || 'Meeting platform',
+            evidence: [request.evidence]
         });
         const scrub = enterprisePolicy.privacyScrubberEnabled !== false || enterprisePolicy.forceScrubbedExport;
         return scrub ? CaptionKeepPrivacyScrubber.scrub(prompt, scrubOptions).text : prompt;
@@ -305,28 +627,32 @@
     }
 
     async function runQuickAiTask(taskId) {
+        const request = selectionRequestSnapshot();
         await refreshEnterprisePolicy();
+        assertSelectionRequest(request);
         if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
         if (enterprisePolicy.disableClipboard) throw new Error('Clipboard actions are disabled by your organization.');
         if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
         const destination = preferredAiDestination();
-        const prompt = buildOnTheFlyPrompt(taskId);
-        await navigator.clipboard.writeText(prompt);
+        const prompt = buildOnTheFlyPrompt(taskId, '', request);
+        await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(prompt));
         await chrome.tabs.create({url:destination.url});
-        clearOnTheFly();
+        if (selectionStillMatches(request)) clearOnTheFly();
         setStatus(`${CaptionKeepAiTasks.task(taskId).label} copied and ${destination.name} opened. Paste, review, and send when ready.`);
     }
 
     async function openOnTheFlyEmail() {
+        const request = selectionRequestSnapshot();
         await refreshEnterprisePolicy();
+        assertSelectionRequest(request);
         if (enterprisePolicy.disableEvidenceEmail) throw new Error('Evidence email is disabled by your organization.');
         if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
-        const rawSubject = `Follow-up: ${currentContext?.meetingTitle || 'Meeting'}`;
+        const rawSubject = `Follow-up: ${request.context.meetingTitle || 'Meeting'}`;
         const rawBody = [
             'Follow-up from the meeting:',
             '',
-            `[${onTheFlyEvidence.evidenceId}] ${onTheFlyEvidence.time} — ${onTheFlyEvidence.speaker}`,
-            onTheFlyEvidence.text,
+            `[${request.evidence.evidenceId}] ${request.evidence.time} — ${request.evidence.speaker}`,
+            request.evidence.text,
             '',
             'Review this draft, add recipients, and edit before sending.'
         ].join('\n');
@@ -335,41 +661,47 @@
         const body = scrub ? CaptionKeepPrivacyScrubber.scrub(rawBody, scrubOptions).text : rawBody;
         const destination = CaptionKeepWebMail.compose(enterprisePolicy.webmailDestination || 'outlook_work', {subject, body});
         await chrome.tabs.create({url:destination.url});
-        clearOnTheFly();
+        if (selectionStillMatches(request)) clearOnTheFly();
         setStatus(`Draft opened in ${destination.name}. Add recipients, review, and send when ready.`);
     }
 
     async function prepareOnTheFly() {
+        const request = selectionRequestSnapshot();
+        const taskId = elements.onTheFlyTask.value;
+        const question = board.cleanInline(elements.onTheFlyQuestion.value);
         await refreshEnterprisePolicy();
+        assertSelectionRequest(request);
         if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
         if (!onTheFlyEvidence) throw new Error('Select meeting words or choose a caption first.');
         const settings = await chrome.storage.sync.get('aiSummaryProviders');
+        assertSelectionRequest(request);
         const providers = Array.isArray(settings.aiSummaryProviders) && settings.aiSummaryProviders.length
             ? settings.aiSummaryProviders
             : ['chatgpt', 'claude', 'copilot', 'gemini'];
         const handoffId = `handoff_${crypto.randomUUID()}`;
-        const taskId = elements.onTheFlyTask.value;
         await chrome.storage.local.set({
             [handoffId]: {
                 mode: 'on_the_fly',
                 taskId,
-                question: board.cleanInline(elements.onTheFlyQuestion.value),
-                evidence: [onTheFlyEvidence],
+                question,
+                evidence: [request.evidence],
                 transcript: [{
-                    Time: onTheFlyEvidence.time,
-                    Name: onTheFlyEvidence.speaker,
-                    Text: onTheFlyEvidence.text
+                    Time: request.evidence.time,
+                    Name: request.evidence.speaker,
+                    Text: request.evidence.text
                 }],
                 providers,
-                meetingTitle: currentContext?.meetingTitle || 'Meeting',
-                providerLabel: currentContext?.providerLabel || 'Meeting platform',
-                sessionId: currentContext?.sessionId || '',
+                meetingTitle: request.context.meetingTitle || 'Meeting',
+                providerLabel: request.context.providerLabel || 'Meeting platform',
+                sessionId: request.context.sessionId,
                 warnings: ['Selected meeting text only. Nothing has been sent.']
             }
         });
+        try { assertSelectionRequest(request); }
+        catch (error) {await chrome.storage.local.remove(handoffId); throw error;}
         elements.onTheFlyDialog.close();
         await chrome.tabs.create({url: chrome.runtime.getURL(`handoff.html?id=${encodeURIComponent(handoffId)}`)});
-        clearOnTheFly();
+        if (selectionStillMatches(request)) clearOnTheFly();
         setStatus('Review opened. Nothing is sent until you choose to copy it.');
     }
 
@@ -380,17 +712,68 @@
             .map((caption, index) => ({caption, index}))
             .filter(({caption}) => !query || `${caption.Name || ''} ${caption.Text || ''}`.toLocaleLowerCase().includes(query));
         elements.transcriptCount.textContent = String(transcript.length);
-        elements.transcriptList.replaceChildren();
+        elements.transcriptWindowNote.hidden = matches.length <= 150;
         if (!matches.length) {
+            if (onTheFlyEvidence) clearOnTheFly();
+            elements.transcriptList.replaceChildren();
             const empty = document.createElement('li');
             empty.className = 'empty';
             empty.textContent = transcript.length ? 'No captions match.' : 'Connect to a supported meeting to see captions.';
             elements.transcriptList.append(empty);
             return;
         }
-        for (const {caption, index} of matches.slice(-150).reverse()) {
-            elements.transcriptList.append(captionNode(caption, index));
+        const selectedCaption = selectedCaptionIndex === null ? null : transcript[selectedCaptionIndex];
+        if (onTheFlyEvidence && (!selectedCaption || CaptionKeepRollingNotes.sourceRevision([selectedCaption]) !== onTheFlyEvidence.sourceFingerprint)) {
+            clearOnTheFly();
+            setStatus('The selected caption changed. Select its updated words before using an action.');
         }
+        // Reading focus is authoritative even while an asynchronous poll or programmatic
+        // scroll is settling. Never evict a focused row merely because more words arrive.
+        const readingRow = document.activeElement?.closest('.caption-select')?.closest('li');
+        if (readingRow && elements.transcriptList.contains(readingRow)
+            && matches.some(({caption, index}) => String(caption.key || index) === readingRow.dataset.captionKey)) setFollowLatest(false);
+        if (followLatest) conversationWindowStart = Math.max(0, matches.length - 150);
+        conversationWindowStart = Math.min(conversationWindowStart, Math.max(0, matches.length - 1));
+        const visible = matches.slice(conversationWindowStart, conversationWindowStart + 150);
+        elements.transcriptWindowNote.textContent = `Showing captions ${visible[0].index + 1}–${visible.at(-1).index + 1} of ${transcript.length}. Follow latest for new words, or open Full transcript for all captions.`;
+        if (selectedCaptionIndex !== null && !visible.some(item => item.index === selectedCaptionIndex)) {
+            const selected = matches.find(item => item.index === selectedCaptionIndex);
+            if (selected) visible.unshift(selected);
+        }
+        const existing = new Map([...elements.transcriptList.children].map(item => [item.dataset.captionKey, item]));
+        const anchor = [...elements.transcriptList.children].find(item => item.getBoundingClientRect().bottom > 0);
+        const anchorTop = anchor?.getBoundingClientRect().top;
+        const wanted = new Set();
+        const focusedKey = document.activeElement?.closest('.caption-select')?.closest('li').dataset.captionKey;
+        let reference = elements.transcriptList.firstElementChild;
+        for (const [{caption, index}, position] of visible.map((value, index) => [value, index])) {
+            const key = String(caption.key || index);
+            const item = existing.get(key) || captionNode(caption, index);
+            const choose = item.querySelector('.caption-select');
+            const speaker = item.querySelector('.caption-speaker');
+            const time = item.querySelector('.caption-time');
+            const text = item.querySelector('.caption-text');
+            if (speaker.textContent !== (caption.Name || 'Unknown speaker')) speaker.textContent = caption.Name || 'Unknown speaker';
+            if (time.textContent !== (caption.Time || '')) time.textContent = caption.Time || '';
+            if (text.textContent !== caption.Text) text.textContent = caption.Text;
+            choose.dataset.captionIndex = String(index);
+            choose.title = `${board.evidenceId(index)} · Choose this caption`;
+            text.dataset.captionIndex = String(index);
+            const selected = index === selectedCaptionIndex;
+            choose.setAttribute('aria-pressed', String(selected));
+            choose.tabIndex = selected || (selectedCaptionIndex === null && (focusedKey ? key === focusedKey : position === 0)) ? 0 : -1;
+            item.classList.toggle('selected', selected);
+            wanted.add(item);
+            if (item !== reference) elements.transcriptList.insertBefore(item, reference);
+            reference = item.nextElementSibling;
+        }
+        for (const item of [...elements.transcriptList.children]) if (!wanted.has(item)) item.remove();
+        if (!followLatest && anchor?.isConnected && Number.isFinite(anchorTop)) {
+            const adjustment = anchor.getBoundingClientRect().top - anchorTop;
+            if (adjustment) window.scrollBy({top:adjustment, behavior:'auto'});
+        }
+        const selection = window.getSelection();
+        if (followLatest && !query && !elements.transcriptView.hidden && !selection?.toString()) setFollowLatest(true, {scroll:true});
     }
 
     function markerNode(marker) {
@@ -436,7 +819,9 @@
         } else {
             for (const marker of [...markers].reverse()) elements.markerList.append(markerNode(marker));
         }
-        elements.markerCount.textContent = String(markers.length);
+        elements.markerCount.hidden = markers.length === 0;
+        elements.markerCount.textContent = markers.length ? String(markers.length) : '';
+        elements.markerCount.setAttribute?.('aria-label', `${markers.length} saved evidence marker${markers.length === 1 ? '' : 's'}`);
         elements.copyBoard.disabled = !markers.length || !!enterprisePolicy.disableClipboard;
         elements.downloadBoard.disabled = !markers.length || !!enterprisePolicy.disableFileExport;
         elements.emailBoard.disabled = !markers.length || !!enterprisePolicy.disableEvidenceEmail;
@@ -445,12 +830,20 @@
 
     async function saveMarkers() {
         allMarkers = allMarkers.slice(-MAX_MARKERS);
-        await chrome.storage.local.set({[STORAGE_KEY]: allMarkers});
+        const currentIds = new Set(allMarkers.map(marker => marker.id));
+        const upserts = allMarkers.filter(marker => persistedMarkers.get(marker.id) !== JSON.stringify(marker));
+        const removeIds = [...persistedMarkers.keys()].filter(id => !currentIds.has(id));
+        const result = await chrome.runtime.sendMessage({message:'update_evidence_markers', upserts, removeIds});
+        if (!result?.ok) throw new Error(result?.error || 'Evidence markers could not be saved.');
+        allMarkers = result.markers || [];
+        persistedMarkers = new Map(allMarkers.map(marker => [marker.id, JSON.stringify(marker)]));
+        if (result.rejected?.length) throw new Error(result.rejected[0].reason || 'The source is no longer available; its evidence was not retained.');
     }
 
     async function loadMarkers() {
         const stored = await chrome.storage.local.get(STORAGE_KEY);
         allMarkers = Array.isArray(stored[STORAGE_KEY]) ? stored[STORAGE_KEY] : [];
+        persistedMarkers = new Map(allMarkers.map(marker => [marker.id, JSON.stringify(marker)]));
         renderMarkers();
     }
 
@@ -460,9 +853,17 @@
         try {
             const next = await requestContext();
             const sessionChanged = currentContext?.sessionId !== next.sessionId;
+            if (sessionChanged) {
+                switchDraftSession(next.sessionId);
+                clearOnTheFly();
+                setFollowLatest(true);
+            }
             currentContext = next;
+            contextFailure = '';
             if (sessionChanged) {
                 selectedSessionId = next.sessionId;
+                await loadDerivedArtifacts();
+                await loadRollingNotesState();
             }
             const reconciliation = board.reconcileMarkers(allMarkers, next);
             if (reconciliation.changed) {
@@ -470,21 +871,34 @@
                 await saveMarkers();
             }
             renderContext();
-            const latest = next.transcriptArray?.at(-1);
-            const nextSignature = `${next.sessionId}:${next.transcriptArray?.length || 0}:${latest?.key || ''}:${latest?.Text || ''}`;
+            const captions = next.transcriptArray || [];
+            if (rollingPreparedInput !== captions) {
+                rollingPreparedInput = captions;
+                rollingPreparedSource = CaptionKeepRollingNotes.prepareSource(captions);
+            }
+            const nextSignature = `${next.sessionId}:${CaptionKeepRollingNotes.sourceRevision(rollingPreparedSource)}`;
             if (nextSignature !== transcriptSignature) {
                 transcriptSignature = nextSignature;
                 renderTranscript();
             }
             if (sessionChanged || reconciliation.changed) renderMarkers();
-            setStatus('');
+            await updateRollingNotes();
+            if (lastContextError && elements.boardStatus.textContent === lastContextError) setStatus('');
+            lastContextError = '';
         } catch (error) {
+            switchDraftSession('');
             currentContext = null;
+            contextFailure = contextFailureMessage(error);
+            derivedArtifacts = [];
+            rollingNotesState = null;
             renderContext();
+            renderDerivedArtifacts();
+            renderRollingNotes();
             transcriptSignature = '';
             renderTranscript();
             renderMarkers();
-            setStatus(error.message);
+            lastContextError = contextFailure || 'Waiting for a supported meeting.';
+            setStatus(lastContextError);
         } finally {
             polling = false;
         }
@@ -509,8 +923,8 @@
     }
 
     async function markLatest() {
-        const transcript = currentContext?.transcriptArray || [];
-        await markCaption(transcript.length - 1);
+        if (selectedCaptionIndex === null) throw new Error('Choose a caption first.');
+        await markCaption(selectedCaptionIndex);
     }
 
     async function deleteMarker(markerId) {
@@ -546,6 +960,345 @@
         const bytes = new TextEncoder().encode(value);
         const digest = await crypto.subtle.digest('SHA-256', bytes);
         return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function derivedRequest(message, extra = {}) {
+        if (!currentContext?.sessionId) throw new Error('Connect to a captured meeting first.');
+        const response = await chrome.runtime.sendMessage({message, sessionId:currentContext.sessionId, historical:false, ...extra});
+        if (!response?.ok) throw new Error(response?.error || 'The meeting artifact request failed.');
+        return response;
+    }
+
+    function artifactTime(value) {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.valueOf()) ? 'time unavailable' : parsed.toLocaleString();
+    }
+
+    function artifactDeleteButton(artifact) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.artifactId = artifact.id;
+        button.setAttribute('aria-label', `Delete ${artifact.kind} created ${artifactTime(artifact.createdAt)}`);
+        button.textContent = 'Delete';
+        return button;
+    }
+
+    function renderDerivedArtifacts() {
+        const showCount = (element, count, noun) => {
+            element.hidden = count === 0;
+            element.textContent = count ? String(count) : '';
+            element.setAttribute?.('aria-label', `${count} saved ${noun}${count === 1 ? '' : 's'}`);
+        };
+        const receipts = derivedArtifacts.filter(item => item.kind === 'action-result' && item.status === 'user-confirmed'
+            && item.generator === 'byomcp-verified-action' && item.payload?.receipt?.jobId === item.payload.jobId
+            && /^[a-f0-9]{64}$/.test(item.payload.receipt.receiptDigest || ''));
+        elements.actionReceiptCount.textContent = String(receipts.length);
+        elements.actionReceiptList.replaceChildren();
+        if (!receipts.length) {
+            const empty = document.createElement('li'); empty.className = 'empty';
+            empty.textContent = 'No verified action receipts kept for this meeting.';
+            elements.actionReceiptList.append(empty);
+        }
+        for (const artifact of [...receipts].reverse()) {
+            const item = document.createElement('li'); item.className = 'artifact-card';
+            const header = document.createElement('div'); header.className = 'artifact-card-header';
+            const title = document.createElement('strong'); title.textContent = 'Verified action result';
+            header.append(title, artifactDeleteButton(artifact));
+            const body = document.createElement('p'); body.className = 'note-body'; body.textContent = artifact.payload.text || '';
+            const meta = document.createElement('p'); meta.className = 'artifact-meta';
+            meta.textContent = `${artifactTime(artifact.payload.receipt.observedAt)} · Citations: ${artifact.evidenceIds.join(', ')} · transcript ${artifact.sourceTranscriptSha256.slice(0,12)}…`;
+            item.append(header, body, meta); elements.actionReceiptList.append(item);
+        }
+        const moments = derivedArtifacts.filter(item => item.kind === 'moment' && item.status !== 'deleted');
+        const notes = derivedArtifacts.filter(item => item.kind === 'live-notes' && item.status !== 'deleted');
+        const answers = derivedArtifacts.filter(item => item.kind === 'answer' && item.status !== 'deleted');
+        showCount(elements.momentCount, moments.length, 'moment');
+        showCount(elements.noteCount, notes.length, 'note');
+        showCount(elements.answerCount, answers.length, 'answer');
+        elements.momentList.replaceChildren();
+        if (!moments.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No Moments kept for this meeting.';
+            elements.momentList.append(empty);
+        } else {
+            for (const artifact of [...moments].reverse()) {
+                const item = document.createElement('li');
+                item.className = 'moment-card artifact-card';
+                if (artifact.payload.screenshot) {
+                    const image = document.createElement('img');
+                    image.src = artifact.payload.screenshot;
+                    image.alt = artifact.payload.altText || artifact.payload.note || 'Reviewed meeting Moment';
+                    item.append(image);
+                }
+                const content = document.createElement('div');
+                const header = document.createElement('div');
+                header.className = 'artifact-card-header';
+                const title = document.createElement('strong');
+                title.textContent = artifact.payload.note || 'Meeting Moment';
+                header.append(title, artifactDeleteButton(artifact));
+                if (artifact.payload.screenshot) {
+                    const exportButton = document.createElement('button');
+                    exportButton.type = 'button';
+                    exportButton.dataset.exportMomentId = artifact.id;
+                    exportButton.textContent = 'Export PNG';
+                    exportButton.disabled = !!enterprisePolicy.disableFileExport || !!enterprisePolicy.forceScrubbedExport;
+                    header.append(exportButton);
+                }
+                const meta = document.createElement('p');
+                meta.className = 'artifact-meta';
+                meta.textContent = `${artifactTime(artifact.createdAt)} · ${artifact.sourceCaptionCount} captions · ${artifact.sourceTranscriptSha256.slice(0, 12)}…`;
+                const refs = document.createElement('p');
+                refs.className = 'artifact-meta';
+                refs.textContent = artifact.evidenceIds.length ? `Evidence: ${artifact.evidenceIds.join(', ')}` : 'No Evidence Board markers linked.';
+                content.append(header, meta, refs);
+                item.append(content);
+                elements.momentList.append(item);
+            }
+        }
+        elements.notesList.replaceChildren();
+        if (!notes.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No reviewed notes kept for this meeting.';
+            elements.notesList.append(empty);
+        } else {
+            for (const artifact of [...notes].reverse()) {
+                const item = document.createElement('li');
+                item.className = 'artifact-card';
+                const header = document.createElement('div');
+                header.className = 'artifact-card-header';
+                const title = document.createElement('strong');
+                title.textContent = `Reviewed notes · ${artifactTime(artifact.createdAt)}`;
+                header.append(title, artifactDeleteButton(artifact));
+                const body = document.createElement('p');
+                body.className = 'note-body';
+                body.textContent = artifact.payload.text || '';
+                const meta = document.createElement('p');
+                meta.className = 'artifact-meta';
+                meta.textContent = `Citations: ${artifact.evidenceIds.join(', ')} · transcript ${artifact.sourceTranscriptSha256.slice(0, 12)}…`;
+                const promote = document.createElement('div');
+                promote.className = 'artifact-promote-actions';
+                for (const [kind, label] of [['Decision', 'Citations → Decisions'], ['Action item', 'Citations → Actions']]) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.promoteArtifactId = artifact.id;
+                    button.dataset.promoteKind = kind;
+                    button.textContent = label;
+                    promote.append(button);
+                }
+                item.append(header, body, meta, promote);
+                elements.notesList.append(item);
+            }
+        }
+        elements.answerList.replaceChildren();
+        if (!answers.length) {
+            const empty = document.createElement('li');
+            empty.className = 'empty';
+            empty.textContent = 'No reviewed answers kept for this meeting.';
+            elements.answerList.append(empty);
+        } else {
+            for (const artifact of [...answers].reverse()) {
+                const item = document.createElement('li');
+                item.className = 'artifact-card answer-card';
+                const header = document.createElement('div');
+                header.className = 'artifact-card-header';
+                const title = document.createElement('strong');
+                title.textContent = artifact.payload.question || 'Transcript question';
+                header.append(title, artifactDeleteButton(artifact));
+                const body = document.createElement('p');
+                body.className = 'note-body';
+                body.textContent = artifact.payload.text || '';
+                const meta = document.createElement('p');
+                meta.className = 'artifact-meta';
+                meta.textContent = `${artifactTime(artifact.createdAt)} · Citations: ${artifact.evidenceIds.join(', ')} · transcript ${artifact.sourceTranscriptSha256.slice(0, 12)}…`;
+                item.append(header, body, meta);
+                elements.answerList.append(item);
+            }
+        }
+    }
+
+    async function loadDerivedArtifacts() {
+        if (!currentContext?.sessionId) {
+            derivedArtifacts = [];
+            renderDerivedArtifacts();
+            return;
+        }
+        const response = await derivedRequest('get_derived_artifacts');
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        renderDerivedArtifacts();
+    }
+
+    async function deleteDerivedArtifact(artifactId) {
+        const response = await derivedRequest('delete_derived_artifact', {artifactId});
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        renderDerivedArtifacts();
+        setStatus('Derived artifact deleted. The source transcript was not changed.');
+    }
+
+    async function promoteArtifactCitations(artifactId, kind) {
+        const artifact = derivedArtifacts.find(item => item.id === artifactId && item.kind === 'live-notes');
+        if (!artifact) throw new Error('The reviewed notes artifact is no longer available.');
+        if (artifact.sessionId !== currentContext?.sessionId) {
+            throw new Error('These reviewed notes belong to a different meeting. Reopen their source meeting before promoting citations.');
+        }
+        if (!board.MARKER_KINDS.includes(kind)) throw new Error('Choose a supported Evidence marker type.');
+        const transcript = currentContext?.transcriptArray || [];
+        const pendingMarkers = [];
+        for (const evidenceId of artifact.evidenceIds) {
+            const captionIndex = Number.parseInt(evidenceId.slice(1), 10) - 1;
+            const caption = transcript[captionIndex];
+            if (!caption) throw new Error(`${evidenceId} is no longer available. Review updated notes before promoting that citation.`);
+            const original = artifact.payload.sourceEvidence?.find(item => item.evidenceId === evidenceId);
+            if (original && (original.caption.key !== caption.key || original.caption.Text !== caption.Text)) {
+                throw new Error(`${evidenceId} changed after these notes were reviewed. Review updated notes before promoting that citation.`);
+            }
+            const alreadyMarked = allMarkers.some(marker => marker.sessionId === currentContext.sessionId
+                && marker.kind === kind && marker.sourceKey === caption.key);
+            if (alreadyMarked) continue;
+            pendingMarkers.push(board.createMarker(currentContext, {
+                captionIndex,
+                kind,
+                note:`Promoted from reviewed Live Notes ${artifact.id}.`
+            }));
+        }
+        const added = pendingMarkers.length;
+        if (!added) throw new Error(`Every cited caption is already marked as ${kind.toLowerCase()}.`);
+        allMarkers.push(...pendingMarkers);
+        selectedSessionId = currentContext.sessionId;
+        await saveMarkers();
+        renderMarkers();
+        setStatus(`${added} cited caption${added === 1 ? '' : 's'} promoted to ${kind.toLowerCase()} evidence.`);
+    }
+
+    async function saveReviewedNotes() {
+        const clickedSessionId = currentContext?.sessionId;
+        const text = elements.notesDraft.value.trim();
+        await refreshEnterprisePolicy();
+        if (currentContext?.sessionId !== clickedSessionId) throw new Error('The active meeting changed. Return to the original meeting before keeping these notes.');
+        if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        const sourceContext = await reviewedSource('live_notes');
+        const transcript = sourceContext?.transcriptArray || [];
+        if (!transcript.length) throw new Error('Capture at least one caption before keeping notes.');
+        const evidenceIds = CaptionKeepDerivedArtifacts.assertCitations(text, transcript.length);
+        const sourceIndexes = evidenceIds.map(id => Number.parseInt(id.slice(1), 10) - 1);
+        const sourceTranscriptSha256 = await sha256Hex(board.canonicalTranscript(sourceContext));
+        const templateKey = `handoff_template_${encodeURIComponent(sourceContext.sessionId)}`;
+        const handoffTemplate = (await chrome.storage.session.get(templateKey))[templateKey];
+        const handoffCreatedAt = Date.parse(handoffTemplate?.createdAt || '');
+        const templateSnapshot = handoffTemplate?.sourceTranscriptSha256 === sourceTranscriptSha256
+            && handoffTemplate.sessionId === sourceContext.sessionId
+            && Number.isFinite(handoffCreatedAt) && Date.now() - handoffCreatedAt >= 0
+            && Date.now() - handoffCreatedAt < 60 * 60 * 1000 ? handoffTemplate.templateSnapshot : null;
+        const artifact = CaptionKeepDerivedArtifacts.normalize({
+            kind:'live-notes',
+            sessionId:sourceContext.sessionId,
+            sourceTranscriptSha256,
+            sourceCaptionCount:transcript.length,
+            sourceRevision:`${transcript.length}:${transcript.at(-1)?.key || ''}`,
+            sourceKeys:sourceIndexes.map(index => transcript[index]?.key).filter(Boolean),
+            evidenceIds,
+            createdBy:'user',
+            generator:'reviewed-live-notes-v1',
+            templateId:templateSnapshot?.id || '',
+            templateVersion:templateSnapshot ? (templateSnapshot.state === 'draft' ? `draft based on v${templateSnapshot.basedOnVersion}` : String(templateSnapshot.version)) : '',
+            status:'user-confirmed',
+            payload:{text, sourceEvidence:sourceIndexes.map(index => ({evidenceId:board.evidenceId(index), caption:transcript[index]})),
+                ...(templateSnapshot ? {reviewedHandoffTemplate:templateSnapshot} : {})}
+        });
+        if (currentContext?.sessionId !== sourceContext.sessionId) throw new Error('The active meeting changed. Return to the original meeting before keeping these notes.');
+        const response = await derivedRequest('save_derived_artifact', {artifact, sessionId:sourceContext.sessionId});
+        if (currentContext?.sessionId !== sourceContext.sessionId) {setStatus('Notes were kept for the previous meeting.'); return;}
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        elements.notesDraft.value = '';
+        renderDerivedArtifacts();
+        setStatus(`Reviewed notes kept with ${evidenceIds.length} source citation${evidenceIds.length === 1 ? '' : 's'}.`);
+    }
+
+    async function saveReviewedAnswer() {
+        const clickedSessionId = currentContext?.sessionId;
+        const question = board.cleanInline(elements.askQuestion.value);
+        const text = elements.answerDraft.value.trim();
+        await refreshEnterprisePolicy();
+        if (currentContext?.sessionId !== clickedSessionId) throw new Error('The active meeting changed. Return to the original meeting before keeping this answer.');
+        if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        if (!question) throw new Error('Enter the question this answer responds to.');
+        const sourceContext = await reviewedSource('transcript_qa', question);
+        const transcript = sourceContext?.transcriptArray || [];
+        if (!transcript.length) throw new Error('Capture at least one caption before keeping an answer.');
+        const notEstablished = text === 'The transcript does not establish an answer.';
+        const evidenceIds = notEstablished ? [] : CaptionKeepDerivedArtifacts.assertCitations(text, transcript.length);
+        const sourceIndexes = evidenceIds.map(id => Number.parseInt(id.slice(1), 10) - 1);
+        const artifact = CaptionKeepDerivedArtifacts.normalize({
+            kind:'answer',
+            sessionId:sourceContext.sessionId,
+            sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(sourceContext)),
+            sourceCaptionCount:transcript.length,
+            sourceRevision:`${transcript.length}:${transcript.at(-1)?.key || ''}`,
+            sourceKeys:sourceIndexes.map(index => transcript[index]?.key).filter(Boolean),
+            evidenceIds,
+            createdBy:'user',
+            generator:'reviewed-transcript-answer-v1',
+            status:'user-confirmed',
+            payload:{question, text, notEstablished, sourceEvidence:sourceIndexes.map(index => ({evidenceId:board.evidenceId(index), caption:transcript[index]}))}
+        });
+        if (currentContext?.sessionId !== sourceContext.sessionId) throw new Error('The active meeting changed. Return to the original meeting before keeping this answer.');
+        const response = await derivedRequest('save_derived_artifact', {artifact, sessionId:sourceContext.sessionId});
+        if (currentContext?.sessionId !== sourceContext.sessionId) {setStatus('The answer was kept for the previous meeting.'); return;}
+        derivedArtifacts = CaptionKeepDerivedArtifacts.normalizeCollection(response.artifacts);
+        elements.answerDraft.value = '';
+        renderDerivedArtifacts();
+        setStatus(`Reviewed answer kept with ${evidenceIds.length} source citation${evidenceIds.length === 1 ? '' : 's'}.`);
+    }
+
+    async function openTranscriptHandoff(mode, question = '', template = null) {
+        const sourceContext = currentContext ? structuredClone(currentContext) : null;
+        await refreshEnterprisePolicy();
+        if (currentContext?.sessionId !== sourceContext?.sessionId) throw new Error('The active meeting changed. Return to the original meeting before preparing its handoff.');
+        if (enterprisePolicy.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
+        const transcript = sourceContext?.transcriptArray || [];
+        if (!transcript.length) throw new Error('Capture at least one caption first.');
+        if (mode === 'transcript_qa' && !board.cleanInline(question)) throw new Error('Enter a question before preparing its handoff.');
+        const settings = await chrome.storage.sync.get('aiSummaryProviders');
+        const providers = Array.isArray(settings.aiSummaryProviders) && settings.aiSummaryProviders.length
+            ? settings.aiSummaryProviders
+            : ['chatgpt', 'claude', 'copilot', 'gemini'];
+        const handoffId = `handoff_${crypto.randomUUID()}`;
+        await chrome.storage.local.set({
+            [handoffId]: {
+                mode,
+                taskId:mode === 'live_notes' ? 'live_notes' : 'transcript_qa',
+                question:board.cleanInline(question),
+                evidence:transcript.map((caption, index) => ({
+                    evidenceId:board.evidenceId(index),
+                    speaker:caption.Name || 'Unknown speaker',
+                    time:caption.Time || 'time unavailable',
+                    text:caption.Text || ''
+                })),
+                transcript:transcript.map(caption => ({Time:caption.Time, Name:caption.Name, Text:caption.Text})),
+                providers,
+                meetingTitle:sourceContext.meetingTitle || 'Meeting',
+                providerLabel:sourceContext.providerLabel || 'Meeting platform',
+                sessionId:sourceContext.sessionId,
+                sourceTranscriptSha256:await sha256Hex(board.canonicalTranscript(sourceContext)),
+                selectedTemplate:template ? CaptionKeepPromptTemplates.snapshot(template) : null,
+                warnings:['Transcript snapshot only. Nothing has been sent.', `Snapshot contains ${transcript.length} captions.`]
+            }
+        });
+        if (currentContext?.sessionId !== sourceContext.sessionId) {
+            await chrome.storage.local.remove(handoffId);
+            throw new Error('The active meeting changed. Return to the original meeting before preparing its handoff.');
+        }
+        try {
+            if (chrome.storage.session) await chrome.storage.session.set({[reviewSnapshotKey(mode, sourceContext.sessionId)]:{
+                context:sourceContext, question:board.cleanInline(question), createdAt:Date.now()
+            }});
+            await chrome.tabs.create({url:chrome.runtime.getURL(`handoff.html?id=${encodeURIComponent(handoffId)}`)});
+        } catch (error) {
+            await chrome.storage.local.remove(handoffId);
+            throw error;
+        }
+        setStatus(mode === 'live_notes' ? 'Cited notes handoff opened for review.' : 'Transcript question opened for review.');
     }
 
     function safeExportTitle() {
@@ -633,6 +1386,48 @@
         await chrome.tabs.sendMessage(tab.id, {message: 'get_captions_for_viewing'});
     }
 
+    async function captureMoment() {
+        await refreshEnterprisePolicy();
+        if (enterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
+        if (enterprisePolicy.forceScrubbedExport || enterprisePolicy.disableFileExport) {
+            throw new Error('Capture Moment is unavailable under your organization’s export/privacy policy.');
+        }
+        const tab = await activeMeetingTab();
+        if (!tab?.id || tab.id !== currentContext?.tabId || !currentContext?.sessionId) {
+            throw new Error('Return to the active captured meeting before creating a moment.');
+        }
+        const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {format: 'png'});
+        const [after] = await chrome.tabs.query({active: true, currentWindow: true});
+        if (after?.id !== tab.id || after?.url !== tab.url || after?.pendingUrl) {
+            throw new Error('The active tab changed or navigated. The moment was discarded.');
+        }
+        if (screenshot.length > 6000000) throw new Error('This moment is too large. Reduce the browser window and try again.');
+        const transcript = currentContext.transcriptArray || [];
+        const transcriptSha256 = await sha256Hex(board.canonicalTranscript(currentContext));
+        const sourceKeys = transcript.slice(-12).map(caption => caption.key).filter(Boolean);
+        const evidenceIds = selectedMarkers().slice(-12).map(marker => marker.evidenceId).filter(Boolean);
+        const pendingKey = `extras_preview_${crypto.randomUUID()}`;
+        await chrome.storage.session.set({[pendingKey]: {
+            artifactId: `moment-${crypto.randomUUID()}`,
+            sessionId: currentContext.sessionId,
+            screenshot,
+            sourceTranscriptSha256: transcriptSha256,
+            sourceCaptionCount: transcript.length,
+            sourceRevision: `${transcript.length}:${transcript.at(-1)?.key || ''}`,
+            sourceKeys,
+            evidenceIds,
+            capturedAt: new Date().toISOString()
+        }});
+        const query = new URLSearchParams({tab: String(tab.id), pending: pendingKey, mode: 'moment'});
+        try {
+            await chrome.tabs.create({url: chrome.runtime.getURL(`extras.html?${query}`)});
+            setStatus('Moment captured locally. Review it before keeping it.');
+        } catch (error) {
+            await chrome.storage.session.remove(pendingKey);
+            throw error;
+        }
+    }
+
     for (const kind of board.MARKER_KINDS) {
         const option = document.createElement('option');
         option.value = kind;
@@ -654,7 +1449,84 @@
     elements.emailBoard.addEventListener('click', () => void emailBoard().catch(error => setStatus(error.message)));
     elements.downloadBundle.addEventListener('click', () => void downloadBundle().catch(error => setStatus(error.message)));
     elements.openTranscript.addEventListener('click', () => void openTranscript().catch(error => setStatus(error.message)));
-    elements.clearOnTheFly.addEventListener('click', clearOnTheFly);
+    elements.captureMomentSecondary.addEventListener('click', () => void captureMoment().catch(error => setStatus(error.message)));
+    elements.generateNotes.addEventListener('click', () => void openTranscriptHandoff('live_notes').catch(error => setStatus(error.message)));
+    elements.workspaceTemplateSelect.addEventListener('change', showWorkspaceTemplate);
+    elements.workspaceTemplateUse.addEventListener('click', () => void openTranscriptHandoff('live_notes', '', selectedWorkspaceTemplate()).catch(error => setStatus(error.message)));
+    elements.saveNotes.addEventListener('click', () => void saveReviewedNotes().catch(error => setStatus(error.message)));
+    elements.clearNotes.addEventListener('click', () => {
+        elements.notesDraft.value = '';
+        if (chrome.storage.session && currentContext?.sessionId) void chrome.storage.session.remove([
+            reviewSnapshotKey('live_notes', currentContext.sessionId), `handoff_template_${encodeURIComponent(currentContext.sessionId)}`
+        ]).catch(error => setStatus(error.message));
+        setStatus('Notes draft cleared. Saved notes were not changed.');
+    });
+    elements.rollingNotesToggle.addEventListener('click', () => void toggleRollingNotes().catch(error => {
+        elements.rollingNotesStatus.textContent = error.message;
+    }));
+    elements.rollingNotesUpdate.addEventListener('click', () => void updateRollingNotes({force:true}).catch(error => {
+        elements.rollingNotesStatus.textContent = error.message;
+    }));
+    elements.rollingNotesInterval.addEventListener('change', () => void (async () => {
+        if (!rollingNotesState) return;
+        rollingNotesState = CaptionKeepRollingNotes.normalizeState({
+            ...rollingNotesState,
+            intervalMs:Number(elements.rollingNotesInterval.value)
+        }, currentContext?.sessionId);
+        await saveRollingNotesState();
+        renderRollingNotes();
+    })().catch(error => { elements.rollingNotesStatus.textContent = error.message; }));
+    elements.rollingNotesReview.addEventListener('click', () => {
+        if (!rollingNotesState?.draft) return;
+        elements.notesDraft.value = rollingNotesState.draft;
+        if (chrome.storage.session && currentContext?.sessionId) void chrome.storage.session.set({[reviewSnapshotKey('live_notes', currentContext.sessionId)]:{
+            context:structuredClone(currentContext), question:'', createdAt:Date.now()
+        }}).catch(error => setStatus(error.message));
+        elements.notesDraft.focus();
+        setStatus('Rolling notes copied into the reviewed draft. Edit and keep only after checking the citations.');
+    });
+    elements.prepareQuestion.addEventListener('click', () => void openTranscriptHandoff('transcript_qa', elements.askQuestion.value)
+        .catch(error => setStatus(error.message)));
+    elements.saveAnswer.addEventListener('click', () => void saveReviewedAnswer().catch(error => setStatus(error.message)));
+    document.getElementById('answer-not-established').addEventListener('click', () => {
+        elements.answerDraft.value = 'The transcript does not establish an answer.';
+        elements.answerDraft.focus();
+        setStatus('No-answer draft selected. Keep it only after checking that this transcript does not answer the question.');
+    });
+    elements.clearAnswer.addEventListener('click', () => {
+        elements.answerDraft.value = '';
+        if (chrome.storage.session && currentContext?.sessionId) void chrome.storage.session.remove(reviewSnapshotKey('transcript_qa', currentContext.sessionId)).catch(error => setStatus(error.message));
+        setStatus('Answer draft cleared. Saved answers were not changed.');
+    });
+    elements.momentList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+        const exportButton = event.target.closest('button[data-export-moment-id]');
+        if (exportButton) void (async () => {
+            await refreshEnterprisePolicy();
+            if (enterprisePolicy.disableFileExport || enterprisePolicy.forceScrubbedExport) throw new Error('Moment image export is unavailable under your organization’s export/privacy policy.');
+            const artifact = derivedArtifacts.find(item => item.kind === 'moment' && item.id === exportButton.dataset.exportMomentId);
+            if (!artifact?.payload.screenshot) throw new Error('The reviewed Moment image is no longer available.');
+            await chrome.downloads.download({url:artifact.payload.screenshot, filename:`${safeExportTitle()}-moment.png`, saveAs:true});
+            setStatus('Reviewed Moment PNG export started.');
+        })().catch(error => setStatus(error.message));
+    });
+    elements.notesList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+        const promote = event.target.closest('button[data-promote-artifact-id]');
+        if (promote) void promoteArtifactCitations(promote.dataset.promoteArtifactId, promote.dataset.promoteKind)
+            .catch(error => setStatus(error.message));
+    });
+    elements.answerList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+    });
+    elements.actionReceiptList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-artifact-id]');
+        if (button) void deleteDerivedArtifact(button.dataset.artifactId).catch(error => setStatus(error.message));
+    });
+    elements.clearOnTheFly.addEventListener('click', () => clearOnTheFly({restoreFocus:true}));
     elements.reviewOnTheFly.addEventListener('click', openOnTheFlyDialog);
     elements.onTheFlyBar.addEventListener('click', event => {
         const quickTask = event.target.closest('button[data-quick-task]')?.dataset.quickTask;
@@ -665,7 +1537,11 @@
     elements.cancelOnTheFly.addEventListener('click', () => elements.onTheFlyDialog.close());
     elements.prepareOnTheFly.addEventListener('click', () => void prepareOnTheFly().catch(error => setStatus(error.message)));
     elements.enableLiveCaptions.addEventListener('click', () => void runMeetingControl('enable_live_captions', 'Requesting live captions…').catch(error => setStatus(error.message)));
-    elements.openAttendeePanel.addEventListener('click', () => void runMeetingControl('open_attendee_panel', 'Opening the attendee panel…').catch(error => setStatus(error.message)));
+    elements.openAttendeePanel.addEventListener('click', () => {
+        const open = currentContext?.meetingControls?.attendeePanelOpen === true;
+        void runMeetingControl(open ? 'close_attendee_panel' : 'open_attendee_panel',
+            open ? 'Closing the attendee panel…' : 'Opening the attendee panel…').catch(error => setStatus(error.message));
+    });
     elements.requestTeamsTranscription.addEventListener('click', () => void runMeetingControl('request_teams_transcription', 'Requesting the tenant transcript…').catch(error => setStatus(error.message)));
     elements.markerList.addEventListener('click', event => {
         const button = event.target.closest('button[data-marker-id]');
@@ -676,10 +1552,29 @@
         renderMarkers();
     });
     elements.transcriptList.addEventListener('click', event => {
-        const markButton = event.target.closest('button[data-caption-index]');
-        if (markButton) void markCaption(Number.parseInt(markButton.dataset.captionIndex, 10));
-        const onTheFlyButton = event.target.closest('button[data-on-the-fly-index]');
-        if (onTheFlyButton) selectForOnTheFly(Number.parseInt(onTheFlyButton.dataset.onTheFlyIndex, 10));
+        const choose = event.target.closest('.caption-select');
+        const selection = window.getSelection();
+        if (!choose || (selection?.toString() && choose.contains(selection.anchorNode))) return;
+        const index = Number.parseInt(choose.dataset.captionIndex, 10);
+        if (index === selectedCaptionIndex) clearOnTheFly({restoreFocus:true});
+        else selectForOnTheFly(index);
+    });
+    elements.transcriptList.addEventListener('keydown', event => {
+        const choose = event.target.closest('.caption-select');
+        if (!choose || !['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+        event.preventDefault();
+        setFollowLatest(false);
+        const buttons = [...elements.transcriptList.querySelectorAll('.caption-select')];
+        const position = buttons.indexOf(choose);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+            : Math.max(0, Math.min(buttons.length - 1, position + (event.key === 'ArrowDown' ? 1 : -1)));
+        for (const button of buttons) button.tabIndex = -1;
+        buttons[next].tabIndex = 0;
+        buttons[next].focus({preventScroll:true});
+        buttons[next].scrollIntoView({block:'nearest'});
+    });
+    elements.transcriptList.addEventListener('focusin', event => {
+        if (event.target.closest('.caption-select')) setFollowLatest(false);
     });
     elements.transcriptList.addEventListener('mouseup', event => {
         const textNode = event.target.closest('.caption-text');
@@ -689,23 +1584,70 @@
         if (!text || !selection?.rangeCount || !textNode.contains(selection.anchorNode) || !textNode.contains(selection.focusNode)) return;
         selectForOnTheFly(Number.parseInt(textNode.dataset.captionIndex, 10), text);
     });
-    elements.transcriptSearch.addEventListener('input', renderTranscript);
+    document.addEventListener('selectionchange', () => {
+        const selection = window.getSelection();
+        const text = board.cleanInline(selection?.toString());
+        const textNode = selection?.anchorNode?.parentElement?.closest('.caption-text');
+        if (!text || !textNode || !elements.transcriptList.contains(textNode) || !textNode.contains(selection.focusNode)) return;
+        selectForOnTheFly(Number.parseInt(textNode.dataset.captionIndex, 10), text);
+    });
+    elements.followLatest.addEventListener('click', () => {
+        const next = !followLatest;
+        // Explicit resume leaves reading focus behind, including keyboard/programmatic activation.
+        elements.followLatest.focus({preventScroll:true});
+        if (next) clearOnTheFly();
+        setFollowLatest(next);
+        if (next) renderTranscript();
+    });
+    const pauseFollowing = () => {if (Date.now() >= autoScrollUntil && followLatest) setFollowLatest(false);};
+    window.addEventListener('wheel', event => {if (event.deltaY < 0) setFollowLatest(false);}, {passive:true});
+    window.addEventListener('scroll', () => {
+        if (Date.now() < autoScrollUntil) return;
+        const bottom = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+        if (bottom > 100) pauseFollowing();
+    }, {passive:true});
+    elements.transcriptSearch.addEventListener('input', () => {clearOnTheFly(); setFollowLatest(false); conversationWindowStart = 0; renderTranscript();});
     elements.transcriptTab.addEventListener('click', () => switchView('transcript'));
-    elements.evidenceTab.addEventListener('click', () => switchView('evidence'));
+    elements.notesTab.addEventListener('click', () => switchView('notes'));
+    elements.toolsTab.addEventListener('click', () => switchView('tools'));
+    elements.workspaceTabs.addEventListener('keydown', event => {
+        const tabs = [...elements.workspaceTabs.querySelectorAll('[role="tab"]:not([hidden])')];
+        const currentIndex = tabs.indexOf(document.activeElement);
+        if (currentIndex < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+            : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        tabs[nextIndex].click();
+        tabs[nextIndex].focus();
+        tabs[nextIndex].scrollIntoView({block:'nearest', inline:'nearest'});
+    });
     chrome.tabs.onActivated.addListener(() => void pollContext());
     chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
         if (changeInfo.status === 'complete') void pollContext();
     });
     chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes[CaptionKeepPromptTemplates.STORAGE_KEY]) void loadWorkspaceTemplates().catch(error => setStatus(error.message));
+        if (areaName === 'local' && changes[STORAGE_KEY]) {
+            allMarkers = Array.isArray(changes[STORAGE_KEY].newValue) ? changes[STORAGE_KEY].newValue : [];
+            persistedMarkers = new Map(allMarkers.map(marker => [marker.id, JSON.stringify(marker)]));
+            renderMarkers();
+        }
+        if (areaName === 'local' && currentContext?.sessionId
+            && changes[CaptionKeepDerivedArtifacts.storageKey(currentContext.sessionId)]) {
+            void loadDerivedArtifacts().catch(error => setStatus(error.message));
+            return;
+        }
         if (areaName !== 'managed') return;
         void (async () => {
             await refreshEnterprisePolicy();
+            await saveRollingNotesState();
             renderMarkers();
         })().catch(error => setStatus(error.message));
     });
 
     void (async () => {
         await refreshEnterprisePolicy();
+        await loadWorkspaceTemplates();
         await loadMarkers();
         await pollContext();
     })().catch(error => setStatus(error.message));

@@ -1,0 +1,24 @@
+#byomcp-settings { overflow-wrap: anywhere; }
+#byomcp-settings .byomcp-fields { display:grid; gap:8px; }
+#byomcp-settings select { width:100%; min-width:0; padding:9px; font:inherit; background:var(--ck-field); color:var(--ck-text); border:1px solid var(--ck-border); border-radius:8px; }
+#byomcp-settings .actions-row { display:flex; flex-wrap:wrap; gap:8px; }
+#byomcp-settings .actions-row button { flex:1 1 160px; min-width:0; white-space:normal; }
+#byomcp-settings button:focus-visible, #byomcp-settings select:focus-visible { outline:3px solid var(--ck-primary); outline-offset:3px; }
+#byomcp-settings button:disabled { cursor:not-allowed; }
+#byomcp-inventory { padding-inline-start:20px; font-size:13px; }
+#byomcp-inventory li { margin-block:8px; }
+#byomcp-catalog-panel { margin-block: 1rem; }
+#byomcp-catalog-panel label { display: block; margin-block: .75rem .25rem; }
+#byomcp-catalog-panel button { max-width: 100%; white-space: normal; min-height: 44px; }
+#byomcp-catalog-panel textarea { width: 100%; box-sizing: border-box; min-height: 8rem; resize: vertical; font: inherit; background: var(--ck-surface); color: var(--ck-text); }
+#byomcp-catalog-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 22rem; overflow: auto; }
+#byomcp-catalog-review { border: 1px solid var(--ck-border); border-radius: .75rem; padding: 1rem; margin-block: 1rem; }
+#byomcp-setup { border:1px solid var(--ck-border); border-radius:.75rem; padding:1rem; margin-block:1rem; }
+#byomcp-setup [hidden] { display:none; }
+#byomcp-setup label { display:block; margin-block:.75rem .25rem; }
+#byomcp-setup fieldset { min-inline-size:0; border:1px solid var(--ck-border); border-radius:.5rem; padding:.75rem; }
+#byomcp-setup input[type="text"], #byomcp-setup input[type="url"] { box-sizing:border-box; inline-size:100%; min-inline-size:0; min-block-size:48px; padding:.5rem; font:inherit; color:var(--ck-text); background:var(--ck-field); border:1px solid var(--ck-border); border-radius:.5rem; }
+#byomcp-setup button { min-block-size:48px; max-inline-size:100%; white-space:normal; margin-block:.25rem; }
+#byomcp-setup input:focus-visible { outline:3px solid var(--ck-primary); outline-offset:3px; }
+#byomcp-setup input[aria-invalid="true"] { border-width:2px; }
+#byomcp-setup code { white-space:normal; overflow-wrap:anywhere; }

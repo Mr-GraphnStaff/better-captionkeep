@@ -1,0 +1,55 @@
+// DEFERRED MCP: pre-removal test source retained for future work. Not a 6.0 shipping acceptance check.
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {mkdtemp,rm}=require('node:fs/promises');
+const os=require('node:os'),path=require('node:path');
+test('real browser renders full catalog and exact review; only trusted second approval invokes synthetic peer',async t=>{
+    const {installedBrowsers}=await import('../scripts/browser-platform.mjs');
+    const browser=(await installedBrowsers()).find(value=>value.browser==='chrome');
+    if(!browser){t.skip('Chrome unavailable for rendered fixture.');return;}
+    const {runChromiumSurface}=await import('../scripts/rendered-surface-checks.mjs');
+    const scratch=await mkdtemp(path.join(os.tmpdir(),'captionkeep-catalog-render-'));
+    async function evaluate(cdp,expression){const result=await cdp.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.text);return result.result.value;}
+    try {
+        const result=await runChromiumSurface(browser.binary,path.resolve('teams-captions-saver'),path.join(scratch,'settings.png'),{afterSurface:async(surface,cdp)=>{
+            if(surface!=='settings')return null;
+            const checks=await evaluate(cdp,`(async()=>{
+                const checks=[],add=(name,passed)=>checks.push({name,passed});
+                const settle=async()=>{await new Promise(resolve=>setTimeout(resolve,60));};
+                const profile=document.getElementById('byomcp-profile');
+                const option=document.createElement('option');option.value='synthetic-catalog';option.textContent='Synthetic catalog';profile.append(option);profile.value=option.value;profile.disabled=false;
+                document.getElementById('byomcp-settings').open=true;document.getElementById('byomcp-catalog-panel').open=true;
+                document.getElementById('byomcp-allow-writes').checked=true;
+                globalThis.__catalogCalls=0;
+                chrome.runtime.sendMessage=async message=>{
+                    if(message.operation==='catalog')return {ok:true,catalog:{profileId:option.value,revision:1,tools:[{name:'execute',description:'<img src=x onerror=alert(1)>',inputSchema:{type:'object'},schemaDigest:'a'.repeat(64)}]}};
+                    if(message.operation==='prepare-tool')return {ok:true,proposal:{id:'synthetic-proposal',profileId:option.value,revision:1,tool:'execute',schemaDigest:'a'.repeat(64),arguments:message.arguments,expiresAt:Date.now()+300000,digest:'b'.repeat(64)}};
+                    if(message.operation==='execute-tool'){globalThis.__catalogCalls++;return {ok:true,result:{status:'returned',content:[{type:'text',text:'<script>untrusted</script>'}]}};}
+                    return {ok:false};
+                };
+                document.getElementById('byomcp-catalog-load').click();await settle();
+                const tool=document.getElementById('byomcp-catalog-tool');tool.value='execute';tool.dispatchEvent(new Event('change'));
+                const args=document.getElementById('byomcp-catalog-arguments');args.value='{"code":"async () => 1"}';args.dispatchEvent(new Event('input'));
+                document.getElementById('byomcp-catalog-prepare').click();await settle();
+                add('Catalog descriptions remain text',!document.querySelector('#byomcp-catalog-panel img') && document.getElementById('byomcp-catalog-description').textContent.includes('<img'));
+                add('Exact review visible and focuses heading',!document.getElementById('byomcp-catalog-review').hidden && document.activeElement.id==='byomcp-catalog-review-heading');
+                add('Review contains exact arguments without execution',document.getElementById('byomcp-catalog-exact').textContent.includes('async () => 1') && __catalogCalls===0);
+                document.getElementById('byomcp-catalog-execute').click();await settle();
+                add('Untrusted scripted approval does not invoke',__catalogCalls===0);
+                document.getElementById('byomcp-catalog-execute').focus();
+                return {checks};
+            })()`);
+            await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',windowsVirtualKeyCode:13});
+            await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+            const final=await evaluate(cdp,`(async()=>{await new Promise(resolve=>setTimeout(resolve,100));return {checks:[
+                {name:'Trusted keyboard approval invokes synthetic peer exactly once',passed:__catalogCalls===1,actual:{calls:__catalogCalls,status:document.getElementById('byomcp-catalog-status').textContent,writes:document.getElementById('byomcp-allow-writes').checked,focus:document.activeElement.id}},
+                {name:'Returned result is untrusted text not executed markup',passed:document.getElementById('byomcp-catalog-result').textContent.includes('<script>') && document.getElementById('byomcp-catalog-status').textContent.includes('not been independently verified')}
+            ]};})()`);
+            checks.checks.push(...final.checks);
+            await cdp.send('Emulation.setDeviceMetricsOverride',{width:400,height:900,deviceScaleFactor:1,mobile:false});
+            const narrow=await evaluate(cdp,`({checks:[{name:'Catalog has no narrow document overflow',passed:document.documentElement.scrollWidth<=innerWidth+1}]})`);
+            checks.checks.push(...narrow.checks);return checks;
+        }});
+        assert(result.checks.some(value=>value.name==='Trusted keyboard approval invokes synthetic peer exactly once' && value.passed));
+    } finally {await rm(scratch,{recursive:true,force:true});}
+});

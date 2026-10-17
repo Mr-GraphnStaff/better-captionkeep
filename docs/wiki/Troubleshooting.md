@@ -14,7 +14,7 @@ The Zoom Web subtitle overlay may not expose speaker attribution. Better Caption
 
 ## Microsoft 365 controls are missing
 
-Chrome and Edge publicly serve 5.3.2, where the section stays visible but Connect remains disabled until the organization supplies valid tenant and client IDs locally or through managed policy. Confirm the installed version before troubleshooting configuration.
+In the 6.0 development build, open **All Settings → Microsoft 365**. Connect remains disabled until the organization supplies valid tenant and client IDs locally or through managed policy. Confirm the installed version and use its release record before troubleshooting configuration.
 
 ## AADSTS50011 redirect mismatch
 

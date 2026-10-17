@@ -63,6 +63,7 @@
         let sourceAvailable = false;
         let meetingEnded = false;
         let autoEnableCaptions = false;
+        let captureEnabled = true;
         let captionEnableStep = 'idle';
         let nextCaptionId = 0;
         let currentKey = null;
@@ -111,6 +112,7 @@
         }
 
         function emitCaption() {
+            if (!captureEnabled) return;
             const text = captionText(captionSource);
             if (!text) return;
             const capturedAt = nowDate();
@@ -208,15 +210,31 @@
 
         function reconcile() {
             if (!isMeetingUrl(currentUrl())) {
-                if (!meetingEnded) signal('meeting-ended');
+                const shouldSignal = !meetingEnded;
                 meetingEnded = true;
+                sourceAvailable = false;
                 captionEnableStep = 'idle';
                 disconnectCaptionSource();
+                if (shouldSignal) signal('meeting-ended');
                 return;
             }
 
+            const rejoined = meetingEnded;
             meetingEnded = false;
+            if (rejoined) {
+                currentKey = null;
+                currentText = '';
+                lastEmittedCaption = null;
+                resumeCandidate = null;
+                signal('meeting-started');
+            }
             const nextSource = pageDocument.querySelector(CAPTION_SOURCE_SELECTOR);
+            // Pause caption retention, not observation of meeting boundaries.
+            if (!captureEnabled) {
+                disconnectCaptionSource();
+                sourceAvailable = false;
+                return;
+            }
             if (nextSource && nextSource !== captionSource) {
                 if (captionSource) preserveRemountCandidate();
                 observeCaptionSource(nextSource);
@@ -263,6 +281,16 @@
             if (pageObserver && autoEnableCaptions) reconcile();
         }
 
+        function setCaptureEnabled(enabled) {
+            captureEnabled = enabled === true;
+            if (!captureEnabled) {
+                preserveRemountCandidate();
+                disconnectCaptionSource();
+                sourceAvailable = false;
+            }
+            if (pageObserver) reconcile();
+        }
+
         function restoreState(records = []) {
             const restored = Array.isArray(records) ? records : [];
             for (const record of restored) {
@@ -281,6 +309,7 @@
             getSanitizedStructure: () => sanitizeStructure(captionSource),
             isMeetingPresent: () => isMeetingUrl(currentUrl()),
             restoreState,
+            setCaptureEnabled,
             setAutoEnableCaptions,
             start,
             stop

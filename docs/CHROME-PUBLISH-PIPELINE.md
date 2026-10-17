@@ -1,5 +1,35 @@
 # Chrome Web Store publishing pipeline
 
+## 6.0 development promotion guard (October 16)
+
+The current 6.0 branch is development and cannot upload or submit. Before any
+Store credential access/network call, mutating actions require a frozen accepted
+candidate in `docs/release-state/6.0.json`, all five passed live certifications,
+the pre-submission acceptance gates, the exact source HEAD and a clean source
+worktree. Evidence/status views may change without changing the source commit.
+The Store ZIP must match the candidate's channel digest; upload uses that same
+verified byte snapshot even if the file changes during authentication.
+
+`candidate.promotion` must bind `commit` and the complete candidate `hashes` map,
+a nonempty `approvedBy`, the exact `targets.chrome` / `targets.edge`, and an
+`unchangedSince` timestamp at least 48 hours earlier. It must also bind `uat`
+(`passed: true`) and `permissionDelta` (`approved: true`) to the same commit/hash
+map. Each has `report: {path, sha256}` identifying an unchanged repository-relative
+acceptance report. These are release-owner attestations, not proof of identity or
+an independently measured continuous freeze; retain the actual protected CI,
+freeze observation and approvals. Never backdate evidence or infer acceptance
+from green local tests. The present development record supplies none of these.
+
+`submit-existing*` and `publish-staged` are disabled before credentials/network:
+the implemented Store APIs do not establish that a remote draft/revision still
+contains the approved ZIP bytes. An editable local receipt or same version is
+insufficient. Use a newly verified upload-and-submit path only when separately
+authorized. Staged submission can still request a hold, but its later publication
+requires separately reviewed Dashboard handling or a future verified immutable
+remote-revision implementation. The historical staged-automation steps below
+are not currently executable. Read-only `preflight` and cancellation remain
+available; neither authorizes publication.
+
 Better CaptionKeep uses the Chrome Web Store API v2 to upload reviewed updates
 without rebuilding them. Source still reaches `master` only through review, and
 the Store workflow accepts only an existing published, non-prerelease GitHub

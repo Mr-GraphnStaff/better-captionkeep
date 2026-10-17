@@ -48,6 +48,13 @@ export function validateChromeStoreMetadata(manifest, metadata) {
     requireText(metadata.permissionJustifications[permission], `${permission} justification`);
   }
 
+  const optionalPermissions = manifest.optional_permissions || [];
+  requireSameSet(optionalPermissions,Object.keys(metadata.optionalPermissionJustifications || {}),
+    'Chrome optional permission justifications');
+  for (const permission of optionalPermissions) {
+    requireText(metadata.optionalPermissionJustifications[permission], `${permission} optional justification`);
+  }
+
   requireSameSet(
     manifest.host_permissions || [],
     metadata.hostPermissions || [],
@@ -106,6 +113,7 @@ export function validateChromeStoreMetadata(manifest, metadata) {
   return {
     version: manifest.version,
     permissions: manifestPermissions.length,
+    optionalPermissions: optionalPermissions.length,
     hostPermissions: (manifest.host_permissions || []).length,
     optionalHostPermissions: (manifest.optional_host_permissions || []).length,
     providers: metadata.providers.length,
@@ -121,6 +129,7 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
     metadata.singlePurpose,
     metadata.privacyPolicyUrl,
     ...(manifest.permissions || []).map(permission => `\`${permission}\``),
+    ...(manifest.optional_permissions || []).map(permission => `\`${permission}\``),
     ...(manifest.host_permissions || []).map(host => `\`${host}\``),
     ...(manifest.optional_host_permissions || []).map(host => `\`${host}\``),
     ...Object.keys(metadata.oauthScopeJustifications || {}).map(scope => `\`${scope}\``),
@@ -131,14 +140,14 @@ export function validateChromeWebStoreDossier(manifest, metadata, dossier) {
     }
   }
   for (const asset of [
-    'teams-captions-saver/icons/scribble-128.png',
-    'store-assets/5.4/01-three-meeting-platforms.png',
-    'store-assets/5.4/02-explicit-meeting-controls.png',
-    'store-assets/5.4/03-on-the-fly-research.png',
-    'store-assets/5.4/04-reviewed-ai-handoff.png',
-    'store-assets/5.4/05-enterprise-controls.png',
-    'store-assets/5.4/small-promotional-tile.png',
-    'store-assets/5.4/large-promotional-tile.png',
+    'teams-captions-saver/icons/sphere-128.png',
+    'store-assets/6.0/01-one-button-meeting.png',
+    'store-assets/6.0/02-rolling-live-notes.png',
+    'store-assets/6.0/03-capture-moment.png',
+    'store-assets/6.0/04-meeting-receipt.png',
+    'store-assets/6.0/05-advanced-settings.png',
+    'store-assets/6.0/small-promotional-tile.png',
+    'store-assets/6.0/marquee-promotional-tile.png',
   ]) {
     if (!dossier.includes(asset)) throw new Error(`CHROMEWEBSTORE.md is missing Store asset: ${asset}`);
   }
@@ -157,7 +166,7 @@ export async function main() {
   const result = validateChromeStoreMetadata(manifest, metadata);
   validateChromeWebStoreDossier(manifest, metadata, dossier);
   console.log(
-    `Chrome Store metadata matches ${result.version}: ${result.permissions} permissions, ` +
+    `Chrome Store metadata matches ${result.version}: ${result.permissions} required and ${result.optionalPermissions} optional permissions, ` +
     `${result.hostPermissions} hosts, ${result.providers} providers; publication dossier synchronized.`,
   );
 }

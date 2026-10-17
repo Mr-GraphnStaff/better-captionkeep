@@ -1,0 +1,14 @@
+interface:
+  display_name: Software Team
+  short_description: Your portable software team, from idea to delivery
+  default_prompt: Use $software-team to assess this project, assemble the right specialists,
+    and carry the work through delivery with me as team lead.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true

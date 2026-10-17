@@ -3,7 +3,9 @@
 
     const STORAGE_KEY = 'uiTheme';
     const DEFAULT_THEME = 'captionkeep';
-    const VALID_THEMES = new Set(['captionkeep', 'light', 'midnight', 'system']);
+    const VALID_THEMES = new Set(['captionkeep', 'light', 'midnight', 'slate', 'high-contrast', 'system']);
+    const systemAppearance = globalThis.matchMedia?.('(prefers-color-scheme: dark)');
+    let preference = DEFAULT_THEME;
 
     function normalize(theme) {
         return VALID_THEMES.has(theme) ? theme : DEFAULT_THEME;
@@ -11,9 +13,16 @@
 
     function apply(theme) {
         const selected = normalize(theme);
-        document.documentElement.dataset.theme = selected;
+        preference = selected;
+        document.documentElement.dataset.themePreference = selected;
+        document.documentElement.dataset.theme = selected === 'system'
+            ? (systemAppearance?.matches ? 'captionkeep' : 'light') : selected;
         return selected;
     }
+
+    systemAppearance?.addEventListener('change', () => {
+        if (preference === 'system') apply('system');
+    });
 
     async function set(theme) {
         const selected = apply(theme);

@@ -10,18 +10,24 @@
     <script src="configuration.js" defer></script>
     <script src="localization.js" defer></script>
     <script src="privacyScrubber.js" defer></script>
+    <script src="correctionManager.js" defer></script>
     <script src="evidenceBoard.js" defer></script>
+    <script src="derivedArtifacts.js" defer></script>
+    <script src="rollingNotes.js" defer></script>
+    <script src="rollingNotesStore.js" defer></script>
     <script src="aiTaskFramework.js" defer></script>
+    <script src="promptTemplates.js" defer></script>
     <script src="aiDestinations.js" defer></script>
     <script src="webMailDestinations.js" defer></script>
+    <script src="browserCompat.js" defer></script>
     <script src="sidepanel.js" defer></script>
 </head>
 <body>
     <header class="brand">
-        <img src="icons/scribble-128.png" width="48" height="48" alt="">
+        <img src="icons/daf-tech-sphere.png" width="48" height="48" alt="">
         <div class="brand-copy">
-            <h1>Live Workspace</h1>
-            <p>Transcript and evidence in one place.</p>
+            <h1>Better CaptionKeep</h1>
+            <p>Live workspace</p>
         </div>
         <button id="close-panel" class="close-panel" type="button" aria-label="Close live workspace" title="Close live workspace">Close</button>
     </header>
@@ -29,15 +35,15 @@
     <main>
         <section class="meeting-bar" aria-labelledby="meeting-heading">
             <div class="section-heading">
-                <h2 id="meeting-heading">Current meeting</h2>
-                <span id="capture-state" class="status-pill">Connecting</span>
+                <h2 id="meeting-heading" tabindex="-1">Live workspace</h2>
+                <span id="capture-state" class="status-pill">No meeting</span>
             </div>
             <p id="meeting-title" class="meeting-title">Open Teams, Meet, or Zoom Web.</p>
             <p id="meeting-provider" class="muted"></p>
             <div id="meeting-source-controls" class="meeting-source-controls" hidden>
                 <div class="source-control-heading">
                     <strong>Meeting sources</strong>
-                    <span>Off until you choose them</span>
+                    <span id="source-control-summary">Choose what to enable</span>
                 </div>
                 <div class="source-control-actions">
                     <button id="enable-live-captions" class="primary" type="button">Enable live captions</button>
@@ -49,65 +55,146 @@
             <p id="board-status" class="muted" role="status" aria-live="polite"></p>
         </section>
 
-        <nav class="workspace-tabs" aria-label="Live workspace views">
-            <button id="transcript-tab" class="workspace-tab active" type="button" aria-selected="true">Live transcript</button>
-            <button id="evidence-tab" class="workspace-tab" type="button" aria-selected="false">Evidence <span id="marker-count">0</span></button>
+        <section id="workspace-empty" class="workspace-empty" hidden>
+            <h2>Waiting for captions</h2>
+            <p>Turn on meeting captions. Captured words will appear here automatically.</p>
+        </section>
+
+        <nav class="workspace-tabs" aria-label="Live workspace views" role="tablist" hidden>
+            <button id="transcript-tab" class="workspace-tab active" type="button" role="tab" aria-controls="transcript-view" aria-selected="true">Transcript</button>
+            <button id="notes-tab" class="workspace-tab" type="button" role="tab" aria-controls="notes-view" aria-selected="false" tabindex="-1">Notes <span id="note-count" class="count-badge" hidden></span></button>
+            <button id="tools-tab" class="workspace-tab" type="button" role="tab" aria-controls="tools-view" aria-selected="false" tabindex="-1">Tools</button>
         </nav>
 
-        <section id="transcript-view" class="workspace-view" aria-labelledby="latest-heading">
+        <section id="transcript-view" class="workspace-view" role="tabpanel" aria-labelledby="transcript-tab" tabindex="0" hidden>
             <div class="section-heading">
-                <h2 id="latest-heading">Captured captions</h2>
-                <button id="open-transcript" class="text-button" type="button">Open full transcript</button>
-            </div>
-            <blockquote id="latest-caption">Waiting for a stable captured caption…</blockquote>
-            <p id="latest-meta" class="muted"></p>
-            <section class="on-the-fly-card" aria-labelledby="on-the-fly-heading">
-                <img src="icons/on-the-fly-orb.png" alt="" width="72" height="72">
-                <div>
-                    <h2 id="on-the-fly-heading">On the Fly</h2>
-                    <p>Select meeting words, then research, explain, reply, or open a follow-up in webmail. Use Review/edit only when you need more control.</p>
+                <h2 id="latest-heading">Conversation</h2>
+                <div class="section-actions">
+                    <button id="open-transcript" class="text-button" type="button">Full transcript</button>
                 </div>
-            </section>
+            </div>
+            <p id="latest-caption" class="conversation-empty">Waiting for a stable captured caption…</p>
+            <p id="latest-meta" hidden></p>
+            <div class="conversation-toolbar">
+                <div class="search-row">
+                    <input id="transcript-search" type="search" placeholder="Find in this meeting" autocomplete="off" aria-label="Search transcript">
+                </div>
+                <div class="conversation-controls"><span class="caption-count"><span id="transcript-count">0</span> captions</span><button id="follow-latest" class="text-button" type="button" aria-pressed="true">Follow latest</button></div>
+            </div>
+            <details class="conversation-help"><summary>How to use a caption</summary><p>Choose a caption or select its words to mark evidence or use On the Fly. With a keyboard, move between captions using the arrow keys, then press Enter or Space. Follow latest pauses when you scroll back or select words.</p></details>
+            <p id="transcript-window-note" class="conversation-help" hidden>Showing the most recent 150 matching captions. Open Full transcript for earlier words.</p>
+            <ol id="transcript-list" class="transcript-list" aria-label="Meeting conversation">
+                <li class="empty">Connect to a supported meeting to see captions.</li>
+            </ol>
             <div id="on-the-fly-bar" class="instant-research-bar" hidden>
-                <div><strong id="on-the-fly-label">Selected meeting text</strong><span id="on-the-fly-preview"></span></div>
-                <div class="on-the-fly-quick-actions" aria-label="On the Fly actions">
+                <div class="selection-heading"><strong id="on-the-fly-label">Selected caption</strong><button id="clear-on-the-fly" class="text-button" type="button" aria-label="Clear caption selection">Clear</button></div>
+                <span id="on-the-fly-preview"></span>
+                <div class="mark-controls">
+                    <select id="marker-kind" aria-label="Marker type"></select>
+                    <button id="mark-latest" class="primary" disabled>Mark selection</button>
+                </div>
+                <details class="selection-note"><summary>Add a note</summary><input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off" aria-label="Optional evidence marker note"></details>
+                <details class="selection-ai"><summary>On the Fly</summary><div class="on-the-fly-quick-actions" aria-label="On the Fly actions">
                     <button class="primary" type="button" data-quick-task="research">Research</button>
                     <button type="button" data-quick-task="explain">Explain</button>
                     <button type="button" data-quick-task="draft_reply">Reply</button>
                     <button type="button" data-quick-task="email">Email</button>
                     <button id="review-on-the-fly" type="button">Review/edit</button>
-                    <button id="clear-on-the-fly" class="text-button" type="button">Clear</button>
-                </div>
+                </div></details>
             </div>
-            <div class="mark-controls">
-                <select id="marker-kind" aria-label="Marker type"></select>
-                <input id="marker-note" type="text" maxlength="500" placeholder="Optional note" autocomplete="off">
-                <button id="mark-latest" class="primary" disabled>Mark latest</button>
-            </div>
-            <div class="search-row">
-                <input id="transcript-search" type="search" placeholder="Search transcript" autocomplete="off" aria-label="Search transcript">
-                <span id="transcript-count" class="status-pill">0</span>
-            </div>
-            <ol id="transcript-list" class="transcript-list">
-                <li class="empty">Connect to a supported meeting to see captions.</li>
-            </ol>
         </section>
 
-        <section id="evidence-view" class="workspace-view" aria-labelledby="markers-heading" hidden>
-            <h2 id="markers-heading">Evidence markers</h2>
-            <label for="marker-session">Evidence board</label>
-            <select id="marker-session" aria-label="Choose an evidence board"></select>
-            <div class="actions">
-                <button id="copy-board" disabled>Copy</button>
-                <button id="download-board" disabled>Markdown</button>
-                <button id="email-board" disabled>Email follow-up</button>
-                <button id="download-bundle" disabled>Provenance JSON</button>
-            </div>
-            <ol id="marker-list" class="marker-list">
-                <li class="empty">No markers for this meeting yet.</li>
-            </ol>
+        <section id="notes-view" class="workspace-view" role="tabpanel" aria-labelledby="notes-tab" tabindex="0" hidden>
+            <div class="section-heading"><div><h2 id="notes-heading">Live Notes</h2><p class="muted">Generate a cited draft, review it, then keep it separately from the transcript.</p></div><button id="generate-notes" class="primary" type="button">Generate notes now</button></div>
+            <section class="rolling-notes-card" aria-labelledby="rolling-notes-heading">
+                <div class="section-heading">
+                    <div><h3 id="rolling-notes-heading">Rolling notes</h3><p class="muted">Local, extractive updates from new caption batches. Nothing is sent anywhere.</p></div>
+                    <span id="rolling-notes-state" class="status-pill">Off</span>
+                </div>
+                <div class="rolling-note-controls">
+                    <button id="rolling-notes-toggle" class="primary" type="button">Start rolling notes</button>
+                    <button id="rolling-notes-update" type="button" disabled>Update now</button>
+                    <label for="rolling-notes-interval">Update interval</label>
+                    <select id="rolling-notes-interval">
+                        <option value="30000">30 seconds</option>
+                        <option value="60000">1 minute</option>
+                        <option value="120000">2 minutes</option>
+                    </select>
+                </div>
+                <p id="rolling-notes-status" class="muted" role="status" aria-live="polite">Start when you want local rolling evidence notes.</p>
+                <textarea id="rolling-notes-draft" rows="8" readonly aria-label="Rolling notes draft"></textarea>
+                <div class="artifact-actions"><button id="rolling-notes-review" type="button" disabled>Review this draft</button></div>
+                <details><summary>Rolling revision history</summary><ol id="rolling-notes-revisions" class="rolling-revision-list"><li class="empty">No rolling updates yet.</li></ol></details>
+            </section>
+            <label for="notes-draft">Reviewed notes draft</label>
+            <textarea id="notes-draft" rows="10" maxlength="100000" placeholder="Paste or write notes with caption citations such as C0001."></textarea>
+            <div class="artifact-actions"><button id="save-notes" class="primary" type="button">Keep reviewed notes</button><button id="clear-notes" type="button">Clear draft</button></div>
+            <p class="muted">Every saved draft must cite caption IDs that exist in the current snapshot.</p>
+            <ol id="notes-list" class="artifact-list"><li class="empty">No reviewed notes kept for this meeting.</li></ol>
         </section>
-        <p class="daf-tech-signature"><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
+
+        <section id="tools-view" class="workspace-view tools-view" role="tabpanel" aria-labelledby="tools-tab" tabindex="0" hidden>
+            <div class="section-heading"><div><h2 id="tools-heading">Tools</h2><p class="muted">Open a tool only when you need it.</p></div></div>
+            <details id="moments-tool" class="tool-disclosure">
+                <summary>Capture a moment <span id="moment-count" class="count-badge" hidden></span></summary>
+                <section id="moments-view" class="tool-section" aria-labelledby="moments-heading">
+                    <div class="section-heading"><div><h3 id="moments-heading">Captured moments</h3><p class="muted">Reviewed local images bound to this transcript snapshot.</p></div><button id="capture-moment-secondary" class="moment-button" type="button">Capture a moment</button></div>
+                    <ol id="moment-list" class="artifact-list"><li class="empty">No moments kept for this meeting.</li></ol>
+                </section>
+            </details>
+            <details id="evidence-tool" class="tool-disclosure">
+                <summary>Evidence <span id="marker-count" class="count-badge" hidden></span></summary>
+                <section id="evidence-view" class="tool-section" aria-labelledby="markers-heading">
+                    <h3 id="markers-heading">Evidence markers</h3>
+                    <label for="marker-session">Evidence board</label>
+                    <select id="marker-session" aria-label="Choose an evidence board"></select>
+                    <div class="actions">
+                        <button id="copy-board" disabled>Copy</button>
+                        <button id="download-board" disabled>Markdown</button>
+                        <button id="email-board" disabled>Email follow-up</button>
+                        <button id="download-bundle" disabled>Provenance JSON</button>
+                    </div>
+                    <ol id="marker-list" class="marker-list"><li class="empty">No markers for this meeting yet.</li></ol>
+                    <details><summary>Verified action receipts <span id="action-receipt-count">0</span></summary>
+                        <p class="muted">Separately approved actions with verified results, kept alongside their source citations.</p>
+                        <ol id="action-receipt-list" class="artifact-list"><li class="empty">No verified action receipts kept for this meeting.</li></ol>
+                    </details>
+                </section>
+            </details>
+            <details id="ask-tool" class="tool-disclosure">
+                <summary>Ask this transcript <span id="answer-count" class="count-badge" hidden></span></summary>
+                <section id="ask-view" class="tool-section" aria-labelledby="ask-heading">
+                    <h3 id="ask-heading">Ask this transcript</h3>
+                    <p class="muted">The reviewed handoff is bound to the transcript snapshot visible now. Keep the answer only after checking every citation.</p>
+                    <label for="ask-question">Question</label>
+                    <textarea id="ask-question" rows="4" maxlength="1000" placeholder="What decision was made, and who owns the next step?"></textarea>
+                    <button id="prepare-question" class="primary" type="button">Review question handoff</button>
+                    <div class="answer-review">
+                        <label for="answer-draft">Reviewed answer</label>
+                        <textarea id="answer-draft" rows="9" maxlength="100000" placeholder="Paste the reviewed answer here. Include caption citations such as C0001."></textarea>
+                        <div class="artifact-actions"><button id="save-answer" class="primary" type="button">Keep reviewed answer</button><button id="clear-answer" type="button">Clear draft</button></div>
+                        <button id="answer-not-established" type="button">The transcript does not establish an answer</button>
+                        <p class="muted">Saved answers remain separate from the source transcript and require valid caption citations.</p>
+                    </div>
+                    <ol id="answer-list" class="artifact-list"><li class="empty">No reviewed answers kept for this meeting.</li></ol>
+                </section>
+            </details>
+            <details id="templates-tool" class="tool-disclosure">
+                <summary>Templates</summary>
+                <section id="templates-view" class="tool-section" aria-labelledby="templates-heading">
+                    <h3 id="templates-heading">Meeting templates</h3>
+                    <p class="muted">Choose reusable instructions for your next reviewed notes handoff. Template versions stay separate from the captured words.</p>
+                    <label for="workspace-template-select">Template</label>
+                    <select id="workspace-template-select"></select>
+                    <p id="workspace-template-version" class="muted"></p>
+                    <label for="workspace-template-preview">Saved instructions</label>
+                    <textarea id="workspace-template-preview" rows="7" readonly></textarea>
+                    <button id="workspace-template-use" class="primary" type="button">Review notes with this template</button>
+                    <p><a href="settings.html#intelligence-settings" target="_blank" rel="noopener">Create, edit, import, or export templates in All Settings</a></p>
+                </section>
+            </details>
+        </section>
+        <p class="daf-tech-signature" hidden><img src="icons/daf-tech-sphere.png" alt="">A DAF-TECH Product</p>
     </main>
     <dialog id="on-the-fly-dialog" aria-labelledby="on-the-fly-dialog-title">
         <form method="dialog">

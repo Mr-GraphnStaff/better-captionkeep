@@ -5,7 +5,7 @@ This project's work is tracked in Azure DevOps Boards (tenant `daf-tech.com`), a
 - **Codex**: writes code.
 - **Claude Code**: research — platform/DOM investigation (see `docs/ZOOM-WEB-CHALLENGES.md`, `docs/MEETING-CHAT-CAPTURE.md`), Azure Boards state, CI/CD and release pipeline status.
 
-To let Claude Code read board and pipeline state without any risk of it writing back and conflicting with Codex's work, it connects to the official Microsoft **remote Azure DevOps MCP server** (`https://mcp.dev.azure.com/{organization}`) in **read-only** mode, scoped to only the toolsets it needs:
+Research-only clients connect to the official Microsoft **remote Azure DevOps MCP server** (`https://mcp.dev.azure.com/{organization}`) with server-side **read-only** filtering, scoped to the toolsets they need. The coordinating agent can maintain Boards through a separately authorized connection; this research configuration does not grant write authority.
 
 ```json
 {
@@ -44,11 +44,32 @@ Requires the Azure DevOps org to be backed by a Microsoft Entra tenant (true for
 6. Register the server with Claude Code:
    ```bash
    claude mcp add --transport http ado https://mcp.dev.azure.com/{organization} \
+     --header "X-MCP-Readonly: true" \
+     --header "X-MCP-Toolsets: wit,pipelines,work" \
      --client-id {client-id} --callback-port 3118
    ```
 7. In Claude Code, run `/mcp` and complete the browser sign-in.
+8. Run `claude mcp get ado` and verify the saved HTTP configuration includes
+   both headers with exactly the values above. Then inspect the authenticated
+   connection's available tools through `/mcp` (or its MCP `tools/list` result).
+   Confirm work-item reads and permitted pipeline/iteration reads are available,
+   but work-item writes, comments/links, queued builds, iteration/capacity writes
+   and other mutation tools/actions are unavailable. Do not test this by writing
+   to production. If the client cannot expose the tool list or write actions are
+   present, stop and treat read-only verification as incomplete.
+
+The command above is shell syntax with backslash continuations. On PowerShell,
+run it on one line (or use PowerShell's continuation syntax). If `ado` already
+exists, inspect it first; do not silently replace an authenticated configuration.
+
+Local verification on October 14, 2026: installed `claude mcp add --help`
+supports repeated `--header`, `--client-id`, and `--callback-port` flags.
+Microsoft and Claude Code documentation confirm the header/authentication
+contracts. A new authenticated connection and its filtered tool inventory were
+not exercised during this documentation repair; GitHub issue #38 remains open.
 
 Reference: [Set up the remote Azure DevOps MCP Server](https://learn.microsoft.com/en-us/azure/devops/mcp-server/remote-mcp-server?view=azure-devops).
+Client syntax: [Claude Code MCP configuration](https://code.claude.com/docs/en/mcp).
 
 ## Why not give it write access
 

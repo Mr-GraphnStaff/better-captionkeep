@@ -43,6 +43,7 @@ test('Chrome Store metadata contract accepts synchronized disclosures', async ()
   assert.deepEqual(validateChromeStoreMetadata(manifest, metadata), {
     version: '5.2.0',
     permissions: 3,
+    optionalPermissions: 0,
     hostPermissions: 1,
     optionalHostPermissions: 0,
     providers: 3,
@@ -57,6 +58,19 @@ test('Chrome Store metadata contract rejects a permission without a justificatio
     () => validateChromeStoreMetadata(manifest, metadata),
     /permission justifications drifted/i,
   );
+});
+
+test('Chrome Store metadata requires exact optional-permission justification coverage', async () => {
+  const {validateChromeStoreMetadata} = await import('../scripts/check-store-metadata.mjs');
+  const {manifest,metadata} = fixture();
+  manifest.optional_permissions = ['nativeMessaging'];
+  assert.throws(() => validateChromeStoreMetadata(manifest,metadata),/optional permission justifications drifted/i);
+  metadata.optionalPermissionJustifications = {nativeMessaging:'Required'};
+  assert.throws(() => validateChromeStoreMetadata(manifest,metadata),/nativeMessaging optional justification must contain a meaningful/);
+  metadata.optionalPermissionJustifications.nativeMessaging = 'Explicit Connect grants access to a separately installed user-owned helper; local capture does not require it.';
+  assert.equal(validateChromeStoreMetadata(manifest,metadata).optionalPermissions,1);
+  metadata.optionalPermissionJustifications.debugger = 'This undeclared optional permission must not be accepted by the gate.';
+  assert.throws(() => validateChromeStoreMetadata(manifest,metadata),/optional permission justifications drifted/i);
 });
 
 test('Chrome Store metadata contract rejects host and version drift', async () => {
@@ -90,7 +104,7 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
   const metadata = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-metadata', 'chrome.json')));
   const dossier = fs.readFileSync(path.join(__dirname, '..', 'CHROMEWEBSTORE.md'), 'utf8');
   assert.deepEqual(validateChromeWebStoreDossier(manifest, metadata, dossier), {
-    version:'5.4.0', synchronized:true
+    version:'6.0.0', synchronized:true
   });
   assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace(
@@ -103,6 +117,8 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace('`identity`', '`removed-identity`')),
     /missing current Store value: `identity`/
   );
+  assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
+  assert(!Object.hasOwn(metadata.optionalPermissionJustifications || {}, 'nativeMessaging'));
 });
 
 test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () => {
@@ -118,4 +134,22 @@ test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () =>
   assert.equal(fs.existsSync(path.join(__dirname, '..', 'store-assets/5.4/04-cited-live-chat-reply.png')), false);
   assert.deepEqual(pngDimensions('store-assets/5.4/small-promotional-tile.png'), [440, 280]);
   assert.deepEqual(pngDimensions('store-assets/5.4/large-promotional-tile.png'), [1400, 560]);
+});
+
+test('6.0 Store artwork has exact listing dimensions and pending owner approval', () => {
+  for (const screenshot of [
+    '01-one-button-meeting.png',
+    '02-rolling-live-notes.png',
+    '03-capture-moment.png',
+    '04-meeting-receipt.png',
+    '05-advanced-settings.png',
+  ]) {
+    assert.deepEqual(pngDimensions(`store-assets/6.0/${screenshot}`), [1280, 800]);
+  }
+  assert.deepEqual(pngDimensions('store-assets/6.0/small-promotional-tile.png'), [440, 280]);
+  assert.deepEqual(pngDimensions('store-assets/6.0/marquee-promotional-tile.png'), [1400, 560]);
+  const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-assets/6.0/manifest.json'), 'utf8'));
+  assert.equal(assetManifest.version, '6.0.0');
+  assert.equal(assetManifest.approval, 'pending release-owner review');
+  assert.equal(assetManifest.artifacts.length, 7);
 });

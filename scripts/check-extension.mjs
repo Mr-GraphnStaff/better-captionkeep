@@ -112,6 +112,7 @@ async function validateManifest(manifest) {
 
   const scriptsToCheck = new Set([
     'aiDestinations.js',
+    'browserCompat.js',
     'configuration.js',
     'content_script.js',
     'googleMeetContentScript.js',
@@ -126,6 +127,7 @@ async function validateManifest(manifest) {
     'teamsCaptionBuffer.js',
     'sessionManager.js',
     'evidenceBoard.js',
+    'derivedArtifacts.js',
     'sidepanel.css',
     'sidepanel.html',
     'sidepanel.js',

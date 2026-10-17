@@ -18,6 +18,9 @@
     let trackingAllowed = true;
     let liveCaptionsRequested = false;
     let adapterStarted = false;
+    let captureSurfaceId = '';
+    let providerTransition = null;
+    const pendingProviderEvents = [];
     const summaryFeature = insights.createAiSummaryFeature({
         storage: chrome.storage.sync,
         readManaged: () => configuration.readManaged(),
@@ -25,11 +28,47 @@
         sendMessage: message => chrome.runtime.sendMessage(message)
     });
 
+    function updateCaptureBadge() {
+        const state = coordinator?.getState();
+        chrome.runtime.sendMessage({
+            message:'update_badge_status',
+            capturing:trackingAllowed && state?.captureState === 'capturing'
+        }).catch(() => {});
+    }
+
     function handleProviderEvent(event) {
+        if (providerTransition) {
+            pendingProviderEvents.push(event);
+            return;
+        }
+        if (event?.type === 'meeting-started') {
+            providerTransition = restartCapture();
+            providerTransition.catch(error => console.error('[Better CaptionKeep] Capture transition failed.', error));
+            return;
+        }
+        consumeProviderEvent(event);
+    }
+
+    async function restartCapture() {
+        try {
+            try { await coordinator.finalize(); }
+            catch (error) { console.error('[Better CaptionKeep] Previous meeting remains in recovery.', error); }
+            coordinator = createCaptureCoordinator();
+            if (!trackingAllowed) coordinator.pause();
+            updateCaptureBadge();
+        } finally {
+            providerTransition = null;
+            pendingProviderEvents.splice(0).forEach(handleProviderEvent);
+        }
+    }
+
+    function consumeProviderEvent(event) {
+        if (!trackingAllowed && event?.type?.startsWith('caption-')) return;
         coordinator.handleProviderEvent(event);
+        updateCaptureBadge();
         if (event?.type !== 'meeting-ended') return;
         liveCaptionsRequested = false;
-        adapter.setAutoEnableCaptions(false);
+        adapter.setAutoEnableCaptions(trackingAllowed);
         const state = coordinator.getState();
         summaryFeature.onMeetingEnded({
             transcript: coordinator.getTranscript(),
@@ -39,8 +78,17 @@
         }).catch(error => console.error('[Better CaptionKeep] Could not prepare the evidence summary.', error));
     }
 
+    function createCaptureCoordinator() {
+        return coordinatorFactory.create({
+            providerId:'zoom', surfaceId:captureSurfaceId,
+            normalizeCaption:registry.normalizeCaption, storage:chrome.storage.local,
+            sendMessage:message => chrome.runtime.sendMessage(message),
+            pageUrl:window.location.href, meetingTitle:document.title || 'Zoom meeting'
+        });
+    }
+
     function startAdapter() {
-        if (adapterStarted || !trackingAllowed) return;
+        if (adapterStarted) return;
         adapter.start(handleProviderEvent);
         adapterStarted = true;
     }
@@ -58,23 +106,23 @@
             if (!coordinator) return;
             if (trackingAllowed) {
                 coordinator.resume();
+                adapter.setCaptureEnabled?.(true);
+                adapter.setAutoEnableCaptions(true);
                 startAdapter();
-            } else stopAdapter('paused');
+            } else {
+                adapter.setAutoEnableCaptions(false);
+                coordinator.pause();
+                adapter.setCaptureEnabled?.(false);
+            }
+            updateCaptureBadge();
         }
     });
 
     async function initialize() {
         const surface = await chrome.runtime.sendMessage({message: 'get_capture_surface', providerId: 'zoom'});
         if (!surface?.ok || !surface.surfaceId) throw new Error(surface?.error || 'Capture surface is unavailable');
-        coordinator = coordinatorFactory.create({
-            providerId: 'zoom',
-            surfaceId: surface.surfaceId,
-            normalizeCaption: registry.normalizeCaption,
-            storage: chrome.storage.local,
-            sendMessage: message => chrome.runtime.sendMessage(message),
-            pageUrl: window.location.href,
-            meetingTitle: document.title || 'Zoom meeting'
-        });
+        captureSurfaceId = surface.surfaceId;
+        coordinator = createCaptureCoordinator();
         await coordinator.restore();
         adapter.restoreState?.(coordinator.getTranscript());
         try {
@@ -83,9 +131,11 @@
         } catch {
             trackingAllowed = true;
         }
-        adapter.setAutoEnableCaptions(false);
-        if (trackingAllowed) startAdapter();
-        else coordinator.pause();
+        adapter.setAutoEnableCaptions(trackingAllowed);
+        adapter.setCaptureEnabled?.(trackingAllowed);
+        if (!trackingAllowed) coordinator.pause();
+        startAdapter();
+        updateCaptureBadge();
     }
 
     window.addEventListener('pagehide', () => {
@@ -143,6 +193,9 @@
             case 'get_captions_for_viewing': {
                 const transcriptArray = coordinator.getTranscript();
                 if (transcriptArray.length > 0) chrome.runtime.sendMessage({message: 'display_captions', sessionId: state.recordingStartTime, meetingTitle: document.title || 'Zoom meeting', transcriptArray});
+                sendResponse(transcriptArray.length > 0
+                    ? {ok:true, opened:true, captionCount:transcriptArray.length}
+                    : {ok:false, opened:false, captionCount:0, error:'No captions have been captured yet.'});
                 return false;
             }
             case 'get_zoom_diagnostic':
