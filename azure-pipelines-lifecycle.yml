@@ -30,6 +30,7 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  fetchDepth: 0
                   clean: true
                 - task: UseNode@1
                   inputs:
@@ -73,6 +74,7 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  fetchDepth: 0
                   clean: true
                 - task: UseNode@1
                   inputs:
