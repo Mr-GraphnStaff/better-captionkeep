@@ -25,8 +25,9 @@ Version 6.0 is frozen on `release/6.0` with source
 `9be23bf010913884c426fe11b9e14a3f126ca10b` and the exact eight hashes in
 [`6.0.json`](release-state/6.0.json). Clean Package run
 [40075430037](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40075430037)
-passed at d3ff13e; only four Wiki guidance files changed before the final source
-freeze. All seven shipping ZIPs remain byte-identical to the original
+passed at d3ff13e. Later changes comprise four Wiki guidance files, release
+metadata, and the protected Azure submission wiring with its regression test;
+no extension runtime changed. All seven shipping ZIPs remain byte-identical to the original
 owner-approved packages. Frozen-metadata CI verifies the eight hashes again.
 
 David explicitly authorized publication with the
