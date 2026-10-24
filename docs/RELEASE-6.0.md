@@ -33,11 +33,26 @@ final tag commit and reviewed source `9dabe8174ad51ef07662e739ab0ee2affec5cd75`.
 
 The GitHub API reports `isImmutable: false`; server-enforced release immutability
 is not claimed. The approved source and artifacts are operationally frozen,
-with hashes, provenance and attestations retained. **Chrome and Edge Store
-submission is pending.** No Store certification, current 6.0 public listing, or
-installed-upgrade verification is claimed. The machine state remains candidate
+with hashes, provenance and attestations retained. **Chrome accepted 6.0 for
+review and Microsoft accepted the Edge certification submission.** Certification
+approval, current 6.0 public listings and installed-upgrade verification remain
+pending. The machine state remains candidate
 until the Store and upgrade outcomes are complete; owner exceptions remain
 explicit and do not turn unfinished acceptance into passes.
+
+## Store submission receipts — October 24, 2026
+
+[Store pipeline 858](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_build/results?buildId=858)
+succeeded using tag `v6.0.0` at `7470bbf1fe2347ce9c850ed7666ac326e79e7278`.
+Chrome accepted 6.0 for review at 08:58:01 UTC with state **PENDING_REVIEW**,
+configured for immediate publication after approval. Microsoft accepted the
+Edge update for certification at 08:58:33 UTC; the submission operation
+succeeded, which is not certification approval.
+
+Chrome's pre-submission API check still reported public **5.4.0**. Store
+certification decisions, 6.0 public listings and installed-upgrade verification
+remain pending. The machine record therefore stays candidate with those gates
+false; the existing owner acceptance exceptions remain explicitly unpassed.
 
 ## Status
 
@@ -58,8 +73,9 @@ David explicitly authorized publication with the
 [documented owner exception](release-state/6.0-owner-exception.md).
 Full-scope/accessibility/failure acceptance, five exact-package live browser
 certifications and the unchanged window remain unpassed and visibly waived.
-The permission delta is zero. Store submission, certification, public parity
-and installed-upgrade verification remain separate rollout outcomes.
+The permission delta is zero. Store submissions are accepted; certification
+approval, public parity and installed-upgrade verification remain separate
+rollout outcomes.
 
 The executable scope and gate sequence are maintained in
 [`ROADMAP-6.0.md`](ROADMAP-6.0.md).

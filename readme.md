@@ -25,7 +25,7 @@ identifies the single next Chromium test package at
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme.
 
-> **Distribution status — October 24, 2026:** [GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) is published with 15 hash-verified assets. Chrome and Edge Store submission of 6.0 is pending; no Store review or public upgrade is claimed. The last documented public Store baseline is 5.4.0, verified in October; see [Release status](docs/wiki/Release-Status.md).
+> **Distribution status — October 24, 2026:** [GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) is published with 15 hash-verified assets. Chrome accepted 6.0 for review and Microsoft accepted it for Edge certification in Store pipeline 858. Certification approval and public upgrades remain unverified. The last documented public Store baseline is 5.4.0, verified in October; see [Release status](docs/wiki/Release-Status.md).
 
 > **6.0 GitHub publication; Store rollout pending:** The 6.0 line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. The authoritative release record binds repaired source `9dabe817` and all eight frozen hashes. The published tag is `7470bbf1`, promoted through protected `master`; its packages match the clean bounded-repair build. The original build evidence is preserved. David Farris explicitly authorized publication with the documented unfinished acceptance and unchanged-window exceptions; those checks remain unpassed. Store approval, public parity and installed-upgrade verification remain rollout checks.
 
@@ -141,7 +141,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-The last documented Chrome and Edge Store baseline is `5.4.0`; 6.0 is published on GitHub and its Store submission is pending. Installed-upgrade and post-upgrade functional smoke verification remain separate evidence. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+The last documented Chrome and Edge Store baseline is `5.4.0`; 6.0 is published on GitHub and accepted for Chrome review and Edge certification; approval and public upgrades remain pending. Installed-upgrade and post-upgrade functional smoke verification remain separate evidence. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
@@ -214,7 +214,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. The last documented public Store baseline is `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` is published on GitHub with explicit owner exceptions to incomplete acceptance and the test window. Its Chrome and Edge Store submissions are pending; Store availability is a separate outcome. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 release record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. The last documented public Store baseline is `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` is published on GitHub with explicit owner exceptions to incomplete acceptance and the test window. Its Chrome submission is PENDING_REVIEW and the Edge certification submission was accepted; certification approval and Store availability are separate outcomes. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 release record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
@@ -243,4 +243,18 @@ bind the repaired candidate, eight frozen hashes and 14 verified attestation
 subjects. GitHub's API reports server immutability disabled; the approved
 artifacts are operationally frozen and hash-verified. The release remains in
 the logical candidate state until Store approval, public listing parity and
-installed-upgrade verification are recorded. Store submission is pending.
+installed-upgrade verification are recorded. Chrome review and Edge certification decisions are pending.
+
+## Store submission receipts — October 24, 2026
+
+[Store pipeline 858](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_build/results?buildId=858)
+succeeded using tag `v6.0.0` at `7470bbf1fe2347ce9c850ed7666ac326e79e7278`.
+Chrome accepted 6.0 for review at 08:58:01 UTC with state **PENDING_REVIEW**,
+configured for immediate publication after approval. Microsoft accepted the
+Edge update for certification at 08:58:33 UTC; the submission operation
+succeeded, which is not certification approval.
+
+Chrome's pre-submission API check still reported public **5.4.0**. Store
+certification decisions, 6.0 public listings and installed-upgrade verification
+remain pending. The machine record therefore stays candidate with those gates
+false; the existing owner acceptance exceptions remain explicitly unpassed.
