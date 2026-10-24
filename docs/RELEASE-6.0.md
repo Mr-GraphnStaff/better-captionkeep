@@ -3,10 +3,9 @@
 > **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0-repair-96`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
@@ -21,14 +20,13 @@ No new repository or parallel source folder is needed for promotion.
 
 ## Status
 
-Version 6.0 is frozen on `release/6.0` with source
-`9be23bf010913884c426fe11b9e14a3f126ca10b` and the exact eight hashes in
-[`6.0.json`](release-state/6.0.json). Clean Package run
-[40075430037](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40075430037)
-passed at d3ff13e. Later changes comprise four Wiki guidance files, release
-metadata, and the protected Azure submission wiring with its regression test;
-no extension runtime changed. All seven shipping ZIPs remain byte-identical to the original
-owner-approved packages. Frozen-metadata CI verifies the eight hashes again.
+Version 6.0 is being requalified after the owner requested **“Repair and continue”**
+for the conditional Teams Leave/cancel session-split defect in [issue #96](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/96).
+The repair preserves the active session during a temporary control gap and visible
+confirmation dialog. The original approved packages are preserved as historical
+build evidence; the repaired candidate receives fresh package hashes, source
+binding and clean-build provenance. Current identity is authoritative in
+[`6.0.json`](release-state/6.0.json). The approved artwork is unchanged.
 
 David explicitly authorized publication with the
 [documented owner exception](release-state/6.0-owner-exception.md).

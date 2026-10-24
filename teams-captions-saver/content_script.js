@@ -685,11 +685,12 @@ function setupCaptionsObserver() {
 
 const checkMeetingState = ErrorHandler.wrap(async function() {
     const previouslyInMeeting = wasInMeeting;
-    // A canceled Leave dialog must not make a later DOM remount look like an
-    // explicit exit. Expire intent only with positive live in-call controls;
-    // a hidden window or missing controls cannot clear a real exit.
-    if (leaveRequested && leaveRequestedAt && Date.now() - leaveRequestedAt >= TIMING.LEAVE_INTENT_LIFETIME
-        && getLiveMeetingElement(SELECTORS.LEAVE_BUTTONS)) {
+    // Returning controls after a source gap indicate a canceled Leave. Keep
+    // initial post-click controls from clearing intent before a real departure.
+    // Otherwise retain the existing positive-control intent expiry.
+    if (leaveRequested && getLiveMeetingElement(SELECTORS.LEAVE_BUTTONS)
+        && (sourceMissingSince !== null || (leaveRequestedAt
+            && Date.now() - leaveRequestedAt >= TIMING.LEAVE_INTENT_LIFETIME))) {
         leaveRequested = false;
         leaveRequestedAt = 0;
     }
@@ -702,9 +703,15 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
     } else if (wasInMeeting) {
         sourceMissingSince ??= Date.now();
         captureState = 'source unavailable';
-        // Hidden Teams windows are not evidence that a meeting ended.
-        // Allow visible DOM swaps 15 seconds to settle before finalizing.
-        if (!leaveRequested && (document.hidden || Date.now() - sourceMissingSince < 15000)) return;
+        // Leave intent is not confirmation. Preserve a visible confirmation
+        // interval even beyond the normal grace, while keeping the badge OFF.
+        if (leaveRequested && getLiveMeetingElement('[role="dialog"], [role="alertdialog"]')) return;
+        // Hidden windows without Leave intent remain live. Fresh Leave intent
+        // also receives a grace period; aged real exits can ignore stale captions.
+        const leaveAge = leaveRequestedAt ? Date.now() - leaveRequestedAt : 0;
+        if ((!leaveRequested && document.hidden)
+            || (Date.now() - sourceMissingSince < 15000
+                && (!leaveRequested || leaveAge < TIMING.LEAVE_INTENT_LIFETIME))) return;
     }
     
     if (wasInMeeting && !nowInMeeting) {

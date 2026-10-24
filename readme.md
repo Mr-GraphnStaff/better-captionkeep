@@ -1,10 +1,9 @@
 # Better CaptionKeep
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0-repair-96`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
@@ -18,7 +17,7 @@
 
 **Testing 6.0?** Use the [hands-on QA and acceptance packet](docs/software-team/TESTER-ACCEPTANCE-6.0.md).
 Start with the Brave first-session checks; record results against the actual
-installed build. The candidate is frozen with the owner's explicit publication exception; missing live acceptance is not certification.
+installed build. The authoritative release record identifies the current candidate and owner's explicit publication exception; missing live acceptance is not certification.
 The [October 24 release-preparation record](docs/release-state/6.0-preparation.md)
 identifies the single next Chromium test package at
 `P:\Projects\better-captionkeep-dev\dist\uat`; existing Development files are preserved.
@@ -27,7 +26,7 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including th
 
 > **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).
 
-> **6.0 frozen candidate with accepted exceptions:** The `codex/6.0` line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. The candidate source and all eight hashes are frozen; approved shipping ZIP bytes remain unchanged. David Farris explicitly authorized publication with the documented unfinished acceptance and unchanged-window exceptions; those checks remain unpassed. Store approval, public parity and installed-upgrade verification remain rollout checks.
+> **6.0 candidate qualification with accepted exceptions:** The 6.0 line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. The authoritative release record identifies the candidate source and all eight hashes after qualification. The owner requested repair of the Teams Leave/cancel session split before continuing publication; repaired packages receive fresh qualification while the original build evidence is preserved. David Farris explicitly authorized publication with the documented unfinished acceptance and unchanged-window exceptions; those checks remain unpassed. Store approval, public parity and installed-upgrade verification remain rollout checks.
 
 ### 6.0 release scope
 
@@ -90,7 +89,7 @@ The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** a
 
 ## Release lineage
 
-Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the frozen public production baseline. [6.0](docs/RELEASE-6.0.md) is the frozen candidate authorized for publication with documented owner exceptions. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the frozen public production baseline. [6.0](docs/RELEASE-6.0.md) is being qualified for publication with documented owner exceptions and the requested Teams repair. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Approved 6.0 interface illustrations
 
@@ -174,7 +173,24 @@ After the project folder move, reload the extension from its new location if nee
 
 ## Development
 
-Use Node.js 22 or newer, then run `npm install`.
+Use Node.js 22 or newer. For the shipping 6.0 suite:
+
+```sh
+npm ci
+npm run test:release
+```
+
+For the full developer suite, including retained, unshipped MCP implementation
+tests, install the nested locked dependencies before running `npm test`:
+
+```sh
+npm ci
+npm run setup:helper
+npm test
+```
+
+Helper dependencies are development-only and are not required or shipped by the
+6.0 release gate. Azure Development uses the full-suite sequence above.
 
 - `npm run lint`: validate the extension manifest and assets.
 - `npm run locales:generate`: regenerate all packaged locale catalogs from the reviewed English source and preview translation map.
