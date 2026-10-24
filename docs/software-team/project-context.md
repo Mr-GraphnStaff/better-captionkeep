@@ -26,7 +26,7 @@ Only `dist/prod` supplies published distribution assets. Preserve existing Devel
 
 ## Confirmed team and ownership
 
-The repository-linked portable skill is [Software Team 1.0.11](../../.agents/skills/software-team/SKILL.md), with [roster 1.0.6](../../.agents/skills/software-team/references/team-roster.md). Eleven named teammates are confirmed. The human lead retains product, appointment, spending and accepted-risk decisions. Named specialist identities and approved character biographies do not establish real employment, qualifications or executed work.
+The repository-linked portable skill is [Software Team 1.0.13](../../.agents/skills/software-team/SKILL.md), with [roster 1.0.7](../../.agents/skills/software-team/references/team-roster.md). Twelve named teammates are confirmed: eleven employees and one external contractor. The human lead retains product, appointment, spending and accepted-risk decisions. Named specialist identities and approved character biographies do not establish real employment, qualifications or executed work.
 
 | Member | Accountable scope | Review and handoff |
 | --- | --- | --- |
@@ -41,6 +41,7 @@ The repository-linked portable skill is [Software Team 1.0.11](../../.agents/ski
 | Morgan Hale | Security Architect and InfoSec lead; reports to Codex | Independent verification and direct escalation remain available. |
 | Elena Voss | AI Security Architect; reports to Morgan | Separate implementation and adversarial-review ownership. |
 | Samir Rahman | Security Engineer; reports to Morgan | Work Samir authors receives a separate reviewer. |
+| Camila Reyes | External HR / People Operations contractor; reports directly to the lead | Coordinates recruiting and private personnel/review records; technical reviewers retain technical acceptance. Codex is the administrative liaison and cannot approve closure of findings about Codex. |
 
 Release/DevOps is covered by Codex with Ishan; documentation/support preparation is covered with the relevant specialists. These assignments do not imply separately staffed DevOps, writing or support hires. Every position receives on-the-spot and quarterly peer review under the portable policy; an assigned review is not an executed review or advance approval.
 
@@ -58,7 +59,7 @@ Local synthetic preparation may establish bounded contracts, but cannot certify 
 
 ## Skill delivery: verified state and limits
 
-Software Team 1.0.11 / roster 1.0.6 is present in the local authoring, installed plugin, repository-linked skill and portable export. Independent local review compared the 28-file sets and hashes across those copies. This establishes local artifact parity, not automatic cross-host synchronization.
+Software Team 1.0.11 / roster 1.0.6 previously received independent local review comparing the 28-file sets and hashes across authoring, installed plugin, repository-linked skill and portable export. This establishes that dated local artifact parity, not automatic cross-host synchronization. The subsequent 1.0.13 appointment update requires its own destination/hash verification. The ChatGPT editor connection is currently unavailable, so its saved 1.0.11 copy remains behind the local update; do not report it as synchronized.
 
 The earlier 1.0.10 ChatGPT update has saved/reloaded readback evidence for 25 text files under documented text normalization. Three additional uploaded files persisted by path but their content was not exposed for web-preview comparison. The 1.0.11 policy update has changed-text readback comparisons; independent saved-artifact comparison is distinct from independently observing the editor operation. No fresh ChatGPT conversation runtime acceptance has been completed. Keep authored, uploaded, persisted, read back and execution-tested states separate.
 

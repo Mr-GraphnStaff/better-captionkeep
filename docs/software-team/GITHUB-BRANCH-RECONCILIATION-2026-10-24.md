@@ -29,7 +29,7 @@ The original Teams buffer tests are a real retention difference: their five unch
 - `release/5.0`: protected historical baseline, not an active 6.0 development lane.
 - `codex/market-research-nadia`: the scoped active work branch for the portable Software Team and bounded research documentation PR.
 
-The public change contains the portable Software Team 1.0.11 / roster 1.0.6 package and bounded research documents. Internal personnel evaluations, candidate comparisons, account-specific host details and unrelated local configuration are excluded. Public research distinguishes desk findings from implementation and live acceptance.
+The public change contains the portable Software Team 1.0.13 / roster 1.0.7 package and bounded research documents. Internal personnel evaluations, candidate comparisons, account-specific host details and unrelated local configuration are excluded. Public research distinguishes desk findings from implementation and live acceptance.
 
 ## Execution status
 

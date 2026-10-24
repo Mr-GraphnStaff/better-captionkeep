@@ -2,6 +2,18 @@ param([Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 
+# Windows PowerShell 5.1 uses .NET Framework, which has no Path.GetRelativePath.
+# Every exported file is a descendant, so normalize and check that boundary first.
+function Get-ExportRelativePath {
+  param([string]$BaseDirectory,[string]$ChildFile)
+  $basePrefix=[IO.Path]::GetFullPath($BaseDirectory).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar))+[IO.Path]::DirectorySeparatorChar
+  $fullChild=[IO.Path]::GetFullPath($ChildFile)
+  $comparison=[StringComparison]::Ordinal
+  if([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT){$comparison=[StringComparison]::OrdinalIgnoreCase}
+  if(-not $fullChild.StartsWith($basePrefix,$comparison)){throw 'Export file must remain inside its source root.'}
+  return $fullChild.Substring($basePrefix.Length)
+}
+
 $sourceRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $skillText=[IO.File]::ReadAllText((Join-Path $sourceRoot 'SKILL.md'))
 $versionMatch=[regex]::Match($skillText,'(?m)^  version: "([0-9]+\.[0-9]+\.[0-9]+)"\r?$')
@@ -21,7 +33,7 @@ foreach($directory in @('agents','assets','references','scripts')){
 }
 foreach($file in $files){
   if($file.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Do not export linked source files.'}
-  $relative=[IO.Path]::GetRelativePath($sourceRoot,$file.FullName)
+  $relative=(Get-ExportRelativePath -BaseDirectory $sourceRoot -ChildFile $file.FullName)
   $destination=Join-Path $skillRoot $relative
   [IO.Directory]::CreateDirectory((Split-Path -Parent $destination))|Out-Null
   Copy-Item -LiteralPath $file.FullName -Destination $destination
@@ -34,7 +46,7 @@ $manifest=[ordered]@{
 }
 [IO.File]::WriteAllText((Join-Path $pluginRoot 'plugin.json'),($manifest|ConvertTo-Json -Depth 12)+[Environment]::NewLine)
 $entries=@(Get-ChildItem -LiteralPath $pluginRoot -File -Recurse|Sort-Object FullName|ForEach-Object{
-  [ordered]@{path=([IO.Path]::GetRelativePath($pluginRoot,$_.FullName).Replace('\','/'));sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
+  [ordered]@{path=((Get-ExportRelativePath -BaseDirectory $pluginRoot -ChildFile $_.FullName).Replace('\','/'));sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
 })
 $release=[ordered]@{name='software-team';version=$version;files=$entries}
 [IO.File]::WriteAllText((Join-Path $pluginRoot 'release-manifest.json'),($release|ConvertTo-Json -Depth 8)+[Environment]::NewLine)
