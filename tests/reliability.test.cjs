@@ -2115,10 +2115,16 @@ test('DOM-hidden cached Teams controls do not keep the badge ON',async()=>{
     assert.equal(h.run('capturing'),true,'recovery grace still preserves the session');
 });
 
-test('explicit Teams leave stops immediately even when hidden with a stale caption wrapper',async()=>{
+test('explicit Teams leave keeps the badge OFF during grace then stops despite a hidden stale caption wrapper',async()=>{
     const h=await contentHarness();h.document.hidden=true;
     h.document.querySelector=selector=>selector.includes('closed-caption-v2-window-wrapper')?{}:null;
-    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;recordingStartTime=new Date();transcriptArray.push({Name:'A',Text:'preserved',Time:'10'});");
+    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;leaveRequestedAt=Date.now();recordingStartTime=new Date();transcriptArray.push({Name:'A',Text:'preserved',Time:'10'});");
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),true,'fresh Leave intent is not confirmed departure');
+    assert.equal(h.messages.filter(m=>m.message==='update_badge_status').at(-1).capturing,false);
+    assert(!h.messages.some(m=>m.message==='meeting_ended'));
+    await new Promise(resolve=>setImmediate(resolve)); // Let the serialized first poll complete.
+    h.run('leaveRequestedAt=Date.now()-16000;sourceMissingSince=Date.now()-16000;');
     await h.run('handleMeetingStateChange()');
     assert.equal(h.run('capturing'),false);
     assert.equal(h.run('transcriptArray[0].Text'),'preserved');

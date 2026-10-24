@@ -21,14 +21,18 @@ No new repository or parallel source folder is needed for promotion.
 
 ## Status
 
-Version 6.0 is frozen on `release/6.0` with source
-`9be23bf010913884c426fe11b9e14a3f126ca10b` and the exact eight hashes in
-[`6.0.json`](release-state/6.0.json). Clean Package run
-[40075430037](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40075430037)
-passed at d3ff13e. Later changes comprise four Wiki guidance files, release
-metadata, and the protected Azure submission wiring with its regression test;
-no extension runtime changed. All seven shipping ZIPs remain byte-identical to the original
-owner-approved packages. Frozen-metadata CI verifies the eight hashes again.
+The final bounded repair candidate is frozen at source `9dabe8174ad51ef07662e739ab0ee2affec5cd75` with
+all eight hashes in [`6.0.json`](release-state/6.0.json). Clean Package run
+[40078175305](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40078175305)
+passed: 454 tests passed, none failed and three were explicitly skipped. Independent
+review verified all seven shipping ZIPs differ from the preserved original only
+in `content_script.js`; manifests and approved artwork are unchanged. All 14
+artifact attestations verify the clean source. Every newly observed source gap
+receives 15 seconds to recover; a visible dialog can extend the wait to at most
+two minutes. The badge stays OFF while the source is missing, and a remaining
+post-call dialog cannot indefinitely suppress archival. Actual Teams/PWA markup
+and confirmations open beyond that bound remain live acceptance work. Frozen-head
+and final tag builds must verify the exact hashes again.
 
 David explicitly authorized publication with the
 [documented owner exception](release-state/6.0-owner-exception.md).

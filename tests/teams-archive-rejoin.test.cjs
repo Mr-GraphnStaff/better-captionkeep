@@ -101,7 +101,7 @@ test('aged real Teams Leave with no in-call controls ends capture even if a stal
     h.document.hidden=true;
     h.document.querySelectorAll=selector=>selector.includes('closed-caption')?[sourceNode]:[];
     h.document.querySelector=selector=>selector.includes('closed-caption')?sourceNode:null;
-    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;leaveRequestedAt=Date.now()-16000;");
+    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;leaveRequestedAt=Date.now()-16000;sourceMissingSince=Date.now()-16000;");
     await h.run('handleMeetingStateChange()');
     assert.equal(h.run('capturing'),false);
     assert.equal(h.run('wasInMeeting'),false);
@@ -179,4 +179,151 @@ test('fresh Teams capture identity republishes protection even when the active b
     await flush();
     const active=h.messages.filter(message=>message.message==='set_capture_tab_protection' && message.active);
     assert.deepEqual(active.map(message=>message.sessionId),['aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee','bbbbbbbb-cccc-dddd-eeee-ffffffffffff']);
+});
+
+
+function setLeaveSurfaces(h, {controls=false, dialog=null}={}) {
+    const captions={querySelectorAll:()=>[]};
+    h.document.querySelectorAll=selector=>selector.includes('hangup')?(controls?[{}]:[])
+        :selector.includes('closed-caption')?[captions]
+        :selector.includes('role=')?(dialog?[dialog]:[]):[];
+    h.document.querySelector=selector=>selector.includes('closed-caption')?captions:null;
+}
+
+async function freshLeave() {
+    const h=await harness();
+    setLeaveSurfaces(h);
+    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;leaveRequestedAt=Date.now();recordingStartTime=new Date();transcriptArray.push({key:'before',Name:'Synthetic',Text:'Words before canceled Leave',Time:'10:00'});");
+    return h;
+}
+
+test('fresh Teams Leave source gap and cancellation preserve the same capture without archiving',async()=>{
+    const h=await freshLeave(), identity=h.run('documentSessionId');
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),true);
+    assert.equal(h.run('captureState'),'source unavailable');
+    assert.equal(h.messages.filter(message=>message.message==='update_badge_status').at(-1).capturing,false);
+    assert(!h.messages.some(message=>message.message==='meeting_ended'));
+    setLeaveSurfaces(h,{controls:true});
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('leaveRequested'),false);
+    assert.equal(h.run('capturing'),true);
+    assert.equal(h.run('documentSessionId'),identity);
+    assert.equal(h.run('transcriptArray[0].Text'),'Words before canceled Leave');
+    assert.equal(h.archives.length,0);
+    assert(!h.messages.some(message=>message.message==='meeting_ended'));
+});
+
+test('visible Teams Leave confirmation preserves capture beyond grace until cancellation restores controls',async()=>{
+    const h=await freshLeave(), identity=h.run('documentSessionId');
+    setLeaveSurfaces(h,{dialog:{}});
+    h.run('leaveRequestedAt=Date.now()-60000;sourceMissingSince=Date.now()-60000;');
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),true);
+    assert.equal(h.run('documentSessionId'),identity);
+    assert(!h.messages.some(message=>message.message==='meeting_ended'));
+    assert.equal(h.messages.filter(message=>message.message==='update_badge_status').at(-1).capturing,false);
+    setLeaveSurfaces(h,{controls:true});
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('leaveRequested'),false);
+    assert.equal(h.run('documentSessionId'),identity);
+    assert.equal(h.run('capturing'),true);
+    assert.equal(h.archives.length,0);
+});
+
+test('initial post-click Teams controls cannot clear fresh Leave intent before a real departure',async()=>{
+    const h=await freshLeave();
+    setLeaveSurfaces(h,{controls:true});
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('leaveRequested'),true);
+    assert.equal(h.run('capturing'),true);
+    setLeaveSurfaces(h);
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('leaveRequested'),true);
+    assert.equal(h.run('capturing'),true);
+    h.run('leaveRequestedAt=Date.now()-16000;sourceMissingSince=Date.now()-16000;');
+    h.document.hidden=true;
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),false);
+    assert(h.messages.some(message=>message.message==='meeting_ended'));
+    assert.equal(h.run('transcriptArray[0].Text'),'Words before canceled Leave');
+});
+
+test('confirmed Teams Leave after a long dialog finalizes once the dialog disappears despite stale captions',async()=>{
+    const h=await freshLeave();
+    setLeaveSurfaces(h,{dialog:{}});
+    h.run('leaveRequestedAt=Date.now()-60000;sourceMissingSince=Date.now()-60000;');
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),true);
+    setLeaveSurfaces(h);
+    await h.run('handleMeetingStateChange()');
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),false);
+    assert.equal(h.messages.filter(message=>message.message==='meeting_ended').length,1);
+    assert.equal(h.run('transcriptArray.length'),1);
+});
+
+test('a visible dialog without Teams Leave intent does not override normal visible source-loss timeout',async()=>{
+    const h=await freshLeave();
+    h.document.querySelectorAll=selector=>selector.includes('role=')?[{}]:[];
+    h.document.querySelector=()=>null;
+    h.run('leaveRequested=false;leaveRequestedAt=0;sourceMissingSince=Date.now()-60000;');
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),false);
+    assert.equal(h.messages.filter(message=>message.message==='meeting_ended').length,1);
+});
+
+test('DOM-hidden confirmation remnants cannot prevent an aged real Teams Leave',async()=>{
+    const h=await freshLeave();
+    setLeaveSurfaces(h,{dialog:{closest:()=>({hidden:true})}});
+    h.run('leaveRequestedAt=Date.now()-16000;sourceMissingSince=Date.now()-16000;');
+    await h.run('handleMeetingStateChange()');
+    assert.equal(h.run('capturing'),false);
+    assert(h.messages.some(message=>message.message==='meeting_ended'));
+});
+
+
+test('visible post-call dialogs cannot defer Teams archiving beyond the source-gap hold, even when hidden',async()=>{
+    for (const hidden of [false,true]) {
+        const h=await freshLeave();
+        h.document.hidden=hidden;
+        h.data.autoSaveOnEnd=true;
+        setLeaveSurfaces(h,{dialog:{}});
+        h.run('leaveRequestedAt=Date.now()-600000;sourceMissingSince=Date.now()-TIMING.LEAVE_CONFIRMATION_MAX_HOLD+1000;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),true,'visible confirmation is retained before its bounded deadline');
+        assert.equal(h.messages.filter(message=>message.message==='update_badge_status').at(-1).capturing,false);
+        assert.equal(h.archives.length,0);
+        assert(!h.messages.some(message=>message.message==='meeting_ended'));
+        h.run('sourceMissingSince=Date.now()-TIMING.LEAVE_CONFIRMATION_MAX_HOLD-1;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),false,'a residual visible dialog cannot keep a departed session alive forever');
+        assert.equal(h.messages.filter(message=>message.message==='meeting_ended').length,1);
+        assert.equal(h.messages.filter(message=>message.message==='save_on_leave').length,1);
+        assert.equal(h.archives.length,1);
+        assert.equal(h.archives[0].transcriptArray[0].Text,'Words before canceled Leave');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.archives.length,1,'later polls do not duplicate the completed archive');
+    }
+});
+
+test('old Teams Leave intent does not bypass a newly observed source-gap grace',async()=>{
+    for (const hidden of [false,true]) {
+        const h=await freshLeave();
+        h.document.hidden=hidden;
+        h.run('leaveRequestedAt=Date.now()-600000;sourceMissingSince=null;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),true,'elapsed time since the click is not elapsed source loss');
+        assert(!h.messages.some(message=>message.message==='meeting_ended'));
+        assert.equal(h.messages.filter(message=>message.message==='update_badge_status').at(-1).capturing,false);
+        h.run('sourceMissingSince=Date.now()-16000;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),false,'a source gap past normal grace without a modal eventually finalizes');
+        assert.equal(h.messages.filter(message=>message.message==='meeting_ended').length,1);
+    }
 });

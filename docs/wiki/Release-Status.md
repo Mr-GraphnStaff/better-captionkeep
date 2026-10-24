@@ -12,7 +12,7 @@
 were last verified **October 14, 2026**; they are not a fresh Store inspection.
 
 The owner has given GO for release preparation, reported positive UAT, and
-approved the bold DAF-TECH artwork. The artwork gate is complete. The candidate source and exact hashes are now frozen. The owner explicitly
+approved the bold DAF-TECH artwork. The artwork gate is complete. The owner requested repair of issue #96 and continuation of publication; the bounded repair candidate is frozen with fresh, clean-build-verified hashes. The owner explicitly
 authorized publication with the named acceptance and test-window exceptions;
 those checks remain unpassed. Store rollout evidence is tracked separately above.
 6.0 is already in the existing repository on `codex/6.0`; local 5.4 archival
@@ -25,7 +25,7 @@ artifacts under `dist/prod` are published; Development and UAT builds stay local
 | Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
 | Microsoft Edge Add-ons | 5.4.0 and DAF-TECH listing refresh public; post-upgrade smoke pending | Microsoft's official listing serves version 5.4.0 and, as verified October 14, the refreshed description plus all five 5.4 screenshots. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
 | Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
-| Frozen candidate with owner exceptions | 6.0.0 | `release/6.0`, source9be23bf and exact hashes frozen under Epic335. Shipping ZIP bytes remain unchanged. Owner authorized publication with documented acceptance/window exceptions. Store-submitted and public status remain separate rollout outcomes. Dated5.4publichistory remains preserved. |
+| Frozen bounded repair candidate | 6.0.0 | Source `9dabe81` is bound to fresh hashes from clean Package run 40078175305. Source gaps receive 15-second recovery grace and visible-dialog waits are capped at two minutes. Original evidence is preserved; manifests and artwork are unchanged. Live markup, named acceptance gaps and Store rollout remain separately disclosed. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 

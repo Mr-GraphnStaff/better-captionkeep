@@ -8,6 +8,7 @@ const TIMING = {
     ATTENDEE_UPDATE_INTERVAL: 60000, // Check attendees every minute
     INITIAL_ATTENDEE_DELAY: 1500, // Wait 1.5s after meeting start before first check
     LEAVE_INTENT_LIFETIME: 15000,
+    LEAVE_CONFIRMATION_MAX_HOLD: 120000,
 };
 
 const SELECTORS = {
@@ -685,11 +686,12 @@ function setupCaptionsObserver() {
 
 const checkMeetingState = ErrorHandler.wrap(async function() {
     const previouslyInMeeting = wasInMeeting;
-    // A canceled Leave dialog must not make a later DOM remount look like an
-    // explicit exit. Expire intent only with positive live in-call controls;
-    // a hidden window or missing controls cannot clear a real exit.
-    if (leaveRequested && leaveRequestedAt && Date.now() - leaveRequestedAt >= TIMING.LEAVE_INTENT_LIFETIME
-        && getLiveMeetingElement(SELECTORS.LEAVE_BUTTONS)) {
+    // Returning controls after a source gap indicate a canceled Leave. Keep
+    // initial post-click controls from clearing intent before a real departure.
+    // Otherwise retain the existing positive-control intent expiry.
+    if (leaveRequested && getLiveMeetingElement(SELECTORS.LEAVE_BUTTONS)
+        && (sourceMissingSince !== null || (leaveRequestedAt
+            && Date.now() - leaveRequestedAt >= TIMING.LEAVE_INTENT_LIFETIME))) {
         leaveRequested = false;
         leaveRequestedAt = 0;
     }
@@ -702,9 +704,14 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
     } else if (wasInMeeting) {
         sourceMissingSince ??= Date.now();
         captureState = 'source unavailable';
-        // Hidden Teams windows are not evidence that a meeting ended.
-        // Allow visible DOM swaps 15 seconds to settle before finalizing.
-        if (!leaveRequested && (document.hidden || Date.now() - sourceMissingSince < 15000)) return;
+        const sourceMissingAge = Date.now() - sourceMissingSince;
+        // Leave intent is not confirmation. A visible dialog extends grace,
+        // but unrelated post-call dialogs must not postpone archiving forever.
+        if (leaveRequested && sourceMissingAge < TIMING.LEAVE_CONFIRMATION_MAX_HOLD
+            && getLiveMeetingElement('[role="dialog"], [role="alertdialog"]')) return;
+        // Time the grace from source loss, not an older Leave click. Hidden
+        // windows without Leave intent remain live; aged real exits can finish.
+        if ((!leaveRequested && document.hidden) || sourceMissingAge < TIMING.LEAVE_INTENT_LIFETIME) return;
     }
     
     if (wasInMeeting && !nowInMeeting) {
