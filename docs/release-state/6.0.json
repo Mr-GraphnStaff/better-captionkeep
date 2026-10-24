@@ -1,7 +1,7 @@
 {
   "product": "Better CaptionKeep",
   "version": "6.0.0",
-  "branch": "release/6.0",
+  "branch": "master",
   "state": "candidate",
   "candidate": {
     "frozen": true,
@@ -130,5 +130,16 @@
   "boardEpic": 335,
   "deferredFeatures": [
     "byomcp"
-  ]
+  ],
+  "githubRelease": {
+    "tag": "v6.0.0",
+    "url": "https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0",
+    "publishedAt": "2026-10-24T08:47:23Z",
+    "tagCommit": "7470bbf1fe2347ce9c850ed7666ac326e79e7278",
+    "workflowRunId": 40079055054,
+    "assetCount": 15,
+    "assetDigestsVerified": true,
+    "attestedSubjectsVerified": 14,
+    "isImmutable": false
+  }
 }

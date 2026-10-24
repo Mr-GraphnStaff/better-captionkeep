@@ -1,7 +1,7 @@
 # Better CaptionKeep
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
@@ -25,9 +25,9 @@ identifies the single next Chromium test package at
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme.
 
-> **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).
+> **Distribution status — October 24, 2026:** [GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) is published with 15 hash-verified assets. Chrome and Edge Store submission of 6.0 is pending; no Store review or public upgrade is claimed. The last documented public Store baseline is 5.4.0, verified in October; see [Release status](docs/wiki/Release-Status.md).
 
-> **6.0 candidate qualification with accepted exceptions:** The 6.0 line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. The authoritative release record identifies the candidate source and all eight hashes after qualification. The owner requested repair of the Teams Leave/cancel session split before continuing publication; repaired packages receive fresh qualification while the original build evidence is preserved. David Farris explicitly authorized publication with the documented unfinished acceptance and unchanged-window exceptions; those checks remain unpassed. Store approval, public parity and installed-upgrade verification remain rollout checks.
+> **6.0 GitHub publication; Store rollout pending:** The 6.0 line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. The authoritative release record binds repaired source `9dabe817` and all eight frozen hashes. The published tag is `7470bbf1`, promoted through protected `master`; its packages match the clean bounded-repair build. The original build evidence is preserved. David Farris explicitly authorized publication with the documented unfinished acceptance and unchanged-window exceptions; those checks remain unpassed. Store approval, public parity and installed-upgrade verification remain rollout checks.
 
 ### 6.0 release scope
 
@@ -90,7 +90,7 @@ The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** a
 
 ## Release lineage
 
-Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the frozen public production baseline. [6.0](docs/RELEASE-6.0.md) is being qualified for publication with documented owner exceptions and the requested Teams repair. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the last documented public Store baseline. [6.0](docs/RELEASE-6.0.md) is published on GitHub from protected `master`, with documented owner exceptions and the bounded Teams repair; Store rollout is pending. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Approved 6.0 interface illustrations
 
@@ -141,7 +141,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-Chrome and Edge publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate evidence. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+The last documented Chrome and Edge Store baseline is `5.4.0`; 6.0 is published on GitHub and its Store submission is pending. Installed-upgrade and post-upgrade functional smoke verification remain separate evidence. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
@@ -214,7 +214,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. Both Stores publicly serve `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` is frozen for promotion with explicit owner exceptions to incomplete acceptance and the test window; Store submission and public availability remain separate outcomes. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 development record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. The last documented public Store baseline is `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` is published on GitHub with explicit owner exceptions to incomplete acceptance and the test window. Its Chrome and Edge Store submissions are pending; Store availability is a separate outcome. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 release record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
@@ -232,3 +232,15 @@ UAT gaps, the waived test window and unchanged permissions. The machine record
 binds source, all eight artifact hashes, Store targets and the report digest.
 No unfinished test is recorded as passed. Production distributions come only
 from `dist/prod`; approved shipping ZIP bytes remain unchanged.
+
+## GitHub publication evidence
+
+[GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0)
+was published on October 24, 2026 at 03:47:23 America/Chicago (08:47:23 UTC),
+with 15 assets. Tag `7470bbf1fe2347ce9c850ed7666ac326e79e7278` and
+[Package run 40079055054](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40079055054)
+bind the repaired candidate, eight frozen hashes and 14 verified attestation
+subjects. GitHub's API reports server immutability disabled; the approved
+artifacts are operationally frozen and hash-verified. The release remains in
+the logical candidate state until Store approval, public listing parity and
+installed-upgrade verification are recorded. Store submission is pending.

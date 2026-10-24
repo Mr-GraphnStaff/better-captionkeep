@@ -1,9 +1,9 @@
-# Better CaptionKeep 6.0 Release Qualification
+# Better CaptionKeep 6.0 Release Record
 
 > **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
@@ -19,6 +19,26 @@ to [seven image hashes](../store-assets/6.0/manifest.json). The
 CI/package checks from remaining exact-candidate acceptance and rollout checks.
 No new repository or parallel source folder is needed for promotion.
 
+## GitHub publication — October 24, 2026
+
+[Version 6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0)
+was published on GitHub at 03:47:23 America/Chicago (08:47:23 UTC), with 15
+assets. The release tag identifies commit
+`7470bbf1fe2347ce9c850ed7666ac326e79e7278`, promoted through protected `master`.
+[Final Package run 40079055054](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40079055054)
+and the published asset digests verify all eight frozen hashes and 14
+attestation subjects. Its seven ZIPs are byte-identical to the qualified
+bounded-repair packages from run 40078175305. Provenance identifies both the
+final tag commit and reviewed source `9dabe8174ad51ef07662e739ab0ee2affec5cd75`.
+
+The GitHub API reports `isImmutable: false`; server-enforced release immutability
+is not claimed. The approved source and artifacts are operationally frozen,
+with hashes, provenance and attestations retained. **Chrome and Edge Store
+submission is pending.** No Store certification, current 6.0 public listing, or
+installed-upgrade verification is claimed. The machine state remains candidate
+until the Store and upgrade outcomes are complete; owner exceptions remain
+explicit and do not turn unfinished acceptance into passes.
+
 ## Status
 
 The final bounded repair candidate is frozen at source `9dabe8174ad51ef07662e739ab0ee2affec5cd75` with
@@ -32,7 +52,7 @@ receives 15 seconds to recover; a visible dialog can extend the wait to at most
 two minutes. The badge stays OFF while the source is missing, and a remaining
 post-call dialog cannot indefinitely suppress archival. Actual Teams/PWA markup
 and confirmations open beyond that bound remain live acceptance work. Frozen-head
-and final tag builds must verify the exact hashes again.
+and the final tag build verified the exact hashes again.
 
 David explicitly authorized publication with the
 [documented owner exception](release-state/6.0-owner-exception.md).
@@ -51,7 +71,7 @@ Meet, and Zoom launchers when no meeting is active; and preserves local capture,
 Evidence Board, export, privacy, and BYOAI engine. Rolling Live Notes are
 bounded, cited, pauseable, restart-safe, and locally revisioned.
 
-The revised five-target build and packaging checks passed on October 14, 2026,
+**Historical development evidence — October 14, 2026:** the revised five-target build and packaging checks passed
 with SHA-256 hashes, a CycloneDX SBOM and a pending browser/provider certification
 record. The versioned Store art was regenerated. Full candidate provenance and
 freeze remain separate gates; these development packages are not certified.
@@ -93,7 +113,7 @@ evidence agree for every distribution channel.
 2. Complete the versioned bundle under `store-assets/6.0/`.
 3. Review title, short and full descriptions, screenshots, promotional art,
    privacy answers, and certification notes against the frozen product.
-4. Upload and submit the immutable package through the governed release path.
+4. Upload and submit the exact frozen package through the governed release path.
 5. Apply Microsoft Edge listing metadata and artwork manually in Partner
    Center. Microsoft's Edge Update REST API has no product-metadata endpoint.
 6. Capture the Store submission or review receipt for package and metadata.
