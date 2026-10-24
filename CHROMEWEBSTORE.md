@@ -4,7 +4,16 @@ Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
 
-> Last Updated: 2026-10-15
+> Last Updated: 2026-10-24
+
+**6.0 publication preparation:** David Farris approved the bold DAF-TECH
+artwork on October 24 and authorized publication with documented exceptions
+for incomplete exact-package acceptance and the 48-hour unchanged window.
+Those exceptions do not turn missing checks into passes. Use the exact
+source/package hashes and reviewed exception record supplied by the release
+coordinator. Store submission, approval, public availability and delivered
+upgrade remain separately recorded outcomes; the dated 5.4 public record below
+is not a claim that 6.0 is already live.
 
 October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The package does not request nativeMessaging, ship a native helper, connect MCP services or expose MCP operation controls. Reviewed BYOAI handoff remains available. Earlier helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
 
@@ -19,34 +28,36 @@ These are development changes, not a public Store update or five-browser certifi
 explicit confidentiality/privilege handling labels. No automatic legal privilege
 determination, automatic email sending or guaranteed removal of privileged
 material is claimed. This workflow preserves the original and introduces no
-publisher-operated processing. Final screenshots/copy require acceptance review;
-do not change the published 5.4 listing on the strength of this development note.
-Refresh final product screenshots after acceptance and candidate freeze; artwork
-and listing approval remain open. The historical 5.4 publication record below is
-unchanged.
+publisher-operated processing. Final copy and channel-specific listing fields
+require review against the submitted package. The seven current DAF-TECH
+artwork files are approved for the exact hashes in
+`store-assets/6.0/manifest.json`; illustrative panels use synthetic content and
+are not live-browser certification. The historical 5.4 publication record below
+is unchanged.
 
 6.0 development fix: Teams same-page meeting departure clears the live-capture
 badge without discarding captured words. Caption menu controls and DOM-hidden
 meeting controls are not evidence of an active meeting. Live Teams retest pending.
 
-> Development package version: **6.0.0** on `codex/6.0`. This is an unpacked
-> development line, not a Store submission or release candidate. It introduces
+> Prepared source version: **6.0.0** on `codex/6.0`. Publication is authorized
+> with a documented owner exception; no Store submission or public availability
+> is implied by this source record. It introduces
 > the dark DAF-TECH operational shell, a single-decision popup, direct platform
 > launchers, and the renamed
 > Meeting Receipt workspace while retaining the existing local capture and
 > evidence engine.
 
-> Frozen package version: **5.4.0**. Azure Store Release run 716 submitted the
+> Historical public 5.4 record (October 2026): **5.4.0**. Azure Store Release run 716 submitted the
 > verified package on October 10, 2026. Microsoft Edge Add-ons publicly served
 > 5.4.0 later that day. Azure run 726 cancelled Chrome's original pending review
 > so the stale Store listing could be replaced. After the corrected DAF-TECH
 > listing was saved, run 731 resubmitted the unchanged 5.4.0 package. The public
-> Chrome Web Store now serves 5.4.0 with the corrected title and BYOAI summary;
+> Chrome Web Store served 5.4.0 with the corrected title and BYOAI summary;
 > installed-upgrade and post-upgrade smoke verification remain open.
 
 This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
 
-**A DAF-TECH Product.** The DAF-TECH sphere is the parent-brand mark; Scribble remains the Better CaptionKeep product icon.
+**A DAF-TECH Product.** The DAF-TECH sphere is the parent-brand mark and the packaged 6.0 icon; inherited Scribble artwork remains preserved as product history.
 
 ## Store Listing
 
@@ -64,12 +75,12 @@ Better CaptionKeep is a private meeting note taker and live transcript tool for 
 
 **Bring Your Own AI (BYOAI)**
 
-Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly turns selected meeting words into one-click Research, Explain, Reply, or Email outcomes. AI actions copy a bounded prompt and open the user's saved AI workspace; the user still pastes, reviews, and sends. Email opens a prefilled, recipient-free draft in the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. **Review/edit** remains available when more control is needed. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways. Version 6.0 claims only the workspace handoff, cited local derivatives, and controls demonstrated in the frozen candidate.
+Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly turns selected meeting words into one-click Research, Explain, Reply, or Email outcomes. AI actions copy a bounded prompt and open the user's saved AI workspace; the user still pastes, reviews, and sends. Email opens a prefilled, recipient-free draft in the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. **Review/edit** remains available when more control is needed. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways. Version 6.0 claims only the workspace handoff, cited local derivatives, and controls implemented in the identified 6.0 package; the release record separately identifies tested coverage and owner-accepted exceptions.
 
 **What you get**
 
 - Live Workspace side panel for Teams, Google Meet, and Zoom Web.
-- Explicit controls: nothing enables captions, opens the Teams attendee panel, or requests a Teams transcript until you choose it.
+- Local caption capture starts on when supported meeting captions are available; pause or resume it in All Settings. Teams attendee capture and official Microsoft 365 transcription remain separate explicit actions.
 - Local transcript history, interruption recovery, full-text search, speaker aliases, corrections, and a local terminology dictionary.
 - Evidence Board markers for decisions, actions, questions, risks, follow-ups, and important moments, each tied to its source-caption ID.
 - On the Fly research, explanation, live-reply, and follow-up tasks using your chosen AI workspace.
@@ -109,11 +120,11 @@ On the Fly turns highlighted meeting words or a whole caption into a bounded, so
 
 Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
 
-Version 5.4 is preparing broad AI-assisted interface translation previews. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
+AI-assisted interface translation previews are available. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
 
 To begin in 6.0, join a supported meeting. Live transcript capture starts by default; pause it in **All Settings → Capture controls** whenever you choose. Open **Live Workspace** to review the transcript and evidence, or recover unavailable meeting captions. In Teams, opening the attendee panel and requesting the official transcript remain separate actions. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
 
-6.0 artwork is pending regeneration from the final frozen interface. Current images must not be treated as final visual acceptance or uploaded before that review.
+The seven current 6.0 artwork files were approved by David Farris on October 24, 2026 for the exact hashes in `store-assets/6.0/manifest.json`. Their product panels are clearly labeled synthetic illustrations. Match those approved bytes to the submitted package and listing; artwork approval is not browser/provider certification.
 
 Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
 
@@ -134,13 +145,13 @@ English
 | Asset | Dimensions | Status | Filename |
 | --- | --- | --- | --- |
 | Store Icon | 128×128 PNG | Ready | `teams-captions-saver/icons/sphere-128.png` |
-| Screenshot 1 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/01-one-button-meeting.png` |
-| Screenshot 2 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/02-rolling-live-notes.png` |
-| Screenshot 3 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/03-capture-moment.png` |
-| Screenshot 4 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/04-meeting-receipt.png` |
-| Screenshot 5 | 1280×800 PNG | Generated; owner review pending | `store-assets/6.0/05-advanced-settings.png` |
-| Small Promo Tile | 440×280 PNG | Generated; owner review pending | `store-assets/6.0/small-promotional-tile.png` |
-| Marquee Promo Tile | 1400×560 PNG | Generated; owner review pending | `store-assets/6.0/marquee-promotional-tile.png` |
+| Screenshot 1 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/01-one-button-meeting.png` |
+| Screenshot 2 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/02-rolling-live-notes.png` |
+| Screenshot 3 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/03-capture-moment.png` |
+| Screenshot 4 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/04-meeting-receipt.png` |
+| Screenshot 5 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/05-advanced-settings.png` |
+| Small Promo Tile | 440×280 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/small-promotional-tile.png` |
+| Marquee Promo Tile | 1400×560 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/marquee-promotional-tile.png` |
 
 All artwork uses synthetic meetings and identities. Never substitute real participant names, meeting links, tenant identifiers, or transcript content.
 
@@ -224,7 +235,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 6.0.0 | 2026-10-13 | Introduces the dark DAF-TECH operational shell, one-button meeting entry, direct Teams/Meet/Zoom launchers, ready/not-ready state, and Meeting Receipt workspace over the existing local capture, archive, Evidence Board, export, privacy, and BYOAI capabilities. | Development only on `codex/6.0`; not submitted, certified, or published |
+| 6.0.0 | 2026-10-13 | Introduces the dark DAF-TECH operational shell, one-button meeting entry, direct Teams/Meet/Zoom launchers, ready/not-ready state, and Meeting Receipt workspace over the existing local capture, archive, Evidence Board, export, privacy, and BYOAI capabilities. | Publication preparation on `codex/6.0`; owner-authorized exception recorded; Store submission, review and public rollout still require observed results |
 | 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Chrome and Edge; installed-upgrade and post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
 | 5.3.2 | 2026-10-04 | Adds visible customer-owned Entra setup, exact tenant validation, managed-policy precedence, optional Microsoft origins, and Store-package regression gates. | Public in Chrome and Edge; installed-upgrade verification remains separate evidence |
@@ -238,7 +249,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 1. Install and pin Better CaptionKeep in Chrome.
 2. Start or join a Google Meet meeting and enable live captions.
 3. Speak a short synthetic phrase and confirm capture activity in the popup.
-4. Open the transcript viewer; search, copy, and export the phrase as TXT or Markdown.
+4. Choose **Open Live Workspace**, then **Full transcript**; search, copy, and export the phrase as TXT or Markdown.
 5. Open the Evidence Board, mark a caption, and verify its source-linked brief without modifying the transcript.
 6. Confirm Privacy Scrubber is enabled by default. In Settings, choose an AI destination and Outlook work or school, Outlook.com personal, Gmail, or the browser/default email app for follow-up drafts.
 7. In the live transcript, highlight synthetic caption words. Verify Research, Explain, and Reply copy a bounded cleaned prompt and open the saved AI workspace without pasting or submitting it. Verify Email opens a recipient-free webmail draft, and Review/edit opens the complete local prompt and provider chooser.
@@ -262,6 +273,7 @@ No developer-operated server, paid subscription, microphone recording, video rec
 
 - Chrome and Edge live UAT, customer-owned Entra setup, `Calendars.ReadBasic` tenant consent, independent review, and the unchanged 48-hour candidate window are normal release gates. For 5.4.0, the product owner accepted UAT and explicitly authorized an early release; the shortened observation window is recorded as an exception, not a completed gate.
 - Upload and publication require explicit release-owner authorization. A successful build does not grant it.
+- For 6.0, David Farris authorized publication on October 24 with documented owner exceptions for incomplete exact-package browser/provider, full-scope/accessibility/failure acceptance and the 48-hour unchanged window. Preserve the missing checks as missing, not passed; bind the reviewed exception to exact source/package hashes and approved targets. Hash/provenance, permission-delta, secret-handling and Production-only artifact checks still apply. Store review, public parity and delivered-upgrade verification remain rollout outcomes to observe.
 
 ### Submission History
 
