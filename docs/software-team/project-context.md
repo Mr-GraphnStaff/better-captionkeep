@@ -1,199 +1,81 @@
-# Better CaptionKeep 6.0 execution context
+# Better CaptionKeep public project context
 
-> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+Updated October 24, 2026. This document records public product state, team ownership and evidence limits. Release records govern release identity and distribution; a role assignment is not a completed test or independent approval.
 
-Current update: October 24, 2026. Team lead: David Farris.
-Source: P:/Projects/better-captionkeep-dev, branch codex/6.0.
-Historical review starting revision: 360cae2. The 5.4 contents are preserved in the archive.
+## Current product and distribution
 
-## Current release preparation
+Better CaptionKeep 6.0 is a local-first caption and meeting-evidence extension for Microsoft Teams web/PWA, Google Meet and Zoom Web. It preserves raw caption source separately from reviewed Moments, Notes, Answers, templates and shareable summaries. BYOMCP and Safari are deferred from shipping 6.0. Native Teams desktop capture is a separate research effort, not a supported capability of the published extension.
 
-David authorized the 6.0 release push on October 24. The current assignment,
-named specialist ownership, positive owner UAT and verification limits are in
-[the release-preparation record](../release-state/6.0-preparation.md).
-Earlier dated assignments below are historical and do not replace that record.
+[GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) was published October 24, 2026. Tag `v6.0.0` identifies `7470bbf1fe2347ce9c850ed7666ac326e79e7278`; repaired source is `9dabe8174ad51ef07662e739ab0ee2affec5cd75`. Published package hashes and provenance are recorded with the release. GitHub server immutability is disabled; the assets are operationally frozen and hash-verified, not server-enforced immutable assets.
 
-Use one active source checkout with `dist/dev`, `dist/uat` and `dist/prod`.
-Only `dist/prod` supplies published distribution assets. The separate 5.4
-checkouts and unused top-level lane remnants are archived in
-`P:/projectsArchive`; active 6.0 Git metadata is self-contained. Do not recreate
-the former top-level UAT/production source checkouts.
+The tracked [Release Status](../wiki/Release-Status.md) records accepted Chrome review and Edge certification submissions, with approval, public listing parity and installed-upgrade verification still pending. These are recorded submission outcomes, not a new Store-dashboard inspection by this context update. The [machine release state](../release-state/6.0.json) remains candidate. Named unfinished acceptance and test-window checks remain unpassed under the explicit [owner publication exception](../release-state/6.0-owner-exception.md); do not relabel them passed or apply that release-specific decision to future work.
 
-The shared Software Team 1.0.6 / roster 1.0.2 supplies the named team. Ishan,
-Mara, Lena, Heike and Ellis were separately delegated for this release push;
-Codex coordinates integration. The repository's older bundled skill is not
-proof of synchronization with the shared installation. No shared skill files
-were modified during release preparation.
+Use the [6.0 release record](../RELEASE-6.0.md), [preparation evidence](../release-state/6.0-preparation.md), [roadmap](../ROADMAP-6.0.md) and [release process](../RELEASE_PROCESS.md) for detailed requirements and history. Earlier preparation-stage authorization limits are historical; they do not revoke later recorded publication decisions.
 
-## Assignment and authority
+## One active source checkout
 
-The lead requested a top-to-bottom Software Team review and execution of open
-items, with every confirmed bug transparently documented in GitHub. He explicitly
-authorized pushing the 6.0 branch and opening a draft PR after integrated checks;
-merging and Store publication are not authorized by this assignment.
+The approved source checkout is `P:/Projects/better-captionkeep-dev`. Verify the actual branch and working tree at the start of each assignment; the current research branch is `codex/market-research-nadia`, while the historical 6.0 implementation branch was `codex/6.0` and the release was promoted through protected `master`.
 
-Preserve full roadmap scope and the lightweight spherical front door/powerful
-back door. Live capture defaults on and can be paused without losing collected
-words. Raw captions remain authoritative; reviewed derivatives keep source
-identity and cannot rewrite them. Privacy/managed policy wins over optional
-features. Five browsers remain separately required, not inferred from Chromium:
-Chrome, Edge, Brave, Firefox, and Opera. The lead removed Safari completely from
-6.0 on October 14, 2026, reserving it for a later major version. Its groundwork
-is archived under `docs/deferred/safari`; no Safari release gate remains active.
+Use the three existing build lanes within this checkout:
 
-On October 14 the lead initially required an opt-in BYOMCP bridge. The final
-October 16 decision superseded that plan: MCP is excluded from shipping 6.0 and
-deferred. Roadmap gate 15 now verifies the no-MCP shipping boundary. The
-architecture, UX and security material remains historical future-work evidence;
-local Core remains independent.
+- `dist/dev`: Development.
+- `dist/uat`: UAT/Release Candidate.
+- `dist/prod`: Production distribution packages and release evidence.
 
-## Team and ownership
+Only `dist/prod` supplies published distribution assets. Preserve existing Development and UAT work. Sandbox artifacts are evidence, not alternate installation targets. The former 5.4 checkouts and unused top-level lane remnants were archived recoverably under `P:/projectsArchive`; the active checkout has self-contained Git metadata. Do not recreate separate top-level UAT/Production source checkouts. Use `P:/Projects/better-captionkeep-sandbox` for project scratch, artifacts and preservation work.
 
-Historical pre-deferral status: the lead briefly resumed MCP implementation.
-That work stopped when the October 16 no-MCP shipping decision superseded it.
-No MCP installer, registration, authentication or provider task below is an
-active 6.0 assignment; the preserved implementation and user state remain for a
-later explicitly authorized release.
-Installed helper framing/challenge succeeds locally. Exact Brave extension path,
-permission, both registry views and launcher were inspected, but browser-native
-connection acceptance remains unverified while browser control is unavailable.
-Do not invent a Brave registry repair from absent vendor-specific keys.
+## Confirmed team and ownership
 
-October 15 active onboarding repair: lead-reported M01 failure is #170, linked to
-Task348. Three actual assignments cover helper preparation, guided Settings and
-independent QA; coordinator owns integration/runbook and release honesty. See
-[onboarding acceptance contract](MCP-ONBOARDING-6.0.md). Preparation removes manual
-configuration authoring but is not complete installation/authentication or a
-closed acceptance case. Existing connections must be preserved; no live helper,
-permission, authentication or resource changes are part of these implementation tests.
+The repository-linked portable skill is [Software Team 1.0.13](../../.agents/skills/software-team/SKILL.md), with [roster 1.0.7](../../.agents/skills/software-team/references/team-roster.md). Twelve named teammates are confirmed: eleven employees and one external contractor. The human lead retains product, appointment, spending and accepted-risk decisions. Named specialist identities and approved character biographies do not establish real employment, qualifications or executed work.
 
-October 15 scope clarification: the lead requires the full discovered MCP catalog,
-including writes, not a metadata-only or typed-action-only connection. Explicit
-catalog profiles now support sealed, one-use exact-operation review; generic
-responses remain unverified data, separate from typed readback Receipts.
-An authorized installed-helper Cloudflare TXT add/read/delete test passed with
-independent cleanup confirmation. Settings end-to-end and five separate live
-browser certifications remain open. Full-access OAuth was explicitly approved
-for this session; refresh tokens are discarded. No unrelated writes authorized.
-
-Four actual agents perform grouped discipline passes, not fictitious employees:
-
-| Owner | Active disciplines | Owned deliverables |
+| Member | Accountable scope | Review and handoff |
 | --- | --- | --- |
-| Coordinator | Product/analysis, Scrum Master/delivery, People Operations, documentation/release/support | Full-scope traceability, role coverage and accountable handoffs, live Boards reconciliation, public register, generated status, integration and draft PR |
-| Engineering reviewer | Architecture, provider/integration, backend/data/reliability | Meet/Zoom lifecycle, Teams archives/checkpoints and badge recovery; independent frontend/worker review |
-| UI reviewer | UX/UI/content/accessibility/frontend/performance | Templates workspace, original request provenance, review safety, Moments, themes, focus/narrow layout and rolling optimization |
-| Assurance reviewer | QA/security/storage/platform/DevOps/release | Worker retention/citation/image boundaries, cleanup, real unpacked runtime and artifact parity, CI runtime, tab protection |
+| Codex | Engineering management, product/delivery integration and accurate final reporting | Relevant specialists independently review consequential delivery; lead escalation remains available. |
+| Ishan | Architecture, backend/runtime contracts, persistence, packaging and destination inventory | Independent QA/security acceptance; no self-approval of implementation. |
+| Mara | UX/frontend, readable source-linked workflows, content and invocation usability | Lena supplies independent accessibility/QA review. |
+| Lena | QA, accessibility and independent functional acceptance | Separately staffed review of work Lena authors; not a substitute for the whole InfoSec function. |
+| Heike | FinOps, billing attribution, workload and operating-cost evidence | Proposed estimates are separate from actual account/billing verification and spending authorization. |
+| Ellis | Payroll/recognition, roster, reporting-line and handoff/review coverage reconciliation | Coverage is not technical sign-off; no payroll payment or balance follows from roster membership. |
+| Nadia | Market/adoption evidence, search intent and listing research | Mara reviews research methods; engineering owns technical feasibility and technical SEO. |
+| Jun Park | Localization/internationalization source, review and generation contracts; reports to Codex | Nadia supplies language-priority evidence; engineering implements; independent language/accessibility acceptance remains necessary. |
+| Morgan Hale | Security Architect and InfoSec lead; reports to Codex | Independent verification and direct escalation remain available. |
+| Elena Voss | AI Security Architect; reports to Morgan | Separate implementation and adversarial-review ownership. |
+| Samir Rahman | Security Engineer; reports to Morgan | Work Samir authors receives a separate reviewer. |
+| Camila Reyes | External HR / People Operations contractor; reports directly to the lead | Coordinates recruiting and private personnel/review records; technical reviewers retain technical acceptance. Codex is the administrative liaison and cannot approve closure of findings about Codex. |
 
-No live participant research or comprehensive screen-reader certification is
-claimed. Local, synthetic, loaded-runtime, provider-live and public-upgrade
-evidence are different acceptance stages.
+Release/DevOps is covered by Codex with Ishan; documentation/support preparation is covered with the relevant specialists. These assignments do not imply separately staffed DevOps, writing or support hires. Every position receives on-the-spot and quarterly peer review under the portable policy; an assigned review is not an executed review or advance approval.
 
-### Current contribution handoff
+## Current native Teams and adoption research
 
-- Engineering delivered the provider/archive repairs and independently reproduced
-  workspace defects #133 and #134. Its paused-provider repair passed separate QA
-  review across eight production-code fixture regressions.
-- UX/UI owns the reading-first workspace implementation and repairs from that
-  independent review, followed by narrow/desktop keyboard and selection evidence.
-- Assurance owns independent final-workspace acceptance after source freeze,
-  including missing-source selection, asynchronous action identity and keyboard
-  focus beyond the latest-150 window. Earlier worker/native-runtime evidence does
-  not approve the newly changed frontend.
-- The coordinator owns issue/Boards traceability and integration, then the
-  authorized checked-source push and draft PR. Store publication remains excluded.
+The central requirement is **live captions plus source-linked investigation while a native Teams meeting continues**. Post-meeting official-transcript review is complementary and cannot substitute for live-source feasibility. Compare a Teams app, a Windows displayed-caption companion and a hybrid only against that requirement.
 
-These are actual grouped assignments, not a claim that every role is a separately
-staffed employee. No agreed deadlines or measured cycle-time baseline exist for
-this batch; do not fabricate on-time ratings or a measured completion percentage.
+The [public native Teams research summary](NATIVE-TEAMS-RESEARCH-SUMMARY-2026-10-24.md) records current alternatives, source/session requirements and limits. The [Teams app assessment](TEAMS-APP-ASSESSMENT-2026-10-24.md) records the complementary post-meeting route and its authentication, consent and client constraints. Neither document changes submitted 6.0 code, assets or tags.
 
-## Authoritative tracking
+Nadia owns adoption and market evidence; Ishan source/interface feasibility; Mara the live investigation workflow; Morgan's team security architecture and verification; Lena independent assurance; Heike operating economics; Jun localization contracts; Ellis coverage; Codex integration. These are owners, not claims of completed experiments.
 
-Azure DevOps live project: Better CaptionKeep, project ID
-c23a840e-a145-4d4f-be1c-52627d5ae561, DAF-TECH organization; default team
-Better CaptionKeep Team. The old CLI default Better-CaptionKeep was corrected.
+Current evidence is desk research and experiment design. No native caption prototype, actual customer study or native-source compatibility run has been completed. Installation events do not establish active use, retention or the cause of slow adoption. Investigate reach, listing comprehension, first useful capture, repeat value and native-client mismatch as competing explanations. Geographic install counts do not establish preferred language.
 
-Epic #335 tracks full 6.0. Features #336-342 preserve the inherited roadmap gates,
-including inherited CAP controls #298-307, multilingual adoption #308-313 and
-Evidence Actions #318-332. None of those commitments was deleted or represented
-as completed by the public 5.4 release.
+Local synthetic preparation may establish bounded contracts, but cannot certify native caption access or customer demand. Real meeting capture, audio/STT activation, paid services, new telemetry, infrastructure, identity/tenant-policy changes and external outreach retain their own scoped authorization requirements. No such operation is implied by this context or the research assessment.
 
-The roadmap has sixteen gates; gate 15 now enforces MCP exclusion for shipping 6.0, and gate 16 covers the
-lead-approved reviewed shareable summary and export labels (16). Task #347 under
-UI Feature #336 links public feature #151 and pre-release policy defects
-#152/#153. Separate summary review is not a legal privilege determination;
-original transcripts remain unchanged and no email or AI submission is automatic.
+## Skill delivery: verified state and limits
 
-Tasks #343-346 track this repair/verification batch. Zoom story #252 was corrected
-from uncommitted/New to implemented/Active with live acceptance still open;
-obsolete vision/uncommitted tags were replaced. Epic #284 was relabeled as
-historical 5.3 tracking, without closing its outstanding child gates. CAP-14 #305
-was moved to Active with evidence of the new checked development status views.
+Software Team 1.0.11 / roster 1.0.6 previously received independent local review comparing the 28-file sets and hashes across authoring, installed plugin, repository-linked skill and portable export. This establishes that dated local artifact parity, not automatic cross-host synchronization. The subsequent 1.0.13 appointment update requires its own destination/hash verification. The ChatGPT editor connection is currently unavailable, so its saved 1.0.11 copy remains behind the local update; do not report it as synchronized.
 
-See PUBLIC-DEFECTS-6.0.md for public issue IDs and their remaining acceptance.
-Board updates use verified project IDs, rereads and revision-tested REST patches
-for issue links. Failed CLI calls are not counted as applied changes.
+The earlier 1.0.10 ChatGPT update has saved/reloaded readback evidence for 25 text files under documented text normalization. Three additional uploaded files persisted by path but their content was not exposed for web-preview comparison. The 1.0.11 policy update has changed-text readback comparisons; independent saved-artifact comparison is distinct from independently observing the editor operation. No fresh ChatGPT conversation runtime acceptance has been completed. Keep authored, uploaded, persisted, read back and execution-tested states separate.
 
-## Verification and remaining constraints
+Ishan owns packaging/version/destination inventory; Lena independent functional acceptance; Samir security/control acceptance through Morgan; Mara invocation usability; Ellis roster/handoff coverage; Codex integrated delivery claims. No member independently approves their own work. Keep project-specific evidence and unresolved exceptions explicit without claiming broader global runtime completion.
 
-Historical October 14 integration evidence: the optional BYOMCP helper, concrete native
-adapter, Settings connection/write consent, typed action jobs and actual Receipt
-retention are implemented locally. Official Cloudflare DNS uses a finite compiler
-and separate readback, not arbitrary meeting-supplied code. Registered Cloudflare
-access in Codex passed an identity check only; no credentials were copied and no
-CaptionKeep installed-host or authenticated provider acceptance is implied.
-Helper packaging now includes its own dependency audit, offline SDK sources,
-license files, SBOM and independently verified source/hash evidence. These
-artifacts may be required by a future release that reintroduces MCP, but they are
-forbidden from the 6.0 shipping boundary. Full 6.0 release acceptance remains
-open; historical local integration is not publication or browser certification.
+## Historical review and release evidence
 
-Cloudflare helper-owned OAuth now has independent synthetic coverage, including
-the explicitly approved read-only session preset and refresh-token discard.
-Two initial live consent attempts failed before persistence; the corrected retry
-succeeded with authenticated metadata inventory only (#162, still open). Four
-tool schemas returned; no tool invocation or enabled action. The temporary local
-credential was for this bounded test only. Temporary access was subsequently
-revoked (HTTP 200, then authenticated metadata
-HTTP 401); the encrypted file remains because deletion was blocked. The
-separately registered isolated Brave helper observed a real permission grant,
-but native enrollment still failed; browser/provider acceptance remains open.
-No IDE credentials were reused; no DNS changes or directory lookups are authorized
-by this connection test. Revision `9307752` passed GitHub validation, CodeQL and
-Azure Lifecycle 751. The later `12806ec` passed Azure 752 and CodeQL but failed
-GitHub validation at Linux Edge startup. Recovery revision `5da5796` then passed
-fresh GitHub push/PR validation, CodeQL, Azure 754 and PR-merge Azure 755. Its
-full local candidate gate passed 530 extension and 47 helper tests with no skips;
-Linux main tests explicitly skipped eight platform-specific cases. Chrome/Edge
-Linux surface smoke passed; real native-helper/provider acceptance remains open.
+The following records are retained as dated evidence. Their prior source paths, branches, partial acceptance and authorization limits describe the identified stage; they do not override current release records or current team appointments.
 
-October 15 first-party Cloudflare MCP comparison found and repaired local
-interop defects #164 (standard JSON/SSE/lifecycle and supported wire-version
-negotiation) and #165 (discarded safe native diagnostic codes). The helper still
-owns both transports and credentials; connection/inventory does not grant tool
-execution. Metadata-only verified connections now stay visibly connected with
-actions off. Independent synthetic/SDK and rendered fixture checks passed; no
-new authentication or installed-native success is claimed. Test-only timing
-defect #166 was also repaired without changing product export privacy controls.
-The subsequent integrated gate and pushed revision require their own evidence.
+| Historical record | Scope and interpretation |
+| --- | --- |
+| [October 13 Software Team review](../SOFTWARE-TEAM-REVIEW-6.0-2026-10-13.md) | Review baseline `360cae2` and the original requirements/findings; not a current-build certification. |
+| [6.0 execution ledger](EXECUTION-6.0.md) | Dated implementation, regression and independent-review evidence; synthetic, rendered, loaded-runtime and live-provider results remain distinct. |
+| [MCP removal record](MCP-REMOVAL-6.0.md) | October 16 lead scope decision and removal evidence; earlier helper/onboarding work remains deferred history, not active 6.0 acceptance. |
+| [Release acceptance matrix](RELEASE-ACCEPTANCE-6.0.md) | Applicable acceptance criteria and dated gaps; use the release-state record for later owner decisions and distribution outcomes. |
+| [6.0 preparation record](../release-state/6.0-preparation.md) | Historical preparation, positive owner UAT, package and workspace-preservation evidence; later publication/submission outcomes are in Release Status. |
+| [Public defect register](PUBLIC-DEFECTS-6.0.md) | Links and dated fix/acceptance status; local tests alone do not establish deployment or justify closing applicable live acceptance. |
 
-- Tests execute production functions and deliberate failure cases; real Chromium
-  rendering and loaded-extension checks use isolated profiles with synthetic data.
-- No customer transcript, tenant credential or private screenshot belongs in
-  public reports. Current issue reports use relative source paths and fixtures.
-- The release state record remains development: no frozen candidate or provider
-  certification. Generated status blocks are checked for contradictions.
-- Firefox native/provider and Opera acceptance are still required. All 15
-  supported browser/provider cells need their own live evidence.
-- Full-scope acceptance includes inherited committed programs, manual keyboard/
-  assistive-technology/localization review, live permissions/storage/restart,
-  clean Store-equivalent install and actual Store-installed upgrade.
-- Final art/copy approval, immutable freeze, unchanged window, Store review and
-  public parity remain external release gates. Do not auto-close them from tests.
-
-## Continuation
-
-The execution ledger records the integrated test/build/CI evidence and final PR.
-Future work starts from verified source/tracker state, not from the browser URL
-or a historical release label. Keep bug reports open until their applicable
-acceptance is established; the draft PR is reviewable work, not deployment.
+Raw caption source remains authoritative. Reviewed derivatives preserve source/session identity and do not silently replace the transcript. Future work starts from verified source, artifact and tracker state; a historical label, browser URL, role name or matching skill version is insufficient evidence by itself.

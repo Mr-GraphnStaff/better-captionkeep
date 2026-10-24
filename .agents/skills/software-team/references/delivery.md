@@ -7,12 +7,12 @@
 | Assess project | Architecture or UX | QA/security/operations as relevant | Inspected sources, prioritized findings, next steps; no unauthorized edits |
 | Define product | Product + analysis | Research/architecture | Problem, audience, measurable outcome, scope, testable requirements |
 | Design workflow | UX + UI | Accessibility/content/frontend | Main/failure paths, states, implementation criteria |
-| Implement feature | Relevant engineers | QA; security/accessibility when affected | Working diff, criterion coverage, checks, disclosed limits |
+| Implement feature | Relevant engineers | QA; security when a mandatory trigger applies (SKILL.md); accessibility for UI | Working diff, criterion coverage, checks, disclosed limits |
 | Improve quality | QA/security/performance | Affected engineer | Reproduced baseline, justified fix, retest |
 | Prepare/execute release | Release + platform | QA/security/reliability/writing | Identified artifact, readiness evidence, rollout/recovery; target verification if deployed |
 | Operate/support | Reliability + support | Engineering/security | Diagnosis, recovery evidence, owner/follow-up |
 
-Skip irrelevant stages with a reason. Minor copy edits do not require a full threat model, charter, and launch committee. Authentication changes require more scrutiny than label changes. Apply depth proportional to consequence.
+Skip irrelevant stages with a reason. Minor copy edits do not require a full threat model, charter, and launch committee. Authentication changes require more scrutiny than label changes. Apply depth proportional to consequence, but never skip a mandatory review from SKILL.md.
 
 ## Lifecycle gates
 

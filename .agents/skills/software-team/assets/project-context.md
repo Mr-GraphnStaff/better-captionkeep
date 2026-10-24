@@ -21,6 +21,12 @@ Replace bracketed fields with facts; mark unknowns/assumptions. Omit irrelevant 
 |---|---|---|---|---|
 | [ID] | [observable outcome] | [artifact] | [check/location] | [pass/fail/blocked/unverified] |
 
+## Team roster
+
+| Name | Role | Owns | Reviewer | Record (shipped / caught / missed / rework / write-ups) |
+|---|---|---|---|---|
+| [name] | [title] | [deliverables/files] | [name] | [entries with evidence locations] |
+
 ## Work ledger
 
 | Task | Owner | Status | Dependency | Artifact/evidence | Blocker |

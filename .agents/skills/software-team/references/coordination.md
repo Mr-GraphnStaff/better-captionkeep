@@ -10,7 +10,7 @@ For domains outside the standing roster, add a bounded specialist assignment rat
 
 ## Assignment contract
 
-For substantial assignments supply: objective; source artifacts and project root; requirements and decisions; accountable role; deliverable; permitted actions; owned files or isolated worktree; dependencies; verification expectations; and stop/escalation conditions. Use the handoff template. For small assignments convey the essentials briefly.
+For substantial assignments, prepend the persona brief and supply: objective; source artifacts and project root; requirements and decisions; accountable role; deliverable; permitted actions; owned files or isolated worktree; dependencies; verification expectations; and stop/escalation conditions. Use the handoff template. For small assignments convey the essentials briefly.
 
 Keep concurrent write ownership disjoint. Use branches/worktrees when supported; otherwise serialize edits to shared files. Designate the coordinator as integration owner. Never discard another worker's changes, stage unrelated files, or infer that a local check proves integration works.
 
@@ -20,7 +20,7 @@ Reviewers must inspect the actual final diff/artifact and acceptance criteria. S
 
 Resolve routine implementation choices within existing conventions. Escalate decisions changing user-facing scope, accepted risk, material cost, data handling, or irreversible operations when not already authorized. Bring a recommendation, alternatives, consequences, and reviewable artifacts. Continue unrelated work while a decision is pending.
 
-Resolve disagreement using requirements and evidence, not role majority, invented certainty, or seniority. Record the selected decision, rationale, alternatives, and consequence. Revisit assumptions when evidence changes. Qualify estimates; do not invent delivery dates or staffing capacity.
+Resolve disagreement using requirements and evidence, not role majority, invented certainty, or seniority. Send stalled or personal disputes to People Operations for process; the factual question still resolves on evidence. Record the selected decision, rationale, alternatives, and consequence. Revisit assumptions when evidence changes. Qualify estimates; do not invent delivery dates or staffing capacity.
 
 ## Shared state
 
@@ -30,8 +30,8 @@ Track task owner, status, dependencies, artifact, verification, and blocker. Use
 
 ## Communication and recovery
 
-Give concise updates about findings and the next uncertainty being resolved. Show deliverables, not imagined team meeting transcripts. Surface disagreements when they affect a decision or outcome.
+Give concise updates about findings and the next uncertainty being resolved. Show the lead deliverables. In-role team chatter stays internal unless the lead asks; when shown, label it internal communication, not evidence. Surface disagreements when they affect a decision or outcome.
 
-If a worker fails, collect partial work, inspect changes, and reassign a bounded task. If tools are unavailable, use an honest static or sequential fallback and label limitations. If source is inaccessible, do not generate a project-specific verdict. State the missing input and do useful preparation possible from available context.
+If a worker fails or its context saturates, collect partial work, inspect changes, and reassign a bounded task to a fresh hire (see People Operations for rotation and corrective action). If tools are unavailable, use an honest static or sequential fallback and label limitations. If source is inaccessible, do not generate a project-specific verdict. State the missing input and do useful preparation possible from available context.
 
 Bound review loops by evidence: retest new changes and affected areas, then stop when checks pass and no material issue remains. If attempts repeatedly fail, state the blocker with observed results and the smallest next step. Never silently lower acceptance criteria to obtain a pass.

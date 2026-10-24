@@ -30,6 +30,10 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Classify the pinned change scope
+        id: validation-route
+        run: node scripts/validation-routing.mjs
+
       - name: Install dependencies
         run: npm ci
 
@@ -63,15 +67,29 @@ jobs:
           find teams-captions-saver -maxdepth 1 -type f -name '*.js' -print0 \
             | xargs -0 -n1 node --check
           node --check scripts/check-extension.mjs
+          node --check scripts/validation-routing.mjs
+
+      # Nonshipping control-plane edits receive real Development checks. This
+      # does not change frozen-candidate inputs or any Store/release workflow.
+      - name: Validate nonshipping Development changes
+        if: steps.validation-route.outputs.mode == 'nonshipping'
+        run: |
+          npm run release:status:check
+          npm run test:release
+          npm run lint
+          npm run audit:surfaces
+          npm run security:audit
+          npm run store:metadata:check
 
       - name: Run the complete release-candidate gate
+        if: steps.validation-route.outputs.mode != 'nonshipping'
         run: npm run release:candidate
 
       - name: Preserve package and browser-check evidence
-        if: always()
+        if: always() && steps.validation-route.outputs.mode == 'candidate'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: development-evidence-${{ github.sha }}
+          name: candidate-evidence-${{ github.sha }}
           if-no-files-found: warn
           retention-days: 14
           path: |
