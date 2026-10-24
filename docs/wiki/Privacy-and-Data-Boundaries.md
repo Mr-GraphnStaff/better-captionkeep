@@ -1,6 +1,6 @@
 # Privacy and Data Boundaries
 
-The 6.0 qualification build preserves the original caption transcript as its source. Notes, answers, Moments, markers, corrections and shareable summaries are separate derivatives. This describes product boundaries; it is not certification of an adopter's legal compliance.
+Better CaptionKeep 6.0 preserves the original caption transcript as its source. Notes, answers, Moments, markers, corrections and shareable summaries are separate derivatives. This describes product boundaries; it is not certification of an adopter's legal compliance.
 
 ## Local caption capture
 
@@ -34,6 +34,6 @@ Tenant IDs and public client IDs are configuration identifiers, not client secre
 
 Shipping 6.0 excludes MCP connections, native-helper payloads and external tool execution. Historical receipts remain readable/deletable without starting a new operation. Safari is deferred. No automatic upload or external action is implied by an Evidence marker or reviewed answer.
 
-6.0 is in release qualification; it is not claimed as frozen, fully certified or publicly distributed. Dated 5.4 Store evidence and historical incidents remain valid records after local folder archival.
+For current candidate identity, freeze, acceptance exceptions and distribution evidence, use [Release status](Release-Status) and the [machine release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/release/6.0/docs/release-state/6.0.json). An owner publication exception does not turn incomplete checks into passes. Dated 5.4 Store evidence and historical incidents remain valid records after local folder archival.
 
 Read the [security architecture](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/codex/6.0/docs/SECURITY-ARCHITECTURE.md), [privacy design](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/codex/6.0/docs/SECURITY-PRIVACY.md), and [Release status](Release-Status) before enterprise deployment.

@@ -4,9 +4,9 @@
 
 Better CaptionKeep captures captions displayed in Microsoft Teams, Google Meet and Zoom Web, then keeps a local transcript and source-linked meeting evidence. It does not record microphone audio or video, run a meeting bot, or operate a publisher transcript-upload service.
 
-## Where 6.0 stands
+## 6.0 product and release evidence
 
-As of October 24, 2026, **6.0 is in release qualification on `release/6.0`**, with [draft PR #174](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/174). David reports positive UAT in Brave, Opera, Firefox and Edge. That feedback is credited without claiming every browser/provider or acceptance case passed. The exact candidate is not yet frozen, and 6.0 is not claimed as Store-submitted or public.
+On October 24, 2026, David reported positive UAT in Brave, Opera, Firefox and Edge and authorized publication with documented acceptance/window exceptions. That feedback and authorization do not claim every browser/provider or acceptance case passed. Use [Release status](Release-Status) and the [machine release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/release/6.0/docs/release-state/6.0.json) for current source identity, candidate freeze and rollout evidence. Development changes belong on scoped branches such as `codex/6.0`; `release/6.0` is the release integration branch. A branch name alone does not establish promotion.
 
 Chrome, Edge, Brave, Firefox and Opera are the five 6.0 browser targets; each needs its own acceptance evidence. Safari and MCP connections/tool execution are deferred.
 
