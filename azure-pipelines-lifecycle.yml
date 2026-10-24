@@ -39,6 +39,18 @@ stages:
                   displayName: Install locked dependencies
                 - bash: npm run setup:helper
                   displayName: Install locked optional-helper test dependencies without lifecycle scripts
+                - bash: |
+                    set -euo pipefail
+                    edge_sandbox=/opt/microsoft/msedge/msedge-sandbox
+                    if [[ -e "$edge_sandbox" || -L "$edge_sandbox" ]]; then
+                      [[ -f "$edge_sandbox" && ! -L "$edge_sandbox" ]]
+                      [[ "$(readlink -f "$edge_sandbox")" == "$edge_sandbox" ]]
+                      [[ "$(dpkg-query -S "$edge_sandbox")" =~ ^microsoft-edge-(stable|beta|dev):[[:space:]]/opt/microsoft/msedge/msedge-sandbox$ ]]
+                      sudo chown root:root "$edge_sandbox"
+                      sudo chmod 4755 "$edge_sandbox"
+                      [[ "$(stat -c '%U:%G:%a' "$edge_sandbox")" == 'root:root:4755' ]]
+                    fi
+                  displayName: Restore packaged Edge sandbox permissions on the hosted image
                 - bash: npm test
                   displayName: Run automated tests
                 - bash: npm run lint
@@ -68,6 +80,18 @@ stages:
                   displayName: Use Node.js 22
                 - bash: npm ci
                   displayName: Install locked dependencies
+                - bash: |
+                    set -euo pipefail
+                    edge_sandbox=/opt/microsoft/msedge/msedge-sandbox
+                    if [[ -e "$edge_sandbox" || -L "$edge_sandbox" ]]; then
+                      [[ -f "$edge_sandbox" && ! -L "$edge_sandbox" ]]
+                      [[ "$(readlink -f "$edge_sandbox")" == "$edge_sandbox" ]]
+                      [[ "$(dpkg-query -S "$edge_sandbox")" =~ ^microsoft-edge-(stable|beta|dev):[[:space:]]/opt/microsoft/msedge/msedge-sandbox$ ]]
+                      sudo chown root:root "$edge_sandbox"
+                      sudo chmod 4755 "$edge_sandbox"
+                      [[ "$(stat -c '%U:%G:%a' "$edge_sandbox")" == 'root:root:4755' ]]
+                    fi
+                  displayName: Restore packaged Edge sandbox permissions on the hosted image
                 - bash: npm run release:candidate
                   displayName: Run the complete candidate gate
                 - task: PublishPipelineArtifact@1
