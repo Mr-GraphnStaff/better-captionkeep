@@ -1,31 +1,62 @@
 # Release Status
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
-6.0 preparation updated: **October 24, 2026**. Historical Store observations below
+6.0 distribution status updated: **October 24, 2026**. Historical Store observations below
 were last verified **October 14, 2026**; they are not a fresh Store inspection.
 
 The owner has given GO for release preparation, reported positive UAT, and
 approved the bold DAF-TECH artwork. The artwork gate is complete. The owner requested repair of issue #96 and continuation of publication; the bounded repair candidate is frozen with fresh, clean-build-verified hashes. The owner explicitly
 authorized publication with the named acceptance and test-window exceptions;
 those checks remain unpassed. Store rollout evidence is tracked separately above.
-6.0 is already in the existing repository on `codex/6.0`; local 5.4 archival
-did not delete GitHub history or promote `master`. Only production distribution
-artifacts under `dist/prod` are published; Development and UAT builds stay local.
+6.0 is published in the existing GitHub repository from protected `master`.
+Local 5.4 archival preserved GitHub history; promotion completed through reviewed
+pull requests. Only production distribution artifacts under `dist/prod` are
+published; Development and UAT builds stay local.
 
+
+## GitHub 6.0 published; Store reviews pending
+
+[GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0)
+was published October 24, 2026 at 03:47:23 America/Chicago (08:47:23 UTC), with
+15 assets. The release tag identifies
+`7470bbf1fe2347ce9c850ed7666ac326e79e7278`, promoted through protected `master`; repaired source is
+`9dabe8174ad51ef07662e739ab0ee2affec5cd75`.
+[Final Package run 40079055054](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40079055054)
+verified all eight frozen hashes, exact repaired package parity and 14
+attestation subjects. Published asset digests match the verified artifacts.
+
+GitHub reports server immutability disabled; these artifacts are operationally
+frozen and hash-verified. **Chrome review and Edge certification submissions are accepted; approval is pending.**
+The logical candidate state, unpassed owner-excepted checks, Store approval,
+public listing parity and installed-upgrade gates remain visible above.
+
+## Store submission receipts — October 24, 2026
+
+[Store pipeline 858](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_build/results?buildId=858)
+succeeded using tag `v6.0.0` at `7470bbf1fe2347ce9c850ed7666ac326e79e7278`.
+Chrome accepted 6.0 for review at 08:58:01 UTC with state **PENDING_REVIEW**,
+configured for immediate publication after approval. Microsoft accepted the
+Edge update for certification at 08:58:33 UTC; the submission operation
+succeeded, which is not certification approval.
+
+Chrome's pre-submission API check still reported public **5.4.0**. Store
+certification decisions, 6.0 public listings and installed-upgrade verification
+remain pending. The machine record therefore stays candidate with those gates
+false; the existing owner acceptance exceptions remain explicitly unpassed.
 
 | Channel | Version | Status |
 | --- | --- | --- |
-| Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
-| Microsoft Edge Add-ons | 5.4.0 and DAF-TECH listing refresh public; post-upgrade smoke pending | Microsoft's official listing serves version 5.4.0 and, as verified October 14, the refreshed description plus all five 5.4 screenshots. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
-| Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
-| Frozen bounded repair candidate | 6.0.0 | Source `9dabe81` is bound to fresh hashes from clean Package run 40078175305. Source gaps receive 15-second recovery grace and visible-dialog waits are capped at two minutes. Original evidence is preserved; manifests and artwork are unchanged. Live markup, named acceptance gaps and Store rollout remain separately disclosed. |
+| Chrome Web Store | 6.0.0 PENDING_REVIEW; pre-submission public version 5.4.0 | Store pipeline 858 accepted 6.0 for review at 08:58:01 UTC on October 24, configured for immediate publication after approval. The pre-submission API check reported PUBLISHED/5.4.0. Certification approval, listing parity and installed-upgrade verification remain pending. |
+| Microsoft Edge Add-ons | 6.0.0 accepted for certification; last documented public baseline 5.4.0 | Store pipeline 858 completed the certification submission operation at 08:58:33 UTC on October 24. Microsoft accepted the update for certification; this is not certification approval. The last documented public listing is 5.4.0 from October 14. Current 6.0 listing parity and installed-upgrade verification remain pending. |
+| Historical Store production baseline | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
+| GitHub v6.0.0 published; Store reviews pending | 6.0.0 | Source `9dabe81` is bound to fresh hashes from clean Package run 40078175305. Source gaps receive 15-second recovery grace and visible-dialog waits are capped at two minutes. GitHub publication is verified at tag 7470bbf1 with 15 assets. Original evidence is preserved; manifests and artwork are unchanged. Live markup, named acceptance gaps and Store rollout remain separately disclosed. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -35,7 +66,7 @@ The immutable release was published from commit `c17aed7e7805f18bafe982e7558e8b5
 
 The original tag, hashes, provenance, and ZIPs remain unchanged for auditability. They were not replaced or submitted to a Store. The corrected 5.3.1 release moved through the single Azure pipeline for both Chrome and Edge.
 
-## Current promotion evidence
+## Historical 5.3.1 promotion evidence
 
 - Azure run 589 uploaded the verified `v5.3.1` packages as drafts to the existing Chrome and Edge products.
 - Azure run 590 passed the protected production approval and Microsoft accepted the Edge package for certification.
@@ -116,4 +147,4 @@ David Farris explicitly selected “Publish with a documented owner exception.�
 The source/package-bound [authorization report](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/release/6.0/docs/release-state/6.0-owner-exception.md)
 records positive owner UAT, missing exact-case evidence, unchanged permissions
 and the waived unchanged-window requirement. No missing certification becomes
-a passed test. Promotion continues through PR174 and existing Store review.
+a passed test. Reviewed promotion to `master` and GitHub publication are complete; Chrome review and Edge certification submissions are accepted; approval, public listing parity and installed-upgrade verification remain pending.
