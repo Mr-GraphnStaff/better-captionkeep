@@ -13,13 +13,14 @@ Generated artifacts:
   Center at submission time.
 - Approved title, short description, full description, privacy answers,
   certification notes, and browser-support wording.
-- `manifest.json` containing filenames, dimensions, SHA-256 hashes, and a
-  deliberately pending release-owner approval field.
+- `manifest.json` containing filenames, dimensions, SHA-256 hashes, and release-owner approval bound to those artifact hashes.
 
 Run `npm run store:assets:render` to regenerate the seven PNG files and their
 manifest from `source.html`. The artwork uses only synthetic meeting content.
-Do not change the approval field until the frozen candidate has been visually
-reviewed by the release owner.
+David Farris approved the seven bold DAF-TECH illustrations on October 24,
+2026. This approval covers the hashes recorded in `manifest.json`; regeneration
+requires renewed visual review and must reset approval. Artwork approval does
+not certify an extension package or imply Store acceptance.
 
 The Microsoft Edge Update REST API cannot upload or modify this listing
 metadata. The reviewed bundle must be entered in Partner Center and the

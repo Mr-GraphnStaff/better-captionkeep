@@ -1,49 +1,57 @@
 {
   "version": "6.0.0",
-  "generatedAt": "2026-10-24T06:48:35.430Z",
-  "approval": "pending release-owner review",
+  "generatedAt": "2026-10-24T07:07:44.123Z",
+  "approval": "Approved by David Farris on October 24, 2026 for the artifact hashes in this manifest",
   "artifacts": [
     {
       "file": "01-one-button-meeting.png",
       "dimensions": "1280x800",
-      "bytes": 434857,
-      "sha256": "6BA60B268700B1113A79958BF8DF61658325E99436E31AB38681FE6B22F0D0D8"
+      "bytes": 601840,
+      "sha256": "A907088B0B44AA730A420AC0809DAF7604364E4BE0CA596EE4B530ACF5076B6F"
     },
     {
       "file": "02-rolling-live-notes.png",
       "dimensions": "1280x800",
-      "bytes": 379049,
-      "sha256": "A9E1E9E42D3FC8C8C2ED833007E88221E7417674F09FBD6B5CDFA16C30CB675B"
+      "bytes": 537782,
+      "sha256": "DC0C3DBF9D4FE2EB9003CFB7798810A36B80CA7F0D6CAC8D47815053457F01EB"
     },
     {
       "file": "03-capture-moment.png",
       "dimensions": "1280x800",
-      "bytes": 426036,
-      "sha256": "0E051D582B49116D5BC96DA701F5C683315924E0ED06CCF1AE4E26F36A8DC76F"
+      "bytes": 586419,
+      "sha256": "D90312A071E935FF4A6C5358B1541F14175076A0399F89F145C25C03583B29FA"
     },
     {
       "file": "04-meeting-receipt.png",
       "dimensions": "1280x800",
-      "bytes": 377206,
-      "sha256": "71C3B90CBD3C838717FD3B419FD6AA2A446E4F60CC51CFE08221D873FA0E092B"
+      "bytes": 542608,
+      "sha256": "91874584A36CCEBA45FBA99A95B87265EA91B94E29890C3AFB6E3B60720D0681"
     },
     {
       "file": "05-advanced-settings.png",
       "dimensions": "1280x800",
-      "bytes": 383065,
-      "sha256": "0837E5D162F4E08063E1E594C690FE8F3B44FAA943F1A2A5559EEB38552D1E25"
+      "bytes": 542878,
+      "sha256": "F2434644D0BA68441BE447369DE51FC591B9FCC44DB015971DD424DB3E8DA1E6"
     },
     {
       "file": "small-promotional-tile.png",
       "dimensions": "440x280",
-      "bytes": 81497,
-      "sha256": "DC41BEE358C5C88D80E9CD944D26A83FAD5F47D9BF998ACB3A23A4569E280B1E"
+      "bytes": 82642,
+      "sha256": "DFE5BADA65A8A43B110FAC61502D31C243090800A5EBC16B7ADB3EF9ED4B8783"
     },
     {
       "file": "marquee-promotional-tile.png",
       "dimensions": "1400x560",
-      "bytes": 414636,
-      "sha256": "3E615B1EEC915BDBE412B7D8C1CE6A87A835FCBCA055BE7CAADF827086BA3C68"
+      "bytes": 403676,
+      "sha256": "8A5E9F95CD89965D22C6298B4FD7BF44222BF59699F2906408D4EDB349437349"
     }
-  ]
+  ],
+  "ownerApproval": {
+    "approvedBy": "David Farris",
+    "date": "2026-10-24",
+    "timezone": "America/Chicago",
+    "scope": "Seven bold DAF-TECH illustrations listed by SHA-256 in this manifest",
+    "evidence": "Owner: oh that branding is gorgeous and bold i approve",
+    "candidateCertification": false
+  }
 }
