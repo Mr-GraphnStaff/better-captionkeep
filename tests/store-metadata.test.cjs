@@ -136,7 +136,7 @@ test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () =>
   assert.deepEqual(pngDimensions('store-assets/5.4/large-promotional-tile.png'), [1400, 560]);
 });
 
-test('6.0 Store artwork has exact listing dimensions and pending owner approval', () => {
+test('6.0 Store artwork binds listing assets to their recorded owner approval state', () => {
   for (const screenshot of [
     '01-one-button-meeting.png',
     '02-rolling-live-notes.png',
@@ -150,6 +150,37 @@ test('6.0 Store artwork has exact listing dimensions and pending owner approval'
   assert.deepEqual(pngDimensions('store-assets/6.0/marquee-promotional-tile.png'), [1400, 560]);
   const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-assets/6.0/manifest.json'), 'utf8'));
   assert.equal(assetManifest.version, '6.0.0');
-  assert.equal(assetManifest.approval, 'pending release-owner review');
   assert.equal(assetManifest.artifacts.length, 7);
+  assert.deepEqual(assetManifest.artifacts.map(artifact => artifact.file).sort(), [
+    '01-one-button-meeting.png', '02-rolling-live-notes.png', '03-capture-moment.png',
+    '04-meeting-receipt.png', '05-advanced-settings.png',
+    'small-promotional-tile.png', 'marquee-promotional-tile.png',
+  ].sort());
+  const {createHash} = require('node:crypto');
+  for (const artifact of assetManifest.artifacts) {
+    assert.equal(path.basename(artifact.file), artifact.file, 'Artwork must stay inside its asset directory');
+    const relativePath = `store-assets/6.0/${artifact.file}`;
+    const bytes = fs.readFileSync(path.join(__dirname, '..', relativePath));
+    assert.equal(artifact.dimensions, pngDimensions(relativePath).join('x'));
+    assert.equal(artifact.bytes, bytes.length);
+    assert.match(artifact.sha256, /^[A-F0-9]{64}$/);
+    assert.equal(artifact.sha256, createHash('sha256').update(bytes).digest('hex').toUpperCase());
+  }
+  const releaseRecord = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs/release-state/6.0.json'), 'utf8'));
+  if (assetManifest.approval === 'pending release-owner review') {
+    assert.equal(assetManifest.ownerApproval, undefined, 'Regenerated artwork must not retain an earlier approval');
+    assert.equal(releaseRecord.releaseGates.artworkApproved, false);
+  } else {
+    const approval = assetManifest.ownerApproval;
+    assert(approval && typeof approval === 'object', 'Approved artwork requires structured owner evidence');
+    for (const field of ['approvedBy', 'scope', 'evidence', 'timezone']) {
+      assert.equal(typeof approval[field], 'string');
+      assert(approval[field].trim().length > 0, `Owner approval requires ${field}`);
+    }
+    assert.match(approval.date, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(new Date(`${approval.date}T00:00:00Z`).toISOString().slice(0, 10), approval.date);
+    assert(assetManifest.approval.includes(approval.approvedBy), 'Approval label must identify the recorded owner');
+    assert.equal(approval.candidateCertification, false, 'Artwork approval does not certify the release candidate');
+    assert.equal(releaseRecord.releaseGates.artworkApproved, true);
+  }
 });

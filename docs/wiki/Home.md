@@ -6,7 +6,7 @@ Better CaptionKeep captures captions displayed in Microsoft Teams, Google Meet a
 
 ## Where 6.0 stands
 
-As of October 24, 2026, **6.0 is in release qualification on `codex/6.0`**, with [draft PR #137](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/137). David reports positive UAT in Brave, Opera, Firefox and Edge. That feedback is credited without claiming every browser/provider or acceptance case passed. The exact candidate is not yet frozen, and 6.0 is not claimed as Store-submitted or public.
+As of October 24, 2026, **6.0 is in release qualification on `release/6.0`**, with [draft PR #174](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/174). David reports positive UAT in Brave, Opera, Firefox and Edge. That feedback is credited without claiming every browser/provider or acceptance case passed. The exact candidate is not yet frozen, and 6.0 is not claimed as Store-submitted or public.
 
 Chrome, Edge, Brave, Firefox and Opera are the five 6.0 browser targets; each needs its own acceptance evidence. Safari and MCP connections/tool execution are deferred.
 
