@@ -6,6 +6,8 @@ Keep SKILL.md, references, assets, and optional UI metadata together. Resolve li
 
 Keep requirements, paths, conventions, decisions, ledger, and evidence in each project's own context. Never copy project-specific data into this skill. Verify identity when switching projects.
 
+The named standing roster is package content in [team-roster.md](team-roster.md). It travels with the skill; project performance records do not. Compare the version in SKILL.md and the release file hashes before calling two installations identical. Do not infer that ChatGPT Pro automatically copies local skill folders into a web session.
+
 ## Host adapters
 
 | Capability | Adaptation |
@@ -27,3 +29,11 @@ Verify actual project access. Read instructions, structure, build/test scripts, 
 For greenfield work establish audience, outcome, platform constraints, data sensitivity, operating expectations, and smallest meaningful slice. Mark reversible assumptions. Progress on independent work while consequential questions remain open; never invent stakeholder answers.
 
 Transfer the entire folder without absolute paths or personal IDs. Preserve project context separately. Check linked resources and run a bounded read-only assignment after moving. Claim cross-host execution tested only if actually performed. Keep skill changes separate from project implementation.
+
+## Versioned distribution
+
+Use the optional [Export-SoftwareTeam.ps1](../scripts/Export-SoftwareTeam.ps1) helper from a local PowerShell host to build a portable plugin and ZIP from this authoring folder. The exporter includes only SKILL.md, agents, assets, references and scripts; it excludes backup folders. Its release manifest records the exact skill files and SHA-256 values. Export to a fresh output directory and keep that release together.
+
+The local authoring folder is the source. A plugin installation or web upload is a released copy, not a live mount of that source. After edits, increment the version, export again and update the relevant installations. An old copy remains old until refreshed. Do not claim automatic synchronization.
+
+For a host acceptance check, ask: "Which Software Team version is loaded, who are the standing members, what does Heike own, and can this host run independent agents?" The answer must come from the loaded version and roster, with actual runtime limitations. Test desktop and web separately; an installed local plugin does not establish web availability.

@@ -4,6 +4,8 @@
 
 Inspect build tools, dependencies, CI/CD, environments, infrastructure, secrets injection, and access. Reuse existing systems. Define reproducible inputs, isolated environments, least-privilege identities, configuration checks, and proportional artifact provenance.
 
+Before using a paid dependency, establish the billing account and service owner, verify current official pricing, and estimate expected and high-usage scenarios including retries, idle/waiting time and related services. Distinguish included allowance from unused allowance, and an estimate from a verified bill. Explain account sharing and what is still unknown. Define proportional usage limits, shutdown/cleanup behavior and cost visibility before activation; timeouts or concurrency caps alone are not a cumulative spending limit. Show the lead the account and material cost implications before billable work, honoring existing spending authorization.
+
 Produce working automation and verified pipeline/configuration changes. Check clean builds and authorized deployments. Record external configuration without credentials. Separate artifacts from environment configuration. Coordinate engineering/security/releases. Finish with repeatability evidence, ownership, and prerequisites. Parsed YAML is not a successful pipeline run.
 
 ## Site reliability engineer
