@@ -38,14 +38,30 @@ folder. A localhost preview is **not** the installed extension. Do not replace o
 remove your ordinary Store installation or real archive to create a test profile.
 Ask the build owner for the exact package/folder and identity if uncertain.
 
-For an already prepared Chromium development build, Load unpacked selects
-`P:/Projects/better-captionkeep-6.0/dist/dev` (the folder containing manifest.json).
+For this release qualification, Load unpacked selects the prepared Chromium
+UAT build at `P:/Projects/better-captionkeep-dev/dist/uat` (the folder containing
+manifest.json). This is the single next Chromium UAT path; the retained
+`dist/dev` build is historical testing context, not the next candidate to load.
+The prepared UAT source is `0be537813a7eae20a71d5f7781ba64f6f0a2fbcf`;
+it remains unfrozen, so confirm current source and artifact identity with the
+build owner before testing.
 After an agreed rebuild, Reload that extension card and refresh test meeting tabs.
 An existing folder may be stale: the build owner must confirm its source identity.
-Do not load the older 5.4 checkout. Firefox requires its own browser-target package
-and installation instructions; do not use Chromium Load unpacked instructions.
+Do not load the older 5.4 checkout. Firefox requires its own browser-target
+package at `P:/Projects/better-captionkeep-dev/dist/prod/firefox-unpacked` or
+its supplied Firefox ZIP and installation instructions; do not use Chromium
+Load unpacked instructions or the Chromium UAT package.
 
 ### Record every result
+
+David reported positive UAT 6 results on October 24, 2026 in Brave, Opera,
+Firefox and Edge, and identified `P:/Projects/better-captionkeep-dev/dist` as
+the build location. Preflight found only `dist/dev` at the time; that suggests
+the development build but does not establish the browser's registered folder
+or exact package identity. Credit this as positive owner-reported UAT. Browser
+versions, providers and cases exercised have not yet been recorded here; the
+report does not assign blanket PASS results. Add those details to the run
+records when available and retain the original observation.
 
 Use **PASS**, **FAIL**, **BLOCKED** (cannot run: name the prerequisite), or
 **NOT RUN**. Every case starts NOT RUN; a checkbox or prior automated result is
@@ -150,7 +166,7 @@ a prepared test environment. If you cannot safely simulate them, record BLOCKED.
 ## Separate browser/provider results
 
 Enter result + run-record reference in every cell; each starts **NOT RUN**.
-Repeat F01–F10 for each cell, and all applicable U/P/M/R cases per browser.
+Repeat F01–F10 for each cell, and all applicable U/P/D/R cases per browser.
 Certification requires all applicable journeys, not merely a passing first session.
 
 | Browser | Teams Web | Google Meet | Zoom Web |

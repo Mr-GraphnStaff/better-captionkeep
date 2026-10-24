@@ -2,9 +2,28 @@
 
 > **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
 
-Date: October 14, 2026. Team lead: David Farris.
-Source: P:/Projects/better-captionkeep-6.0, branch codex/6.0.
-Review starting revision: 360cae2. Public 5.4 checkout stays unchanged.
+Current update: October 24, 2026. Team lead: David Farris.
+Source: P:/Projects/better-captionkeep-dev, branch codex/6.0.
+Historical review starting revision: 360cae2. The 5.4 contents are preserved in the archive.
+
+## Current release preparation
+
+David authorized the 6.0 release push on October 24. The current assignment,
+named specialist ownership, positive owner UAT and verification limits are in
+[the release-preparation record](../release-state/6.0-preparation.md).
+Earlier dated assignments below are historical and do not replace that record.
+
+Use one active source checkout with `dist/dev`, `dist/uat` and `dist/prod`.
+Only `dist/prod` supplies published distribution assets. The separate 5.4
+checkouts and unused top-level lane remnants are archived in
+`P:/projectsArchive`; active 6.0 Git metadata is self-contained. Do not recreate
+the former top-level UAT/production source checkouts.
+
+The shared Software Team 1.0.6 / roster 1.0.2 supplies the named team. Ishan,
+Mara, Lena, Heike and Ellis were separately delegated for this release push;
+Codex coordinates integration. The repository's older bundled skill is not
+proof of synchronization with the shared installation. No shared skill files
+were modified during release preparation.
 
 ## Assignment and authority
 

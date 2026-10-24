@@ -18,6 +18,9 @@
 **Testing 6.0?** Use the [hands-on QA and acceptance packet](docs/software-team/TESTER-ACCEPTANCE-6.0.md).
 Start with the Brave first-session checks; record results against the actual
 installed build. This is development QA, not a frozen candidate or certification.
+The [October 24 release-preparation record](docs/release-state/6.0-preparation.md)
+identifies the single next Chromium test package at
+`P:\Projects\better-captionkeep-dev\dist\uat`; existing Development files are preserved.
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme.
 
@@ -138,6 +141,12 @@ Chrome and Edge publicly serve `5.4.0`. Installed-upgrade and post-upgrade funct
 ### Three lifecycle environments
 
 Generated output has exactly three stable locations:
+
+Use one active source checkout, `P:\Projects\better-captionkeep-dev`, with the
+three generated lanes below. Separate top-level UAT/production checkouts are
+archived outside `P:\Projects`, under `P:\projectsArchive`. Only `dist/prod`
+supplies published GitHub distribution assets and Store submissions; `dist/dev`
+and `dist/uat` are not published. Generated `dist/` files remain ignored by Git.
 
 - `dist/dev` — current development build.
 - `dist/uat` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
