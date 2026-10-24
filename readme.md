@@ -3,7 +3,7 @@
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
-> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
@@ -26,9 +26,9 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including th
 
 > **Current install status — October 13, 2026:** Chrome Web Store and Microsoft Edge Add-ons publicly serve `5.4.0`. Installed-upgrade and post-upgrade functional smoke verification remain separate open evidence; see [Release status](docs/wiki/Release-Status.md).
 
-> **6.0 development status:** The `codex/6.0` line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. Remaining in-scope acceptance, five separate live browser/provider certifications, artwork approval, candidate freeze, Store approval and installed-upgrade testing remain open.
+> **6.0 development status:** The `codex/6.0` line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. Remaining in-scope acceptance, five separate live browser/provider certifications, candidate freeze, Store approval and installed-upgrade testing remain open.
 
-### Current 5.4 capabilities
+### 6.0 release scope
 
 **6.0 MCP scope:** BYOMCP is deferred to a later release. Shipping 6.0 excludes MCP connections, native messaging and helper/tool-execution controls. Local capture, archives, exports, reviewed BYOAI handoff and existing receipt readability remain. Earlier MCP development is preserved separately; it is not a shipping feature or a completed acceptance claim.
 
@@ -91,19 +91,23 @@ The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** a
 
 Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the frozen public production baseline. [6.0](docs/RELEASE-6.0.md) is active development. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
-## 5.4 interface previews
+## Approved 6.0 interface illustrations
 
-These synthetic 5.4 release-candidate previews contain no customer meeting,
-tenant, transcript, or account data. They show the current product story but
-must not be confused with proof of Store approval or public availability.
+David Farris approved this bold DAF-TECH artwork on October 24, 2026. These
+synthetic illustrations contain no customer meeting, tenant or account data.
+They describe the 6.0 release scope; they are not native browser captures or
+proof of Store publication. [Artifact hashes and approval](store-assets/6.0/manifest.json)
+bind the reviewed images. [5.4 artwork](store-assets/5.4/README.md) remains historical.
 
-| Three meeting platforms | Explicit meeting controls |
+| One-button meeting workspace | Rolling Live Notes |
 | --- | --- |
-| <img src="store-assets/5.4/01-three-meeting-platforms.png" alt="Local caption capture for Microsoft Teams, Google Meet, and Zoom Web" width="600"> | <img src="store-assets/5.4/02-explicit-meeting-controls.png" alt="User-controlled caption, attendee, and Teams transcript actions" width="600"> |
+| <img src="store-assets/6.0/01-one-button-meeting.png" alt="6.0 local meeting workspace illustration" width="600"> | <img src="store-assets/6.0/02-rolling-live-notes.png" alt="6.0 source-linked Rolling Live Notes illustration" width="600"> |
 
-| On the Fly selected research | Review-first AI handoff |
+| Capture an important moment | Meeting Receipt |
 | --- | --- |
-| <img src="store-assets/5.4/03-on-the-fly-research.png" alt="On the Fly selected meeting evidence for a reviewed research request" width="600"> | <img src="store-assets/5.4/04-reviewed-ai-handoff.png" alt="Review-first Copy and Open AI workspace handoff" width="600"> |
+| <img src="store-assets/6.0/03-capture-moment.png" alt="6.0 capture moment illustration" width="600"> | <img src="store-assets/6.0/04-meeting-receipt.png" alt="6.0 Meeting Receipt illustration" width="600"> |
+
+![6.0 advanced settings illustration](store-assets/6.0/05-advanced-settings.png)
 
 ## What it does
 
@@ -111,7 +115,7 @@ must not be confused with proof of Store approval or public availability.
 - Export TXT or Markdown with a choice of save location.
 - Automatically archive completed meetings locally, reopen them after browser restart, and use speaker aliases. Search the full retained archive by keyword or phrase with meeting-title, speaker, date, and ordering filters, then jump to the matching source caption. The archive does not silently evict older meetings; explicit user deletion and managed retention remain available.
 - Optionally include attendee information or hand a transcript to an AI provider.
-- Choose CaptionKeep, Light, Midnight, or Follow system appearance across every extension page.
+- Choose an appearance preset, including CaptionKeep (the DAF-TECH default) and High Contrast, through All Settings.
 - Work in a branded transcript viewer with a sticky search, speaker-filter, copy, save, and history toolbar.
 - Keep the popup calm with expandable settings sections; everyday capture controls remain visible first.
 - Open Teams, Zoom Web, or Google Meet from a compact app row, with separate quick-start actions directly below for Meet now or a new meeting.

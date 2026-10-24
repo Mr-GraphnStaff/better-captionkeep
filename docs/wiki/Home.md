@@ -1,36 +1,41 @@
-# Better CaptionKeep
+# Better CaptionKeep 6.0
 
-Better CaptionKeep turns captions already displayed in Microsoft Teams, Google Meet, and Zoom Web into a private, searchable transcript. It does not record microphone audio or video, run a meeting bot, sell data, or send transcripts to a developer-operated service.
+**A DAF-TECH product — Keep the meeting. Keep the evidence.**
 
-## Install the public version
+Better CaptionKeep captures captions displayed in Microsoft Teams, Google Meet and Zoom Web, then keeps a local transcript and source-linked meeting evidence. It does not record microphone audio or video, run a meeting bot, or operate a publisher transcript-upload service.
 
-- [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml)
-- [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/better-captionkeep/edefcbdhahfolgkoamkbknjppojpaffk)
+## Where 6.0 stands
 
-On October 7, 2026, Chrome and Edge were verified publicly serving **5.3.2**. Installed-upgrade verification remains separate evidence. Do not install the GitHub `v5.3.0` ZIP: it is retained only for audit.
+As of October 24, 2026, **6.0 is in release qualification on `codex/6.0`**, with [draft PR #137](https://github.com/Mr-GraphnStaff/better-captionkeep/pull/137). David reports positive UAT in Brave, Opera, Firefox and Edge. That feedback is credited without claiming every browser/provider or acceptance case passed. The exact candidate is not yet frozen, and 6.0 is not claimed as Store-submitted or public.
+
+Chrome, Edge, Brave, Firefox and Opera are the five 6.0 browser targets; each needs its own acceptance evidence. Safari and MCP connections/tool execution are deferred.
+
+![DAF-TECH Better CaptionKeep 6.0 campaign artwork](https://raw.githubusercontent.com/Mr-GraphnStaff/better-captionkeep/27eb0227579c388c6ad22b6ba7e8b3f7586797f5/store-assets/6.0/01-one-button-meeting.png)
+
+*Bold DAF-TECH campaign artwork approved by the product owner on October 24. Product panels are illustrations with synthetic data; artwork approval is separate from browser certification and release approval.*
 
 ## Start here
 
-1. [Install Better CaptionKeep](Installation)
-2. [Capture your first meeting](Getting-Started)
-3. [Review, save, and export](Review-Save-and-Export)
-4. [Understand privacy and data boundaries](Privacy-and-Data-Boundaries)
+1. [Install or join controlled UAT](Installation).
+2. [Capture your first meeting](Getting-Started).
+3. [Review, save and export](Review-Save-and-Export).
+4. [Understand privacy and data boundaries](Privacy-and-Data-Boundaries).
 
-## What is available now
+The 6.0 working product includes the Live Workspace, local Meeting Receipts/history, Evidence Board, reviewed Capture Moments, cited Notes and Ask, reusable local templates, exports and reviewed shareable summaries. Original captions remain authoritative; derived notes, images, answers and corrections stay separate. Optional AI handoff remains user-directed.
 
-The supported public baseline provides live-caption capture in Teams, Google Meet, and Zoom Web, local transcript history, search, TXT and Markdown export, Privacy Scrubber, recovery, and the Evidence Board.
+The dark teal DAF-TECH interface is the default. The Theme selector calls that default **CaptionKeep** and also offers Light, Midnight, Slate, High contrast and Follow system. Choosing High contrast is a personal setting; it does not change the product's default or certify accessibility.
 
-Version 5.3.2 adds Word/PDF workflows, expanded settings, enterprise controls, and optional Microsoft 365 import using a customer-owned single-tenant Entra registration.
+## Public installation and release history
 
-![Better CaptionKeep supports Microsoft Teams, Google Meet, and Zoom Web](https://raw.githubusercontent.com/Mr-GraphnStaff/better-captionkeep/master/store-assets/5.3/04-three-meeting-platforms.png)
+- [Chrome Web Store](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml)
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/better-captionkeep/edefcbdhahfolgkoamkbknjppojpaffk)
 
-*5.3 recovery-candidate artwork using synthetic content. It is a preview, not proof of Store availability.*
+The October 14 release record documented public 5.4.0 listings. Archiving the old local 5.4 development folders on October 24 does **not** withdraw a Store listing, archive the GitHub repository, or publish 6.0. Check [Release status](Release-Status) for dated distribution evidence; this page does not assert a fresh Store verification.
+
+The active source is `P:\Projects\better-captionkeep-dev`; Development, UAT/Release Candidate and Production use its `dist/dev`, `dist/uat` and `dist/prod` lanes. The one next Chromium test package is `dist/uat`. Only approved Production artifacts are distributed publicly.
 
 ## Need help?
 
-- [Troubleshooting](Troubleshooting)
-- [Support and bug reports](Support)
-- [Current release status](Release-Status)
-- [Administrator deployment](Administrator-Deployment)
+[Troubleshooting](Troubleshooting) · [Support](Support) · [Release status](Release-Status) · [Administrator deployment](Administrator-Deployment)
 
-The [public repository](https://github.com/Mr-GraphnStaff/better-captionkeep) contains source, privacy documentation, security architecture, release evidence, and the preserved MIT attribution.
+The [repository](https://github.com/Mr-GraphnStaff/better-captionkeep) preserves source, release evidence, security/privacy documents, the MIT license and original attribution.

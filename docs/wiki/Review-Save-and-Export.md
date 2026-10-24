@@ -1,38 +1,45 @@
 # Review, Save, and Export
 
+These instructions describe the **6.0 qualification build**. Consult [Release status](Release-Status) for distribution status and older version records.
+
 ## Appearance and language
 
-Open **All Settings → Appearance** to choose a theme and interface language. **Follow browser language** uses the browser preference. In the 5.4 development line, non-English interface catalogs are explicitly labeled as uncertified AI-assisted previews until qualified review is recorded; English remains the authoritative privacy, security, and administration reference.
+Open **All Settings → Appearance** to choose CaptionKeep, Light, Midnight, Slate, High contrast or Follow system and an interface language. Dark teal DAF-TECH remains the default; High contrast uses black/white surfaces and a bright yellow primary action.
 
-## Speaker aliases
+Non-English catalogs remain previews until qualified review is recorded. Catalog availability alone does not certify full translation or accessibility. English remains the authoritative privacy, security and administrator reference.
 
-Speaker aliases change how captured speaker labels are presented in reviewed derivatives and exports. They do not rewrite the preserved source evidence. Use aliases only when you can identify the speaker accurately; Better CaptionKeep does not invent missing attribution.
+## Open and read the transcript
 
-## Open the transcript
+Use **Open Live Workspace** from the live popup, **Open last live transcript**, or **Full transcript** within the workspace. Use **History** in the viewer for completed local sessions. Search and speaker filters help review available text; missing speaker attribution is never invented.
 
-Select **View transcript** during a meeting, or open **History** after the meeting ends. The viewer lets you search the transcript, filter by speaker when attribution is available, copy reviewed text, and reopen saved sessions.
+New captions should not pull you away from words you are reviewing. **Follow latest** deliberately resumes following new text. Use the full viewer for earlier words beyond the workspace's displayed window.
 
-## Save behavior
+## Notes, Ask, templates and Evidence
 
-- **Automatically** saves in the configured default format without opening a Better CaptionKeep save page.
-- **Ask me each time** lets you choose a different location for every export.
+Notes and Ask use a reviewed handoff tied to a transcript snapshot. Review returned text and its existing caption references before retaining it. An answer may correctly say the transcript does not establish the answer. These results do not replace source captions.
 
-Advanced download settings can use a Downloads subfolder and, where the browser permits it, remember a dedicated local folder.
+Rolling notes are local, extractive caption-batch updates with pause/resume, **Update now**, review and revision history. They do not imply an automatically connected background AI service.
 
-## File names and timestamps
+Create, duplicate, edit, import or export local templates through All Settings. Source-linked Evidence markers retain the caption behind a decision, action, question, risk or follow-up. Speaker aliases and corrected views change presentation/derivatives rather than rewriting the original source.
 
-**All Settings → Naming and timestamps** controls the export filename pattern and how observed times are displayed. Filename previews are local. Browser-observation times are not media cue boundaries, so Better CaptionKeep does not turn them into invented SRT or WebVTT timing.
+**Capture Moment** previews the supported meeting image for explicit approval before local retention. An optional note/alt text, export and deletion stay separate from the transcript. Images are not automatically anonymized or sent to AI.
 
-## Export formats
+## Save behavior and file types
 
-All public Store versions support TXT and Markdown. Microsoft Edge Add-ons now serves 5.3.2, which also provides Word export and browser Print / PDF. Chrome continues to serve 5.1.0 and receives those additional formats only after its 5.3.2 review and publication complete.
+- **Automatically** uses the configured format and save behavior.
+- **Ask me each time** requests a location through the supported browser workflow.
+- Advanced settings can select a Downloads subfolder or, where supported, a dedicated local folder.
 
-Subtitle export is offered only when an imported official transcript contains real media cue boundaries. Better CaptionKeep does not invent SRT or WebVTT timing from browser observation times.
+Browser-wide download prompts and organizational policy may still apply. Cancelled or failed downloads are not successful saves.
 
-## Privacy Scrubber
+The 6.0 viewer offers TXT, Markdown, Word (DOCX), and **Print / PDF** through the browser dialog. Inspect actual exported content and select **Save as PDF** in that dialog when needed. SRT/WebVTT requires imported official media cue boundaries; observed browser timestamps are not invented subtitle timing.
 
-Privacy Scrubber can create a masked derivative for copy, export, or optional AI handoff while leaving the saved source transcript unchanged. Pattern matching reduces accidental disclosure risk but is not a compliance guarantee or a replacement for organizational DLP.
+**All Settings → Naming and timestamps** controls filename patterns and observed-time display. Filename previews are local.
 
-## Evidence Board
+## Privacy Scrubber and shareable summaries
 
-The Evidence Board lets you mark source-linked decisions, actions, questions, risks, follow-ups, and important moments. Markers are derivatives; they do not rewrite the captured source transcript.
+Privacy Scrubber creates a masked derivative for copy, export or reviewed AI handoff while preserving the source. Review its output: pattern matching is not guaranteed anonymization or organizational DLP.
+
+In the full viewer, **More transcript tools → Prepare shareable summary** opens a separate draft. Select intended source excerpts, edit and review the summary for intended recipients, then copy/export/print. Editing or changing the source invalidates review. Confidentiality labels are handling reminders; the privileged designation requires explicit organizational legal guidance and does not establish privilege. Nothing is emailed automatically.
+
+Managed restrictions override optional copy/export/AI allowances. MCP connections and external tool execution are excluded from shipping 6.0.

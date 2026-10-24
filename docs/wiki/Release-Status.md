@@ -3,11 +3,20 @@
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
-> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
-Last verified: **October 14, 2026**.
+6.0 preparation updated: **October 24, 2026**. Historical Store observations below
+were last verified **October 14, 2026**; they are not a fresh Store inspection.
+
+The owner has given GO for release preparation, reported positive UAT, and
+approved the bold DAF-TECH artwork. The artwork gate is complete. Exact-candidate
+freeze, remaining certification and rollout evidence are tracked above.
+6.0 is already in the existing repository on `codex/6.0`; local 5.4 archival
+did not delete GitHub history or promote `master`. Only production distribution
+artifacts under `dist/prod` are published; Development and UAT builds stay local.
+
 
 | Channel | Version | Status |
 | --- | --- | --- |

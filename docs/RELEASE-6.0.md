@@ -1,13 +1,22 @@
-# Better CaptionKeep 6.0 Development Gate
+# Better CaptionKeep 6.0 Release Qualification
 
 > **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
 
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
-> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
+
+## Owner decision — October 24, 2026
+
+David Farris gave GO to proceed with release qualification, reported positive
+UAT, and explicitly approved the bold DAF-TECH artwork. The approval is bound
+to [seven image hashes](../store-assets/6.0/manifest.json). The
+[preparation record](release-state/6.0-preparation.md) distinguishes completed
+CI/package checks from remaining exact-candidate acceptance and rollout checks.
+No new repository or parallel source folder is needed for promotion.
 
 ## Status
 

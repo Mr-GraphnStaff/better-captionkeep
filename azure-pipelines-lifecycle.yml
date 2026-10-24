@@ -73,7 +73,7 @@ stages:
                 - task: PublishPipelineArtifact@1
                   displayName: Preserve candidate evidence
                   inputs:
-                    targetPath: $(Build.SourcesDirectory)/dist
+                    targetPath: $(Build.SourcesDirectory)/dist/prod
                     artifact: release-candidate-$(Build.SourceVersion)
                     publishLocation: pipeline
 
