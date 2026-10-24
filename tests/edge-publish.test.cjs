@@ -73,10 +73,18 @@ function promotionFixture() {
 test('edge mutations fail closed before credentials or any Store network request', async()=>{
   const {main}=await import('../scripts/edge-publish.mjs');
   for(const action of ["upload-only","submit","submit-existing"]) {
-    let calls=0;
-    const env={EDGE_ACTION:action,EDGE_CERTIFICATION_NOTES:'Synthetic notes',CHROME_EXTENSION_ID:'nabjdlnkkaonnbnimnmnhjcbigceebml',EDGE_PRODUCT_ID:'product-id'};
-    await assert.rejects(main({env,fetchImpl:async()=>{calls++;throw Error('network forbidden');}}),/frozen candidate|Existing Store drafts cannot be verified/);
+    let calls=0, credentialReads=0;
+    const values={EDGE_ACTION:action,EDGE_CERTIFICATION_NOTES:'Synthetic notes',CHROME_EXTENSION_ID:'nabjdlnkkaonnbnimnmnhjcbigceebml',EDGE_PRODUCT_ID:'product-id'};
+    const env=new Proxy(values, {get(target,key) {
+      if (['EDGE_CLIENT_ID', 'EDGE_API_KEY'].includes(key)) {credentialReads++;throw Error('credentials forbidden');}
+      return target[key];
+    }});
+    const development=promotionFixture();
+    development.record.state='development';
+    development.record.candidate={frozen:false,commit:null,hashes:null};
+    await assert.rejects(main({env,promotion:development,fetchImpl:async()=>{calls++;throw Error('network forbidden');}}),/frozen candidate|Existing Store drafts cannot be verified/);
     assert.equal(calls,0,action);
+    assert.equal(credentialReads,0,action);
     for(const corrupt of [
       f=>{delete f.record.candidate.promotion.uat;},
       f=>{f.record.candidate.promotion.permissionDelta.commit='b'.repeat(40);},
@@ -87,6 +95,7 @@ test('edge mutations fail closed before credentials or any Store network request
       const promotion=promotionFixture();corrupt(promotion);
       await assert.rejects(main({env,promotion,fetchImpl:async()=>{calls++;throw Error('network forbidden');}}));
       assert.equal(calls,0,action);
+      assert.equal(credentialReads,0,action);
     }
   }
 });

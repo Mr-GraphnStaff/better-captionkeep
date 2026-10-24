@@ -54,6 +54,7 @@ stages:
           clean: all
         steps:
           - checkout: self
+            fetchDepth: 0
             clean: true
 
           - bash: |
@@ -104,6 +105,7 @@ stages:
         timeoutInMinutes: 30
         steps:
           - checkout: self
+            fetchDepth: 0
             clean: true
           - task: DownloadPipelineArtifact@2
             inputs:
@@ -133,6 +135,7 @@ stages:
         timeoutInMinutes: 30
         steps:
           - checkout: self
+            fetchDepth: 0
             clean: true
           - task: DownloadPipelineArtifact@2
             inputs:
@@ -168,6 +171,7 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  fetchDepth: 0
                   clean: true
                 - task: DownloadPipelineArtifact@2
                   inputs:

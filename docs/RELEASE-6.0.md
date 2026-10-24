@@ -3,10 +3,9 @@
 > **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
@@ -21,11 +20,11 @@ No new repository or parallel source folder is needed for promotion.
 
 ## Status
 
-Version 6.0 is frozen for promotion on `release/6.0`, using source
-`85d55ffcfed9e2d1ceff5ab1f04c4bf7508a887f` and the exact eight hashes in
-[`6.0.json`](release-state/6.0.json). Clean Package run
-[40074861720](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40074861720)
-passed; all seven shipping ZIPs exactly match the owner-approved earlier build.
+Version 6.0 shipping ZIPs are approved and verified byte-identical to the
+original owner-approved packages. Source85d55ff clean Package run40074861720
+passed. The first frozen-metadata CI exposed development-only publisher-test
+assumptions and shallow checkout history; these are being corrected before the
+final source commit and hashes are frozen. No extension runtime change is involved.
 
 David explicitly authorized publication with the
 [documented owner exception](release-state/6.0-owner-exception.md).

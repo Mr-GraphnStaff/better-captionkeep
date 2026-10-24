@@ -1,10 +1,9 @@
 # Release Status
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
+> **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
@@ -12,7 +11,7 @@
 were last verified **October 14, 2026**; they are not a fresh Store inspection.
 
 The owner has given GO for release preparation, reported positive UAT, and
-approved the bold DAF-TECH artwork. The artwork gate is complete. The candidate is now frozen. The owner explicitly
+approved the bold DAF-TECH artwork. The artwork gate is complete. Final frozen-source CI binding is being completed. The owner explicitly
 authorized publication with the named acceptance and test-window exceptions;
 those checks remain unpassed. Store rollout evidence is tracked separately above.
 6.0 is already in the existing repository on `codex/6.0`; local 5.4 archival
@@ -25,7 +24,7 @@ artifacts under `dist/prod` are published; Development and UAT builds stay local
 | Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
 | Microsoft Edge Add-ons | 5.4.0 and DAF-TECH listing refresh public; post-upgrade smoke pending | Microsoft's official listing serves version 5.4.0 and, as verified October 14, the refreshed description plus all five 5.4 screenshots. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
 | Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
-| Frozen candidate with owner exceptions | 6.0.0 | `release/6.0`, source85d55ff and exact hashes frozen under Epic335. Owner authorized publication with documented acceptance/window exceptions. Not yet claimed Store-submitted or public. Dated5.4publichistory remains preserved. |
+| Publication preparation with owner exceptions | 6.0.0 | Approved shipping ZIP bytes remain unchanged. Final source/metadata CI binding is in progress under Epic335. Owner authorized publication with documented acceptance/window exceptions. Not yet claimed Store-submitted or public. Dated5.4publichistory remains preserved. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 

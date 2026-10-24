@@ -1,108 +1,12 @@
 {
   "product": "Better CaptionKeep",
   "version": "6.0.0",
-  "branch": "release/6.0",
-  "state": "candidate",
+  "branch": "codex/6.0",
+  "state": "development",
   "candidate": {
-    "frozen": true,
-    "commit": "85d55ffcfed9e2d1ceff5ab1f04c4bf7508a887f",
-    "hashes": {
-      "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-      "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-      "chrome": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-      "edge": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-      "brave": "A74406901FF823FFF86AD059E64E0F22C6EF3A40AFD468DABF166315F87D047F",
-      "opera": "CCE77DF846146DEFB2E126BCB50AFFE20A653EABE73C95DFD0E484C884C30DD7",
-      "firefox": "8C992769764FA234D56C7C99A2CC23A0918E89AED6773C3F2A584A99D3530704",
-      "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
-    },
-    "promotion": {
-      "commit": "85d55ffcfed9e2d1ceff5ab1f04c4bf7508a887f",
-      "hashes": {
-        "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-        "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-        "chrome": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-        "edge": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-        "brave": "A74406901FF823FFF86AD059E64E0F22C6EF3A40AFD468DABF166315F87D047F",
-        "opera": "CCE77DF846146DEFB2E126BCB50AFFE20A653EABE73C95DFD0E484C884C30DD7",
-        "firefox": "8C992769764FA234D56C7C99A2CC23A0918E89AED6773C3F2A584A99D3530704",
-        "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
-      },
-      "approvedBy": "David Farris",
-      "targets": {
-        "chrome": "nabjdlnkkaonnbnimnmnhjcbigceebml",
-        "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
-      },
-      "uat": {
-        "commit": "85d55ffcfed9e2d1ceff5ab1f04c4bf7508a887f",
-        "hashes": {
-          "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-          "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-          "chrome": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-          "edge": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-          "brave": "A74406901FF823FFF86AD059E64E0F22C6EF3A40AFD468DABF166315F87D047F",
-          "opera": "CCE77DF846146DEFB2E126BCB50AFFE20A653EABE73C95DFD0E484C884C30DD7",
-          "firefox": "8C992769764FA234D56C7C99A2CC23A0918E89AED6773C3F2A584A99D3530704",
-          "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
-        },
-        "passed": false,
-        "report": {
-          "path": "docs/release-state/6.0-owner-exception.md",
-          "sha256": "aef045270062862cc3f40a54c24f5829cfd7b11ca2ae4637037d36ce4fe5babd"
-        }
-      },
-      "permissionDelta": {
-        "commit": "85d55ffcfed9e2d1ceff5ab1f04c4bf7508a887f",
-        "hashes": {
-          "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-          "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-          "chrome": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-          "edge": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-          "brave": "A74406901FF823FFF86AD059E64E0F22C6EF3A40AFD468DABF166315F87D047F",
-          "opera": "CCE77DF846146DEFB2E126BCB50AFFE20A653EABE73C95DFD0E484C884C30DD7",
-          "firefox": "8C992769764FA234D56C7C99A2CC23A0918E89AED6773C3F2A584A99D3530704",
-          "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
-        },
-        "approved": true,
-        "report": {
-          "path": "docs/release-state/6.0-owner-exception.md",
-          "sha256": "aef045270062862cc3f40a54c24f5829cfd7b11ca2ae4637037d36ce4fe5babd"
-        }
-      },
-      "unchangedSince": "2026-10-24T07:39:56.169635+00:00"
-    },
-    "ownerException": {
-      "commit": "85d55ffcfed9e2d1ceff5ab1f04c4bf7508a887f",
-      "hashes": {
-        "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-        "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-        "chrome": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
-        "edge": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
-        "brave": "A74406901FF823FFF86AD059E64E0F22C6EF3A40AFD468DABF166315F87D047F",
-        "opera": "CCE77DF846146DEFB2E126BCB50AFFE20A653EABE73C95DFD0E484C884C30DD7",
-        "firefox": "8C992769764FA234D56C7C99A2CC23A0918E89AED6773C3F2A584A99D3530704",
-        "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
-      },
-      "approvedBy": "David Farris",
-      "approvedAt": "2026-10-24T07:27:42.470978+00:00",
-      "reason": "Owner explicitly authorized publication with unfinished full-scope, accessibility/failure and live-browser acceptance and without completing the48-hour window; these remain unpassed.",
-      "waivedGates": [
-        "fullScopeAcceptance",
-        "accessibilityAndFailureUat",
-        "unchangedWindow"
-      ],
-      "waivedLiveCertification": [
-        "chrome",
-        "edge",
-        "brave",
-        "firefox",
-        "opera"
-      ],
-      "evidence": {
-        "path": "docs/release-state/6.0-owner-exception.md",
-        "sha256": "aef045270062862cc3f40a54c24f5829cfd7b11ca2ae4637037d36ce4fe5babd"
-      }
-    }
+    "frozen": false,
+    "commit": null,
+    "hashes": null
   },
   "requiredBrowsers": [
     "chrome",
