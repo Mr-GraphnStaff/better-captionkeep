@@ -49,3 +49,35 @@ test('Azure release verification is tokenless and binds offline attestations to 
   assert(verifier.includes('--deny-self-hosted-runners'));
   assert(!verifier.includes('GH_TOKEN'));
 });
+
+test('approved Azure Store steps pass fresh-submit actions and the verified immutable package to publishers', async () => {
+  const {spawnSync} = require('node:child_process');
+  const workflow = await readFile(path.join(__dirname, '..', 'azure-pipelines.yml'), 'utf8');
+  const bash = process.platform === 'win32' ? 'C:/Program Files/Git/bin/bash.exe' : 'bash';
+  for (const [channel, action] of [['Chrome','submit-auto'], ['Chrome','submit-staged'], ['Edge','submit']]) {
+    const label = `                  displayName: Run approved ${channel} action`;
+    const end = workflow.indexOf(label);
+    assert(end >= 0);
+    const start = workflow.lastIndexOf('                - bash: |', end);
+    const script = workflow.slice(start, end).split(/\r?\n/).slice(1)
+      .filter(line => line.trim()).map(line => line.slice(20)).join('\n')
+      .replaceAll('${{ parameters.chromeRelease }}', action);
+    const tail = workflow.slice(end).split('                  env:')[1];
+    const envLines = tail.split(/\r?\n/).slice(1).filter(line => line.startsWith('                    '));
+    const env = {...process.env};
+    for (const line of envLines) {
+      const entry = line.trim().match(/^([A-Z_]+): (.*)$/);
+      if (!entry) continue;
+      env[entry[1]] = entry[2].replaceAll("${{ replace(parameters.releaseTag, 'v', '') }}", '6.0.0')
+        .replaceAll('$(Pipeline.Workspace)', '/synthetic-verified-workspace');
+    }
+    const upper = channel.toUpperCase();
+    const probe = `node() { printf '%s\\n' "$${upper}_ACTION" "$STORE_RELEASE_VERSION" "$${upper}_PACKAGE_PATH" "$1"; }`;
+    const result = spawnSync(bash, ['--noprofile', '--norc', '-c', `${probe}\n${script}`], {env, encoding:'utf8', windowsHide:true});
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.stdout.trim().split(/\r?\n/), [action, '6.0.0',
+      `/synthetic-verified-workspace/verified-release/store/better_captionkeep${channel === 'Chrome' ? '-chrome' : ''}-6.0.0.zip`,
+      `scripts/${channel.toLowerCase()}-publish.mjs`]);
+  }
+});
