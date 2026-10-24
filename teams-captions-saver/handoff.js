@@ -10,6 +10,10 @@ const saveEvidenceButton = document.getElementById('saveEvidence');
 const copyChunkButton = document.getElementById('copyChunk');
 const previousChunkButton = document.getElementById('previousChunk');
 const nextChunkButton = document.getElementById('nextChunk');
+const handoffWorkspace = document.getElementById('handoff-workspace');
+const handoffEmpty = document.getElementById('handoff-empty');
+const handoffEmptyTitle = document.getElementById('handoff-empty-title');
+const handoffEmptyDetail = document.getElementById('handoff-empty-detail');
 let sourceData = null;
 let currentPackage = null;
 let currentChunk = 0;
@@ -20,7 +24,11 @@ let basePrompt = '';
 let handoffReady = false;
 let customTemplates = [];
 let appliedInstructions = '';
+let appliedTemplateSnapshot = null;
+let appliedPromptValue = '';
 let onTheFlyMode = false;
+let transcriptQaMode = false;
+let liveNotesMode = false;
 const templateSelect = document.getElementById('template-select');
 const templateName = document.getElementById('template-name');
 const templateInstructions = document.getElementById('template-instructions');
@@ -28,6 +36,19 @@ const templateStatus = document.getElementById('template-status');
 const templateApply = document.getElementById('template-apply');
 const templateSave = document.getElementById('template-save');
 const templateDelete = document.getElementById('template-delete');
+document.getElementById('safety-envelope-text').textContent = CaptionKeepPromptTemplates.SAFETY_ENVELOPE;
+
+function showHandoffWorkspace() {
+    handoffEmpty.hidden = true;
+    handoffWorkspace.hidden = false;
+}
+
+function showHandoffEmpty(title, detail) {
+    handoffWorkspace.hidden = true;
+    handoffEmpty.hidden = false;
+    handoffEmptyTitle.textContent = title;
+    handoffEmptyDetail.textContent = detail;
+}
 
 function selectTemplate() {
     const template = [...CaptionKeepPromptTemplates.BUILT_INS, ...customTemplates].find(item => item.id === templateSelect.value);
@@ -58,8 +79,13 @@ templateApply.addEventListener('click', async () => {
     try {
         await allowTemplateAction();
         appliedInstructions = templateInstructions.value;
+        const selected = [...CaptionKeepPromptTemplates.BUILT_INS, ...customTemplates].find(item => item.id === templateSelect.value);
+        appliedTemplateSnapshot = selected ? CaptionKeepPromptTemplates.appliedSnapshot(selected, appliedInstructions) : null;
         promptBox.value = CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions);
-        templateStatus.textContent = 'Task applied. Review the complete prompt before copying.';
+        appliedPromptValue = promptBox.value;
+        templateStatus.textContent = appliedTemplateSnapshot?.state === 'draft'
+            ? 'Unsaved draft instructions applied. Review before copying.'
+            : `Template version ${appliedTemplateSnapshot?.version || 1} applied. Review before copying.`;
     } catch (error) { templateStatus.textContent = error.message; }
 });
 templateSave.addEventListener('click', async () => {
@@ -69,7 +95,9 @@ templateSave.addEventListener('click', async () => {
         // Never persist the generated prompt or transcript as a template.
         const existing = customTemplates.find(item => item.id === templateSelect.value);
         if (!existing && customTemplates.length >= 20) throw new Error('Delete a custom template before adding another (limit 20).');
-        const template = {id:existing?.id || `custom-${crypto.randomUUID()}`, name:templateName.value, instructions:templateInstructions.value};
+        const changes = {name:templateName.value, instructions:templateInstructions.value};
+        const template = existing ? CaptionKeepPromptTemplates.revise(existing, changes)
+            : {id:`custom-${crypto.randomUUID()}`, ...changes, version:1};
         const next = CaptionKeepPromptTemplates.sanitize([...customTemplates.filter(item => item.id !== template.id), template]);
         await chrome.storage.local.set({[CaptionKeepPromptTemplates.STORAGE_KEY]:next});
         customTemplates = next;
@@ -152,9 +180,10 @@ function renderPackage() {
         providerLabel:metadata.providerLabel,
         sessionId:sourceData.sessionId,
         warnings:metadata.warnings,
-        privacyMode
+        privacyMode,
+        maxChunkLength:CaptionKeepHandoffPackage.DEFAULT_CHUNK_LENGTH - CaptionKeepPromptTemplates.SAFETY_ENVELOPE.length - 80
     });
-    if (onTheFlyMode) {
+    if (onTheFlyMode || transcriptQaMode) {
         const selectedEvidence = transcript.map((caption, index) => ({
             evidenceId: sourceData.evidence?.[index]?.evidenceId || `selection-${index + 1}`,
             speaker: caption.Name,
@@ -174,6 +203,7 @@ function renderPackage() {
     promptBox.value = appliedInstructions
         ? CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions)
         : basePrompt;
+    appliedPromptValue = promptBox.value;
     currentChunk = 0;
     renderCoverage();
     renderChunk();
@@ -202,6 +232,24 @@ async function requireAllowedAction(action) {
     }
 }
 
+async function persistTemplateProvenance() {
+    if (!chrome.storage.session || !sourceData?.sessionId) return;
+    if (!appliedTemplateSnapshot) {
+        await chrome.storage.session.remove(`handoff_template_${encodeURIComponent(sourceData.sessionId)}`);
+        return;
+    }
+    const snapshot = promptBox.value === appliedPromptValue ? appliedTemplateSnapshot
+        : {...appliedTemplateSnapshot, version:null, state:'draft', basedOnVersion:appliedTemplateSnapshot.version || appliedTemplateSnapshot.basedOnVersion};
+    const metadata = CaptionKeepPromptTemplates.handoffMetadata(sourceData.sessionId, sourceData.sourceTranscriptSha256, snapshot);
+    if (metadata) await chrome.storage.session.set({[metadata.key]:metadata.value});
+}
+
+promptBox.addEventListener('input', () => {
+    if (appliedTemplateSnapshot && promptBox.value !== appliedPromptValue) {
+        templateStatus.textContent = 'Prompt edited. This handoff is an unsaved draft based on the applied template.';
+    }
+});
+
 copyButton.onclick = async () => {
     try {
         await requireAllowedAction('copy');
@@ -210,7 +258,8 @@ copyButton.onclick = async () => {
             statusBox.textContent = 'Scrubby is off. Click "Copy unmasked instructions" again to confirm.';
             return;
         }
-        await navigator.clipboard.writeText(promptBox.value);
+        await persistTemplateProvenance();
+        await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(promptBox.value));
         unmaskedCopyArmed = false;
         statusBox.textContent = 'Instructions copied. Attach the complete evidence file, or copy every numbered chunk in order.';
     } catch (error) {
@@ -226,7 +275,8 @@ copyChunkButton.onclick = async () => {
             statusBox.textContent = 'Scrubby is off. Click "Copy this chunk" again to confirm unmasked copying.';
             return;
         }
-        await navigator.clipboard.writeText(currentPackage.chunks[currentChunk].text);
+        await persistTemplateProvenance();
+        await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(currentPackage.chunks[currentChunk].text));
         unmaskedCopyArmed = false;
         statusBox.textContent = `Copied chunk ${currentChunk + 1} of ${currentPackage.chunks.length}.`;
     } catch (error) {
@@ -257,8 +307,11 @@ nextChunkButton.onclick = () => { currentChunk += 1; renderChunk(); };
 
 document.getElementById('discard').onclick = async () => {
     await chrome.storage.local.remove(id);
+    if (chrome.storage.session && sourceData?.sessionId) await chrome.storage.session.remove(`handoff_template_${encodeURIComponent(sourceData.sessionId)}`);
     basePrompt = '';
     appliedInstructions = '';
+    appliedTemplateSnapshot = null;
+    appliedPromptValue = '';
     handoffReady = false;
     templateApply.disabled = true;
     templateSave.disabled = true;
@@ -272,6 +325,7 @@ document.getElementById('discard').onclick = async () => {
     copyChunkButton.disabled = true;
     saveEvidenceButton.disabled = true;
     statusBox.textContent = 'Handoff discarded. Temporary evidence was removed.';
+    showHandoffEmpty('Handoff discarded', 'The temporary local handoff was removed. Return to a transcript or the Live Workspace when you want to prepare another one.');
 };
 
 function renderProvider(providerKey, settings) {
@@ -299,7 +353,8 @@ function renderProvider(providerKey, settings) {
                 statusBox.textContent = `Scrubby is off. Choose ${destination.name} again to confirm unmasked copying.`;
                 return;
             }
-            await navigator.clipboard.writeText(promptBox.value);
+            await persistTemplateProvenance();
+            await navigator.clipboard.writeText(CaptionKeepPromptTemplates.reviewedHandoffText(promptBox.value));
             unmaskedCopyArmed = false;
             await chrome.tabs.create({url: destination.url});
             statusBox.textContent = `Prompt copied and ${destination.name} opened. Confirm the active workspace before attaching or pasting, then review and send there.`;
@@ -319,6 +374,8 @@ function renderProvider(providerKey, settings) {
         effectivePolicy = await readPolicy();
         if (effectivePolicy.settings.disableAiHandoff) throw new Error('AI handoff is disabled by your organization.');
         onTheFlyMode = sourceData.mode === 'on_the_fly';
+        transcriptQaMode = sourceData.mode === 'transcript_qa';
+        liveNotesMode = sourceData.mode === 'live_notes';
         if (onTheFlyMode) {
             const selectedTask = CaptionKeepAiTasks.task(sourceData.taskId);
             document.getElementById('handoffTitle').textContent = `On the Fly — ${selectedTask.label}`;
@@ -328,6 +385,13 @@ function renderProvider(providerKey, settings) {
             document.getElementById('chunkSection').hidden = true;
             saveEvidenceButton.hidden = true;
             promptBox.style.minHeight = '430px';
+        } else if (transcriptQaMode) {
+            document.getElementById('handoffTitle').textContent = 'Ask this transcript';
+            document.getElementById('handoffIntro').textContent = 'Review the complete transcript-bound question. The requested answer must cite caption IDs or state that the transcript does not establish it.';
+            document.getElementById('template-tools').hidden = true;
+        } else if (liveNotesMode) {
+            document.getElementById('handoffTitle').textContent = 'Generate cited Live Notes';
+            document.getElementById('handoffIntro').textContent = 'Review the complete transcript snapshot and notes instructions. Nothing is sent until you choose and confirm an AI workspace.';
         }
         scrubOptions = {
             profanityFilterEnabled:!!effectivePolicy.settings.profanityFilterEnabled,
@@ -341,15 +405,28 @@ function renderProvider(providerKey, settings) {
         const storedTemplates = await chrome.storage.local.get(CaptionKeepPromptTemplates.STORAGE_KEY);
         customTemplates = CaptionKeepPromptTemplates.sanitize(storedTemplates[CaptionKeepPromptTemplates.STORAGE_KEY]);
         handoffReady = true;
-        if (!onTheFlyMode) {
+        if (!onTheFlyMode && !transcriptQaMode) {
             templateApply.disabled = false;
             templateSave.disabled = false;
-            renderTemplates();
+            renderTemplates(liveNotesMode ? (sourceData.selectedTemplate?.id || 'minutes') : undefined);
+            if (liveNotesMode) {
+                const selected = sourceData.selectedTemplate;
+                const template = selected && typeof selected.id === 'string' && typeof selected.instructions === 'string'
+                    && selected.instructions.length <= 4000 && Number.isSafeInteger(selected.version) && selected.version > 0
+                    ? selected : CaptionKeepPromptTemplates.BUILT_INS.find(item => item.id === 'minutes');
+                appliedInstructions = `${CaptionKeepAiTasks.task('live_notes').instruction}\n\n${template.instructions}`;
+                appliedTemplateSnapshot = CaptionKeepPromptTemplates.appliedSnapshot(template, template.instructions);
+                promptBox.value = CaptionKeepPromptTemplates.apply(basePrompt, appliedInstructions);
+                appliedPromptValue = promptBox.value;
+                templateStatus.textContent = `${template.name} · version ${template.version} applied. Review the complete prompt before copying.`;
+            }
         }
         for (const provider of sourceData.providers) renderProvider(provider, effectivePolicy.settings);
+        showHandoffWorkspace();
         await chrome.storage.local.remove(id);
     } catch (error) {
         if (id?.startsWith('handoff_')) await chrome.storage.local.remove(id).catch(() => {});
         statusBox.textContent = error.message;
+        showHandoffEmpty('No AI handoff is ready', `${error.message}. Return to a transcript or the Live Workspace and choose an AI action to prepare one.`);
     }
 })();

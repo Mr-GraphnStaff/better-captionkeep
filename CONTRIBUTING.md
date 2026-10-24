@@ -27,7 +27,7 @@ External contributors should fork the repository and create a topic branch in th
 
 ## Development setup
 
-Use Node.js 20 or newer.
+Use Node.js 22 or newer.
 
 ```text
 npm install

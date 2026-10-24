@@ -1,0 +1,134 @@
+{
+  "product": "Better CaptionKeep",
+  "version": "6.0.0",
+  "branch": "release/6.0",
+  "state": "candidate",
+  "candidate": {
+    "frozen": true,
+    "commit": "9dabe8174ad51ef07662e739ab0ee2affec5cd75",
+    "hashes": {
+      "edge-store": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+      "chrome-store": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+      "chrome": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+      "edge": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+      "brave": "EB8400B4805B7B8BAF4CA2C943EAD845A143B31B9E529C73820CF9B8ECAEE2E7",
+      "firefox": "10FD0892D538B4B1AE23540DF01E5F811E0CB2A093CCF76BC84E3C7DCED45E97",
+      "opera": "D3C229E25B84BFC13172E6EFE0D39F3D601BCF0A9BE91E06FB8892914E8ECA74",
+      "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
+    },
+    "promotion": {
+      "commit": "9dabe8174ad51ef07662e739ab0ee2affec5cd75",
+      "hashes": {
+        "edge-store": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+        "chrome-store": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+        "chrome": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+        "edge": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+        "brave": "EB8400B4805B7B8BAF4CA2C943EAD845A143B31B9E529C73820CF9B8ECAEE2E7",
+        "firefox": "10FD0892D538B4B1AE23540DF01E5F811E0CB2A093CCF76BC84E3C7DCED45E97",
+        "opera": "D3C229E25B84BFC13172E6EFE0D39F3D601BCF0A9BE91E06FB8892914E8ECA74",
+        "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
+      },
+      "approvedBy": "David Farris",
+      "targets": {
+        "chrome": "nabjdlnkkaonnbnimnmnhjcbigceebml",
+        "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
+      },
+      "uat": {
+        "commit": "9dabe8174ad51ef07662e739ab0ee2affec5cd75",
+        "hashes": {
+          "edge-store": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+          "chrome-store": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+          "chrome": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+          "edge": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+          "brave": "EB8400B4805B7B8BAF4CA2C943EAD845A143B31B9E529C73820CF9B8ECAEE2E7",
+          "firefox": "10FD0892D538B4B1AE23540DF01E5F811E0CB2A093CCF76BC84E3C7DCED45E97",
+          "opera": "D3C229E25B84BFC13172E6EFE0D39F3D601BCF0A9BE91E06FB8892914E8ECA74",
+          "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
+        },
+        "passed": false,
+        "report": {
+          "path": "docs/release-state/6.0-owner-exception.md",
+          "sha256": "63a6dbda4e49c7b488a765af751824032375107438e16dbe049de627f0011ec5"
+        }
+      },
+      "permissionDelta": {
+        "commit": "9dabe8174ad51ef07662e739ab0ee2affec5cd75",
+        "hashes": {
+          "edge-store": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+          "chrome-store": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+          "chrome": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+          "edge": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+          "brave": "EB8400B4805B7B8BAF4CA2C943EAD845A143B31B9E529C73820CF9B8ECAEE2E7",
+          "firefox": "10FD0892D538B4B1AE23540DF01E5F811E0CB2A093CCF76BC84E3C7DCED45E97",
+          "opera": "D3C229E25B84BFC13172E6EFE0D39F3D601BCF0A9BE91E06FB8892914E8ECA74",
+          "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
+        },
+        "approved": true,
+        "report": {
+          "path": "docs/release-state/6.0-owner-exception.md",
+          "sha256": "63a6dbda4e49c7b488a765af751824032375107438e16dbe049de627f0011ec5"
+        }
+      },
+      "unchangedSince": "2026-10-24T08:31:26.307414+00:00"
+    },
+    "ownerException": {
+      "commit": "9dabe8174ad51ef07662e739ab0ee2affec5cd75",
+      "hashes": {
+        "edge-store": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+        "chrome-store": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+        "chrome": "C8EBF139E9C388870BF70828BF2E7A23FE7CD1BE8EF5AF9529DAF0730A4EC159",
+        "edge": "338B974C7CA57B743A338EE5C38354DBCDABCB607816CBF22B391BFE8C114F55",
+        "brave": "EB8400B4805B7B8BAF4CA2C943EAD845A143B31B9E529C73820CF9B8ECAEE2E7",
+        "firefox": "10FD0892D538B4B1AE23540DF01E5F811E0CB2A093CCF76BC84E3C7DCED45E97",
+        "opera": "D3C229E25B84BFC13172E6EFE0D39F3D601BCF0A9BE91E06FB8892914E8ECA74",
+        "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
+      },
+      "approvedBy": "David Farris",
+      "approvedAt": "2026-10-24T07:27:42.470978+00:00",
+      "reason": "Owner authorized publication with named unfinished acceptance and unchanged-window exceptions, then directed Repair and continue for issue #96. The bounded repair is independently reviewed and clean-build qualified; missing live acceptance and the 48-hour window remain unpassed.",
+      "waivedGates": [
+        "fullScopeAcceptance",
+        "accessibilityAndFailureUat",
+        "unchangedWindow"
+      ],
+      "waivedLiveCertification": [
+        "chrome",
+        "edge",
+        "brave",
+        "firefox",
+        "opera"
+      ],
+      "evidence": {
+        "path": "docs/release-state/6.0-owner-exception.md",
+        "sha256": "63a6dbda4e49c7b488a765af751824032375107438e16dbe049de627f0011ec5"
+      }
+    }
+  },
+  "requiredBrowsers": [
+    "chrome",
+    "edge",
+    "brave",
+    "firefox",
+    "opera"
+  ],
+  "liveCertification": {
+    "chrome": "pending",
+    "edge": "pending",
+    "brave": "pending",
+    "firefox": "pending",
+    "opera": "pending"
+  },
+  "releaseGates": {
+    "fullScopeAcceptance": false,
+    "accessibilityAndFailureUat": false,
+    "artworkApproved": true,
+    "unchangedWindow": false,
+    "storeApproval": false,
+    "publicParity": false,
+    "installedUpgrade": false
+  },
+  "boardEpic": 335,
+  "deferredFeatures": [
+    "byomcp"
+  ]
+}

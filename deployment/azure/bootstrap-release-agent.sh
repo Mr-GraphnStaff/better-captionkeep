@@ -24,7 +24,7 @@ if ! command -v gh >/dev/null 2>&1 || \
   apt-get install --yes gh
 fi
 
-if ! command -v node >/dev/null 2>&1 || [ "$(node --version | cut -d. -f1 | tr -d v)" -lt 20 ]; then
+if ! command -v node >/dev/null 2>&1 || [ "$(node --version | cut -d. -f1 | tr -d v)" -lt 22 ]; then
   curl --fail --silent --show-error --location https://deb.nodesource.com/setup_22.x | bash -
   apt-get install --yes nodejs
 fi

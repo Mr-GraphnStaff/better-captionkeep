@@ -54,6 +54,7 @@ stages:
           clean: all
         steps:
           - checkout: self
+            fetchDepth: 0
             clean: true
 
           - bash: |
@@ -104,6 +105,7 @@ stages:
         timeoutInMinutes: 30
         steps:
           - checkout: self
+            fetchDepth: 0
             clean: true
           - task: DownloadPipelineArtifact@2
             inputs:
@@ -133,6 +135,7 @@ stages:
         timeoutInMinutes: 30
         steps:
           - checkout: self
+            fetchDepth: 0
             clean: true
           - task: DownloadPipelineArtifact@2
             inputs:
@@ -168,6 +171,7 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  fetchDepth: 0
                   clean: true
                 - task: DownloadPipelineArtifact@2
                   inputs:
@@ -196,8 +200,8 @@ stages:
                     case '${{ parameters.chromeRelease }}' in
                       skip) exit 0 ;;
                       cancel-review) action='cancel-submission' ;;
-                      submit-auto) action='submit-existing-auto' ;;
-                      submit-staged) action='submit-existing-staged' ;;
+                      submit-auto) action='submit-auto' ;;
+                      submit-staged) action='submit-staged' ;;
                       publish-staged) action='publish-staged' ;;
                     esac
                     CHROME_ACTION="$action" \
@@ -210,9 +214,11 @@ stages:
                     CHROME_REFRESH_TOKEN: $(CHROME_REFRESH_TOKEN)
                     CHROME_PUBLISHER_ID: $(chromePublisherId)
                     CHROME_EXTENSION_ID: $(chromeExtensionId)
+                    STORE_RELEASE_VERSION: ${{ replace(parameters.releaseTag, 'v', '') }}
+                    CHROME_PACKAGE_PATH: $(Pipeline.Workspace)/verified-release/store/better_captionkeep-chrome-${{ replace(parameters.releaseTag, 'v', '') }}.zip
                 - bash: |
                     set -euo pipefail
-                    EDGE_ACTION='submit-existing' \
+                    EDGE_ACTION='submit' \
                       node scripts/edge-publish.mjs
                   displayName: Run approved Edge action
                   condition: ne('${{ parameters.edgeRelease }}', 'skip')
@@ -220,4 +226,6 @@ stages:
                     EDGE_CLIENT_ID: $(EDGE_CLIENT_ID)
                     EDGE_API_KEY: $(EDGE_API_KEY)
                     EDGE_PRODUCT_ID: $(edgeProductId)
+                    STORE_RELEASE_VERSION: ${{ replace(parameters.releaseTag, 'v', '') }}
+                    EDGE_PACKAGE_PATH: $(Pipeline.Workspace)/verified-release/store/better_captionkeep-${{ replace(parameters.releaseTag, 'v', '') }}.zip
                     EDGE_CERTIFICATION_NOTES: ${{ parameters.edgeCertificationNotes }}

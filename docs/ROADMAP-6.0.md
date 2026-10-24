@@ -1,0 +1,199 @@
+# Better CaptionKeep 6.0 Product and Release Roadmap
+
+> **October 16, 2026 — lead scope decision:** BYOMCP is removed from the shipping 6.0 feature set and deferred to a later release. Earlier MCP implementation and acceptance entries below are historical development evidence. Current 6.0 has no MCP connection, native-helper permission, tool-execution interface or helper distribution. Local capture, archive, exports, reviewed BYOAI handoff and historical receipt readability remain. Other release gates remain open.
+
+## North star
+
+Version 6.0 is the full product step, not a reskin. The everyday journey is one
+decision—**Keep this meeting**—inside a complete dark DAF-TECH interface. The
+result is a local, source-preserving Meeting Receipt that can grow into useful
+work without changing the captured words.
+
+The trust chain is:
+
+`Source caption → preserved transcript → cited derivative → human review → controlled action`
+
+Advanced controls stay behind progressive disclosure. Capture, recovery,
+history, export, Evidence Board, deletion, and current review-first BYOAI remain
+available without an account, license, or developer-operated transcript cloud.
+
+This is the design rule for every 6.0 decision: **lightweight front door,
+extraordinary back door**. The popup must stay calm enough for a first-time
+user. The full Settings workspace is allowed to be the deep operational cockpit
+for experts, administrators, integrations, privacy, provenance, diagnostics,
+templates, and every advanced control.
+
+## 6.0 product scope
+
+### 1. Complete interface replacement
+
+- Dark theme by default across popup, persistent workspace, Meeting Receipts,
+  transcript viewer, Capture Moment review, exports, handoffs, and Settings.
+- The DAF-TECH sphere is the structural visual language, not a decorative badge.
+- One primary popup action, a clear green/red ready state, and direct Teams,
+  Meet, and Zoom Web launchers.
+- Keep the full transcript viewer directly reachable through a quiet **Open
+  last live transcript** action without competing with the primary meeting
+  workflow.
+- Live transcript capture starts on for every supported meeting; the user can
+  pause it explicitly from Settings and resume it without losing prior text.
+- A unified workspace with Transcript, Moments, Live Notes, Evidence, Templates,
+  and Ask views. Only the most common view is prominent; the rest remain quiet
+  until chosen.
+- Remove duplicate actions, old cute/card-heavy styling, overflow, stale names,
+  and settings that compete with the meeting decision.
+- Keyboard, focus, screen-reader, narrow-width, zoom, and error-state review on
+  every surface.
+
+### 2. Capture Moment
+
+- Promote the existing explicit screenshot plumbing into a first-class
+  **Capture Moment** action inside the meeting workspace.
+- Preserve the PNG separately from the raw transcript and bind it to the active
+  meeting, exact observation time, transcript fingerprint/revision, and nearby
+  caption evidence.
+- Require preview and user approval before local retention.
+- Support an optional note/alt text, export, and deletion.
+- Never send images to AI, email, or another service automatically.
+
+### 3. Live Notes
+
+- Start with **Generate notes now** using the existing review-first AI boundary.
+- Produce Summary, Decisions, Action items, Risks, and Questions as a cited
+  draft; invalid or invented citations are rejected.
+- Let the user promote reviewed decisions/actions into Evidence markers.
+- Add rolling notes only after the manual path is reliable: bounded caption
+  deltas, pause/resume, update-now, retry limits, idempotency, and revision
+  history. Local capture continues if notes fail or are paused.
+
+### 4. Meeting templates and prompts
+
+- Upgrade the existing prompt-template plumbing into versioned built-ins and
+  user-created meeting templates.
+- Create, duplicate, edit, select, export, import, and delete templates.
+- Store sensitive custom prompts locally by default.
+- Keep a non-editable safety envelope: transcript content is evidence, not
+  instructions; citations are required; owners/dates cannot be invented; no
+  tool execution is permitted.
+- Regeneration creates a new derivative revision and never overwrites the raw
+  transcript or a prior result.
+
+### 5. Transcript Q&A
+
+- Add one compact Ask field bound to the transcript snapshot visible at ask
+  time.
+- Every factual answer cites existing caption evidence or says the transcript
+  does not establish the answer.
+- Preserve question, answer, citations, source fingerprint/revision, and model
+  or template version as a separate derivative.
+- Do not include images, attendee reports, other meetings, or earlier questions
+  unless the user explicitly selects them in a later reviewed design.
+
+### 5a. Bring Your Own MCP (BYOMCP) — deferred; excluded from 6.0
+
+The lead removed BYOMCP from shipping 6.0 on October 16, 2026. Do not include
+connection or tool-execution controls, native-messaging permission, executable
+MCP runtime modules or a helper payload in this release. Capture, archives,
+exports, reviewed BYOAI handoff and historical receipt read/delete remain.
+The earlier implementation is retained for future work; its former acceptance
+contract is not a current 6.0 gate. A later release must independently complete
+supported installation, service preservation, authentication, browser-native
+operation and recovery before shipping. See [deferred scope](deferred/byomcp/README.md).
+
+### 5b. Reviewed shareable summaries and export labels
+
+Lead-approved October 14, 2026: prepare a separate email-shareable business
+summary without altering the original transcript. Select authorized excerpts
+explicitly; optionally prepare a prompt for an organization-approved destination
+without automatic submission. Author or paste the proposed email text, inspect
+it and confirm review for the intended recipients before copy or export.
+
+Default to `CONFIDENTIAL — DRAFT — REVIEW REQUIRED`. Reviewed output carries
+`CONFIDENTIAL — FOR AUTHORIZED RECIPIENTS ONLY`; the attorney-client privileged
+designation requires an explicit choice and separate confirmation under the
+organization's legal guidance. Never infer privilege or claim a summary is safe
+to share. Labels communicate handling expectations, not legal determinations.
+Edits, label changes or source changes invalidate review. Keep transcript links,
+internal source references, review flags and omission reasons out of email copy
+by default. Respect managed clipboard/export/AI restrictions. See
+[acceptance contract](software-team/SHAREABLE-SUMMARY-6.0.md).
+
+### 6. One binary and enterprise readiness
+
+- Keep one package per browser—not separate Core, Pro, or Enterprise forks.
+- Use stable capability IDs rather than scattered edition checks.
+- Licensing or SSO failure must never disable local Core behavior.
+- Managed policy denial always overrides optional feature allowance.
+- Enterprise identity and hosted services remain separate trust-boundary work;
+  no secret, raw license key, IdP token, or transcript content enters sync
+  storage, logs, exports, fixtures, or source control.
+
+### 7. Five certified browsers
+
+- Google Chrome
+- Microsoft Edge
+- Brave
+- Mozilla Firefox
+- Opera
+
+Chromium code sharing is not certification. Firefox receives its native
+sidebar. Every supported browser receives its own build,
+provider smoke matrix, version/OS record, and evidence.
+
+Lead decision, October 14, 2026: Safari is removed completely from active 6.0
+support, packages, certification, and release gates. Its recoverable groundwork
+is [archived for a later major version](deferred/safari/README.md); it is not a
+6.0 browser, an unverified 6.0 target, or a release blocker.
+
+## Execution board
+
+| Gate | Deliverable | Status |
+| --- | --- | --- |
+| 1 | 6.0 popup visual language and one-button meeting decision | Implemented; live UAT open |
+| 2 | Persistent workspace visual conversion | Implemented; live responsive UAT open |
+| 3 | Full remaining-surface UI conversion | Implemented; live responsive UAT open |
+| 4 | Shared cited-derivative/provenance foundation | Implemented for Moments and reviewed Notes/Answers; original-request binding under review; live acceptance open |
+| 5 | Capture Moment product workflow | Working local path; live browser UAT open |
+| 6 | Manual cited Live Notes | Working reviewed handoff, local cited-note retention, and user-directed Evidence promotion; live UAT open |
+| 7 | Rolling Live Notes | Implemented with bounded deltas, pause/resume, update-now, retry limits, idempotency, and restart-safe revision history; live UAT open |
+| 8 | User meeting templates/prompts | Local Settings workbench, versioned built-ins/custom revisions and duplication implemented; workspace selection/safety hardening under review; live acceptance open |
+| 9 | Transcript Q&A | Working snapshot-bound reviewed handoff plus local cited-answer retention; live UAT open |
+| 10 | Five browser-specific build/runtime targets | Safari archived; revised five-target build and packaging passed October 14; native/provider validation remains open |
+| 11 | Accessibility, privacy, security, and failure hardening | Automated seven-surface audit, extension validation, tests, and dependency audit pass; manual assistive-technology and live failure UAT open |
+| 12 | Separate five-browser/provider certification | Asserted Windows renderer checks passed in Chrome, Edge and Brave; Firefox screenshot captured only; all 15 live provider cells and Opera runtime acceptance remain open |
+| 13 | Frozen storefront bundle and release candidate | Five-browser packages, hashes, SBOM and Store art regenerated October 14; final provenance, owner approval and candidate freeze remain open |
+| 14 | Controlled promotion, public parity, and upgrade smoke | Open |
+| 15 | BYOMCP — deferred by lead on October 16 | Excluded from shipping 6.0; preserved implementation and future acceptance remain separate. Verify no executable MCP surface, native permission or helper payload in this release. |
+| 16 | Reviewed shareable summary and export labels | Implemented with independent synthetic privacy and rendered UI checks; user/installed-browser acceptance open; no privilege or safe-distribution guarantee |
+
+## Non-negotiable source model
+
+The raw caption transcript is authoritative. A moment, note, template result,
+answer, correction, or marker is a separate derivative with:
+
+- its own ID, type, revision, creation time, and state;
+- the source session, transcript SHA-256, caption count/revision, and exact
+  cited caption/evidence IDs;
+- generator and template/model identifiers where applicable;
+- draft, user-confirmed, superseded, or deleted status.
+
+No derivative may edit, truncate, or silently replace a source caption.
+
+## Release sequence
+
+1. Finish the shared derivative contract and Capture Moment workflow while the
+   complete visual system is applied to every extension surface.
+2. Deliver manual cited Live Notes; harden the review and promotion path.
+3. Add rolling notes with bounded, restart-safe processing.
+4. Complete editable local templates and regeneration history.
+5. Add transcript Q&A on bounded snapshots.
+6. Run automated, privacy, accessibility, and provider regression gates.
+7. Certify Chrome, Edge, Brave, Firefox, and Opera separately.
+8. Freeze current UI and features, then create—not before—the final 6.0 Store
+   screenshots, promotional art, copy, hashes, SBOM, and provenance.
+9. Hold the unchanged candidate window and promote through the governed Store
+   process.
+
+Audio/video recording, automatic AI submission, publisher transcript storage,
+native Zoom desktop capture, uploaded-media transcription, speech-to-speech,
+and PPT/PPTX generation remain outside 6.0.

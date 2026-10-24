@@ -37,7 +37,7 @@
         timestampFormat: new Set(['12hr', '24hr', 'relative']),
         webmailDestination: new Set(['outlook_work', 'outlook_personal', 'outlook', 'gmail', 'default']),
         onTheFlyAiDestination: ALLOWED_PROVIDERS,
-        uiTheme: new Set(['captionkeep', 'light', 'midnight', 'system'])
+        uiTheme: new Set(['captionkeep', 'light', 'midnight', 'slate', 'high-contrast', 'system'])
     });
 
     function normalizeTerms(value) {

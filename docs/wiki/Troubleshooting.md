@@ -1,39 +1,49 @@
 # Troubleshooting
 
+This page covers the 6.0 qualification build. First identify the installed version, package/lane and browser; see [Release status](Release-Status) for historical public releases.
+
 ## Captions are not being captured
 
-Confirm that captions are visibly displayed in the supported meeting page. Better CaptionKeep does not transcribe audio itself. Reopen the extension and check capture health. If the count does not increase during a synthetic test, record the browser, extension version, provider, and sanitized error details.
+Confirm the supported provider's captions are displayed and that **All Settings → Capture controls** has not paused local capture. Better CaptionKeep does not transcribe audio itself. The popup distinguishes Waiting, Starting, Live, Off and Attention; use its recovery action when captions are unavailable. Test with invented content and record whether the caption count increases.
+
+Provider policy or a changed meeting layout can block capture. Teams transcription is separate from displayed live captions. Native Zoom desktop capture is not supported.
 
 ## The transcript did not save
 
-Open **History** and check for the completed session or a recovery entry. Confirm the configured save behavior and browser download permissions. Do not clear extension storage until you have checked recovery.
+Open the full viewer's **History** and check for a completed session or recovery entry. Confirm save behavior, download permissions and browser-wide prompts. Cancelling a download is not a save. Do not clear extension storage or uninstall until you have checked recovery and preserved required data.
+
+## Older words are missing from the workspace
+
+The workspace may show a bounded window. Open **Full transcript** for earlier text, check active filters, and deliberately choose **Follow latest** to follow new captions again. Report actual source loss separately from a filtered/displayed window.
+
+## Theme, zoom or translation looks wrong
+
+Open **All Settings → Appearance** and record the selected theme, browser scale and page zoom. High contrast is an optional black/white/yellow preset; the default remains dark teal DAF-TECH. Report clipped controls, unreadable text or untranslated states with synthetic content. A catalog's presence does not establish a reviewed translation.
+
+## Notes or Ask cannot complete
+
+Check that the source still exists, the correct meeting snapshot is selected, and any returned answer includes valid caption references. Generated or pasted prose remains a draft until reviewed. Optional handoff failure should not stop local caption capture. 6.0 has no MCP helper/service connection to repair.
 
 ## Zoom captions have no speaker names
 
-The Zoom Web subtitle overlay may not expose speaker attribution. Better CaptionKeep uses **Unknown speaker** rather than inventing a name.
+The Zoom Web overlay may omit attribution. **Unknown speaker** is the intended honest label.
 
-## Microsoft 365 controls are missing
+## Microsoft 365 controls are missing or disabled
 
-Chrome and Edge publicly serve 5.3.2, where the section stays visible but Connect remains disabled until the organization supplies valid tenant and client IDs locally or through managed policy. Confirm the installed version before troubleshooting configuration.
+Open **All Settings → Microsoft 365**. Your organization supplies its own valid tenant and public client IDs; administrator consent and provider permission may be required. Verify the installed version before changing configuration. Do not put credentials into support reports.
 
-## AADSTS50011 redirect mismatch
+For **AADSTS50011**, an administrator compares the exact redirect under **Administrator connection details** with the Entra app registration. Do not add wildcard redirects or repeatedly create path-generated identities. An invitation alone does not establish that a recent Teams meeting has an official transcript; transcription must have run and processing may take time.
 
-The extension is sending a redirect that the Entra app does not contain. An administrator must compare the exact URI shown under **Administrator connection details** with the application registration. Do not add a wildcard or repeatedly add path-generated identities; governed unpacked lanes and Store installations have stable IDs.
+## Manifest missing during controlled testing
 
-## A recent Teams meeting has no official transcript
+For the current Chromium qualification build select `P:\Projects\better-captionkeep-dev\dist\uat` itself, containing `manifest.json`; do not select the parent `dist` folder or a ZIP. The retained `dist/dev` is not the next qualification package, and `dist/prod` contains separate distribution targets. Firefox requires its own Firefox package and installation method.
 
-Teams transcription must have been started separately from live captions. Microsoft may also need processing time after the meeting ends. A calendar invitation by itself is not sufficient.
+## Unknown script-fetch error after loading a package
 
-## Manifest missing or unreadable during controlled testing
+Reload the supplied canonical package and refresh test meeting tabs. Preserve the error's sanitized details before clearing old errors. If it returns, report a stale/mixed-package possibility rather than creating a new folder or treating the cause as proven.
 
-Select `dist/dev`, `dist/uat`, or `dist/prod` itself—not the parent `dist` directory and not a ZIP. The selected folder must contain `manifest.json` at its root.
+## Imported meeting does not open
 
-## Unknown script-fetch error during controlled testing
+Record the selected card position, whether import confirmation appeared, and whether local History contains the session. Treat a reproduced failure as a defect; keep meeting titles, participants and transcript content private.
 
-Reload the current canonical lane, clear historical errors, and reload again. If the error returns, treat the build as mixed or stale and report it; do not work around it by creating another folder.
-
-## Imported meeting does not open in the viewer
-
-Treat that as a product defect. Record which meeting card position was selected, whether import confirmation appeared, and whether the session exists in local History. Do not post meeting names, transcript text, or participant data publicly.
-
-Still stuck? See [Support and bug reports](Support).
+Still stuck? See [Support](Support). The [historical incident and corrective action record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/INCIDENT-2026-10-04-EDGE-5.3.1.md) remains preserved; 5.4 local archival does not remove it.

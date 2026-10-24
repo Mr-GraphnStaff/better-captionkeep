@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakerFiltersContainer = document.getElementById('speaker-filters');
     const copyAllBtn = document.getElementById('copy-all-btn');
     const saveAllBtn = document.getElementById('save-all-btn');
+    const copyAllPrimaryBtn = document.getElementById('copy-all-btn-primary');
+    const saveAllPrimaryBtn = document.getElementById('save-all-btn-primary');
     const printPdfBtn = document.getElementById('print-pdf-btn');
     const exportFormat = document.getElementById('viewer-export-format');
     const historyBtn = document.getElementById('history-btn');
@@ -18,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const archiveSearchPrevious = document.getElementById('archiveSearchPrevious');
     const archiveSearchNext = document.getElementById('archiveSearchNext');
     const closeModal = document.querySelector('.close-modal');
+    let historyReturnFocus = null;
     const transcriptVersion = document.getElementById('transcript-version');
     const dictionaryBtn = document.getElementById('dictionary-btn');
     const dictionaryDialog = document.getElementById('dictionary-dialog');
@@ -555,6 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         copyAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableClipboard;
         saveAllBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
+        copyAllPrimaryBtn.disabled = copyAllBtn.disabled;
+        saveAllPrimaryBtn.disabled = saveAllBtn.disabled;
         printPdfBtn.disabled = !hasVisibleCaptions || !!enterprisePolicy.disableFileExport;
         
         // Update titles with count
@@ -564,6 +569,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveAllBtn.title = hasVisibleCaptions 
             ? `Save ${visibleCount} visible caption(s) as file`
             : 'No visible captions to save';
+        copyAllPrimaryBtn.title = copyAllBtn.title;
+        saveAllPrimaryBtn.title = saveAllBtn.title;
     }
 
     function debouncedApplyFilters() {
@@ -684,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await navigator.clipboard.writeText(textToCopy);
             showButtonSuccess(copyAllBtn, 'Copied!', 'Copy All');
+            showButtonSuccess(copyAllPrimaryBtn, 'Copied!', 'Copy transcript');
             showNotification(`Copied ${visibleCaptions.length} caption(s)${output.replacements.length ? ` with ${output.replacements.length} detail(s) masked` : ''}`, 'success');
         } catch (err) {
             console.error('Failed to copy transcript: ', err);
@@ -844,6 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
         captionsContainer.addEventListener('click', event => handleCorrectionClick(event).catch(error => showNotification(error.message, 'warning')));
         copyAllBtn.addEventListener('click', handleCopyAllClick);
         saveAllBtn.addEventListener('click', handleSaveAllClick);
+        copyAllPrimaryBtn.addEventListener('click', handleCopyAllClick);
+        saveAllPrimaryBtn.addEventListener('click', handleSaveAllClick);
         printPdfBtn.addEventListener('click', handlePrintPdfClick);
         document.getElementById('meeting-extras-btn').addEventListener('click', async () => {
             try {
@@ -853,6 +863,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const query = new URLSearchParams({session:sourceSessionId, historical:String(historical)});
                 if (!historical && Number.isInteger(sourceTabId)) query.set('tab', String(sourceTabId));
                 await chrome.tabs.create({url:chrome.runtime.getURL(`extras.html?${query}`)});
+            } catch (error) { showNotification(error.message, 'error'); }
+        });
+        document.getElementById('shareable-summary-btn').addEventListener('click', async () => {
+            try {
+                await refreshViewerPolicy();
+                if (enterprisePolicy.disableEvidenceEmail) throw new Error('Shareable summaries are disabled by your organization.');
+                const query = new URLSearchParams();
+                if (historical) {
+                    const archiveId = new URL(location.href).searchParams.get('session');
+                    if (!archiveId) throw new Error('Open the saved transcript again to prepare a summary.');
+                    query.set('session', archiveId);
+                } else {
+                    if (!sourceSessionId || !Number.isInteger(sourceTabId)) throw new Error('Meeting identity is unavailable.');
+                    query.set('liveTab', String(sourceTabId)); query.set('liveSession', sourceSessionId);
+                }
+                await chrome.tabs.create({url:chrome.runtime.getURL(`shareable.html?${query}`)});
             } catch (error) { showNotification(error.message, 'error'); }
         });
         
@@ -867,12 +893,28 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('clearArchiveSearch').addEventListener('click', clearArchiveSearch);
         archiveSearchPrevious.addEventListener('click', () => changeArchiveSearchPage(-1));
         archiveSearchNext.addEventListener('click', () => changeArchiveSearchPage(1));
-        closeModal.addEventListener('click', () => sessionModal.style.display = 'none');
+        closeModal.addEventListener('click', hideSessionHistory);
         window.addEventListener('click', (e) => {
             if (e.target === sessionModal) {
-                sessionModal.style.display = 'none';
+                hideSessionHistory();
             }
         });
+        sessionModal.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                hideSessionHistory();
+            }
+        });
+        sessionModal.addEventListener('cancel', event => {
+            event.preventDefault();
+            hideSessionHistory();
+        });
+    }
+
+    function hideSessionHistory() {
+        if (sessionModal.open) sessionModal.close();
+        historyReturnFocus?.focus();
+        historyReturnFocus = null;
     }
     
     // --- Session History Functions ---
@@ -882,7 +924,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Session history is disabled by your organization.', 'warning');
             return;
         }
-        sessionModal.style.display = 'block';
+        historyReturnFocus = document.activeElement;
+        if (!sessionModal.open) sessionModal.showModal();
+        closeModal.focus();
         await loadSessionHistory();
     }
     
@@ -1032,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
             history.replaceState(null, '', next);
             
             // Close modal
-            sessionModal.style.display = 'none';
+            hideSessionHistory();
             
             // Load the transcript
             historical = true;

@@ -29,15 +29,30 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+          fetch-depth: 0
 
-      - name: Use Node.js 20
+      - name: Use Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Restore packaged Edge sandbox permissions on the hosted image
+        shell: bash
+        run: |
+          set -euo pipefail
+          edge_sandbox=/opt/microsoft/msedge/msedge-sandbox
+          if [[ -e "$edge_sandbox" || -L "$edge_sandbox" ]]; then
+            [[ -f "$edge_sandbox" && ! -L "$edge_sandbox" ]]
+            [[ "$(readlink -f "$edge_sandbox")" == "$edge_sandbox" ]]
+            [[ "$(dpkg-query -S "$edge_sandbox")" =~ ^microsoft-edge-(stable|beta|dev):[[:space:]]/opt/microsoft/msedge/msedge-sandbox$ ]]
+            sudo chown root:root "$edge_sandbox"
+            sudo chmod 4755 "$edge_sandbox"
+            [[ "$(stat -c '%U:%G:%a' "$edge_sandbox")" == 'root:root:4755' ]]
+          fi
 
       - name: Validate, test, and package
         run: npm run release:candidate
@@ -46,18 +61,49 @@ jobs:
         if: github.event_name == 'push'
         env:
           RELEASE_TAG: ${{ github.ref_name }}
-        run: node scripts/check-release-ref.mjs "$RELEASE_TAG"
+        run: |
+          node scripts/check-release-ref.mjs "$RELEASE_TAG"
+          node scripts/release-status.mjs --require-candidate
 
-      - name: Generate runtime SBOM
+      - name: Generate root production-dependency SBOM
         shell: bash
-        run: npm sbom --omit=dev --sbom-format=cyclonedx > dist/prod/better-captionkeep-sbom.cdx.json
+        run: npm sbom --omit=dev --sbom-format=cyclonedx | node scripts/canonicalize-sbom.mjs > dist/prod/better-captionkeep-sbom.cdx.json
 
       - name: Record package checksums
         shell: bash
         run: |
+          set -euo pipefail
+          version="$(node -p "require('./teams-captions-saver/manifest.json').version")"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]
+          printf 'RELEASE_VERSION=%s\n' "$version" >> "$GITHUB_ENV"
           (
             cd dist/prod
+            if find . -iname "*byomcp*" -print -quit | grep -q .; then
+              echo "Deferred MCP payload cannot be promoted with 6.0."
+              exit 1
+            fi
+            # Preserve the Store-only checksum contract used by Azure promotion.
             sha256sum better_captionkeep-*.zip > SHA256SUMS.txt
+            # The complete distribution has a separate manifest. GitHub release
+            # assets are flat, so browser ZIP checksums use their unique basenames.
+            files=(
+              "better_captionkeep-${version}.zip"
+              "better_captionkeep-chrome-${version}.zip"
+              "better-captionkeep-${version}.cdx.json"
+              browser-package-hashes.json
+              browser-certification.json
+              release-provenance.json
+              better-captionkeep-sbom.cdx.json
+              SHA256SUMS.txt
+            )
+            for browser in chrome edge brave firefox opera; do
+              files+=("browser-packages/better-captionkeep-${browser}-${version}.zip")
+            done
+            : > RELEASE-SHA256SUMS.txt
+            for file in "${files[@]}"; do
+              checksum="$(sha256sum -- "$file")"
+              printf '%s  %s\n' "${checksum%% *}" "${file##*/}" >> RELEASE-SHA256SUMS.txt
+            done
           )
 
       - name: Attest release provenance
@@ -66,8 +112,13 @@ jobs:
         with:
           subject-path: |
             dist/prod/better_captionkeep-*.zip
+            dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
+            dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
+            dist/prod/browser-package-hashes.json
+            dist/prod/browser-certification.json
             dist/prod/release-provenance.json
             dist/prod/SHA256SUMS.txt
+            dist/prod/RELEASE-SHA256SUMS.txt
             dist/prod/better-captionkeep-sbom.cdx.json
 
       - name: Preserve offline attestation bundle
@@ -83,8 +134,13 @@ jobs:
           if-no-files-found: error
           path: |
             dist/prod/better_captionkeep-*.zip
+            dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
+            dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
+            dist/prod/browser-package-hashes.json
+            dist/prod/browser-certification.json
             dist/prod/release-provenance.json
             dist/prod/SHA256SUMS.txt
+            dist/prod/RELEASE-SHA256SUMS.txt
             dist/prod/better-captionkeep-sbom.cdx.json
             dist/prod/release-attestation.sigstore.json
 
@@ -100,4 +156,15 @@ jobs:
             echo "Release $RELEASE_TAG already exists; refusing to replace immutable release artifacts."
             exit 1
           fi
-          gh release create "$RELEASE_TAG" dist/prod/better_captionkeep-*.zip dist/prod/release-provenance.json dist/prod/SHA256SUMS.txt dist/prod/better-captionkeep-sbom.cdx.json dist/prod/release-attestation.sigstore.json --draft --verify-tag --title "$title" --generate-notes
+          gh release create "$RELEASE_TAG" \
+            dist/prod/better_captionkeep-*.zip \
+            dist/prod/browser-packages/better-captionkeep-*-${RELEASE_VERSION}.zip \
+            "dist/prod/better-captionkeep-${RELEASE_VERSION}.cdx.json" \
+            dist/prod/browser-package-hashes.json \
+            dist/prod/browser-certification.json \
+            dist/prod/release-provenance.json \
+            dist/prod/SHA256SUMS.txt \
+            dist/prod/RELEASE-SHA256SUMS.txt \
+            dist/prod/better-captionkeep-sbom.cdx.json \
+            dist/prod/release-attestation.sigstore.json \
+            --draft --verify-tag --title "$title" --generate-notes

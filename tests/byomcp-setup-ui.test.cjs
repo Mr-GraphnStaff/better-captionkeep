@@ -1,0 +1,74 @@
+// Deferred setup module and synthetic fixture tests only; no shipped onboarding acceptance implied.
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+
+const setup=require('../teams-captions-saver/byomcpSetup.js');
+const environment={os:'win',browser:'chrome',extensionId:'a'.repeat(32)};
+test('setup request copies exact installed binding and service fields only; local paths, arguments and credentials never enter it',()=>{
+    const request=setup.createSetupRequest({label:' Team service ',transport:'remote',resource:'https://service.example/mcp',token:'SYNTHETIC_SECRET',executable:'C:/private.exe',args:['secret']},environment);
+    assert.deepEqual(request,{version:1,browser:'chrome',extensionId:'a'.repeat(32),profile:{label:'Team service',transport:'remote',resource:'https://service.example/mcp'}});
+    assert.deepEqual(setup.createSetupRequest({label:'Local',transport:'stdio',resource:'https://ignored.invalid',executable:'secret'},environment).profile,{label:'Local',transport:'stdio'});
+    assert(!JSON.stringify(request).includes('SYNTHETIC_SECRET'));
+    assert.equal(setup.createSetupRequest({label:'Firefox',transport:'stdio'},{...environment,browser:'firefox',extensionId:'captionkeep@example.invalid'}).browser,'firefox');
+});
+test('unsafe remote addresses and unsupported or unknown installed environments cannot produce a request',()=>{
+    for(const resource of ['http://service.example/mcp','https://user:secret@service.example/mcp','https://service.example/mcp?token=secret','https://service.example/mcp#secret','https://localhost/mcp','javascript:alert(1)'])
+        assert.throws(()=>setup.createSetupRequest({label:'Service',transport:'remote',resource},environment));
+    for(const invalid of [{...environment,os:'linux'},{...environment,browser:'safari'},{...environment,extensionId:'unknown'},{}])
+        assert.throws(()=>setup.createSetupRequest({label:'Service',transport:'stdio'},invalid));
+    assert.throws(()=>setup.createSetupRequest({label:'',transport:'stdio'},environment));
+});
+test('progress requires explicit preparation and real status; download failure is retryable, not installed or authenticated',async()=>{
+    let downloadCount=0,statusCount=0,fail=true,response={ok:true,status:{protocolVersion:1,enrollmentVerified:false}};
+    const controller=setup.createController({environment:async()=>environment,download:async()=>{downloadCount++;if(fail)throw Error('SYNTHETIC_SECRET');},sendStatus:async()=>{statusCount++;return response;}});
+    assert.equal(controller.getState().step,'intro');assert.equal(downloadCount+statusCount,0);
+    assert.equal((await controller.start()).step,'service');
+    let state=await controller.download({label:'Local',transport:'stdio'});assert.equal(state.step,'service');assert.match(state.status,/Retry/);assert(!state.status.includes('SYNTHETIC_SECRET'));
+    fail=false;state=await controller.download({label:'Local',transport:'stdio'});assert.equal(state.step,'local');assert.match(state.status,/Nothing has been installed/);assert.equal(state.verified,false);
+    controller.next();state=await controller.verify();assert.equal(state.verified,false);assert.equal(statusCount,1);
+    response={ok:true,status:{protocolVersion:1,enrollmentVerified:true,helperVersion:'SYNTHETIC_SECRET'}};
+    state=await controller.verify();assert.equal(state.verified,true);assert.match(state.status,/Service sign-in.*separate checks/);assert(!state.status.includes('SYNTHETIC_SECRET'));
+    assert.equal(controller.back().verified,false);assert.equal(controller.back().step,'service');
+});
+test('late checks cannot overwrite Back navigation and upstream error fields are not reflected',async()=>{
+    let complete;
+    const controller=setup.createController({environment:async()=>environment,download:async()=>{},sendStatus:()=>new Promise(resolve=>{complete=resolve;})});
+    await controller.start();await controller.download({label:'Local',transport:'stdio'});controller.next();
+    const pending=controller.verify();controller.back();complete({ok:true,status:{protocolVersion:1,enrollmentVerified:true}});
+    assert.equal((await pending).step,'local');assert.equal(controller.getState().verified,false);
+    const hostile=setup.createController({environment:async()=>{throw Object.assign(Error('SYNTHETIC_SECRET'),{field:'environment'});}});
+    assert(!((await hostile.start()).status.includes('SYNTHETIC_SECRET')));
+});
+function documentFixture() {
+    const elements=new Map(),names=['heading','progress','status','start','back','form','label','resource','resource-field','remote','stdio','download','import','next','connect','verify'];
+    function node(id) {
+        const listeners=new Map(),attributes=new Map();
+        return {id,value:'',checked:false,hidden:false,disabled:false,textContent:'',focused:false,clicked:0,
+            addEventListener:(name,fn)=>listeners.set(name,fn),emit(name,event={}){listeners.get(name)?.(event);},
+            setAttribute:(name,value)=>attributes.set(name,value),removeAttribute:name=>attributes.delete(name),getAttribute:name=>attributes.get(name),
+            focus(){this.focused=true;},scrollIntoView(){},click(){this.clicked++;},querySelectorAll:()=>[]};
+    }
+    for(const name of names)elements.set(`byomcp-setup-${name}`,node(`byomcp-setup-${name}`));
+    const panels=['intro','service','local','connect'].map(step=>({...node(step),dataset:{byomcpSetupStep:step}}));
+    const section=node('byomcp-setup');section.querySelectorAll=()=>panels;elements.set(section.id,section);
+    for(const id of ['byomcp-installation','byomcp-configuration-file','byomcp-connect'])elements.set(id,node(id));
+    elements.get('byomcp-setup-remote').checked=true;
+    return {elements,panels,getElementById:id=>elements.get(id)};
+}
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('mounted wizard initializes without permissions, native calls, status messages or downloads; navigation focuses existing real controls only',async()=>{
+    const document=documentFixture(),calls={platform:0,status:0,download:0};
+    const api={runtime:{id:environment.extensionId,getPlatformInfo:async()=>{calls.platform++;return {os:'win'};},sendMessage:async()=>{calls.status++;return {};}}
+        ,downloads:{download:async()=>{calls.download++;return 1;}}};
+    Object.defineProperty(api,'permissions',{get(){throw Error('Permission must not be requested by setup.');}});
+    setup.mount(document,api,{target:'chrome'});assert.deepEqual(calls,{platform:0,status:0,download:0});
+    document.elements.get('byomcp-setup-start').emit('click');await settle();
+    assert.equal(document.panels.find(panel=>!panel.hidden).id,'service');assert(document.elements.get('byomcp-setup-heading').focused);
+    document.elements.get('byomcp-setup-import').emit('click');assert(document.elements.get('byomcp-installation').open);assert(document.elements.get('byomcp-configuration-file').focused);
+    document.elements.get('byomcp-setup-connect').emit('click');assert(document.elements.get('byomcp-connect').focused);assert.equal(document.elements.get('byomcp-connect').clicked,0);
+    assert.equal(calls.status+calls.download,0);
+    document.elements.get('byomcp-setup-stdio').checked=true;document.elements.get('byomcp-setup-stdio').emit('change');
+    assert(document.elements.get('byomcp-setup-resource-field').hidden);
+    document.elements.get('byomcp-setup-label').value='';document.elements.get('byomcp-setup-form').emit('submit',{preventDefault(){}});await settle();
+    assert.equal(document.elements.get('byomcp-setup-label').getAttribute('aria-invalid'),'true');assert(document.elements.get('byomcp-setup-label').focused);
+});

@@ -34,9 +34,13 @@
     async function readManagedLocale() {
         try {
             const managed = await chrome.storage.managed.get('forceUiLocale');
-            return normalizeLocale(managed.forceUiLocale);
+            const value = managed.forceUiLocale;
+            // Match configuration validation: invalid/absent policy is not an override.
+            // Keep an explicit managed 'system' distinct from an absent policy.
+            if (value !== 'system' && value !== 'fr-CA' && !LOCALES.includes(value)) return null;
+            return normalizeLocale(value);
         } catch {
-            return 'system';
+            return null;
         }
     }
 
@@ -45,7 +49,7 @@
             readManagedLocale(),
             chrome.storage.sync.get('uiLocale').catch(() => ({}))
         ]);
-        const requested = managed !== 'system' ? managed : normalizeLocale(user.uiLocale);
+        const requested = managed !== null ? managed : normalizeLocale(user.uiLocale);
         if (requested !== 'system') return requested;
         return normalizeLocale(chrome.i18n?.getUILanguage?.() || navigator.language || 'en');
     }

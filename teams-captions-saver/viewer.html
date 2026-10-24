@@ -123,10 +123,8 @@
         }
 
         .controls {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
             gap: 12px;
-            align-items: center;
             padding: 18px 30px;
             margin: 0 0 24px;
             border-bottom: 1px solid var(--border-color);
@@ -136,6 +134,11 @@
             z-index: 20;
             box-shadow: 0 8px 16px color-mix(in srgb, var(--ck-bg) 80%, transparent);
         }
+        .controls-primary { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 12px; align-items: center; }
+        .primary-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .more-tools { border: 1px solid var(--ck-border); border-radius: 10px; background: var(--ck-surface-soft); }
+        .more-tools > summary { cursor: pointer; padding: 10px 12px; color: var(--ck-text); font-weight: 700; list-style-position: inside; }
+        .more-tools-panel { display: grid; gap: 12px; padding: 0 12px 12px; }
         
         #print-output { display: none; }
         @media print {
@@ -152,6 +155,7 @@
 
         .export-controls {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             align-items: center;
         }
@@ -364,6 +368,7 @@
             .viewer-header { padding: 22px 20px; }
             .viewer-brand img { width: 54px; height: 54px; }
             .controls { padding: 16px 20px; position: static; }
+            .controls-primary { grid-template-columns: 1fr; }
             .viewer-body { padding: 0 20px 20px; }
             .export-controls { width: 100%; flex-wrap: wrap; }
             #search-box { width: 100%; }
@@ -379,7 +384,13 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.4);
+            margin: 0;
+            padding: 0;
+            border: 0;
+            max-width: none;
+            max-height: none;
         }
+        .modal[open] { display: block; }
         
         .modal-content {
             background-color: #fefefe;
@@ -406,6 +417,11 @@
             font-weight: bold;
             cursor: pointer;
             line-height: 20px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            border: 0;
+            background: transparent;
         }
         
         .close-modal:hover {
@@ -456,6 +472,7 @@
         .archive-snippet { margin: 6px 0 0; color: var(--ck-text-muted); }
     </style>
     <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="surface-v6.css">
     <script src="theme.js" defer></script>
     <script src="configuration.js" defer></script>
     <script src="localization.js" defer></script>
@@ -466,14 +483,14 @@
     <script src="translation.js" defer></script>
     <script src="viewer.js" defer></script>
 </head>
-<body>
+<body class="v6-surface">
     <div class="container">
         <header class="viewer-header">
             <div class="viewer-brand">
-                <img src="icons/scribble-128.png" alt="Scribble, the Better CaptionKeep listening mascot">
+                <img src="icons/daf-tech-sphere.png" alt="">
                 <div>
-                    <p class="viewer-eyebrow">Better CaptionKeep · by Señor Farris</p>
-                    <h1>Teams Transcript</h1>
+                    <p class="viewer-eyebrow">Better CaptionKeep 6.0</p>
+                    <h1>Meeting Transcript</h1>
                     <p class="viewer-subtitle">Keep the words. Stay in the conversation.</p>
                     <p class="viewer-source" id="viewer-source" hidden></p>
                     <details class="viewer-provenance" id="viewer-provenance" hidden>
@@ -490,10 +507,22 @@
             </div>
         </header>
         <div class="controls" aria-label="Transcript tools">
+                <div class="controls-primary">
                 <input type="search" id="search-box" placeholder="Search transcript..." aria-label="Search transcript">
                 <div id="speaker-filters" class="speaker-filters">
                     <button id="show-all-btn" class="active" aria-label="Show all speakers">Show All</button>
                 </div>
+                </div>
+                <div class="primary-actions" aria-label="Primary transcript actions">
+                    <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
+                        <input type="checkbox" id="scrub-output-toggle" checked> Clean sensitive details
+                    </label>
+                    <button id="copy-all-btn-primary" class="export-btn" type="button">Copy transcript</button>
+                    <button id="save-all-btn-primary" class="export-btn" type="button">Save transcript</button>
+                </div>
+                <details class="more-tools">
+                    <summary>More transcript tools</summary>
+                    <div class="more-tools-panel">
                 <div class="correction-controls" aria-label="Transcript correction tools">
                     <label for="transcript-version">View</label>
                     <select id="transcript-version">
@@ -504,9 +533,6 @@
                     <span id="correction-status" class="correction-note" role="status"></span>
                 </div>
                 <div class="export-controls">
-                    <label class="scrub-output" title="Mask supported sensitive details in copied and saved output">
-                        <input type="checkbox" id="scrub-output-toggle" checked> Scrubby outputs
-                    </label>
                     <button id="copy-all-btn" class="export-btn" title="Copy visible transcript to clipboard">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
@@ -524,6 +550,7 @@
                     </select>
                     <button id="print-pdf-btn" class="export-btn" type="button" title="Print visible captions or choose Save as PDF in the browser dialog">Print / PDF</button>
                     <button id="meeting-extras-btn" class="export-btn" type="button">Chat &amp; screenshot</button>
+                    <button id="shareable-summary-btn" class="export-btn" type="button">Prepare shareable summary</button>
                     <button id="translate-btn" class="export-btn" type="button">Translate</button>
                     <button id="save-all-btn" class="export-btn" title="Save visible transcript as file">
                         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -538,6 +565,8 @@
                         History
                     </button>
                 </div>
+                    </div>
+                </details>
         </div>
         <div class="viewer-body">
             <main id="captions-container">
@@ -582,23 +611,23 @@
     </dialog>
     
     <!-- Session History Modal -->
-    <div id="sessionModal" class="modal">
+    <dialog id="sessionModal" class="modal" aria-labelledby="archiveModalTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Local transcript archive</h2>
-                <span class="close-modal">&times;</span>
+                <h2 id="archiveModalTitle">Local transcript archive</h2>
+                <button class="close-modal" type="button" aria-label="Close local transcript archive">&times;</button>
             </div>
             <form id="archiveSearchForm" class="archive-search">
                 <label>Keyword or phrase
-                    <input id="archiveSearchQuery" type="search" maxlength="200" autocomplete="off" placeholder="Search archived captions" required>
+                    <input id="archiveSearchQuery" type="search" maxlength="200" autocomplete="off" placeholder="Search archived captions" aria-label="Keyword or phrase" required>
                 </label>
                 <div class="archive-search-grid">
-                    <label>Meeting title <input id="archiveSearchTitle" type="search" maxlength="200"></label>
-                    <label>Speaker <input id="archiveSearchSpeaker" type="search" maxlength="200"></label>
-                    <label>From <input id="archiveSearchFrom" type="date"></label>
-                    <label>Through <input id="archiveSearchTo" type="date"></label>
+                    <label>Meeting title <input id="archiveSearchTitle" type="search" maxlength="200" aria-label="Meeting title"></label>
+                    <label>Speaker <input id="archiveSearchSpeaker" type="search" maxlength="200" aria-label="Speaker"></label>
+                    <label>From <input id="archiveSearchFrom" type="date" aria-label="From date"></label>
+                    <label>Through <input id="archiveSearchTo" type="date" aria-label="Through date"></label>
                     <label>Order
-                        <select id="archiveSearchOrder"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
+                        <select id="archiveSearchOrder" aria-label="Archive result order"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
                     </label>
                 </div>
                 <div><button type="submit">Search archive</button> <button type="button" id="clearArchiveSearch">Clear</button></div>
@@ -613,6 +642,6 @@
                 <div style="text-align: center; color: #999;">Loading sessions...</div>
             </div>
         </div>
-    </div>
+    </dialog>
 </body>
 </html>

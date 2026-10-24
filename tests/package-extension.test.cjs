@@ -44,3 +44,20 @@ test('package builder permits Chromium _locales and rejects Store-reserved _meta
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('package builder is byte-reproducible across source paths and mtimes', async () => {
+  const firstRoot = await mkdtemp(path.join(os.tmpdir(), 'captionkeep-package-a-'));
+  const secondRoot = await mkdtemp(path.join(os.tmpdir(), 'captionkeep-package-b-'));
+  try {
+    const firstSource = await createSource(firstRoot);
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    const secondSource = await createSource(secondRoot);
+    const {packageExtension} = await import('../scripts/package-extension.mjs');
+    const first = await packageExtension(firstSource, path.join(firstRoot, 'dist'));
+    const second = await packageExtension(secondSource, path.join(secondRoot, 'dist'));
+    assert.deepEqual(await readFile(first), await readFile(second));
+  } finally {
+    await rm(firstRoot, {recursive:true, force:true});
+    await rm(secondRoot, {recursive:true, force:true});
+  }
+});

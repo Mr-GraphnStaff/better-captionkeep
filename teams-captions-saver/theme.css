@@ -1,19 +1,20 @@
 :root {
-    color-scheme: light;
-    --ck-bg: #f7f8f5;
-    --ck-surface: #ffffff;
-    --ck-surface-soft: #fafafa;
-    --ck-field: #ffffff;
-    --ck-text: #142b3b;
-    --ck-text-muted: #5c6770;
-    --ck-border: #d8dfe1;
-    --ck-primary: #087f8c;
-    --ck-primary-hover: #065e68;
-    --ck-success: #107c41;
-    --ck-warning: #8a6500;
-    --ck-danger: #c9363e;
-    --ck-overlay: rgba(7, 28, 44, 0.5);
-    --ck-shadow: 0 4px 14px rgba(20, 43, 59, 0.1);
+    color-scheme: dark;
+    --ck-bg: #03100e;
+    --ck-surface: #071b18;
+    --ck-surface-soft: #0d2a26;
+    --ck-field: #061714;
+    --ck-text: #f1f8f6;
+    --ck-text-muted: #abc1bc;
+    --ck-border: #31534e;
+    --ck-primary: #64cbc6;
+    --ck-on-primary: #03100e;
+    --ck-primary-hover: #86ddd8;
+    --ck-success: #71d69a;
+    --ck-warning: #f3c86a;
+    --ck-danger: #ff777f;
+    --ck-overlay: rgba(0, 7, 6, 0.76);
+    --ck-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
 
     /* Backward-compatible aliases used by the transcript viewer. */
     --primary-color: var(--ck-primary);
@@ -27,6 +28,7 @@
 }
 
 :root[data-theme="light"] {
+    color-scheme: light;
     --ck-bg: #eef3f5;
     --ck-surface: #ffffff;
     --ck-surface-soft: #f5f8f9;
@@ -35,7 +37,11 @@
     --ck-text-muted: #526773;
     --ck-border: #cbd8dd;
     --ck-primary: #007f8c;
+    --ck-on-primary: #ffffff;
     --ck-primary-hover: #00646e;
+    --ck-success: #176b3b;
+    --ck-warning: #865800;
+    --ck-danger: #ae2634;
     --ck-shadow: 0 5px 18px rgba(16, 42, 59, 0.12);
 }
 
@@ -55,6 +61,41 @@
     --ck-danger: #ff8b91;
     --ck-overlay: rgba(0, 0, 0, 0.72);
     --ck-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme="slate"] {
+    color-scheme: dark;
+    --ck-bg: #101820;
+    --ck-surface: #1b2632;
+    --ck-surface-soft: #243345;
+    --ck-field: #14212d;
+    --ck-text: #f5f7fa;
+    --ck-text-muted: #bcc9d9;
+    --ck-border: #61788c;
+    --ck-primary: #8fc9ff;
+    --ck-primary-hover: #b2daff;
+    --ck-on-primary: #101820;
+    --ck-success: #8ce0a0;
+    --ck-warning: #ffd980;
+    --ck-danger: #ffacb6;
+}
+
+:root[data-theme="high-contrast"] {
+    color-scheme: dark;
+    --ck-bg: #000000;
+    --ck-surface: #000000;
+    --ck-surface-soft: #151515;
+    --ck-field: #000000;
+    --ck-text: #ffffff;
+    --ck-text-muted: #ffffff;
+    --ck-border: #ffffff;
+    --ck-primary: #ffeb00;
+    --ck-primary-hover: #fff700;
+    --ck-on-primary: #000000;
+    --ck-success: #6fff92;
+    --ck-warning: #ffe66a;
+    --ck-danger: #ffa8af;
+    --ck-shadow: none;
 }
 
 @media (prefers-color-scheme: dark) {

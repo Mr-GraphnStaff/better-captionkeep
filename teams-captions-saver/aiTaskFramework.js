@@ -18,6 +18,14 @@
         followup: Object.freeze({
             label: 'Draft a follow-up email',
             instruction: 'Draft a concise follow-up email based only on the evidence. Leave recipients for the user to choose and do not invent commitments, deadlines, or decisions.'
+        }),
+        live_notes: Object.freeze({
+            label: 'Generate cited meeting notes',
+            instruction: 'Create a concise draft with Summary, Decisions, Action items, Risks, and Open questions. Cite every meeting claim with its caption ID. State Not established when the evidence does not supply an owner, date, decision, or answer.'
+        }),
+        transcript_qa: Object.freeze({
+            label: 'Answer from this transcript',
+            instruction: 'Answer the user question using only the supplied meeting evidence. Cite every factual claim with its caption ID. If the transcript does not establish the answer, say so plainly.'
         })
     });
 

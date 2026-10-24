@@ -1,5 +1,23 @@
 # Edge publishing pipeline
 
+## 6.0 development promotion guard (October 16)
+
+The current development record blocks all uploads/submissions before credentials
+or network calls. A future accepted frozen candidate must bind the exact source
+HEAD, clean source worktree, all five certifications, pre-submission gates,
+approved target, ZIP digest, UAT and permission-delta reports and release-owner
+48-hour attestation. See the [shared evidence contract](CHROME-PUBLISH-PIPELINE.md#60-development-promotion-guard-october-16).
+These local attestations do not replace protected release approvals or establish
+independently observed continuous freeze time. No evidence is fabricated for 6.0.
+
+`submit-existing` is disabled: the available implementation cannot verify remote
+draft bytes against the approved candidate. The supported automated mutation
+route is a fresh hash-verified upload with optional submission in the same
+invocation, only after separate authorization. Upload uses the already verified
+byte snapshot. A locally retained receipt cannot prove a remote draft unchanged.
+Read-only `preflight` remains available. Historical pipeline steps below must not
+be used to bypass the 6.0 guard.
+
 Better CaptionKeep uses a gated delivery path for Microsoft Edge Add-ons updates. Source changes still reach `master` only through a reviewed pull request. Automation builds and verifies an immutable release; it does not push source changes directly to the protected branch.
 
 ## Pipelines

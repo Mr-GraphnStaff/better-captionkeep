@@ -62,6 +62,10 @@ The use of user data is limited to providing or improving the extension's single
 
 Better CaptionKeep's use and transfer of user data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements.
 
+## MCP release boundary
+
+MCP integration is deferred from version 6.0. This release does not request native messaging, connect to a native helper or MCP service, authenticate MCP providers, or execute external MCP tools. Existing saved records and historical action receipts remain readable and deletable through the normal local archive controls. The extension does not uninstall separately installed helpers or purge their credentials. Reviewed BYOAI handoff remains an explicit user-controlled copy/export action.
+
 ## Retention and controls
 
 Completed meetings are archived automatically in local browser storage. Better CaptionKeep requests `unlimitedStorage` so the archive is not constrained by `chrome.storage.local`'s default 10 MB quota and does not silently evict older meetings to make a new save appear successful. This permission does not make storage physically unlimited; browser-profile or device capacity failures remain possible and are surfaced while the recovery snapshot is retained for retry. The archive is not synchronized or uploaded by Better CaptionKeep.

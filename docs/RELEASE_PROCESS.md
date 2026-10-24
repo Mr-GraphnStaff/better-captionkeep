@@ -115,7 +115,10 @@ Before opening the release pull request:
 5. Test capture, recovery, TXT and Markdown exports, Save As, session history, and any changed settings.
 6. Test the supported Teams web/PWA domains and all affected window states, including minimized and restored behavior when relevant.
 7. Update the README, privacy disclosure, store copy, and certification notes when behavior or data handling changed.
-8. Review the exact diff and package contents before approval.
+8. Assemble the versioned storefront bundle for every target Store: title, short and full descriptions, screenshots, promotional artwork, privacy answers, and certification notes.
+9. For Microsoft Edge, record the Partner Center metadata submission separately from the package submission. The Edge Update REST API uploads packages and submits drafts; it does not update descriptions, screenshots, keywords, properties, availability, or privacy answers.
+10. After publication, verify the public version, title, description, screenshots, promotional artwork, and privacy presentation on every Store page. A current package with stale storefront content is not release-complete.
+11. Review the exact diff, package contents, storefront bundle, and captured public-page evidence before approval.
 
 The automated gate also runs `npm run store:metadata:check`. Chrome Store
 permission justifications, host disclosures, provider wording, remote-code
@@ -134,11 +137,15 @@ Use these terms exactly in release records and status reports:
 3. **In review**: the Store accepted the submission for certification.
 4. **Approved**: certification passed, but a staged revision may still be held.
 5. **Public**: the Store listing serves the new version.
-6. **Upgrade verified**: an existing installation received and ran the public
+6. **Listing synchronized**: the public Store page serves the approved title,
+   descriptions, screenshots, promotional artwork, and privacy presentation.
+7. **Upgrade verified**: an existing installation received and ran the public
    version.
 
-An upload or successful workflow is not a public release. The release owner must
-record Store status and installed-upgrade evidence before declaring Day 0.
+An upload or successful workflow is not a public release. A public package with
+stale listing content is not release-complete. The release owner must record
+Store status, listing-synchronization evidence, and installed-upgrade evidence
+before declaring Day 0.
 
 ## Coordinated Store pipeline
 
@@ -159,3 +166,25 @@ pause for approval. Chrome modes are `preflight`, `upload-only`, `submit-auto`, 
 public immediately after Google review. Choose `submit-staged` only when a
 deliberate post-approval hold is required. Edge modes are `preflight`,
 `upload-only`, and `submit`; certification notes are mandatory for `submit`.
+
+## Explicit owner exceptions
+
+The release owner may explicitly accept named unfinished acceptance checks for
+a specific source and exact package hashes. Record the original authorization,
+known gaps and risks in a versioned report. The candidate record binds the
+report hash, source commit and all eight artifact hashes. Supported exceptions
+are limited to full-scope acceptance, accessibility/failure UAT, unfinished live
+browser certification and the unchanged-candidate window. Keep those gates
+false and certifications pending; disclose the exception in release status.
+A general release GO does not silently create an exception.
+
+Exceptions cannot waive failed live certification, artwork approval, permission
+review, source ancestry, package hashes, report integrity, Store target identity,
+Store certification, public listing parity, installed-upgrade verification,
+or branch protections. Apply policy and evidence through reviewed pull requests.
+
+For 6.0, David Farris explicitly selected “Publish with a documented owner
+exception” on October 24, 2026. See the
+[authorized report](release-state/6.0-owner-exception.md). Fresh tag-bound
+provenance must truthfully identify its build; every resulting shipping ZIP
+must remain byte-identical to the owner-approved packages.

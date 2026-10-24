@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; form-action 'none'; object-src 'none'; base-uri 'none'">
+  <title>CaptionKeep — MCP launch pad demo</title>
+  <link rel="stylesheet" href="styles.css"><script defer src="app.js"></script>
+</head>
+<body>
+  <div class="demo-banner">INTERACTIVE CONCEPT · All accounts, sign-ins, tool calls and results are simulated. Nothing leaves this page.</div>
+  <header class="topbar">
+    <div class="brand"><img src="/branding/daf-tech/daf-tech-sphere.png" alt="DAF-TECH" width="48" height="48"><div><strong>Better CaptionKeep</strong><small>Keep the words. Put them to work.</small></div></div>
+    <div class="top-actions"><button id="manage">Connections <span id="connection-count">3</span></button><button id="reset" class="quiet">Reset demo</button></div>
+  </header>
+  <main>
+    <section class="conversation" aria-labelledby="meeting-title">
+      <div class="eyebrow"><span class="live-dot"></span> SAMPLE MEETING · LOCAL TRANSCRIPT</div>
+      <h1 id="meeting-title">The meeting.<br><span>The next move.</span></h1>
+      <p class="intro">Someone asks. You have the context.<br>Choose the tool, review the action, keep moving.</p>
+      <div class="section-heading"><h2>In the conversation</h2><span>Scripted examples · not AI</span></div>
+      <div id="transcript" class="transcript">
+        <button class="caption selected" data-scenario="dns" aria-pressed="true"><span class="speaker">Alex <time>09:14</time></span><span>“Can we add a TXT record for the staging verification?”</span><small>Use this context →</small></button>
+        <button class="caption" data-scenario="issue" aria-pressed="false"><span class="speaker">Sam <time>09:16</time></span><span>“Let's track the onboarding fix as an issue for Engineering.”</span><small>Use this context →</small></button>
+        <button class="caption" data-scenario="note" aria-pressed="false"><span class="speaker">Jordan <time>09:18</time></span><span>“Capture that decision in our team workspace.”</span><small>Use this context →</small></button>
+      </div>
+      <p class="footnote">The transcript stays the source. An action is a separate, explicitly approved operation.</p>
+    </section>
+    <section class="orb-shell" aria-labelledby="action-heading">
+      <div class="orb-head"><div class="eyebrow">YOUR CONNECTED TOOLS</div><h2 id="action-heading" tabindex="-1">From words to action</h2><p>No single-vendor lock-in. One deliberate next move.</p></div>
+      <div class="orb-content">
+        <ol class="steps" aria-label="Action progress"><li id="step-choose" aria-current="step">1 Choose</li><li id="step-review">2 Review</li><li id="step-result">3 Result</li></ol>
+        <section id="choose-panel">
+          <div class="context-label">ONLY THIS SELECTED CONTEXT</div><blockquote id="selected-context"></blockquote>
+          <label for="connection">Where should this happen?</label><select id="connection"></select>
+          <p id="connection-detail" class="help"></p>
+          <label for="tool">What do you want to do?</label><select id="tool"></select>
+          <label for="operation-title">Title / record name</label><input id="operation-title" maxlength="140" autocomplete="off">
+          <label for="operation-value">Details / value</label><textarea id="operation-value" rows="3" maxlength="500" autocomplete="off"></textarea>
+          <button id="review" class="primary wide">Review proposed action →</button>
+          <p class="help centered">Nothing executes from meeting words alone.</p>
+        </section>
+        <section id="review-panel" hidden>
+          <div class="context-label">EXACT OPERATION · DEMO ONLY</div><h3 id="review-heading" tabindex="-1">Check before you act</h3>
+          <dl id="review-summary"></dl><pre id="exact-operation"></pre>
+          <p class="notice">This demo sends nothing. In the product, these exact reviewed arguments—not the whole transcript—would go to this connection.</p>
+          <label class="confirm"><input id="confirm-target" type="checkbox"> I checked the account, environment and proposed operation.</label>
+          <button id="approve" class="primary wide" disabled>Approve & simulate action</button><button id="back" class="wide quiet">← Edit proposal</button>
+        </section>
+        <section id="result-panel" hidden>
+          <div class="result-mark" aria-hidden="true">✓</div><h3 id="result-heading" tabindex="-1">Simulated result</h3><p id="result-text"></p>
+          <p class="notice">No real request or independent API verification occurred. This is not a production receipt.</p>
+          <button id="another" class="primary wide">Try another meeting request</button>
+        </section>
+        <p id="action-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="orb-bottom">Your context. Your services. Your decision.</div>
+    </section>
+  </main>
+  <dialog id="connections-dialog" aria-labelledby="connections-heading">
+    <div class="dialog-header"><div><div class="eyebrow">A LAUNCH PAD, NOT ONE CONNECTOR</div><h2 id="connections-heading">Your connections</h2></div><button id="close-connections" aria-label="Close connections">✕</button></div>
+    <p class="help">Fictional connections for this demo. Each has its own account and environment. Adding one preserves the others.</p>
+    <ul id="connection-list" class="connection-list"></ul>
+    <h3>Add another service</h3>
+    <form id="add-form" action="#" method="post">
+      <label for="vendor">Choose a vendor or bring your own</label>
+      <select id="vendor" name="vendor"><option value="cloudflare">Cloudflare</option><option value="github">GitHub</option><option value="notion">Notion</option><option value="custom">Custom remote MCP</option><option value="local">Local MCP program</option></select>
+      <p id="vendor-help" class="help"></p><a id="vendor-reference" target="_blank" rel="noopener noreferrer">Official setup reference ↗</a>
+      <label for="account-label">Connection label (account + environment)</label><input id="account-label" name="label" required maxlength="80" value="Cloudflare — Production" autocomplete="off">
+      <div id="endpoint-field"><label for="endpoint">MCP endpoint</label><input id="endpoint" name="endpoint" type="url" maxlength="2048" value="https://mcp.cloudflare.com/mcp" spellcheck="false" autocomplete="off"></div>
+      <p class="notice" id="signin-explanation">Real product intent: use the vendor's supported sign-in. Here we only simulate the return; no login page opens and no credentials are requested.</p>
+      <button id="add-connection" class="primary" type="submit">Simulate vendor authorization</button>
+      <p id="connection-status" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+</body></html>

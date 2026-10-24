@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - "release/**"
+      - "codex/**"
 
 permissions:
   contents: read
@@ -20,15 +21,31 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
-      - name: Use Node.js 20
+      - name: Use Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Restore packaged Edge sandbox permissions on the hosted image
+        shell: bash
+        run: |
+          set -euo pipefail
+          edge_sandbox=/opt/microsoft/msedge/msedge-sandbox
+          if [[ -e "$edge_sandbox" || -L "$edge_sandbox" ]]; then
+            [[ -f "$edge_sandbox" && ! -L "$edge_sandbox" ]]
+            [[ "$(readlink -f "$edge_sandbox")" == "$edge_sandbox" ]]
+            [[ "$(dpkg-query -S "$edge_sandbox")" =~ ^microsoft-edge-(stable|beta|dev):[[:space:]]/opt/microsoft/msedge/msedge-sandbox$ ]]
+            sudo chown root:root "$edge_sandbox"
+            sudo chmod 4755 "$edge_sandbox"
+            [[ "$(stat -c '%U:%G:%a' "$edge_sandbox")" == 'root:root:4755' ]]
+          fi
 
       - name: Reject local or sensitive files
         shell: bash
@@ -49,3 +66,18 @@ jobs:
 
       - name: Run the complete release-candidate gate
         run: npm run release:candidate
+
+      - name: Preserve package and browser-check evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: development-evidence-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            dist/prod/browser-certification.json
+            dist/prod/certification-evidence/
+            dist/prod/browser-package-hashes.json
+            dist/prod/release-provenance.json
+            dist/prod/*.cdx.json
+            dist/prod/browser-packages/
