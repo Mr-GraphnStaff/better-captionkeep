@@ -235,3 +235,26 @@ test('owner exception rejects changed identity, unapproved scope and missing or 
     await assert.rejects(verifyStorePromotion({...f, channel:'chrome', action:'upload-only'}), undefined, name);
   }
 });
+
+test('partial acceptance exceptions cover only unfinished gates and cannot conceal contradictory UAT evidence', async () => {
+  const api = await load();
+  for (const unfinished of ['fullScopeAcceptance', 'accessibilityAndFailureUat']) {
+    const f = ownerExceptionFixture();
+    for (const gate of ['fullScopeAcceptance', 'accessibilityAndFailureUat']) f.record.releaseGates[gate] = gate !== unfinished;
+    f.record.candidate.ownerException.waivedGates = [unfinished, 'unchangedWindow'];
+    assert.doesNotThrow(() => api.validateReleaseStatus(f.record, '6.0.0'));
+    assert.deepEqual((await api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'})).bytes, f.bytes);
+    assert.equal(f.record.candidate.promotion.uat.passed, false);
+    assert.equal(f.record.releaseGates[unfinished], false);
+    f.record.candidate.ownerException.waivedGates = ['unchangedWindow'];
+    await assert.rejects(api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'}), /acceptance\/certification/, unfinished);
+  }
+  for (const retainAcceptanceWaivers of [false, true]) {
+    const f = ownerExceptionFixture();
+    f.record.releaseGates.fullScopeAcceptance = true;
+    f.record.releaseGates.accessibilityAndFailureUat = true;
+    if (!retainAcceptanceWaivers) f.record.candidate.ownerException.waivedGates = ['unchangedWindow'];
+    assert.doesNotThrow(() => api.validateReleaseStatus(f.record, '6.0.0'));
+    await assert.rejects(api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'}), /UAT evidence/);
+  }
+});

@@ -145,9 +145,12 @@ export async function verifyStorePromotion({channel, action, target, packagePath
   if (typeof target !== 'string' || !target || evidence.targets?.[channel] !== target) {
     throw new Error('Store target differs from candidate approval');
   }
+  const unfinishedAcceptance = ['fullScopeAcceptance', 'accessibilityAndFailureUat']
+    .filter(gate => !record.releaseGates[gate]);
+  const acceptanceException = unfinishedAcceptance.length > 0
+    && unfinishedAcceptance.every(gate => exception?.waivedGates.includes(gate));
   if (!bound(evidence.uat) || typeof evidence.uat.passed !== 'boolean'
-      || (!evidence.uat.passed && !(exception?.waivedGates.includes('fullScopeAcceptance')
-        && exception?.waivedGates.includes('accessibilityAndFailureUat')))) throw new Error('Missing or stale candidate UAT evidence');
+      || (!evidence.uat.passed && !acceptanceException)) throw new Error('Missing or stale candidate UAT evidence');
   if (!bound(evidence.permissionDelta) || evidence.permissionDelta.approved !== true) throw new Error('Missing or stale permission delta approval');
   const reports = [evidence.uat.report, evidence.permissionDelta.report];
   if (exception) {
