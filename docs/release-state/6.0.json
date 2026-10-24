@@ -5,7 +5,7 @@
   "state": "candidate",
   "candidate": {
     "frozen": true,
-    "commit": "1f8c1a096473fbf4282223e495687cd12adbc9a6",
+    "commit": "9be23bf010913884c426fe11b9e14a3f126ca10b",
     "hashes": {
       "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
       "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
@@ -17,7 +17,7 @@
       "sbom": "7EDA9EC47ADBE8638B89C5FD41DEC51F6F7CF136CAF5684E290FC8879FD04219"
     },
     "promotion": {
-      "commit": "1f8c1a096473fbf4282223e495687cd12adbc9a6",
+      "commit": "9be23bf010913884c426fe11b9e14a3f126ca10b",
       "hashes": {
         "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
         "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
@@ -34,7 +34,7 @@
         "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
       },
       "uat": {
-        "commit": "1f8c1a096473fbf4282223e495687cd12adbc9a6",
+        "commit": "9be23bf010913884c426fe11b9e14a3f126ca10b",
         "hashes": {
           "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
           "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
@@ -52,7 +52,7 @@
         }
       },
       "permissionDelta": {
-        "commit": "1f8c1a096473fbf4282223e495687cd12adbc9a6",
+        "commit": "9be23bf010913884c426fe11b9e14a3f126ca10b",
         "hashes": {
           "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
           "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",
@@ -69,10 +69,10 @@
           "sha256": "aef045270062862cc3f40a54c24f5829cfd7b11ca2ae4637037d36ce4fe5babd"
         }
       },
-      "unchangedSince": "2026-10-24T07:50:58.291455+00:00"
+      "unchangedSince": "2026-10-24T07:56:35.330796+00:00"
     },
     "ownerException": {
-      "commit": "1f8c1a096473fbf4282223e495687cd12adbc9a6",
+      "commit": "9be23bf010913884c426fe11b9e14a3f126ca10b",
       "hashes": {
         "edge-store": "E7E602570DDC14119AECED7F5201420C5AE66830421F5980279C07B1E145270C",
         "chrome-store": "4D2E87D74E76B71FA7A8D213F9DE9396529AE1FE57DBF9724A1703CD457FC02D",

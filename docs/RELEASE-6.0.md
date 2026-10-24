@@ -22,7 +22,7 @@ No new repository or parallel source folder is needed for promotion.
 ## Status
 
 Version 6.0 is frozen on `release/6.0` with source
-`1f8c1a096473fbf4282223e495687cd12adbc9a6` and the exact eight hashes in
+`9be23bf010913884c426fe11b9e14a3f126ca10b` and the exact eight hashes in
 [`6.0.json`](release-state/6.0.json). Clean Package run
 [40075430037](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40075430037)
 passed at d3ff13e; only four Wiki guidance files changed before the final source
