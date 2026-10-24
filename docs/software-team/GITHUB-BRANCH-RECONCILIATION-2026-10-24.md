@@ -38,3 +38,13 @@ Preservation and branch audit are complete. Lena independently restored all ten 
 The scoped active work branch is published only for its reviewed PR and is eligible for normal deletion after merge. Required PR checks are recorded on that PR; this document does not predeclare them passed.
 
 The frozen v6.0.0 tag and published release assets are outside the change. No runtime source or Store package is edited.
+
+## Nonshipping validation boundary
+
+The initial PR validation passed 454 product tests but rejected the committed skill/research changes as differences from the frozen candidate. [Issue #178](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/178#issuecomment-6385508664) records this related CI-routing defect; Azure work item 346 retains the linked release tracking.
+
+The correction separates narrowly classified nonshipping changes from candidate qualification. Only the portable team skill, software-team documentation and the three explicit routing-control files can select nonshipping validation. That route still runs release-status checks, the complete shipping test selection, lint, surface/security audits and Store metadata validation. Changed runtime, dependencies, build inputs, release state, unknown inputs and release branches retain the complete candidate gate. The release packaging workflow, frozen identity/hash verifiers, Store controls, permissions and action pins remain unchanged.
+
+Classification compares pinned Git history rather than only the last commit, and disables rename detection so a moved runtime file cannot disappear from the changed-path set. These are CI routing controls, not permission to publish a changed frozen candidate. Passing this route does not establish runtime host compatibility or a new release certification.
+
+The router classifies committed history in the CI checkout; it is not a verifier of arbitrary dirty local workspaces. Router/workflow changes themselves require independent review. The release and Store identity controls remain separate from this editable validation policy.
