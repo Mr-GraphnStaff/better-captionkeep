@@ -1,9 +1,10 @@
 # Release Status
 
 <!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is development on `codex/6.0`. Candidate frozen: no.
+> **6.0 delivery status:** 6.0.0 is candidate on `release/6.0`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
@@ -11,8 +12,9 @@
 were last verified **October 14, 2026**; they are not a fresh Store inspection.
 
 The owner has given GO for release preparation, reported positive UAT, and
-approved the bold DAF-TECH artwork. The artwork gate is complete. Exact-candidate
-freeze, remaining certification and rollout evidence are tracked above.
+approved the bold DAF-TECH artwork. The artwork gate is complete. The candidate is now frozen. The owner explicitly
+authorized publication with the named acceptance and test-window exceptions;
+those checks remain unpassed. Store rollout evidence is tracked separately above.
 6.0 is already in the existing repository on `codex/6.0`; local 5.4 archival
 did not delete GitHub history or promote `master`. Only production distribution
 artifacts under `dist/prod` are published; Development and UAT builds stay local.
@@ -23,7 +25,7 @@ artifacts under `dist/prod` are published; Development and UAT builds stay local
 | Chrome Web Store | 5.4.0 public; installed-upgrade smoke pending | Google's official listing serves version 5.4.0, updated October 11, 2026, with the corrected title and BYOAI summary. Existing-install upgrade and post-upgrade functional smoke verification remain open. |
 | Microsoft Edge Add-ons | 5.4.0 and DAF-TECH listing refresh public; post-upgrade smoke pending | Microsoft's official listing serves version 5.4.0 and, as verified October 14, the refreshed description plus all five 5.4 screenshots. A managed Edge installation received 5.4.0, but the vendor `_metadata` warning recurred during the update; functional smoke verification remains open. |
 | Frozen production release | 5.4.0 | GitHub release, hashes, SBOM, provenance, Store packages, Production checks, protected approval, and Store submissions are complete. Chrome and Edge are public; both installed-upgrade smoke tests remain open. |
-| Active development release | 6.0.0 | Full-scope development on `codex/6.0`, tracked in Azure Boards Epic #335. Not frozen, certified, submitted, or public. Public 5.4.0 stays unchanged. |
+| Frozen candidate with owner exceptions | 6.0.0 | `release/6.0`, source85d55ff and exact hashes frozen under Epic335. Owner authorized publication with documented acceptance/window exceptions. Not yet claimed Store-submitted or public. Dated5.4publichistory remains preserved. |
 | GitHub `v5.3.1` | 5.3.1 | Published immutable release; source commit, checksums, provenance, and Store ZIPs verified. |
 | GitHub `v5.3.0` | 5.3.0 | Retained for audit; withdrawn from further promotion |
 
@@ -107,3 +109,11 @@ and [immutable GitHub release](https://github.com/Mr-GraphnStaff/better-captionk
 - **Upgrade verified:** an existing installation received and ran the public version.
 
 See the repository's [5.3.2 recovery record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.2.md), [5.3.1 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.1.md), and [withdrawn 5.3.0 record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.3.md).
+
+## October 24 owner publication exception
+
+David Farris explicitly selected “Publish with a documented owner exception.”
+The source/package-bound [authorization report](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/release/6.0/docs/release-state/6.0-owner-exception.md)
+records positive owner UAT, missing exact-case evidence, unchanged permissions
+and the waived unchanged-window requirement. No missing certification becomes
+a passed test. Promotion continues through PR174 and existing Store review.
