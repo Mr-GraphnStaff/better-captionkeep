@@ -16,7 +16,7 @@ test('one release status record matches the manifest and every published local v
 });
 test('contradictory status views fail and regeneration preserves unrelated historical text', async () => {
   const api = await load(), record = loadRecord();
-  const text = 'historical 5.4 evidence\n' + api.renderReleaseStatus(record).replace('development on', 'released on') + '\nold release hash';
+  const text = 'historical 5.4 evidence\n' + api.renderReleaseStatus(record).replace('Candidate frozen:', 'Contradictory candidate frozen:') + '\nold release hash';
   assert.throws(() => api.reconcileStatusDocument(text, record), /contradicts/);
   const repaired = api.reconcileStatusDocument(text, record, true);
   assert(repaired.startsWith('historical 5.4 evidence\n'));
@@ -26,6 +26,7 @@ test('contradictory status views fail and regeneration preserves unrelated histo
 test('candidate and release labels cannot hide unverified browsers or open gates', async () => {
   const api = await load(), record = loadRecord();
   record.state = 'candidate';
+  record.candidate = {frozen:false, commit:null, hashes:null};
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /Frozen candidate/);
   record.candidate = {frozen:true, commit:'a'.repeat(40), hashes:{chrome:'b'.repeat(64)}};
   assert.throws(() => api.validateReleaseStatus(record, '6.0.0'), /all browser/);
@@ -133,6 +134,8 @@ test('candidate artifact verification binds the frozen commit, clean tree and ev
   const changed = {...record.candidate.hashes, chrome:'c'.repeat(64)};
   assert.throws(() => api.verifyCandidateArtifacts(record, {commit:record.candidate.commit, hashes:changed}), /chrome/);
   const development = loadRecord();
+  development.state = 'development';
+  development.candidate = {frozen:false, commit:null, hashes:null};
   assert.deepEqual(api.verifyCandidateArtifacts(development, {commit:'unbound', hashes:{}}), {verified:false, reason:'development'});
 });
 
@@ -160,5 +163,98 @@ test('candidate source identity permits a later metadata-only freeze commit with
     assert(dirtyIdentity.changes.some(change => change.includes('service_worker.js')));
   } finally {
     fs.rmSync(repo, {recursive:true, force:true});
+  }
+});
+
+function ownerExceptionFixture() {
+  const f = promotionFixture(), candidate = f.record.candidate;
+  f.record.liveCertification = Object.fromEntries(f.record.requiredBrowsers.map(browser => [browser, 'pending']));
+  for (const gate of ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'unchangedWindow']) f.record.releaseGates[gate] = false;
+  candidate.promotion.uat.passed = false;
+  candidate.promotion.unchangedSince = '2026-10-16T11:59:00Z';
+  candidate.ownerException = {
+    commit:candidate.commit, hashes:{...candidate.hashes}, approvedBy:'Synthetic owner',
+    approvedAt:'2026-10-16T11:59:00Z', reason:'Explicit acceptance of unfinished live and accessibility testing and the short test window',
+    waivedGates:['fullScopeAcceptance', 'accessibilityAndFailureUat', 'unchangedWindow'],
+    waivedLiveCertification:[...f.record.requiredBrowsers],
+    evidence:{path:'docs/owner-exception.txt', sha256:candidate.hashes.sbom},
+  };
+  return f;
+}
+
+test('explicit owner exception permits only bound unfinished acceptance without turning checks into passes', async () => {
+  const api = await load(), f = ownerExceptionFixture();
+  const before = structuredClone(f.record);
+  api.validateReleaseStatus(f.record, '6.0.0');
+  assert.deepEqual((await api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'})).bytes, f.bytes);
+  assert.deepEqual(f.record, before, 'An exception must not mutate certification or gate results');
+  const status = api.renderReleaseStatus(f.record);
+  assert.match(status, /Owner publication exception: Synthetic owner/);
+  assert.match(status, /These checks remain unpassed/);
+  assert.match(status, /Live provider certification outstanding: chrome, edge, brave, firefox, opera/);
+  const released = structuredClone(f.record);
+  released.state = 'released';
+  assert.throws(() => api.validateReleaseStatus(released, '6.0.0'), /open gates/);
+  released.releaseGates.publicParity = true;
+  released.releaseGates.installedUpgrade = true;
+  assert.doesNotThrow(() => api.validateReleaseStatus(released, '6.0.0'));
+});
+
+test('owner exception rejects changed identity, unapproved scope and missing or altered evidence', async () => {
+  const {verifyStorePromotion} = await load();
+  for (const [name, mutate] of [
+    ['missing owner', f=>{delete f.record.candidate.ownerException.approvedBy;}],
+    ['missing rationale', f=>{f.record.candidate.ownerException.reason='';}],
+    ['missing approval time', f=>{delete f.record.candidate.ownerException.approvedAt;}],
+    ['future approval', f=>{f.record.candidate.ownerException.approvedAt='2026-10-17T12:00:00Z';}],
+    ['unbound commit', f=>{f.record.candidate.ownerException.commit='b'.repeat(40);}],
+    ['unbound artifact', f=>{f.record.candidate.ownerException.hashes.chrome='b'.repeat(64);}],
+    ['missing artifact', f=>{delete f.record.candidate.ownerException.hashes.sbom;}],
+    ['extra artifact', f=>{f.record.candidate.ownerException.hashes.other='b'.repeat(64);}],
+    ['forbidden Store waiver', f=>{f.record.candidate.ownerException.waivedGates.push('storeApproval');}],
+    ['forbidden artwork waiver', f=>{f.record.candidate.ownerException.waivedGates.push('artworkApproved');}],
+    ['forbidden browser waiver', f=>{f.record.candidate.ownerException.waivedLiveCertification.push('safari');}],
+    ['duplicate waiver', f=>{f.record.candidate.ownerException.waivedGates.push('unchangedWindow');}],
+    ['unwaived browser', f=>{f.record.candidate.ownerException.waivedLiveCertification.pop();}],
+    ['unwaived acceptance', f=>{f.record.candidate.ownerException.waivedGates.shift();}],
+    ['unwaived window', f=>{f.record.candidate.ownerException.waivedGates.pop();}],
+    ['failed live test', f=>{f.record.liveCertification.firefox='failed';}],
+    ['missing report', f=>{delete f.record.candidate.ownerException.evidence;}],
+    ['altered report', f=>{f.record.candidate.ownerException.evidence.sha256='b'.repeat(64);}],
+    ['escaping report', f=>{f.record.candidate.ownerException.evidence.path='../owner.txt';}],
+    ['missing actual UAT report', f=>{delete f.record.candidate.promotion.uat.report;}],
+    ['missing UAT status', f=>{delete f.record.candidate.promotion.uat.passed;}],
+    ['unapproved permission delta', f=>{f.record.candidate.promotion.permissionDelta.approved=false;}],
+    ['wrong Store target', f=>{f.target='different';}],
+    ['dirty source', f=>{f.identity=async()=>({commit:f.record.candidate.commit,changes:['scripts/release-status.mjs']});}],
+    ['invalid window start', f=>{f.record.candidate.promotion.unchangedSince='invalid';}],
+    ['future window start', f=>{f.record.candidate.promotion.unchangedSince='2026-10-17T12:00:00Z';}],
+    ['changed package bytes', f=>{const read=f.read;f.read=async(filename,...args)=>filename.endsWith('.zip')?Buffer.from('changed'):read(filename,...args);}],
+  ]) {
+    const f = ownerExceptionFixture(); mutate(f);
+    await assert.rejects(verifyStorePromotion({...f, channel:'chrome', action:'upload-only'}), undefined, name);
+  }
+});
+
+test('partial acceptance exceptions cover only unfinished gates and cannot conceal contradictory UAT evidence', async () => {
+  const api = await load();
+  for (const unfinished of ['fullScopeAcceptance', 'accessibilityAndFailureUat']) {
+    const f = ownerExceptionFixture();
+    for (const gate of ['fullScopeAcceptance', 'accessibilityAndFailureUat']) f.record.releaseGates[gate] = gate !== unfinished;
+    f.record.candidate.ownerException.waivedGates = [unfinished, 'unchangedWindow'];
+    assert.doesNotThrow(() => api.validateReleaseStatus(f.record, '6.0.0'));
+    assert.deepEqual((await api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'})).bytes, f.bytes);
+    assert.equal(f.record.candidate.promotion.uat.passed, false);
+    assert.equal(f.record.releaseGates[unfinished], false);
+    f.record.candidate.ownerException.waivedGates = ['unchangedWindow'];
+    await assert.rejects(api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'}), /acceptance\/certification/, unfinished);
+  }
+  for (const retainAcceptanceWaivers of [false, true]) {
+    const f = ownerExceptionFixture();
+    f.record.releaseGates.fullScopeAcceptance = true;
+    f.record.releaseGates.accessibilityAndFailureUat = true;
+    if (!retainAcceptanceWaivers) f.record.candidate.ownerException.waivedGates = ['unchangedWindow'];
+    assert.doesNotThrow(() => api.validateReleaseStatus(f.record, '6.0.0'));
+    await assert.rejects(api.verifyStorePromotion({...f, channel:'chrome', action:'upload-only'}), /UAT evidence/);
   }
 });

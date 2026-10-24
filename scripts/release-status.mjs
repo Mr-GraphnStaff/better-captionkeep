@@ -8,6 +8,7 @@ const BROWSERS = ['chrome', 'edge', 'brave', 'firefox', 'opera'];
 const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom'];
 const GATES = ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'artworkApproved',
   'unchangedWindow', 'storeApproval', 'publicParity', 'installedUpgrade'];
+const EXCEPTION_GATES = ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'unchangedWindow'];
 const START = '<!-- captionkeep-6.0-status:start -->';
 const END = '<!-- captionkeep-6.0-status:end -->';
 export const statusDocuments = ['readme.md', 'docs/RELEASE-6.0.md', 'docs/wiki/Release-Status.md'];
@@ -31,6 +32,43 @@ export function inspectCandidateIdentity({root, candidateCommit} = {}) {
   return {commit:candidateCommit, head, changes:[...committed, ...working]};
 }
 
+// An owner exception accepts named unfinished checks; it never records them as passed.
+function ownerException(record) {
+  const exception = record.candidate?.ownerException;
+  if (!exception) return null;
+  const candidate = record.candidate;
+  if (!candidate.frozen || exception.commit !== candidate.commit || !exception.hashes
+      || Object.keys(exception.hashes).length !== ARTIFACTS.length
+      || ARTIFACTS.some(name => exception.hashes[name] !== candidate.hashes?.[name])) {
+    throw new Error('Owner exception is not bound to the frozen source and every artifact');
+  }
+  for (const field of ['approvedBy', 'reason']) {
+    if (typeof exception[field] !== 'string' || !exception[field].trim() || exception[field].length > 2000) {
+      throw new Error(`Owner exception requires explicit ${field}`);
+    }
+  }
+  if (typeof exception.approvedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(exception.approvedAt)
+      || !Number.isFinite(Date.parse(exception.approvedAt))) throw new Error('Owner exception requires an approval timestamp');
+  for (const [field, allowed] of [['waivedGates', EXCEPTION_GATES], ['waivedLiveCertification', BROWSERS]]) {
+    const values = exception[field];
+    if (!Array.isArray(values) || new Set(values).size !== values.length
+        || values.some(value => !allowed.includes(value))) throw new Error(`Invalid owner exception scope: ${field}`);
+  }
+  if (!exception.waivedGates.length && !exception.waivedLiveCertification.length) throw new Error('Owner exception has no scope');
+  for (const browser of exception.waivedLiveCertification) {
+    if (record.liveCertification[browser] === 'failed') throw new Error('Owner exception cannot waive a failed live certification');
+  }
+  validateReportIdentity(exception.evidence);
+  return exception;
+}
+
+function validateReportIdentity(report) {
+  if (!report || typeof report.path !== 'string' || !report.path || report.path.includes('\\')
+      || report.path.split('/').some(part => !part || part === '.' || part === '..')
+      || path.isAbsolute(report.path) || /^[a-z]:/i.test(report.path)
+      || !/^[a-f0-9]{64}$/i.test(report.sha256 || '')) throw new Error('Missing candidate acceptance report identity');
+}
+
 export function validateReleaseStatus(record, version) {
   if (record.product !== 'Better CaptionKeep' || record.version !== version) throw new Error('Release identity mismatch');
   if (typeof record.branch !== 'string' || !/^[A-Za-z0-9_][A-Za-z0-9_.\/-]*$/.test(record.branch)
@@ -48,14 +86,17 @@ export function validateReleaseStatus(record, version) {
   if (Object.keys(record.candidate.hashes || {}).some(name => /byomcp/i.test(name))) {
     throw new Error('Deferred MCP artifacts cannot be promoted with 6.0');
   }
+  const exception = ownerException(record);
+  const waivedGate = gate => exception?.waivedGates.includes(gate);
   if (record.state !== 'development') {
     if (!record.candidate.frozen || !/^[a-f0-9]{40}$/i.test(record.candidate.commit || '')
         || !record.candidate.hashes || ARTIFACTS.some(name => !/^[a-f0-9]{64}$/i.test(record.candidate.hashes[name] || ''))) throw new Error('Frozen candidate requires exact commit and artifact hashes for all browser/Store packages and SBOM');
-    if (!BROWSERS.every(browser => record.liveCertification[browser] === 'passed')
-        || !record.releaseGates.fullScopeAcceptance || !record.releaseGates.accessibilityAndFailureUat
+    if (!BROWSERS.every(browser => record.liveCertification[browser] === 'passed' || exception?.waivedLiveCertification.includes(browser))
+        || !(record.releaseGates.fullScopeAcceptance || waivedGate('fullScopeAcceptance'))
+        || !(record.releaseGates.accessibilityAndFailureUat || waivedGate('accessibilityAndFailureUat'))
         || !record.releaseGates.artworkApproved) throw new Error('Candidate acceptance/certification remains open');
   }
-  if (record.state === 'released' && GATES.some(gate => !record.releaseGates[gate])) throw new Error('Release still has open gates');
+  if (record.state === 'released' && GATES.some(gate => !record.releaseGates[gate] && !waivedGate(gate))) throw new Error('Release still has open gates');
   return record;
 }
 
@@ -92,8 +133,9 @@ export async function verifyStorePromotion({channel, action, target, packagePath
   validateReleaseStatus(record, manifest.version);
   if (record.state !== 'candidate' || !record.candidate.frozen) throw new Error('Store promotion requires a frozen candidate');
   if (version && version !== record.version) throw new Error('Store promotion version mismatch');
+  const exception = ownerException(record);
   for (const gate of ['fullScopeAcceptance','accessibilityAndFailureUat','artworkApproved','unchangedWindow']) {
-    if (!record.releaseGates[gate]) throw new Error(`Store promotion gate remains open: ${gate}`);
+    if (!record.releaseGates[gate] && !exception?.waivedGates.includes(gate)) throw new Error(`Store promotion gate remains open: ${gate}`);
   }
   const candidate = record.candidate, evidence = candidate.promotion;
   const bound = value => value?.commit === candidate.commit && value.hashes
@@ -103,21 +145,27 @@ export async function verifyStorePromotion({channel, action, target, packagePath
   if (typeof target !== 'string' || !target || evidence.targets?.[channel] !== target) {
     throw new Error('Store target differs from candidate approval');
   }
-  if (!bound(evidence.uat) || evidence.uat.passed !== true) throw new Error('Missing or stale candidate UAT evidence');
+  const unfinishedAcceptance = ['fullScopeAcceptance', 'accessibilityAndFailureUat']
+    .filter(gate => !record.releaseGates[gate]);
+  const acceptanceException = unfinishedAcceptance.length > 0
+    && unfinishedAcceptance.every(gate => exception?.waivedGates.includes(gate));
+  if (!bound(evidence.uat) || typeof evidence.uat.passed !== 'boolean'
+      || (!evidence.uat.passed && !acceptanceException)) throw new Error('Missing or stale candidate UAT evidence');
   if (!bound(evidence.permissionDelta) || evidence.permissionDelta.approved !== true) throw new Error('Missing or stale permission delta approval');
-  for (const check of [evidence.uat, evidence.permissionDelta]) {
-    const report = check.report;
-    if (!report || typeof report.path !== 'string' || !report.path || report.path.includes('\\')
-        || report.path.split('/').some(part => !part || part === '.' || part === '..')
-        || path.isAbsolute(report.path) || /^[a-z]:/i.test(report.path)
-        || !/^[a-f0-9]{64}$/i.test(report.sha256 || '')) throw new Error('Missing candidate acceptance report identity');
+  const reports = [evidence.uat.report, evidence.permissionDelta.report];
+  if (exception) {
+    if (!Number.isFinite(now) || Date.parse(exception.approvedAt) > now) throw new Error('Owner exception approval is in the future');
+    reports.push(exception.evidence);
+  }
+  for (const report of reports) {
+    validateReportIdentity(report);
     if (createHash('sha256').update(await read(path.join(root, report.path))).digest('hex') !== report.sha256.toLowerCase()) {
       throw new Error('Candidate acceptance report changed');
     }
   }
   const started = Date.parse(evidence.unchangedSince);
   if (typeof evidence.unchangedSince !== 'string' || !Number.isFinite(started) || !Number.isFinite(now)
-      || started > now || now - started < 48 * 60 * 60 * 1000) throw new Error('Candidate has not completed the 48-hour unchanged window');
+      || started > now || (!exception?.waivedGates.includes('unchangedWindow') && now - started < 48 * 60 * 60 * 1000)) throw new Error('Candidate has not completed the 48-hour unchanged window');
   // candidate.commit identifies the reviewed source commit. A later metadata-only
   // commit records hashes and gates without creating an impossible self-reference.
   const observed = identity ? await identity() : inspectCandidateIdentity({root, candidateCommit:candidate.commit});
@@ -141,7 +189,9 @@ export function assertVerifiableStoreAction(action) {
 export function renderReleaseStatus(record) {
   const pending = BROWSERS.filter(browser => record.liveCertification[browser] !== 'passed');
   const open = GATES.filter(gate => !record.releaseGates[gate]);
-  return `${START}\n> **6.0 delivery status:** ${record.version} is ${record.state} on \`${record.branch}\`. Candidate frozen: ${record.candidate.frozen ? 'yes' : 'no'}.\n> Live provider certification outstanding: ${pending.join(', ') || 'none'}.\n> Open release gates: ${open.join(', ') || 'none'}. Azure Boards epic: **#${record.boardEpic}**.\n> This status does not change historical 5.4 publication records.\n${END}`;
+  const exception = ownerException(record);
+  const exceptionStatus = exception ? `\n> Owner publication exception: ${exception.approvedBy}; accepted unfinished gates: ${exception.waivedGates.join(', ') || 'none'}; live certifications: ${exception.waivedLiveCertification.join(', ') || 'none'}. These checks remain unpassed.` : '';
+  return `${START}\n> **6.0 delivery status:** ${record.version} is ${record.state} on \`${record.branch}\`. Candidate frozen: ${record.candidate.frozen ? 'yes' : 'no'}.\n> Live provider certification outstanding: ${pending.join(', ') || 'none'}.\n> Open release gates: ${open.join(', ') || 'none'}. Azure Boards epic: **#${record.boardEpic}**.${exceptionStatus}\n> This status does not change historical 5.4 publication records.\n${END}`;
 }
 
 export function reconcileStatusDocument(text, record, write = false) {

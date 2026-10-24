@@ -166,3 +166,25 @@ pause for approval. Chrome modes are `preflight`, `upload-only`, `submit-auto`, 
 public immediately after Google review. Choose `submit-staged` only when a
 deliberate post-approval hold is required. Edge modes are `preflight`,
 `upload-only`, and `submit`; certification notes are mandatory for `submit`.
+
+## Explicit owner exceptions
+
+The release owner may explicitly accept named unfinished acceptance checks for
+a specific source and exact package hashes. Record the original authorization,
+known gaps and risks in a versioned report. The candidate record binds the
+report hash, source commit and all eight artifact hashes. Supported exceptions
+are limited to full-scope acceptance, accessibility/failure UAT, unfinished live
+browser certification and the unchanged-candidate window. Keep those gates
+false and certifications pending; disclose the exception in release status.
+A general release GO does not silently create an exception.
+
+Exceptions cannot waive failed live certification, artwork approval, permission
+review, source ancestry, package hashes, report integrity, Store target identity,
+Store certification, public listing parity, installed-upgrade verification,
+or branch protections. Apply policy and evidence through reviewed pull requests.
+
+For 6.0, David Farris explicitly selected “Publish with a documented owner
+exception” on October 24, 2026. See the
+[authorized report](release-state/6.0-owner-exception.md). Fresh tag-bound
+provenance must truthfully identify its build; every resulting shipping ZIP
+must remain byte-identical to the owner-approved packages.
