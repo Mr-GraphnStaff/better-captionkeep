@@ -101,7 +101,7 @@ test('aged real Teams Leave with no in-call controls ends capture even if a stal
     h.document.hidden=true;
     h.document.querySelectorAll=selector=>selector.includes('closed-caption')?[sourceNode]:[];
     h.document.querySelector=selector=>selector.includes('closed-caption')?sourceNode:null;
-    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;leaveRequestedAt=Date.now()-16000;");
+    h.run("wasInMeeting=true;capturing=true;leaveRequested=true;leaveRequestedAt=Date.now()-16000;sourceMissingSince=Date.now()-16000;");
     await h.run('handleMeetingStateChange()');
     assert.equal(h.run('capturing'),false);
     assert.equal(h.run('wasInMeeting'),false);
@@ -276,8 +276,54 @@ test('a visible dialog without Teams Leave intent does not override normal visib
 test('DOM-hidden confirmation remnants cannot prevent an aged real Teams Leave',async()=>{
     const h=await freshLeave();
     setLeaveSurfaces(h,{dialog:{closest:()=>({hidden:true})}});
-    h.run('leaveRequestedAt=Date.now()-16000;');
+    h.run('leaveRequestedAt=Date.now()-16000;sourceMissingSince=Date.now()-16000;');
     await h.run('handleMeetingStateChange()');
     assert.equal(h.run('capturing'),false);
     assert(h.messages.some(message=>message.message==='meeting_ended'));
+});
+
+
+test('visible post-call dialogs cannot defer Teams archiving beyond the source-gap hold, even when hidden',async()=>{
+    for (const hidden of [false,true]) {
+        const h=await freshLeave();
+        h.document.hidden=hidden;
+        h.data.autoSaveOnEnd=true;
+        setLeaveSurfaces(h,{dialog:{}});
+        h.run('leaveRequestedAt=Date.now()-600000;sourceMissingSince=Date.now()-TIMING.LEAVE_CONFIRMATION_MAX_HOLD+1000;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),true,'visible confirmation is retained before its bounded deadline');
+        assert.equal(h.messages.filter(message=>message.message==='update_badge_status').at(-1).capturing,false);
+        assert.equal(h.archives.length,0);
+        assert(!h.messages.some(message=>message.message==='meeting_ended'));
+        h.run('sourceMissingSince=Date.now()-TIMING.LEAVE_CONFIRMATION_MAX_HOLD-1;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),false,'a residual visible dialog cannot keep a departed session alive forever');
+        assert.equal(h.messages.filter(message=>message.message==='meeting_ended').length,1);
+        assert.equal(h.messages.filter(message=>message.message==='save_on_leave').length,1);
+        assert.equal(h.archives.length,1);
+        assert.equal(h.archives[0].transcriptArray[0].Text,'Words before canceled Leave');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.archives.length,1,'later polls do not duplicate the completed archive');
+    }
+});
+
+test('old Teams Leave intent does not bypass a newly observed source-gap grace',async()=>{
+    for (const hidden of [false,true]) {
+        const h=await freshLeave();
+        h.document.hidden=hidden;
+        h.run('leaveRequestedAt=Date.now()-600000;sourceMissingSince=null;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),true,'elapsed time since the click is not elapsed source loss');
+        assert(!h.messages.some(message=>message.message==='meeting_ended'));
+        assert.equal(h.messages.filter(message=>message.message==='update_badge_status').at(-1).capturing,false);
+        h.run('sourceMissingSince=Date.now()-16000;');
+        await h.run('handleMeetingStateChange()');
+        await flush();
+        assert.equal(h.run('capturing'),false,'a source gap past normal grace without a modal eventually finalizes');
+        assert.equal(h.messages.filter(message=>message.message==='meeting_ended').length,1);
+    }
 });

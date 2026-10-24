@@ -8,6 +8,7 @@ const TIMING = {
     ATTENDEE_UPDATE_INTERVAL: 60000, // Check attendees every minute
     INITIAL_ATTENDEE_DELAY: 1500, // Wait 1.5s after meeting start before first check
     LEAVE_INTENT_LIFETIME: 15000,
+    LEAVE_CONFIRMATION_MAX_HOLD: 120000,
 };
 
 const SELECTORS = {
@@ -703,15 +704,14 @@ const checkMeetingState = ErrorHandler.wrap(async function() {
     } else if (wasInMeeting) {
         sourceMissingSince ??= Date.now();
         captureState = 'source unavailable';
-        // Leave intent is not confirmation. Preserve a visible confirmation
-        // interval even beyond the normal grace, while keeping the badge OFF.
-        if (leaveRequested && getLiveMeetingElement('[role="dialog"], [role="alertdialog"]')) return;
-        // Hidden windows without Leave intent remain live. Fresh Leave intent
-        // also receives a grace period; aged real exits can ignore stale captions.
-        const leaveAge = leaveRequestedAt ? Date.now() - leaveRequestedAt : 0;
-        if ((!leaveRequested && document.hidden)
-            || (Date.now() - sourceMissingSince < 15000
-                && (!leaveRequested || leaveAge < TIMING.LEAVE_INTENT_LIFETIME))) return;
+        const sourceMissingAge = Date.now() - sourceMissingSince;
+        // Leave intent is not confirmation. A visible dialog extends grace,
+        // but unrelated post-call dialogs must not postpone archiving forever.
+        if (leaveRequested && sourceMissingAge < TIMING.LEAVE_CONFIRMATION_MAX_HOLD
+            && getLiveMeetingElement('[role="dialog"], [role="alertdialog"]')) return;
+        // Time the grace from source loss, not an older Leave click. Hidden
+        // windows without Leave intent remain live; aged real exits can finish.
+        if ((!leaveRequested && document.hidden) || sourceMissingAge < TIMING.LEAVE_INTENT_LIFETIME) return;
     }
     
     if (wasInMeeting && !nowInMeeting) {
