@@ -71,7 +71,7 @@ test('enterprise package has a bounded inventory, parses PowerShell, and never p
   });
 });
 
-function provisioningMock(output, directory, microsoft365, failApplication = false, approve = true, resume = false, after = '', lostAssignment = '') {
+function provisioningMock(output, directory, microsoft365, failApplication = false, approve = true, resume = false, after = '', lostAssignment = '', before = '') {
   return `
     . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
     $global:calls=[Collections.Generic.List[object]]::new()
@@ -133,6 +133,7 @@ function provisioningMock(output, directory, microsoft365, failApplication = fal
       throw "Unexpected Graph request: $Method $Uri"
     }
     $options=@{WithMicrosoft365=$${microsoft365};WithoutMicrosoft365=$${!microsoft365};Browser='both';PlanOnly=$false;TenantId='11111111-1111-4111-8111-111111111111';GroupId='22222222-2222-4222-8222-222222222222';EnableSpeakerAttribution=$false;SigningCertificateThumbprint='';AllowUnsignedEndpointScripts=$true;Hardened=$false;OutputDirectory=${quote(path.join(directory,'receipt'))}}
+    ${before}
     $failed=$false
     $errorMessage=''
     try { Invoke-EnterpriseSetup $options ${quote(output)} | Out-Null } catch { $failed=$true;$errorMessage=$_.Exception.Message }
@@ -203,6 +204,44 @@ test('Continue reconciles a lost app POST response without creating the app twic
     assert.equal(result.receipt.operations.CreateApplication.state,'Reconciled');
     assert.equal(result.receipt.status,'AssignedPendingEndpointValidation');
     assert.equal(result.receipt.scripts.length,2);
+  });
+});
+
+test('Continue reuses reviewed signed scripts without reopening the original signing certificate', async () => {
+  await withPackage(async (output,directory) => {
+    const receiptPath=quote(path.join(directory,'receipt/receipt.json'));
+    const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,false,`
+      $before=Get-Content -LiteralPath ${receiptPath} -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+      function Select-SetupCertificate { param($Thumbprint,$AllowUnsigned) throw 'The old private certificate must not be required to reuse reviewed scripts.' }
+      function Read-Host { param($Prompt) if ($Prompt -like 'Type APPROVE*') { 'APPROVE' } elseif ($Prompt -like 'Type DEPLOY*') { 'DEPLOY' } else { throw "Unexpected prompt: $Prompt" } }
+      Invoke-EnterpriseSetup @{ResumeReceipt=${receiptPath}} ${quote(output)} | Out-Null
+      $extra.signedPlan=$before.plan.signedEndpointScripts
+      $extra.uploads=@($global:calls | Where-Object { $_.method -eq 'POST' -and $_.path.EndsWith('/deviceManagementScripts') } | ForEach-Object {
+        $upload=$_
+        $bytes=[Convert]::FromBase64String($upload.body.scriptContent)
+        $browser=if ($upload.body.displayName -like '* edge *') { 'edge' } else { 'chrome' }
+        $saved=@($before.scripts | Where-Object browser -eq $browser)[0]
+        @{browser=$browser;signatureRequired=$upload.body.enforceSignatureCheck;hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes));expected=$saved.installHash;prefix=[Convert]::ToHexString($bytes[0..2])}
+      })
+    `,'',`
+      $options.AllowUnsignedEndpointScripts=$false
+      function Select-SetupCertificate { param($Thumbprint,$AllowUnsigned) [pscustomobject]@{Thumbprint=('a'*40)} }
+      function Set-AuthenticodeSignature { param($FilePath,$Certificate,$HashAlgorithm)
+        [byte[]]$bytes=@(239,187,191)+[IO.File]::ReadAllBytes($FilePath)
+        [IO.File]::WriteAllBytes($FilePath,$bytes)
+        @{Status='Valid'}
+      }
+      function Read-Host { param($Prompt) if ($Prompt -like 'Type APPROVE*') { 'APPROVE' } elseif ($Prompt -like 'Type DEPLOY*') { '' } else { throw "Unexpected prompt: $Prompt" } }
+    `));
+    assert.equal(result.failed,false,result.error);
+    assert.equal(result.extra.signedPlan,true);
+    assert.equal(result.extra.uploads.length,2);
+    for (const upload of result.extra.uploads) {
+      assert.equal(upload.signatureRequired,true);
+      assert.equal(upload.hash,upload.expected);
+      assert.equal(upload.prefix,'EFBBBF');
+    }
+    assert.equal(result.receipt.status,'AssignedPendingEndpointValidation');
   });
 });
 

@@ -62,6 +62,21 @@ export function isAdminBuildCommandOnly(beforeText, afterText) {
   return JSON.stringify(canonical(before)) === JSON.stringify(canonical(after));
 }
 
+export function isAdminReadmeOnly(beforeText, afterText) {
+  const start='<!-- administrator-setup-pilot:start -->',end='<!-- administrator-setup-pilot:end -->';
+  const split=text=>{
+    const starts=text.split(start).length-1,ends=text.split(end).length-1;
+    if (!starts&&!ends) return {outside:text.trimEnd(),block:''};
+    if (starts!==1||ends!==1||text.indexOf(end)<text.indexOf(start)) throw new Error('Malformed administrator README block');
+    const block=text.slice(text.indexOf(start),text.indexOf(end)+end.length);
+    return {outside:text.replace(block,'').trimEnd(),block};
+  };
+  const before=split(beforeText),after=split(afterText);
+  return before.outside===after.outside && /pilot/i.test(after.block) && after.block.includes('Start-Setup.cmd')
+    && after.block.includes('docs/wiki/Administrator-Deployment.md')
+    && after.block.includes('docs/wiki/Deployment-Security-and-Permissions.md');
+}
+
 function gitReader(root) {
   return args => execFileSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, ...args],
     {cwd:root, encoding:'utf8', windowsHide:true, timeout:10000, maxBuffer:16 * 1024 * 1024});
@@ -104,8 +119,10 @@ export function determineValidationMode({eventName, ref, event, root,
     const paths = diff.slice(0, -1).split('\0');
     // Admin tooling has its own executed tests/package checks; this narrow npm
     // convenience command must not allow dependency or extension-build changes.
-    if (paths.includes('package.json') && paths.every(name => name === 'package.json' || isNonshippingPath(name))
-        && isAdminBuildCommandOnly(readGit(['show', `${base}:package.json`]), readGit(['show', `${head}:package.json`]))) return 'nonshipping';
+    if (paths.some(name=>name==='package.json'||name==='readme.md')
+        && paths.every(name => name === 'package.json' || name === 'readme.md' || isNonshippingPath(name))
+        && (!paths.includes('package.json') || isAdminBuildCommandOnly(readGit(['show', `${base}:package.json`]), readGit(['show', `${head}:package.json`])))
+        && (!paths.includes('readme.md') || isAdminReadmeOnly(readGit(['show', `${base}:readme.md`]), readGit(['show', `${head}:readme.md`])))) return 'nonshipping';
     return classifyChangedPaths(paths);
   } catch {
     // Unknown events, unavailable history and Git failures never reduce checks.

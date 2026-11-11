@@ -91,6 +91,18 @@ test('admin npm convenience command cannot hide dependency or extension build ch
   assert.equal(determineValidationMode({...pullRequest(base),readGit:args=>args[0]==='diff'?'package.json\0teams-captions-saver/runtime.js\0':readGit(args)}),'candidate');
 });
 
+test('administrator README discovery permits only its marked pilot section', async () => {
+  const {isAdminReadmeOnly}=await load();
+  const before='# Product\n\nStable release metadata stays unchanged.\n';
+  const block='<!-- administrator-setup-pilot:start -->\nDevelopment pilot: Start-Setup.cmd; docs/wiki/Administrator-Deployment.md; docs/wiki/Deployment-Security-and-Permissions.md\n<!-- administrator-setup-pilot:end -->';
+  const after=before.trimEnd()+'\n\n'+block+'\n';
+  assert.equal(isAdminReadmeOnly(before,after),true);
+  assert.equal(isAdminReadmeOnly(before,after.replace('Stable release metadata','Forged release metadata')),false);
+  assert.equal(isAdminReadmeOnly(before,after.replace('Start-Setup.cmd','unknown.exe')),false);
+  assert.throws(()=>isAdminReadmeOnly(before,after+'\n'+block),/Malformed/);
+  assert.throws(()=>isAdminReadmeOnly(before,after.replace('<!-- administrator-setup-pilot:end -->','')),/Malformed/);
+});
+
 test('path traversal, absolute paths and control characters never qualify as nonshipping', async () => {
   const {isNonshippingPath} = await load();
   for (const file of ['../docs/software-team/a.md', '/docs/software-team/a.md',

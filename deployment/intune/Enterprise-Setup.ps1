@@ -441,7 +441,18 @@ function Invoke-EnterpriseSetup {
             if (-not $setTeams.Parameters.ContainsKey('EnableGraphTranscriptAccess') -or ($Options.EnableSpeakerAttribution -and -not $setTeams.Parameters.ContainsKey('EnableAttributedTranscripts'))) { throw 'Update the MicrosoftTeams module: required transcript settings cannot be configured.' }
             $teamsBefore = if ($existing) { $existing.plan.teamsBefore } else { @{EnableGraphTranscriptAccess=[bool]$current.EnableGraphTranscriptAccess; EnableAttributedTranscripts=[bool]$current.EnableAttributedTranscripts} }
         }
-        $certificate = Select-SetupCertificate $Options.SigningCertificateThumbprint ([bool]$Options.AllowUnsignedEndpointScripts)
+        $needsScriptGeneration = -not $existing
+        if ($existing) {
+            $needsScriptGeneration = @($browsers | Where-Object {
+                $browserName=$_
+                @($existing.scripts | Where-Object browser -eq $browserName).Count -eq 0
+            }).Count -gt 0
+        }
+        $certificate = $null
+        if ($needsScriptGeneration) {
+            $certificate = Select-SetupCertificate $Options.SigningCertificateThumbprint ([bool]$Options.AllowUnsignedEndpointScripts)
+            if ($existing -and $existing.plan.signedEndpointScripts -and $null -eq $certificate) { throw 'This signed deployment needs a signing certificate only to generate missing scripts. Its signing policy cannot be downgraded.' }
+        }
         $deploymentId = if ($existing) { $existing.plan.deploymentId } else { [guid]::NewGuid().ToString() }
         $directory = if ($Options.OutputDirectory) { [IO.Path]::GetFullPath($Options.OutputDirectory) } else { Join-Path $PackageRoot "receipts/$deploymentId" }
         $Options.OutputDirectory=$directory
@@ -451,7 +462,7 @@ function Invoke-EnterpriseSetup {
         Write-Host "Tenant: $tenant"
         Write-Host "Signed in as: $($context.Account)"
         Write-Host "Deployment group: $($group.displayName) [$groupId]"
-        Write-Host "Browsers: $($browsers -join ', '); Microsoft 365 transcript setup: $m365; signed device scripts: $($null -ne $certificate)."
+        Write-Host "Browsers: $($browsers -join ', '); Microsoft 365 transcript setup: $m365; signed device scripts: $($plan.signedEndpointScripts)."
         Write-Host "Recovery receipt will be saved in: $directory"
         if ($m365) {
             $attributionAfter=if ($Options.EnableSpeakerAttribution) { $true } else { [bool]$teamsBefore.EnableAttributedTranscripts }
@@ -563,7 +574,7 @@ function Invoke-EnterpriseSetup {
             Write-SetupStep "Upload and assign $($script.browser) to $($group.displayName)"
             $installPath = Join-Path $directory "$($script.browser)-Install.ps1"
             if ((Get-FileHash -LiteralPath $installPath -Algorithm SHA256).Hash -cne $script.installHash) { throw 'Script changed after review.' }
-            $body = New-IntuneScriptBody -Name "Better CaptionKeep $($script.browser) $deploymentId" -Signed ($null -ne $certificate) -ScriptBytes ([IO.File]::ReadAllBytes($installPath))
+            $body = New-IntuneScriptBody -Name "Better CaptionKeep $($script.browser) $deploymentId" -Signed ([bool]$plan.signedEndpointScripts) -ScriptBytes ([IO.File]::ReadAllBytes($installPath))
             $scriptName=$body.displayName
             $scriptFilter=[uri]::EscapeDataString("displayName eq '$scriptName'")
             $created=Invoke-RecordedSetupCreate $receipt $directory "Upload-$($script.browser)" $body {
