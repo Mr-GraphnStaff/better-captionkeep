@@ -1,10 +1,15 @@
-# Dev â†’ QA â†’ Production
+# Dev -> QA -> Production
 
 Owner direction, November 11, 2026. One repository, three source branches:
 
+This control-plane setup changes executable promotion workflows, policy
+checks/tests, validation routing, and supporting documentation. Review and QA
+acceptance cover those controls. It changes no extension runtime source,
+published package, or Store submission.
+
 | Source branch | Build folder | Promotion |
 | --- | --- | --- |
-| `dev` | `Dev` | Reviewed feature/fix PR â†’ `dev` |
+| `dev` | `Dev` | Reviewed feature/fix PR -> `dev` |
 | `qa` | `QA` | PR from `dev` only |
 | `master` | `Production` | PR from `qa` only, after QA acceptance |
 
@@ -16,10 +21,10 @@ commit and package hashes. Never treat an old folder's contents as a new build.
 
 1. Start a scoped `codex/*`, `feature/*`, or `fix/*` branch from current `dev`.
    Keep unrelated work separate. Submit a PR to `dev`; automated checks must pass.
-2. Open `dev` â†’ `qa`. Passing automated validation is required. Build and test
+2. Open `dev` -> `qa`. Passing automated validation is required. Build and test
    the exact merged QA commit, recording the commit, artifacts, hashes, results,
    tester, and remaining acceptance in the release record.
-3. Open `qa` â†’ `master`. Review the candidate evidence, then approve the
+3. Open `qa` -> `master`. Review the candidate evidence, then approve the
    `qa-acceptance` environment deployment on that PR's workflow run. This is an
    explicit QA decision, not automatic approval from unit tests. Only the owner
    is configured as approver. A new push invalidates the old candidate and needs
