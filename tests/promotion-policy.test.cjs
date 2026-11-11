@@ -2,9 +2,50 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {pathToFileURL} = require('node:url');
 const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
+const {spawnSync} = require('node:child_process');
 
 const policy = import(pathToFileURL(path.join(__dirname, '../scripts/check-promotion.mjs')));
 const sha = digit => digit.repeat(40);
+
+test('actual audit binding command publishes nothing when trusted validation rejects a stale event', t => {
+  const workflow = fs.readFileSync(path.join(__dirname, '../.github/workflows/promotion.yml'), 'utf8').replaceAll('\r\n', '\n');
+  const section = workflow.split('      - name: Bind the pending decision to the exact merge candidate\n')[1]?.split('\n  qa-approval:')[0];
+  assert(section, 'Binding step must exist');
+  const script = section.split('        run: |\n')[1]?.split('\n').map(line => line.startsWith('          ') ? line.slice(10) : line).join('\n');
+  assert(script, 'Actual binding shell command must exist');
+  const temporaryRoot = fs.realpathSync(os.tmpdir());
+  const root = fs.mkdtempSync(path.join(temporaryRoot, 'captionkeep-audit-binding-'));
+  t.after(() => {
+    const real = fs.realpathSync(root);
+    const relative = path.relative(temporaryRoot, real);
+    assert(relative && !path.isAbsolute(relative) && !relative.startsWith('..'));
+    assert(path.basename(real).startsWith('captionkeep-audit-binding-'));
+    fs.rmSync(real, {recursive:true, force:true});
+  });
+  const commands = `
+git() { if [[ "$1" == fetch ]]; then return 0; fi; printf '%s\\n' '${sha('c')}'; }
+node() { if [[ "$VALIDATION_RC" != 0 ]]; then return 1; fi; validated=yes; }
+gh() { [[ "$validated" == yes ]] || return 9; printf 'PUBLISHED\\n'; }
+`;
+  const bash = process.platform === 'win32' ? 'C:/Program Files/Git/bin/bash.exe' : 'bash';
+  const run = validation => spawnSync(bash, ['--noprofile', '--norc', '-e', '-c', commands + script], {
+    cwd:root, encoding:'utf8', windowsHide:true, timeout:10000,
+    env:{...process.env, BASH_ENV:'', ENV:'', PR_NUMBER:'12', BASE_BRANCH:'dev',
+      GITHUB_OUTPUT:'github-output', GITHUB_REPOSITORY:'Example/CaptionKeep', VALIDATION_RC:String(validation)}
+  });
+  const stale = run(1);
+  assert.equal(stale.error, undefined);
+  assert.notEqual(stale.status, 0);
+  assert(!stale.stdout.includes('PUBLISHED'), 'A stale event must never publish an external status');
+  assert(!fs.existsSync(path.join(root, 'github-output')), 'A stale event must not bind candidate outputs');
+  const current = run(0);
+  assert.equal(current.error, undefined);
+  assert.equal(current.status, 0, current.stderr);
+  assert(current.stdout.includes('PUBLISHED'), 'The accepted event must reach status publication');
+  assert(fs.readFileSync(path.join(root, 'github-output'), 'utf8').includes(`merge=${sha('c')}`));
+});
 
 function fixture(base = 'master', head = 'qa') {
   const repository = 'Example/CaptionKeep';
