@@ -1,10 +1,10 @@
-# Dev → QA → Production
+# Dev â†’ QA â†’ Production
 
 Owner direction, November 11, 2026. One repository, three source branches:
 
 | Source branch | Build folder | Promotion |
 | --- | --- | --- |
-| `dev` | `Dev` | Reviewed feature/fix PR → `dev` |
+| `dev` | `Dev` | Reviewed feature/fix PR â†’ `dev` |
 | `qa` | `QA` | PR from `dev` only |
 | `master` | `Production` | PR from `qa` only, after QA acceptance |
 
@@ -16,10 +16,10 @@ commit and package hashes. Never treat an old folder's contents as a new build.
 
 1. Start a scoped `codex/*`, `feature/*`, or `fix/*` branch from current `dev`.
    Keep unrelated work separate. Submit a PR to `dev`; automated checks must pass.
-2. Open `dev` → `qa`. Passing automated validation is required. Build and test
+2. Open `dev` â†’ `qa`. Passing automated validation is required. Build and test
    the exact merged QA commit, recording the commit, artifacts, hashes, results,
    tester, and remaining acceptance in the release record.
-3. Open `qa` → `master`. Review the candidate evidence, then approve the
+3. Open `qa` â†’ `master`. Review the candidate evidence, then approve the
    `qa-acceptance` environment deployment on that PR's workflow run. This is an
    explicit QA decision, not automatic approval from unit tests. Only the owner
    is configured as approver. A new push cancels the run and needs fresh approval.
@@ -35,10 +35,11 @@ commit and package hashes. Never treat an old folder's contents as a new build.
 
 ## Controls and limits
 
-The required `lane-dev`, `lane-qa`, and `lane-master` commit statuses reject skipped lanes, foreign-repository heads,
+The required native `route-<branch>` and `promote-<branch>` Actions checks reject skipped lanes, foreign-repository heads,
 changed head/base revisions and production merge results differing from QA.
 It runs the base branch's trusted policy, with read-only permissions and no PR
-code execution. `validate` and existing CodeQL checks remain required.
+code execution. Merge-bound `lane-*` commit statuses provide additional audit
+evidence. `validate` and existing CodeQL checks remain required.
 
 Active server rules must require PRs/checks on `dev`, `qa`, and `master`, block
 deletion/force pushes, and give no routine administrator bypass. The QA approval
