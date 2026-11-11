@@ -304,6 +304,32 @@ test('browser and signing certificate choices work by number without flags or th
   });
 });
 
+test('certificate picker accepts Windows string and Oid EKUs while excluding non-signing and missing-private-key certificates', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory, `
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      $future=[datetime]::UtcNow.AddYears(1)
+      $global:certificates=@(
+        [pscustomobject]@{Subject='Server authentication';HasPrivateKey=$true;NotAfter=$future;EnhancedKeyUsageList=@([pscustomobject]@{ObjectId='1.3.6.1.5.5.7.3.1'})},
+        [pscustomobject]@{Subject='No private key';HasPrivateKey=$false;NotAfter=$future;EnhancedKeyUsageList=@([pscustomobject]@{ObjectId='1.3.6.1.5.5.7.3.3'})},
+        [pscustomobject]@{Subject='Windows string OID';HasPrivateKey=$true;NotAfter=$future;EnhancedKeyUsageList=@([pscustomobject]@{ObjectId='1.3.6.1.5.5.7.3.3'})},
+        [pscustomobject]@{Subject='Cryptography Oid';HasPrivateKey=$true;NotAfter=$future;EnhancedKeyUsageList=@([pscustomobject]@{ObjectId=[Security.Cryptography.Oid]::new('1.3.6.1.5.5.7.3.3')})}
+      )
+      function Get-ChildItem { param($Path,$ErrorAction) $global:certificates }
+      function Read-Host { param($Prompt) '2' }
+      $selected=Select-SetupCertificate '' $false
+      $eligible=@($global:certificates | Where-Object { Test-SetupCodeSigningCertificate $_ } | ForEach-Object Subject)
+      $global:certificates=@($global:certificates[0],$global:certificates[1])
+      function Read-Host { param($Prompt) 'UNSIGNED' }
+      $unsigned=Select-SetupCertificate '' $false
+      Write-Output ('RESULT:' + (@{selected=$selected.Subject;eligible=$eligible;unsignedAvailable=($null -eq $unsigned)} | ConvertTo-Json -Compress))
+    `);
+    assert.equal(result.selected,'Cryptography Oid');
+    assert.deepEqual(result.eligible,['Windows string OID','Cryptography Oid']);
+    assert.equal(result.unsignedAvailable,true);
+  });
+});
+
 test('ambiguous zero or duplicate resource reads never repeat a recorded POST', async () => {
   await withPackage(async (output,directory) => {
     const result=runPowerShell(directory, `
