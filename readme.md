@@ -264,6 +264,9 @@ false; the existing owner acceptance exceptions remain explicitly unpassed.
 
 The guided administrator package automates approved Microsoft 365 transcript
 configuration and Intune rollout of the Store extension to a selected group.
+Organizations with an existing Azure Artifact Signing profile can optionally
+use a reviewed signing configuration; the wizard does not purchase that service
+or install certificate trust. The administrator guide covers its prerequisites.
 This is a **development pilot**, not a tenant-certified production installer or
 a new Store release. No tenant configuration changes occur merely by downloading it.
 

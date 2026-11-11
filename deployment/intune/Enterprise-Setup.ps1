@@ -9,6 +9,7 @@ param(
     [switch]$Hardened,
     [switch]$EnableSpeakerAttribution,
     [string]$SigningCertificateThumbprint,
+    [string]$AzureSigningConfigPath,
     [switch]$AllowUnsignedEndpointScripts,
     [string]$OutputDirectory,
     [switch]$PlanOnly,
@@ -185,6 +186,144 @@ function Get-SetupFingerprint {
     }
     $json = ConvertTo-Json -InputObject (Normalize-SetupValue $Value) -Depth 35 -Compress
     return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($json)))
+}
+
+function Assert-SetupMicrosoftSigningTools {
+    param($Config)
+    $hashes=@{}
+    foreach ($key in @('SignToolPath','DlibPath')) {
+        $path=[string]$Config[$key]
+        $expectedName=if ($key -ceq 'SignToolPath') { 'signtool.exe' } else { 'Azure.CodeSigning.Dlib.dll' }
+        if (-not [IO.Path]::IsPathFullyQualified($path) -or $path.StartsWith('\\') -or
+            [IO.Path]::GetFileName($path) -ine $expectedName -or -not [IO.File]::Exists($path)) { throw 'Choose an existing local official SignTool/dlib file.' }
+        $signature=Get-AuthenticodeSignature -LiteralPath $path
+        if ([string]$signature.Status -cne 'Valid' -or $null -eq $signature.SignerCertificate -or
+            $signature.SignerCertificate.Subject -notmatch '(^|,\s*)O=Microsoft Corporation(,|$)') { throw 'Azure signing tools must have a valid Microsoft Authenticode signature.' }
+        $hashes[$key]=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+    }
+    return $hashes
+}
+
+function Get-SetupPrivateIdentityEku {
+    param([string]$Identity)
+    $hex=([guid](Assert-SetupGuid $Identity)).ToString('N')
+    $parts=for($index=0;$index -lt 8;$index++) { [Convert]::ToUInt16($hex.Substring($index*4,4),16).ToString() }
+    return '1.3.6.1.4.1.311.97.1.3.1.'+($parts -join '.')
+}
+
+function Test-SetupPrivateIdentityEku {
+    param([string]$Value)
+    $prefix='1.3.6.1.4.1.311.97.1.3.1.'
+    if (-not $Value.StartsWith($prefix,[StringComparison]::Ordinal)) { return $false }
+    $parts=@($Value.Substring($prefix.Length) -split '\.')
+    if ($parts.Count -ne 8) { return $false }
+    foreach($part in $parts) { if($part -cnotmatch '^(0|[1-9][0-9]{0,4})$' -or [int]$part -gt 65535) { return $false } }
+    return @($parts | Where-Object { [int]$_ -ne 0 }).Count -gt 0
+}
+
+function Read-SetupAzureSigningConfig {
+    param([string]$Path)
+    if (-not [IO.Path]::IsPathFullyQualified($Path) -or -not [IO.File]::Exists($Path)) { throw 'Choose an existing absolute Azure signing configuration path.' }
+    $config=Get-Content -LiteralPath $Path -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+    $keys=@('Endpoint','CodeSigningAccountName','CertificateProfileName','ExpectedTenantId','ExpectedEnhancedKeyUsages','SignToolPath','DlibPath')
+    if ($config -isnot [Collections.IDictionary] -or $config.Count -ne $keys.Count -or @($config.Keys | Where-Object { $_ -cnotin $keys }).Count) { throw 'Azure signing configuration has missing or unsupported fields; credentials are not accepted.' }
+    foreach ($key in @('Endpoint','CodeSigningAccountName','CertificateProfileName','ExpectedTenantId','SignToolPath','DlibPath')) {
+        if ($config[$key] -isnot [string] -or [string]::IsNullOrWhiteSpace($config[$key])) { throw 'Azure signing configuration identities and paths must be nonempty strings.' }
+    }
+    $uri=[uri]$config.Endpoint
+    if (-not $uri.IsAbsoluteUri -or $uri.Scheme -cne 'https' -or $uri.Host -cnotmatch '^[a-z][a-z0-9-]{1,15}\.codesigning\.azure\.net$' -or
+        $uri.Port -ne 443 -or $uri.AbsolutePath -cne '/' -or $uri.Query -or $uri.Fragment -or $uri.UserInfo) { throw 'Azure signing requires a regional HTTPS codesigning.azure.net endpoint with no credentials, path, query, or fragment.' }
+    foreach ($key in @('CodeSigningAccountName','CertificateProfileName')) {
+        if ($config[$key] -isnot [string] -or $config[$key] -cnotmatch '^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}$') { throw 'Invalid Azure signing account/profile name.' }
+    }
+    $config.ExpectedTenantId=Assert-SetupGuid $config.ExpectedTenantId
+    $tenantEku=Get-SetupPrivateIdentityEku $config.ExpectedTenantId
+    if ($config.ExpectedEnhancedKeyUsages -isnot [array] -or $config.ExpectedEnhancedKeyUsages.Count -lt 2 -or $config.ExpectedEnhancedKeyUsages.Count -gt 8 -or
+        @($config.ExpectedEnhancedKeyUsages | Where-Object { $_ -isnot [string] -or -not (Test-SetupPrivateIdentityEku $_) }).Count -or
+        @($config.ExpectedEnhancedKeyUsages | Sort-Object -Unique).Count -ne $config.ExpectedEnhancedKeyUsages.Count -or
+        $tenantEku -cnotin $config.ExpectedEnhancedKeyUsages) { throw 'Private Trust signing requires the exact tenant identity EKU plus a distinct private profile GUID EKU; generic or unrelated EKUs are not accepted.' }
+    $config.Endpoint=$uri.GetLeftPart([UriPartial]::Authority)
+    foreach ($key in @('SignToolPath','DlibPath')) { $config[$key]=[IO.Path]::GetFullPath([string]$config[$key]) }
+    $hashes=Assert-SetupMicrosoftSigningTools $config
+    $identity=@{name='AzureArtifactSigning';configurationFingerprint=(Get-SetupFingerprint $config);endpoint=$config.Endpoint;
+        account=$config.CodeSigningAccountName;profile=$config.CertificateProfileName;expectedTenantId=$config.ExpectedTenantId;
+        expectedEnhancedKeyUsages=@($config.ExpectedEnhancedKeyUsages);toolHashes=$hashes}
+    return @{config=$config;identity=$identity;configurationPath=[IO.Path]::GetFullPath($Path)}
+}
+
+function Invoke-SetupAzureCli {
+    param([string[]]$Arguments)
+    $command=Get-Command az -CommandType Application -ErrorAction Stop
+    $output=@(& $command.Source @Arguments 2>&1)
+    if ($LASTEXITCODE -ne 0) { throw 'Azure CLI identity lookup failed. Sign in to the approved tenant/account before continuing.' }
+    return ($output -join "`n") | ConvertFrom-Json -AsHashtable
+}
+
+function Assert-SetupAzureSigningIdentity {
+    param($Provider, $GraphContext)
+    $account=Invoke-SetupAzureCli @('account','show','--output','json','--only-show-errors')
+    if ($account.tenantId -ine $Provider.config.ExpectedTenantId -or $GraphContext.TenantId -ine $Provider.config.ExpectedTenantId -or
+        $account.environmentName -cne 'AzureCloud' -or $account.user.type -cne 'user' -or
+        -not $GraphContext.Account -or $account.user.name -ine $GraphContext.Account) { throw 'Azure CLI tenant/account must match the Microsoft Graph administrator approving this deployment.' }
+}
+
+function Assert-SetupAzureSignedFile {
+    param([string]$Path, $Provider)
+    $signature=Get-AuthenticodeSignature -LiteralPath $Path
+    if ([string]$signature.Status -cne 'Valid' -or $null -eq $signature.SignerCertificate -or $null -eq $signature.TimeStamperCertificate) { throw 'Azure signed file must have a valid trusted Authenticode signature and timestamp. No unsigned fallback is allowed.' }
+    $usages=@()
+    foreach ($usage in @(Get-SetupCertificateProperty $signature.SignerCertificate 'EnhancedKeyUsageList')) {
+        $oid=$usage
+        if ($oid -isnot [string] -and $oid -isnot [Security.Cryptography.Oid]) { $oid=Get-SetupCertificateProperty $usage 'ObjectId'; if ($null -eq $oid) { $oid=Get-SetupCertificateProperty $usage 'Value' } }
+        if ($oid -is [Security.Cryptography.Oid]) { $oid=$oid.Value }
+        elseif ($oid -isnot [string]) { $oid=Get-SetupCertificateProperty $oid 'Value' }
+        if ($oid -is [string]) { $usages+=$oid }
+    }
+    foreach ($expected in @('1.3.6.1.5.5.7.3.3')+@($Provider.config.ExpectedEnhancedKeyUsages)) {
+        if ($expected -cnotin $usages) { throw 'Azure signed file does not match the expected service/profile EKUs.' }
+    }
+    return $signature
+}
+
+function Invoke-SetupSignTool {
+    param([string]$Path, [string[]]$Arguments)
+    $output=@(& $Path @Arguments 2>&1)
+    if ($LASTEXITCODE -ne 0) { throw 'Azure Artifact Signing failed. Preserve the receipt and signed/partial file; no automatic signing retry or fallback was performed.' }
+}
+
+function Invoke-SetupAzureSign {
+    param([string]$Path, $Provider, $GraphContext, $Receipt, [string]$Directory)
+    $operation='AzureSign-'+[IO.Path]::GetFileName($Path)
+    $prior=if ($Receipt.operations.ContainsKey($operation)) { $Receipt.operations[$operation] } else { $null }
+    if ($prior) {
+        if ($prior.providerFingerprint -cne $Provider.identity.configurationFingerprint) { throw 'The original Azure signing provider changed. No signing request was repeated.' }
+        if ($prior.state -cnotin @('Confirmed','Reconciled') -or -not $prior.signedHash -or -not [IO.File]::Exists($Path) -or
+            (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash -cne $prior.signedHash) { throw 'The prior Azure signing operation is ambiguous or its reviewed file changed. Preserve the receipt and reconcile the original operation; no signing request was repeated.' }
+        Assert-SetupAzureSignedFile $Path $Provider | Out-Null
+        $prior.state='Reconciled';$prior.signedHash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        $Receipt.pendingOperation=$null;Save-SetupReceipt $Receipt $Directory
+        return
+    }
+    Assert-SetupAzureSigningIdentity $Provider $GraphContext
+    $hashes=Assert-SetupMicrosoftSigningTools $Provider.config
+    if ((Get-SetupFingerprint $hashes) -cne (Get-SetupFingerprint $Provider.identity.toolHashes)) { throw 'Azure signing tools changed after plan approval.' }
+    $metadata=@{Endpoint=$Provider.config.Endpoint;CodeSigningAccountName=$Provider.config.CodeSigningAccountName;
+        CertificateProfileName=$Provider.config.CertificateProfileName;CorrelationId=$Receipt.plan.deploymentId;
+        ExcludeCredentials=@('EnvironmentCredential','WorkloadIdentityCredential','ManagedIdentityCredential','SharedTokenCacheCredential',
+            'VisualStudioCredential','VisualStudioCodeCredential','AzurePowerShellCredential','AzureDeveloperCliCredential','InteractiveBrowserCredential','BrokerCredential')}
+    $metadataPath=Join-Path $Directory 'azure-signing-metadata.json'
+    [IO.File]::WriteAllText($metadataPath,($metadata | ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false))
+    $Receipt.operations[$operation]=@{state='Pending';providerFingerprint=$Provider.identity.configurationFingerprint;unsignedHash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash;signedHash=$null}
+    $Receipt.pendingOperation=$operation;Save-SetupReceipt $Receipt $Directory
+    try {
+        Invoke-SetupSignTool $Provider.config.SignToolPath @('sign','/fd','SHA256','/tr','http://timestamp.acs.microsoft.com','/td','SHA256','/dlib',$Provider.config.DlibPath,'/dmdf',$metadataPath,$Path)
+        Assert-SetupAzureSignedFile $Path $Provider | Out-Null
+        $Receipt.operations[$operation].state='Confirmed';$Receipt.operations[$operation].signedHash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        $Receipt.pendingOperation=$null;Save-SetupReceipt $Receipt $Directory
+    } catch {
+        $Receipt.operations[$operation].state='Ambiguous';Save-SetupReceipt $Receipt $Directory
+        throw
+    }
 }
 
 function Get-SetupApplicationFingerprint {
@@ -369,7 +508,7 @@ function Select-DeploymentGroup {
 
 function Invoke-EnterpriseSetup {
     param($Options, [string]$PackageRoot)
-    $defaults = @{TenantId='';GroupId='';Browser='';WithMicrosoft365=$false;WithoutMicrosoft365=$false;Hardened=$false;EnableSpeakerAttribution=$false;SigningCertificateThumbprint='';AllowUnsignedEndpointScripts=$false;OutputDirectory='';PlanOnly=$false;ResumeReceipt='';StatusReceipt=''}
+    $defaults = @{TenantId='';GroupId='';Browser='';WithMicrosoft365=$false;WithoutMicrosoft365=$false;Hardened=$false;EnableSpeakerAttribution=$false;SigningCertificateThumbprint='';AzureSigningConfigPath='';AllowUnsignedEndpointScripts=$false;OutputDirectory='';PlanOnly=$false;ResumeReceipt='';StatusReceipt=''}
     foreach ($key in $defaults.Keys) { if (-not $Options.ContainsKey($key)) { $Options[$key]=$defaults[$key] } }
     if ($Options.ResumeReceipt -and $Options.StatusReceipt) { throw 'Choose Continue or Check Status, not both.' }
     $existing = $null
@@ -384,6 +523,9 @@ function Invoke-EnterpriseSetup {
         $Options.EnableSpeakerAttribution=[bool]$existing.plan.enableGlobalSpeakerAttribution
         $Options.AllowUnsignedEndpointScripts=-not [bool]$existing.plan.signedEndpointScripts
         $Options.SigningCertificateThumbprint=[string]$existing.plan.signingCertificateThumbprint
+        $savedAzure=$existing.plan.ContainsKey('signingProvider') -and $existing.plan.signingProvider.name -ceq 'AzureArtifactSigning'
+        if ($savedAzure -and -not $Options.AzureSigningConfigPath) { $Options.AzureSigningConfigPath=[string]$existing.plan.azureSigningConfigPath }
+        if (-not $statusOnly -and -not $savedAzure -and $Options.AzureSigningConfigPath) { throw 'Continuation must retain the originally approved signing provider.' }
         $Options.OutputDirectory=Split-Path -Parent $receiptPath
         Write-SetupStep $(if ($statusOnly) { 'Check an existing deployment' } else { 'Continue an existing deployment safely' })
         Write-Host "Using saved deployment $($existing.plan.deploymentId). Existing resource identities will be reconciled before any write."
@@ -405,6 +547,7 @@ function Invoke-EnterpriseSetup {
         return @{mode='OfflinePlan'; browsers=$browsers; microsoft365=$m365; scopes=$scopes; tenant=$Options.TenantId; group=$Options.GroupId; cloudWrites=$false; betaApis=@('Intune deviceManagementScripts'); endpointContext='SYSTEM'}
     }
     $schema = Get-Content -LiteralPath (Join-Path $PackageRoot 'managed-schema.json') -Raw | ConvertFrom-Json -AsHashtable
+    if (-not $statusOnly -and $Options.AzureSigningConfigPath -and ($Options.SigningCertificateThumbprint -or $Options.AllowUnsignedEndpointScripts)) { throw 'Choose Azure signing or a local certificate/unsigned pilot, not multiple providers.' }
     $approvedPolicies = @{}
     foreach ($browserName in $browsers) {
         $profileFile = if ($Options.Hardened) { 'profile.local-only.json' } elseif ($browserName -eq 'edge') { 'profile.json' } else { 'profile.chrome.json' }
@@ -430,6 +573,7 @@ function Invoke-EnterpriseSetup {
     $teamsConnected = $false
     $graphConnected = $false
     $receipt = $existing
+    $directory = if ($existing) { [IO.Path]::GetFullPath($Options.OutputDirectory) } else { $null }
     try {
         Connect-MgGraph -TenantId $Options.TenantId -Scopes $scopes -ContextScope Process -NoWelcome
         $graphConnected = $true
@@ -479,20 +623,32 @@ function Invoke-EnterpriseSetup {
             }).Count -gt 0
         }
         $certificate = $null
+        $azureProvider = $null
         if ($needsScriptGeneration) {
-            $certificate = Select-SetupCertificate $Options.SigningCertificateThumbprint ([bool]$Options.AllowUnsignedEndpointScripts)
-            if ($existing -and $existing.plan.signedEndpointScripts -and $null -eq $certificate) { throw 'This signed deployment needs a signing certificate only to generate missing scripts. Its signing policy cannot be downgraded.' }
+            if ($Options.AzureSigningConfigPath) {
+                $azureProvider=Read-SetupAzureSigningConfig $Options.AzureSigningConfigPath
+                Assert-SetupAzureSigningIdentity $azureProvider $context
+                if ($existing -and (Get-SetupFingerprint $existing.plan.signingProvider) -cne (Get-SetupFingerprint $azureProvider.identity)) { throw 'Azure signing configuration/provider differs from the immutable approved plan.' }
+            } else {
+                $certificate = Select-SetupCertificate $Options.SigningCertificateThumbprint ([bool]$Options.AllowUnsignedEndpointScripts)
+            }
+            if ($existing -and $existing.plan.signedEndpointScripts -and $null -eq $certificate -and $null -eq $azureProvider) { throw 'This signed deployment needs its original signing provider only to generate missing scripts. Its signing policy cannot be downgraded.' }
         }
         $deploymentId = if ($existing) { $existing.plan.deploymentId } else { [guid]::NewGuid().ToString() }
         $directory = if ($Options.OutputDirectory) { [IO.Path]::GetFullPath($Options.OutputDirectory) } else { Join-Path $PackageRoot "receipts/$deploymentId" }
         $Options.OutputDirectory=$directory
         if (-not $existing -and (Test-Path -LiteralPath $directory)) { throw 'Output directory already exists. Choose Continue Setup and its receipt instead of deploying another copy.' }
-        $plan = if ($existing) { $existing.plan } else { [ordered]@{deploymentId=$deploymentId; tenantId=$tenant; account=$context.Account; groupName=$group.displayName; groupId=$groupId; browsers=$browsers; microsoft365=$m365; signedEndpointScripts=($null -ne $certificate); signingCertificateThumbprint=$(if ($certificate) { $certificate.Thumbprint } else { '' }); outputDirectory=$directory; teamsBefore=$teamsBefore; enableGlobalTranscriptApi=$m365; enableGlobalSpeakerAttribution=[bool]$Options.EnableSpeakerAttribution; administrativeScopes=$scopes; baseManagedPolicies=$approvedPolicies; endpointTemplateHash=$templateHash; employeeScopes=$(if ($m365) { $delegatedScopes } else { @() })} }
+        $plan = if ($existing) { $existing.plan } else { [ordered]@{deploymentId=$deploymentId; tenantId=$tenant; account=$context.Account; groupName=$group.displayName; groupId=$groupId; browsers=$browsers; microsoft365=$m365; signedEndpointScripts=($null -ne $certificate -or $null -ne $azureProvider); signingCertificateThumbprint=$(if ($certificate) { $certificate.Thumbprint } else { '' }); outputDirectory=$directory; teamsBefore=$teamsBefore; enableGlobalTranscriptApi=$m365; enableGlobalSpeakerAttribution=[bool]$Options.EnableSpeakerAttribution; administrativeScopes=$scopes; baseManagedPolicies=$approvedPolicies; endpointTemplateHash=$templateHash; employeeScopes=$(if ($m365) { $delegatedScopes } else { @() })} }
+        if (-not $existing -and $azureProvider) { $plan.signingProvider=$azureProvider.identity; $plan.azureSigningConfigPath=$azureProvider.configurationPath }
         Write-SetupStep 'Review the deployment plan'
         Write-Host "Tenant: $tenant"
         Write-Host "Signed in as: $($context.Account)"
         Write-Host "Deployment group: $($group.displayName) [$groupId]"
         Write-Host "Browsers: $($browsers -join ', '); Microsoft 365 transcript setup: $m365; signed device scripts: $($plan.signedEndpointScripts)."
+        if ($azureProvider) {
+            Write-Host "Azure Artifact Signing: account $($azureProvider.identity.account), profile $($azureProvider.identity.profile), endpoint $($azureProvider.identity.endpoint)."
+            Write-Host 'Approval includes signing each generated install/removal script through this Azure service. Signing requests may be billable; failures are not automatically retried.'
+        }
         Write-Host "Recovery receipt will be saved in: $directory"
         if ($m365) {
             $attributionAfter=if ($Options.EnableSpeakerAttribution) { $true } else { [bool]$teamsBefore.EnableAttributedTranscripts }
@@ -581,9 +737,15 @@ function Invoke-EnterpriseSetup {
             $configurationHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($configurationJson))).ToLowerInvariant()
             foreach ($action in @('Install','Remove')) {
                 $scriptPath = Join-Path $directory "$browserName-$action.ps1"
-                if (Test-Path -LiteralPath $scriptPath) { throw 'An unrecorded generated script already exists. Preserve it and reconcile the receipt; no script was overwritten.' }
-                New-EndpointPayload $config $template $action -ConfigJson $configurationJson | Set-Content -LiteralPath $scriptPath -Encoding utf8
-                if ($certificate) {
+                $signOperation='AzureSign-'+[IO.Path]::GetFileName($scriptPath)
+                $reconcileAzure=$azureProvider -and $receipt.operations.ContainsKey($signOperation)
+                if (-not $reconcileAzure) {
+                    if (Test-Path -LiteralPath $scriptPath) { throw 'An unrecorded generated script already exists. Preserve it and reconcile the receipt; no script was overwritten.' }
+                    New-EndpointPayload $config $template $action -ConfigJson $configurationJson | Set-Content -LiteralPath $scriptPath -Encoding utf8
+                }
+                if ($azureProvider) {
+                    Invoke-SetupAzureSign $scriptPath $azureProvider $context $receipt $directory
+                } elseif ($certificate) {
                     $signature = Set-AuthenticodeSignature -FilePath $scriptPath -Certificate $certificate -HashAlgorithm SHA256
                     if ($signature.Status -ne 'Valid') { throw "Script signing failed: $($signature.Status)" }
                 }
@@ -664,6 +826,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         TenantId=$TenantId; GroupId=$GroupId; Browser=$Browser; WithMicrosoft365=[bool]$WithMicrosoft365
         WithoutMicrosoft365=[bool]$WithoutMicrosoft365; Hardened=[bool]$Hardened
         EnableSpeakerAttribution=[bool]$EnableSpeakerAttribution; SigningCertificateThumbprint=$SigningCertificateThumbprint
+        AzureSigningConfigPath=$AzureSigningConfigPath
         AllowUnsignedEndpointScripts=[bool]$AllowUnsignedEndpointScripts; OutputDirectory=$OutputDirectory; PlanOnly=[bool]$PlanOnly
         ResumeReceipt=$ResumeReceipt;StatusReceipt=$StatusReceipt
     }
