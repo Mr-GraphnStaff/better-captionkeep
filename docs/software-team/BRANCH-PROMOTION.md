@@ -22,7 +22,8 @@ commit and package hashes. Never treat an old folder's contents as a new build.
 3. Open `qa` â†’ `master`. Review the candidate evidence, then approve the
    `qa-acceptance` environment deployment on that PR's workflow run. This is an
    explicit QA decision, not automatic approval from unit tests. Only the owner
-   is configured as approver. A new push cancels the run and needs fresh approval.
+   is configured as approver. A new push invalidates the old candidate and needs
+   fresh approval; final revalidation rejects approval of an obsolete revision.
 4. Merge only when required checks pass. Production's merge-result source tree
    must equal the tested QA source tree. Resolve divergence in Development and
    repeat QA; never resolve it only in the production PR.

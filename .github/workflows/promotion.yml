@@ -9,9 +9,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: promotion-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# Do not cancel same-head promotion runs: GitHub retains cancelled required
+# check suites. Every run revalidates current source/base/merge identities.
 
 jobs:
   route:
