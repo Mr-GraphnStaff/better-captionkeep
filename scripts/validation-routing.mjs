@@ -63,7 +63,8 @@ export function determineValidationMode({eventName, ref, event, root,
       if (ref === 'refs/heads/master') {
         if (!validCommit(event.before)) return 'candidate';
         base = event.before;
-      } else if (typeof ref === 'string' && ref.startsWith('refs/heads/codex/')) {
+      } else if (typeof ref === 'string' && (ref.startsWith('refs/heads/codex/')
+          || ref === 'refs/heads/dev' || ref === 'refs/heads/qa')) {
         // Compare the complete branch, not only event.before: a final docs commit
         // must not hide an earlier runtime commit on the same branch.
         const bases = readGit(['merge-base', '--all', 'refs/remotes/origin/master', head])
