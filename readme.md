@@ -258,3 +258,32 @@ Chrome's pre-submission API check still reported public **5.4.0**. Store
 certification decisions, 6.0 public listings and installed-upgrade verification
 remain pending. The machine record therefore stays candidate with those gates
 false; the existing owner acceptance exceptions remain explicitly unpassed.
+
+<!-- administrator-setup-pilot:start -->
+## Administrator setup (Dev pilot)
+
+The guided administrator package automates approved Microsoft 365 transcript
+configuration and Intune rollout of the Store extension to a selected group.
+This is a **development pilot**, not a tenant-certified production installer or
+a new Store release. No tenant configuration changes occur merely by downloading it.
+
+1. Obtain `better-captionkeep-enterprise-setup.zip` from the reviewed **Dev
+   validation artifact** and extract the complete package. See the
+   [Dev validation runs](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/workflows/validate.yml).
+2. Double-click **Start-Setup.cmd**. The launcher checks for supported stable
+   **PowerShell 7.6 or newer** and offers the official Microsoft install/upgrade
+   route when needed. Choose the browsers, deployment group, and optional
+   Microsoft 365 setup, then review and approve the proposed privileged changes.
+3. Keep the generated `receipt.json`. Use **Check-Status.cmd** to inspect a
+   rollout and **Continue-Setup.cmd** to continue an incomplete setup. Assignment
+   or script success is not proof of working browser installation or Microsoft
+   365 access; verify a pilot device before expanding deployment.
+
+The downloaded pilot package must satisfy your organization's script-signing
+policy. Do not bypass execution policy. Signing generated endpoint scripts does
+not sign the administrator launcher or provisioning package.
+
+Read the [administrator deployment guide](docs/wiki/Administrator-Deployment.md)
+and [security and permissions](docs/wiki/Deployment-Security-and-Permissions.md)
+for the exact consent, signing, status, recovery, and remaining acceptance boundaries.
+<!-- administrator-setup-pilot:end -->

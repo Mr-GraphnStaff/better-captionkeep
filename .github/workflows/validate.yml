@@ -88,6 +88,19 @@ jobs:
           npm run security:audit
           npm run store:metadata:check
 
+      - name: Build the administrator setup pilot
+        if: steps.validation-route.outputs.mode == 'nonshipping'
+        run: node scripts/build-enterprise-package.mjs output/enterprise-setup-dev
+
+      - name: Preserve the administrator setup pilot
+        if: steps.validation-route.outputs.mode == 'nonshipping'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: administrator-setup-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: output/enterprise-setup-dev/better-captionkeep-enterprise-setup.zip
+
       - name: Run the complete release-candidate gate
         if: steps.validation-route.outputs.mode != 'nonshipping'
         run: npm run release:candidate
