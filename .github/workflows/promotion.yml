@@ -20,29 +20,31 @@ jobs:
       contents: read
       statuses: write
     outputs:
-      merge: ${{ steps.policy.outputs.merge }}
-      base: ${{ steps.policy.outputs.base }}
+      merge: ${{ steps.bind.outputs.merge }}
+      base: ${{ steps.bind.outputs.base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify promotion source and merge result
-        id: policy
+      - name: Bind the pending decision to the exact merge candidate
+        id: bind
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          [[ "$BASE_BRANCH" =~ ^(dev|qa|master)$ ]]
           git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' "+refs/pull/$PR_NUMBER/merge:refs/pull/$PR_NUMBER/merge"
-          node scripts/check-promotion.mjs
-      - name: Mark the exact candidate pending
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CANDIDATE: ${{ steps.policy.outputs.merge }}
-          LANE: ${{ steps.policy.outputs.base }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$CANDIDATE" -f state=pending -f "context=lane-$LANE" -f "target_url=$RUN_URL" -f description='Promotion checks and QA acceptance pending'
+          candidate="$(git rev-parse "refs/pull/$PR_NUMBER/merge^{commit}")"
+          [[ "$candidate" =~ ^[a-f0-9]{40}$ ]]
+          printf 'merge=%s\nbase=%s\n' "$candidate" "$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$candidate" -f state=pending -f "context=lane-$BASE_BRANCH" -f "target_url=$RUN_URL" -f description='Promotion checks and QA acceptance pending'
+      - name: Verify promotion source and merge result
+        run: node scripts/check-promotion.mjs
 
   qa-approval:
     needs: route
