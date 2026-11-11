@@ -148,6 +148,193 @@ function provisioningMock(output, directory, microsoft365, failApplication = fal
   `;
 }
 
+function azureSigningMock(directory) {
+  return `
+    $azureConfigPath=${quote(path.join(directory,'azure-signing.json'))}
+    $syntheticSignTool=${quote(path.join(directory,'signtool.exe'))}
+    $syntheticDlib=${quote(path.join(directory,'Azure.CodeSigning.Dlib.dll'))}
+    [IO.File]::WriteAllText($syntheticSignTool,'synthetic SDK binary - never executed')
+    [IO.File]::WriteAllText($syntheticDlib,'synthetic dlib - never loaded')
+    $global:azureConfig=@{Endpoint='https://cus.codesigning.azure.net';CodeSigningAccountName='synthetic-signing';CertificateProfileName='synthetic-profile';
+      ExpectedTenantId='11111111-1111-4111-8111-111111111111';ExpectedEnhancedKeyUsages=@((Get-SetupPrivateIdentityEku '11111111-1111-4111-8111-111111111111'),(Get-SetupPrivateIdentityEku '01234567-89ab-cdef-0123-456789abcdef'));SignToolPath=$syntheticSignTool;DlibPath=$syntheticDlib}
+    $global:azureConfig | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $azureConfigPath -Encoding utf8
+    $global:azureCalls=[Collections.Generic.List[object]]::new();$global:azureSigned=@{};$global:azureCliCalls=@()
+    $global:azureAccount=@{tenantId='11111111-1111-4111-8111-111111111111';environmentName='AzureCloud';user=@{type='user';name='admin@example.invalid'}}
+    function Invoke-SetupAzureCli { param($Arguments) $global:azureCliCalls+=,@($Arguments);return $global:azureAccount }
+    function Get-AuthenticodeSignature {
+      param($LiteralPath)
+      if ($LiteralPath.EndsWith('.ps1')) {
+        if (-not $global:azureSigned.ContainsKey($LiteralPath)) { return @{Status='NotSigned';SignerCertificate=$null;TimeStamperCertificate=$null} }
+        return @{Status='Valid';SignerCertificate=@{Thumbprint=('b'*40);EnhancedKeyUsageList=(@('1.3.6.1.5.5.7.3.3')+@($global:azureConfig.ExpectedEnhancedKeyUsages))};TimeStamperCertificate=@{Thumbprint=('c'*40)}}
+      }
+      return @{Status='Valid';SignerCertificate=@{Subject='CN=Microsoft Corporation, O=Microsoft Corporation, C=US'}}
+    }
+    function Invoke-SetupSignTool {
+      param($Path,$Arguments)
+      $target=$Arguments[-1]
+      $metadata=Get-Content -LiteralPath $Arguments[($Arguments.IndexOf('/dmdf')+1)] -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+      $global:azureCalls.Add(@{path=$Path;arguments=@($Arguments);metadata=$metadata})
+      [byte[]]$bytes=@(239,187,191)+[IO.File]::ReadAllBytes($target)
+      [IO.File]::WriteAllBytes($target,$bytes);$global:azureSigned[$target]=$true
+    }
+  `;
+}
+
+test('Azure provider signs exact bytes with pinned identity, AzureCLI-only metadata and Intune signature enforcement', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,false,`
+      $extra.signs=@($global:azureCalls.ToArray());$extra.cliCalls=$global:azureCliCalls
+      $extra.uploads=@($global:calls | Where-Object { $_.method -eq 'POST' -and $_.path.EndsWith('/deviceManagementScripts') } | ForEach-Object {
+        $bytes=[Convert]::FromBase64String($_.body.scriptContent)
+        @{enforced=$_.body.enforceSignatureCheck;prefix=[Convert]::ToHexString($bytes[0..2]);hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))}
+      })
+    `,'',azureSigningMock(directory)+`
+      $options.AzureSigningConfigPath=$azureConfigPath;$options.AllowUnsignedEndpointScripts=$false
+    `));
+    assert.equal(result.failed,false,result.error);
+    assert.equal(result.receipt.plan.signedEndpointScripts,true);
+    assert.equal(result.receipt.plan.signingProvider.name,'AzureArtifactSigning');
+    assert.match(result.receipt.plan.signingProvider.configurationFingerprint,/^[A-F0-9]{64}$/);
+    assert.equal(result.extra.signs.length,4);
+    for(const call of result.extra.signs) {
+      assert.deepEqual(call.arguments.slice(0,9),['sign','/fd','SHA256','/tr','http://timestamp.acs.microsoft.com','/td','SHA256','/dlib',path.join(directory,'Azure.CodeSigning.Dlib.dll')]);
+      assert(!call.metadata.ExcludeCredentials.includes('AzureCliCredential'));
+      for(const credential of ['EnvironmentCredential','ManagedIdentityCredential','AzurePowerShellCredential','InteractiveBrowserCredential']) assert(call.metadata.ExcludeCredentials.includes(credential));
+      assert.equal(call.metadata.CodeSigningAccountName,'synthetic-signing');
+      assert.equal(call.metadata.CertificateProfileName,'synthetic-profile');
+    }
+    assert.equal(result.extra.uploads.length,2);
+    result.extra.uploads.forEach((upload,index)=>{
+      assert.equal(upload.enforced,true);assert.equal(upload.prefix,'EFBBBF');
+      assert.equal(upload.hash,result.receipt.scripts[index].installHash);
+    });
+    assert.equal(result.receipt.status,'AssignedPendingEndpointValidation');
+  });
+});
+
+test('completed Azure-signed continuation reuses reviewed bytes without tools, config or signing again', async () => {
+  await withPackage(async (output,directory) => {
+    const receiptPath=quote(path.join(directory,'receipt/receipt.json'));
+    const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,false,`
+      $before=$global:azureCalls.Count
+      Remove-Item -LiteralPath $azureConfigPath,$syntheticSignTool,$syntheticDlib
+      function Read-SetupAzureSigningConfig { throw 'Completed continuation must not read signer configuration' }
+      function Invoke-SetupSignTool { throw 'Completed continuation must not sign again' }
+      Invoke-EnterpriseSetup @{ResumeReceipt=${receiptPath}} ${quote(output)} | Out-Null
+      $extra.signsBefore=$before;$extra.signsAfter=$global:azureCalls.Count
+    `,'',azureSigningMock(directory)+`
+      $options.AzureSigningConfigPath=$azureConfigPath;$options.AllowUnsignedEndpointScripts=$false
+    `));
+    assert.equal(result.failed,false,result.error);
+    assert.equal(result.extra.signsBefore,4);assert.equal(result.extra.signsAfter,4);
+    assert.equal(result.receipt.plan.signedEndpointScripts,true);
+  });
+});
+
+test('Azure config rejects extra credentials, unsafe endpoints, invalid profile EKUs and non-Microsoft tools', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory,`
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      ${azureSigningMock(directory)}
+      $original=$global:azureConfig.Clone();$blocked=0
+      foreach($change in @(@{Token='never-accepted'},@{Endpoint='http://cus.codesigning.azure.net'},@{Endpoint='https://not-microsoft.example.invalid'},
+        @{Endpoint='https://cus.codesigning.azure.net/path'},@{Endpoint='https://cus.codesigning.azure.net:444/'},@{Endpoint='https://user@cus.codesigning.azure.net'},
+        @{ExpectedEnhancedKeyUsages=@('1.3.6.1.5.5.7.3.3')},@{ExpectedEnhancedKeyUsages=@()},@{CertificateProfileName='../escape'},
+        @{ExpectedEnhancedKeyUsages=@('1.3.6.1.4.1.311.97.1.0','1.3.6.1.5.5.7.3.1')},
+        @{ExpectedEnhancedKeyUsages=@((Get-SetupPrivateIdentityEku $original.ExpectedTenantId))},
+        @{ExpectedEnhancedKeyUsages=@((Get-SetupPrivateIdentityEku '99999999-9999-4999-8999-999999999999'),(Get-SetupPrivateIdentityEku '01234567-89ab-cdef-0123-456789abcdef'))},
+        @{ExpectedEnhancedKeyUsages=@((Get-SetupPrivateIdentityEku $original.ExpectedTenantId),'1.3.6.1.4.1.311.97.1.3.1.65536.1.2.3.4.5.6.7')})) {
+        $candidate=$original.Clone();foreach($key in $change.Keys){$candidate[$key]=$change[$key]}
+        $candidate | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $azureConfigPath -Encoding utf8
+        try { Read-SetupAzureSigningConfig $azureConfigPath | Out-Null } catch {$blocked++}
+      }
+      $original | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $azureConfigPath -Encoding utf8
+      function Get-AuthenticodeSignature {param($LiteralPath) @{Status='Valid';SignerCertificate=@{Subject='O=Not Microsoft'}}}
+      try {Read-SetupAzureSigningConfig $azureConfigPath | Out-Null} catch {$blocked++}
+      Write-Output ('RESULT:'+(@{blocked=$blocked;signs=$global:azureCalls.Count;cliCalls=$global:azureCliCalls.Count}|ConvertTo-Json -Compress))
+    `);
+    assert.deepEqual(result,{blocked:14,signs:0,cliCalls:0});
+  });
+});
+
+test('Azure identity mismatch is rejected before resource writes or signing', async () => {
+  for(const change of ["$global:azureAccount.tenantId='99999999-9999-4999-8999-999999999999'","$global:azureAccount.user.name='other@example.invalid'"]) {
+    await withPackage(async (output,directory) => {
+      const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,false,`
+        $extra.signs=$global:azureCalls.Count
+      `,'',azureSigningMock(directory)+`
+        $options.AzureSigningConfigPath=$azureConfigPath;$options.AllowUnsignedEndpointScripts=$false
+        ${change}
+      `));
+      assert.equal(result.failed,true);assert.match(result.error,/tenant\/account must match/);
+      assert.equal(result.extra.signs,0);assert.ok(result.calls.every(call=>call.method==='GET'));
+    });
+  }
+});
+
+test('Azure signature verification requires trusted status, timestamp and every pinned profile EKU', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory,`
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      ${azureSigningMock(directory)}
+      $provider=Read-SetupAzureSigningConfig $azureConfigPath
+      $file=Join-Path ${quote(directory)} 'synthetic.ps1';[IO.File]::WriteAllText($file,'synthetic')
+      $global:azureSigned[$file]=$true;$good=Assert-SetupAzureSignedFile $file $provider
+      $global:case=0
+      function Get-AuthenticodeSignature {
+        param($LiteralPath)
+        $value=@{Status='Valid';TimeStamperCertificate=@{Thumbprint='synthetic-timestamp'};SignerCertificate=@{EnhancedKeyUsageList=(@('1.3.6.1.5.5.7.3.3')+@($global:azureConfig.ExpectedEnhancedKeyUsages))}}
+        if($global:case -eq 1){$value.Status='UnknownError'}
+        if($global:case -eq 2){$value.TimeStamperCertificate=$null}
+        if($global:case -eq 3){$value.SignerCertificate.EnhancedKeyUsageList=@('1.3.6.1.5.5.7.3.3',$global:azureConfig.ExpectedEnhancedKeyUsages[0])}
+        return $value
+      }
+      $blocked=0;foreach($case in @(1,2,3)){$global:case=$case;try{Assert-SetupAzureSignedFile $file $provider | Out-Null}catch{$blocked++}}
+      Write-Output ('RESULT:'+(@{accepted=$good.Status;blocked=$blocked}|ConvertTo-Json -Compress))
+    `);
+    assert.deepEqual(result,{accepted:'Valid',blocked:3});
+  });
+});
+
+test('Azure signing failure is journaled and Continue never blindly repeats the request or overwrites its file', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,true,`
+      $extra.attempts=$global:attempts
+      $extra.retainedHash=(Get-FileHash -LiteralPath ${quote(path.join(directory,'receipt/edge-Install.ps1'))} -Algorithm SHA256).Hash
+    `,'',azureSigningMock(directory)+`
+      $options.AzureSigningConfigPath=$azureConfigPath;$options.AllowUnsignedEndpointScripts=$false
+      $global:attempts=0
+      function Invoke-SetupSignTool { param($Path,$Arguments) $global:attempts++;throw 'Synthetic signer response lost' }
+    `));
+    assert.equal(result.failed,true);assert.match(result.error,/no signing request was repeated/);
+    assert.equal(result.extra.attempts,1);
+    assert.equal(result.receipt.operations['AzureSign-edge-Install.ps1'].state,'Ambiguous');
+    assert.equal(result.extra.retainedHash,result.receipt.operations['AzureSign-edge-Install.ps1'].unsignedHash);
+    assert.equal(result.receipt.scripts.length,0);
+    assert.equal(result.calls.filter(call=>call.method==='POST').length,0);
+  });
+});
+
+test('regenerating missing Azure browser scripts requires the immutable original provider', async () => {
+  await withPackage(async (output,directory) => {
+    const receiptPath=quote(path.join(directory,'receipt/receipt.json'));
+    const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,false,`
+      $saved=Get-Content -LiteralPath ${receiptPath} -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+      $saved.scripts=@($saved.scripts | Where-Object browser -eq 'edge')
+      Save-SetupReceipt $saved ${quote(path.join(directory,'receipt'))}
+      $global:azureConfig.CertificateProfileName='different-profile'
+      $global:azureConfig | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $azureConfigPath -Encoding utf8
+      $extra.blocked=$false;$extra.continueError=''
+      try { Invoke-EnterpriseSetup @{ResumeReceipt=${receiptPath}} ${quote(output)} | Out-Null } catch { $extra.continueError=$_.Exception.Message;$extra.blocked=$_.Exception.Message -like '*immutable approved plan*' }
+      $extra.signs=$global:azureCalls.Count
+    `,'',azureSigningMock(directory)+`
+      $options.AzureSigningConfigPath=$azureConfigPath;$options.AllowUnsignedEndpointScripts=$false
+    `));
+    assert.equal(result.failed,false,result.error);
+    assert.equal(result.extra.blocked,true,result.extra.continueError);assert.equal(result.extra.signs,4);
+  });
+});
+
 test('Intune-only wizard uploads two SYSTEM scripts without creating or consenting a transcript app', async () => {
   await withPackage(async (output, directory) => {
     const result = runPowerShell(directory, provisioningMock(output,directory,false));

@@ -15,6 +15,14 @@ The setup creates the approved app/managed settings and submits Intune installat
 
 Developers build this pilot into `output/enterprise-setup-dev/` using the checked working-area launcher and `npm run build:enterprise-setup`. This does not replace retained Production or place privileged administrator tooling inside the unpacked extension. The package contains no Node runtime, extension ZIP, tenant credential, or meeting transcript.
 
+### Optional Azure Artifact Signing
+
+An organization with an existing Azure Artifact Signing Private Trust profile can use `-AzureSigningConfigPath` instead of a local certificate. This is optional; the wizard does not buy a signing account or create its trust policy. The configuration contains exactly `Endpoint`, `CodeSigningAccountName`, `CertificateProfileName`, `ExpectedTenantId`, `ExpectedEnhancedKeyUsages`, `SignToolPath`, and `DlibPath`. Keep it outside the distributed package and include no credentials. Obtain both expected private tenant/profile EKUs from the approved profile's Azure certificate record; the general code-signing EKU alone is insufficient.
+
+Install Microsoft's supported SignTool and Artifact Signing dlib on the signing workstation, and sign Azure CLI in as the same administrator and tenant used for Microsoft Graph setup. Grant that administrator the Certificate Profile Signer role on the intended profile. The wizard verifies Microsoft tool signatures, previews the provider, timestamps each generated script, and requires a valid trusted signature with all pinned service/profile EKUs before submitting its original bytes to Intune with signature enforcement enabled.
+
+For Private Trust, configure and verify the signing workstation's and target devices' chain/publisher trust first. Azure rotates short-lived signing certificates; trusting one publisher leaf once does not cover future leaf certificates. The wizard does not install trusted roots or publishers. A saved completed set of signed files can continue without the original Azure configuration or tools. An ambiguous signing attempt stops for reconciliation instead of automatically issuing another signature. See [Microsoft's signing integrations](https://learn.microsoft.com/en-us/azure/artifact-signing/how-to-signing-integrations) and [the security guide](Deployment-Security-and-Permissions).
+
 ## Public Store identities
 
 | Browser | Extension ID | Update source |
