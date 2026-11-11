@@ -45,10 +45,14 @@ const pullRequest = (base, headRef = 'codex/research', baseRef = 'master') => ({
 });
 const push = (ref, before, after) => ({eventName:'push', ref, event:{ref, before, after}});
 
-test('the nonshipping boundary permits only the two scoped trees and three explicit control files', async () => {
+test('the nonshipping boundary permits only the two scoped trees and explicit control files', async () => {
   const {isNonshippingPath, classifyChangedPaths, NONSHIPPING_CONTROL_FILES} = await load();
   assert.deepEqual(NONSHIPPING_CONTROL_FILES, [
-    '.github/workflows/validate.yml', 'scripts/validation-routing.mjs', 'tests/validation-routing.test.cjs'
+    '.github/workflows/validate.yml', '.github/workflows/promotion.yml', '.github/workflows/release.yml',
+    'scripts/check-promotion.mjs', 'scripts/check-release-promotion.mjs',
+    'tests/promotion-policy.test.cjs', 'tests/release-promotion.test.cjs',
+    'tests/reliability.test.cjs',
+    'scripts/validation-routing.mjs', 'tests/validation-routing.test.cjs'
   ]);
   const permitted = [...NONSHIPPING_CONTROL_FILES, '.agents/skills/software-team/SKILL.md',
     '.agents/skills/software-team/references/people-operations.md', 'docs/software-team/research.md'];
@@ -56,7 +60,7 @@ test('the nonshipping boundary permits only the two scoped trees and three expli
   assert.equal(classifyChangedPaths(permitted), 'nonshipping');
   for (const file of ['teams-captions-saver/runtime.js', 'manifests/manifest.chrome.json',
     'package.json', 'package-lock.json', 'scripts/verify-release.mjs', 'scripts/release-status.mjs',
-    'tests/release-status.test.cjs', '.github/workflows/release.yml', 'azure-pipelines.yml',
+    'tests/release-status.test.cjs', 'azure-pipelines.yml',
     'docs/release-state/6.0.json', 'docs/RELEASE-6.0.md', 'readme.md', 'AGENTS.md',
     '.agents/skills/another-skill/SKILL.md', 'docs/software-team-other/research.md']) {
     assert.equal(isNonshippingPath(file), false, file);

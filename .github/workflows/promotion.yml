@@ -1,0 +1,114 @@
+name: Promote through release lanes
+
+on:
+  pull_request_target:
+    branches: [dev, qa, master]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+# This workflow executes only the trusted BASE revision, never PR code.
+permissions:
+  contents: read
+
+concurrency:
+  group: promotion-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    outputs:
+      merge: ${{ steps.bind.outputs.merge }}
+      base: ${{ steps.bind.outputs.base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind the pending decision to the exact merge candidate
+        id: bind
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          [[ "$BASE_BRANCH" =~ ^(dev|qa|master)$ ]]
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' "+refs/pull/$PR_NUMBER/merge:refs/pull/$PR_NUMBER/merge"
+          candidate="$(git rev-parse "refs/pull/$PR_NUMBER/merge^{commit}")"
+          [[ "$candidate" =~ ^[a-f0-9]{40}$ ]]
+          printf 'merge=%s\nbase=%s\n' "$candidate" "$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$candidate" -f state=pending -f "context=lane-$BASE_BRANCH" -f "target_url=$RUN_URL" -f description='Promotion checks and QA acceptance pending'
+      - name: Verify promotion source and merge result
+        run: node scripts/check-promotion.mjs
+
+  qa-approval:
+    needs: route
+    if: github.event.pull_request.base.ref == 'master'
+    runs-on: ubuntu-latest
+    environment:
+      name: qa-acceptance
+      url: ${{ github.event.pull_request.html_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Recheck candidate after QA approval
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' "+refs/pull/$PR_NUMBER/merge:refs/pull/$PR_NUMBER/merge"
+          node scripts/check-promotion.mjs
+
+  record-promotion:
+    if: always()
+    needs: [route, qa-approval]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    env:
+      ROUTE_RESULT: ${{ needs.route.result }}
+      APPROVAL_RESULT: ${{ needs.qa-approval.result }}
+      BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+      CANDIDATE: ${{ needs.route.outputs.merge }}
+      GH_TOKEN: ${{ github.token }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Revalidate before recording success
+        id: recheck
+        continue-on-error: true
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          [[ "$ROUTE_RESULT" == success ]]
+          if [[ "$BASE_BRANCH" == master ]]; then
+            [[ "$APPROVAL_RESULT" == success ]]
+          else
+            [[ "$APPROVAL_RESULT" == skipped ]]
+          fi
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' "+refs/pull/$PR_NUMBER/merge:refs/pull/$PR_NUMBER/merge"
+          node scripts/check-promotion.mjs
+          [[ "$(git rev-parse "refs/pull/$PR_NUMBER/merge")" == "$CANDIDATE" ]]
+      - name: Record the merge-bound decision
+        if: always() && needs.route.outputs.merge != ''
+        env:
+          RECHECK: ${{ steps.recheck.outcome }}
+        run: |
+          state=failure
+          if [[ "$RECHECK" == success ]]; then state=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$CANDIDATE" -f "state=$state" -f "context=lane-$BASE_BRANCH" -f "target_url=$RUN_URL" -f description='Exact candidate promotion and QA acceptance'
+          [[ "$state" == success ]]

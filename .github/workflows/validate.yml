@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - master
+      - dev
+      - qa
+      - "feature/**"
+      - "fix/**"
       - "release/**"
       - "codex/**"
 
@@ -36,6 +40,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Test branch promotion controls
+        run: node --test tests/promotion-policy.test.cjs tests/release-promotion.test.cjs tests/validation-routing.test.cjs
 
       - name: Restore packaged Edge sandbox permissions on the hosted image
         shell: bash

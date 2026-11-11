@@ -7,6 +7,13 @@ import {fileURLToPath} from 'node:url';
 // allowlist. The release workflow and candidate/Store identity guards stay intact.
 export const NONSHIPPING_CONTROL_FILES = Object.freeze([
   '.github/workflows/validate.yml',
+  '.github/workflows/promotion.yml',
+  '.github/workflows/release.yml',
+  'scripts/check-promotion.mjs',
+  'scripts/check-release-promotion.mjs',
+  'tests/promotion-policy.test.cjs',
+  'tests/release-promotion.test.cjs',
+  'tests/reliability.test.cjs',
   'scripts/validation-routing.mjs',
   'tests/validation-routing.test.cjs'
 ]);

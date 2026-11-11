@@ -16,6 +16,7 @@ permissions:
   id-token: write
   attestations: write
   artifact-metadata: write
+  pull-requests: read
 
 concurrency:
   group: package-release-${{ github.ref }}
@@ -30,6 +31,20 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
           fetch-depth: 0
+
+      - name: Check out trusted production policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: master
+          path: working/release-policy
+          persist-credentials: false
+
+      - name: Require an approved QA-to-production source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin '+refs/heads/master:refs/remotes/origin/master'
+          node working/release-policy/scripts/check-release-promotion.mjs
 
       - name: Use Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
