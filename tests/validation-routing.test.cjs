@@ -82,6 +82,26 @@ test('path traversal, absolute paths and control characters never qualify as non
   }
 });
 
+test('Dev and QA pushes inspect their complete change from production and never hide runtime changes', async () => {
+  const {determineValidationMode} = await load();
+  const base = 'a'.repeat(40), head = 'b'.repeat(40);
+  for (const lane of ['dev','qa']) {
+    const ref = `refs/heads/${lane}`;
+    const calls = [];
+    const readGit = args => {
+      calls.push(args);
+      if (args[0] === 'rev-parse') return head;
+      if (args[0] === 'merge-base' && args[1] === '--all') return base;
+      if (args[0] === 'diff') return 'docs/software-team/research.md\0';
+      return '';
+    };
+    assert.equal(determineValidationMode({...push(ref, base, head), readGit}), 'nonshipping');
+    assert(calls.some(args => args[0] === 'merge-base' && args[2] === 'refs/remotes/origin/master'));
+    assert.equal(determineValidationMode({...push(ref, base, head),
+      readGit:args => args[0] === 'diff' ? 'teams-captions-saver/runtime.js\0docs/software-team/research.md\0' : readGit(args)}), 'candidate');
+  }
+});
+
 test('release push, PR head and PR base always force the complete candidate gate', async () => {
   const {determineValidationMode} = await load();
   let reads = 0;
