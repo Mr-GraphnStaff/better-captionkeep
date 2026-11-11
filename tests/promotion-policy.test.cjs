@@ -42,6 +42,18 @@ test('allowed routes verify current fetched branch identities', async () => {
   }
 });
 
+test('development and QA also require a merge preview bound to both current branches', async () => {
+  const {validatePromotion} = await policy;
+  for (const [base, head] of [['dev','codex/fix-one'], ['qa','dev']]) {
+    const missing = fixture(base, head);
+    missing.replies.delete('rev-parse --verify refs/pull/12/merge^{commit}');
+    assert.throws(() => validatePromotion(missing), /Missing Git evidence/);
+    const stale = fixture(base, head);
+    stale.replies.set(`rev-list --parents -n 1 ${sha('c')}`, `${sha('c')} ${sha('e')} ${sha('b')}`);
+    assert.throws(() => validatePromotion(stale), /merge preview/);
+  }
+});
+
 test('rejects skipped stages and lane back-merges into development', async () => {
   const {validatePromotion} = await policy;
   for (const [base, head] of [['master','dev'], ['master','fix/urgent'],
