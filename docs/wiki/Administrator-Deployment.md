@@ -2,6 +2,19 @@
 
 This page is the starting point for organizational deployment. Version 6.0 is in release qualification; use [Release status](Release-Status) to distinguish prepared packages from public Store availability. Test with synthetic meeting data and a pilot group before broad rollout.
 
+Read [Deployment security and permissions](Deployment-Security-and-Permissions) before approving access. It explains browser permissions, employee Microsoft 365 access, the separate administrative authority needed for automated provisioning, data destinations, residual risks, and rollback. The development administrator wizard supports Intune installation with or without Microsoft 365 provisioning. It is locally simulated pilot tooling, not a verified deployed feature; the page includes commands and unfinished acceptance requirements.
+
+## Guided administrator setup (development pilot)
+
+1. Obtain the reviewed `better-captionkeep-enterprise-setup.zip` and extract the complete folder.
+2. Double-click **Start-Setup.cmd**. If supported stable PowerShell 7.6 or newer is missing, choose the official Microsoft install/upgrade route offered by the launcher.
+3. Choose the browser(s), optional Microsoft 365 setup, and existing deployment group. Review the displayed tenant and change summary, then approve the required privileged actions.
+4. Keep the generated receipt. **Check-Status.cmd** checks rollout status; **Continue-Setup.cmd** selects an incomplete setup's receipt for guided continuation.
+
+The setup creates the approved app/managed settings and submits Intune installation scripts; the administrator does not shuttle identifiers between portals. A submitted assignment is not a verified endpoint installation. Pilot-device extension behavior and Microsoft 365 access still require their own acceptance. Temporary provisioning consent is not removed merely by closing the setup window; follow the completion record's cleanup steps.
+
+Developers build this pilot into `output/enterprise-setup-dev/` using the checked working-area launcher and `npm run build:enterprise-setup`. This does not replace retained Production or place privileged administrator tooling inside the unpacked extension. The package contains no Node runtime, extension ZIP, tenant credential, or meeting transcript.
+
 ## Public Store identities
 
 | Browser | Extension ID | Update source |
@@ -33,4 +46,4 @@ Do not deploy a GitHub release solely because it is tagged. Require the exact St
 
 ## Release distributions
 
-Use the one source checkout and its `dist/dev`, `dist/uat`, and `dist/prod` build lanes. Only verified artifacts from `dist/prod` are uploaded as release distributions; Development and UAT outputs are not published. Retained 5.4 release records remain historical evidence, not an alternate active source tree.
+Use the one source checkout and its `Dev`, `QA`, and `Production` build lanes. Only verified artifacts from `Production` are uploaded as release distributions; Development and UAT outputs are not published. Retained 5.4 release records remain historical evidence, not an alternate active source tree.
