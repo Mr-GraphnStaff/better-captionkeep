@@ -97,17 +97,47 @@ function Require-SetupModules {
     }
 }
 
+function Get-SetupCertificateProperty {
+    param($Value, [string]$Name)
+    if ($null -eq $Value) { return $null }
+    if ($Value -is [Collections.IDictionary]) {
+        if ($Value.Contains($Name)) { return $Value[$Name] }
+    } else {
+        $property=$Value.PSObject.Properties[$Name]
+        if ($null -ne $property) { return $property.Value }
+    }
+    return $null
+}
+
+function Test-SetupCodeSigningCertificate {
+    param($Certificate)
+    $privateKey=Get-SetupCertificateProperty $Certificate 'HasPrivateKey'
+    $expires=Get-SetupCertificateProperty $Certificate 'NotAfter'
+    if ($privateKey -isnot [bool] -or -not $privateKey -or $expires -isnot [datetime] -or $expires -le (Get-Date)) { return $false }
+    foreach ($usage in @(Get-SetupCertificateProperty $Certificate 'EnhancedKeyUsageList')) {
+        $identity=$usage
+        if ($identity -isnot [string] -and $identity -isnot [Security.Cryptography.Oid]) {
+            $identity=Get-SetupCertificateProperty $usage 'ObjectId'
+            if ($null -eq $identity) { $identity=Get-SetupCertificateProperty $usage 'Value' }
+        }
+        if ($identity -is [Security.Cryptography.Oid]) { $identity=$identity.Value }
+        elseif ($identity -isnot [string]) { $identity=Get-SetupCertificateProperty $identity 'Value' }
+        if ($identity -is [string] -and $identity -ceq '1.3.6.1.5.5.7.3.3') { return $true }
+    }
+    return $false
+}
+
 function Select-SetupCertificate {
     param([string]$Thumbprint, [bool]$AllowUnsigned)
     if ($AllowUnsigned) { return $null }
     if ($Thumbprint) {
         if ($Thumbprint -notmatch '^[a-fA-F0-9]{40}$') { throw 'Invalid signing certificate.' }
         $certificate = Get-Item -LiteralPath "Cert:\CurrentUser\My\$Thumbprint"
-        if (-not $certificate.HasPrivateKey -or $certificate.NotAfter -le (Get-Date)) { throw 'Signing certificate is expired or lacks its private key.' }
+        if (-not (Test-SetupCodeSigningCertificate $certificate)) { throw 'Choose an unexpired code-signing certificate with its private key.' }
         return $certificate
     }
     $certificates = @(Get-ChildItem -Path Cert:\CurrentUser\My -ErrorAction SilentlyContinue | Where-Object {
-        $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) -and @($_.EnhancedKeyUsageList | Where-Object { $_.ObjectId.Value -eq '1.3.6.1.5.5.7.3.3' }).Count
+        Test-SetupCodeSigningCertificate $_
     })
     Write-Host 'Choose a certificate to sign the device scripts. No thumbprint typing is needed.'
     for ($i=0; $i -lt $certificates.Count; $i++) { Write-Host "$($i+1). $($certificates[$i].Subject) (expires $($certificates[$i].NotAfter.ToString('yyyy-MM-dd')))" }
