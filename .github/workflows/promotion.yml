@@ -9,12 +9,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: promotion-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# Do not cancel same-head promotion runs: GitHub retains cancelled required
+# check suites. Every run revalidates current source/base/merge identities.
 
 jobs:
   route:
+    name: route-${{ github.event.pull_request.base.ref }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -68,6 +68,7 @@ jobs:
           node scripts/check-promotion.mjs
 
   record-promotion:
+    name: promote-${{ github.event.pull_request.base.ref }}
     if: always()
     needs: [route, qa-approval]
     runs-on: ubuntu-latest
@@ -112,3 +113,10 @@ jobs:
           if [[ "$RECHECK" == success ]]; then state=success; fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$CANDIDATE" -f "state=$state" -f "context=lane-$BASE_BRANCH" -f "target_url=$RUN_URL" -f description='Exact candidate promotion and QA acceptance'
           [[ "$state" == success ]]
+      - name: Fail closed even when candidate binding failed
+        if: always()
+        env:
+          RECHECK: ${{ steps.recheck.outcome }}
+        run: |
+          [[ "$CANDIDATE" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$RECHECK" == success ]]
