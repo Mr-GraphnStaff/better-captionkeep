@@ -16,6 +16,7 @@ permissions:
   id-token: write
   attestations: write
   artifact-metadata: write
+  pull-requests: read
 
 concurrency:
   group: package-release-${{ github.ref }}
@@ -30,6 +31,13 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
           fetch-depth: 0
+
+      - name: Require an approved QA-to-production source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin '+refs/heads/master:refs/remotes/origin/master'
+          node scripts/check-release-promotion.mjs
 
       - name: Use Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
