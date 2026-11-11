@@ -1059,8 +1059,14 @@ test('local archive retains more than a workday without automatic eviction',asyn
     for(let i=0;i<25;i++) assert(h.data.session_index.some(s=>s.id===`old_${i}`));
 });
 test('managed history options prune expired sessions and lower the session maximum',async()=>{
-    const h=harness();h.run(read('sessionManager.js'));
+    const h=harness();
     const now=Date.parse('2026-09-26T12:00:00Z');
+    // Freeze this VM's clock so synthetic recent sessions cannot age out.
+    h.context.Date=class extends Date {
+        constructor(...args) { super(...(args.length ? args : [now])); }
+        static now() { return now; }
+    };
+    h.run(read('sessionManager.js'));
     h.data.session_index=[
         {id:'expired',timestamp:'2026-08-01T00:00:00Z',chunkCount:1},
         ...Array.from({length:5},(_,i)=>({id:'recent_'+i,timestamp:new Date(now-i*60000).toISOString(),chunkCount:1}))

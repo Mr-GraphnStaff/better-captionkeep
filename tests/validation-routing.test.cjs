@@ -51,6 +51,7 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
     '.github/workflows/validate.yml', '.github/workflows/promotion.yml', '.github/workflows/release.yml',
     'scripts/check-promotion.mjs', 'scripts/check-release-promotion.mjs',
     'tests/promotion-policy.test.cjs', 'tests/release-promotion.test.cjs',
+    'tests/reliability.test.cjs',
     'scripts/validation-routing.mjs', 'tests/validation-routing.test.cjs'
   ]);
   const permitted = [...NONSHIPPING_CONTROL_FILES, '.agents/skills/software-team/SKILL.md',

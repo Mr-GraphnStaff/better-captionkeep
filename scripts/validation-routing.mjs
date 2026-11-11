@@ -13,6 +13,7 @@ export const NONSHIPPING_CONTROL_FILES = Object.freeze([
   'scripts/check-release-promotion.mjs',
   'tests/promotion-policy.test.cjs',
   'tests/release-promotion.test.cjs',
+  'tests/reliability.test.cjs',
   'scripts/validation-routing.mjs',
   'tests/validation-routing.test.cjs'
 ]);
