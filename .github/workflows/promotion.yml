@@ -39,12 +39,12 @@ jobs:
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
           [[ "$BASE_BRANCH" =~ ^(dev|qa|master)$ ]]
           git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*' "+refs/pull/$PR_NUMBER/merge:refs/pull/$PR_NUMBER/merge"
+          # Reject stale events before binding outputs or mutating any audit status.
+          node scripts/check-promotion.mjs
           candidate="$(git rev-parse "refs/pull/$PR_NUMBER/merge^{commit}")"
           [[ "$candidate" =~ ^[a-f0-9]{40}$ ]]
           printf 'merge=%s\nbase=%s\n' "$candidate" "$BASE_BRANCH" >> "$GITHUB_OUTPUT"
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$candidate" -f state=pending -f "context=lane-$BASE_BRANCH" -f "target_url=$RUN_URL" -f description='Promotion checks and QA acceptance pending'
-      - name: Verify promotion source and merge result
-        run: node scripts/check-promotion.mjs
 
   qa-approval:
     needs: route
