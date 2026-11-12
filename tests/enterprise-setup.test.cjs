@@ -257,6 +257,34 @@ test('Azure config rejects extra credentials, unsafe endpoints, invalid profile 
   });
 });
 
+test('Azure CLI resolves one native application from multiple matches and ignores aliases and Windows Unix shims', async () => {
+  await withPackage(async (output,directory) => {
+    const echoScript=path.join(directory,'native arguments.ps1');
+    fs.writeFileSync(echoScript, '@{arguments=@($args)} | ConvertTo-Json -Compress');
+    const result=runPowerShell(directory,`
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      $native=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+      $shim=${quote(path.join(directory,'az'))};[IO.File]::WriteAllText($shim,'must never run')
+      $global:candidates=@(
+        [pscustomobject]@{CommandType='Alias';Source=$native},
+        [pscustomobject]@{CommandType='Function';Source=$native},
+        [pscustomobject]@{CommandType='Application';Source=($native+'.missing')})
+      if($IsWindows){$global:candidates+= [pscustomobject]@{CommandType='Application';Source=$shim}}
+      $global:invalid=$global:candidates
+      $global:candidates+=@([pscustomobject]@{CommandType='Application';Source=$native},[pscustomobject]@{CommandType='Application';Source=$shim})
+      function Get-Command {param($Name,$CommandType,$ErrorAction)
+        if($Name -cne 'az' -or $CommandType -cne 'Application'){throw 'Application-only Azure CLI discovery required'}
+        return $global:candidates
+      }
+      $resolved=Invoke-SetupAzureCli @('-NoProfile','-NonInteractive','-File',${quote(echoScript)},'account','show','--only-show-errors','literal & quote " value')
+      $global:candidates=$global:invalid;$blocked=$false
+      try{Invoke-SetupAzureCli @('account','show') | Out-Null}catch{$blocked=$_.Exception.Message -like 'Azure CLI executable was not found*'}
+      Write-Output ('RESULT:'+(@{arguments=$resolved.arguments;blocked=$blocked}|ConvertTo-Json -Compress))
+    `);
+    assert.deepEqual(result,{arguments:['account','show','--only-show-errors','literal & quote " value'],blocked:true});
+  });
+});
+
 test('Azure identity mismatch is rejected before resource writes or signing', async () => {
   for(const change of ["$global:azureAccount.tenantId='99999999-9999-4999-8999-999999999999'","$global:azureAccount.user.name='other@example.invalid'"]) {
     await withPackage(async (output,directory) => {
