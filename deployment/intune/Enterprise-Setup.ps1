@@ -253,8 +253,16 @@ function Read-SetupAzureSigningConfig {
 
 function Invoke-SetupAzureCli {
     param([string[]]$Arguments)
-    $command=Get-Command az -CommandType Application -ErrorAction Stop
-    $output=@(& $command.Source @Arguments 2>&1)
+    # Windows Azure CLI installs both az.cmd and an extensionless Unix shim.
+    # Resolve one real application in PATH order; aliases/functions are never eligible.
+    $command=Get-Command az -CommandType Application -ErrorAction Stop |
+        Where-Object { $_.CommandType -eq [Management.Automation.CommandTypes]::Application -and
+            [IO.Path]::IsPathFullyQualified($_.Source) -and [IO.File]::Exists($_.Source) -and
+            (-not $IsWindows -or [IO.Path]::GetExtension($_.Source) -in @('.exe','.cmd','.bat')) } |
+        Select-Object -First 1
+    if ($null -eq $command) { throw 'Azure CLI executable was not found. Install the official Azure CLI and reopen setup.' }
+    $commandPath=[string]$command.Source
+    $output=@(& $commandPath @Arguments 2>&1)
     if ($LASTEXITCODE -ne 0) { throw 'Azure CLI identity lookup failed. Sign in to the approved tenant/account before continuing.' }
     return ($output -join "`n") | ConvertFrom-Json -AsHashtable
 }
