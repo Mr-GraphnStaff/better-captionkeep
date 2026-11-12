@@ -28,13 +28,27 @@ $forcePath = "$browserRoot\ExtensionInstallForcelist"
 $statePath = "HKLM:\SOFTWARE\DAF-TECH\BetterCaptionKeep\Deployments\$($config.deploymentId)\$($config.browser)"
 $forceValue = "$($config.extensionId);$updateUrl"
 
+function Read-EndpointOptionalRegistryValue {
+    param([string]$LiteralPath, [string]$Name)
+    # WinPS 5.1 throws for an absent value even with SilentlyContinue. Enumerate
+    # value names instead; only genuine key/value absence is optional.
+    try { $key=Get-Item -LiteralPath $LiteralPath -ErrorAction Stop }
+    catch [Management.Automation.ItemNotFoundException] { return $null }
+    if ($key.GetValueNames() -notcontains $Name) { return $null }
+    return @{value=$key.GetValue($Name,$null,'DoNotExpandEnvironmentNames');kind=[string]$key.GetValueKind($Name)}
+}
+
 function Test-EndpointManagementAuthority {
-    $settings = Get-ItemPropertyValue -LiteralPath $browserRoot -Name ExtensionSettings -ErrorAction SilentlyContinue
-    if (-not $settings) { return $true }
+    $entry = Read-EndpointOptionalRegistryValue -LiteralPath $browserRoot -Name ExtensionSettings
+    if ($null -eq $entry) { return $true }
+    if ($entry.kind -cne 'String' -or $entry.value -isnot [string] -or [string]::IsNullOrWhiteSpace($entry.value)) { return $false }
+    $json=$entry.value.Trim()
+    if (-not $json.StartsWith('{') -or -not $json.EndsWith('}')) { return $false }
     try {
-        $parsed = $settings | ConvertFrom-Json
+        $parsed = $json | ConvertFrom-Json
         if ($parsed -isnot [pscustomobject]) { return $false }
-        return -not ($parsed.PSObject.Properties.Name -contains $config.extensionId -or $parsed.PSObject.Properties.Name -contains '*')
+        $names=@($parsed.PSObject.Properties | ForEach-Object { $_.Name })
+        return -not ($names -contains $config.extensionId -or $names -contains '*')
     } catch { return $false }
 }
 
@@ -52,9 +66,9 @@ function Test-ExpectedEndpointPolicy {
                 if ($names[$i] -cne [string]($i+1) -or [string]$key.GetValue($names[$i]) -cne [string]$property.Value[$i]) { return $false }
             }
         } else {
-            $actual = Get-ItemPropertyValue -LiteralPath $policyPath -Name $property.Name -ErrorAction SilentlyContinue
+            $actual = Read-EndpointOptionalRegistryValue -LiteralPath $policyPath -Name $property.Name
             $expected = if ($property.Value -is [bool]) { [int]$property.Value } else { $property.Value }
-            if ($null -eq $actual -or [string]$actual -cne [string]$expected) { return $false }
+            if ($null -eq $actual -or [string]$actual.value -cne [string]$expected) { return $false }
         }
     }
     return $true
@@ -107,7 +121,8 @@ function Write-EndpointVerification {
         $fields = @($saved.PSObject.Properties.Name)
         $authorityVerified = Test-EndpointManagementAuthority
         $policyVerified = $authorityVerified -and ($fields -contains 'Status') -and $saved.Status -eq 'Complete' -and ($fields -contains 'AfterPolicy') -and (Test-ExpectedEndpointPolicy) -and ((Policy-Fingerprint (Read-PolicyTree $policyPath)) -ceq $saved.AfterPolicy)
-        $forceVerified = $authorityVerified -and ($fields -contains 'ForceName') -and (Get-ItemPropertyValue -LiteralPath $forcePath -Name $saved.ForceName -ErrorAction SilentlyContinue) -ceq $forceValue
+        $forceEntry = if ($fields -contains 'ForceName') { Read-EndpointOptionalRegistryValue -LiteralPath $forcePath -Name $saved.ForceName } else { $null }
+        $forceVerified = $authorityVerified -and $null -ne $forceEntry -and $forceEntry.value -ceq $forceValue
     }
     $evidence = Get-BrowserInstallationEvidence
     $status = if (-not ($policyVerified -and $forceVerified)) { 'ConfigurationNotVerified' } elseif ($evidence.profilesWithExtension -gt 0) { 'ConfigurationVerifiedInstallationObserved' } else { 'ConfigurationVerifiedBrowserPending' }
