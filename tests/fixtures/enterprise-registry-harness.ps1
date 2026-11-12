@@ -16,7 +16,7 @@ function New-ItemProperty {
 }
 function Get-Item {
     param($LiteralPath)
-    if (-not $global:registry.ContainsKey($LiteralPath)) { throw "Missing mock key: $LiteralPath" }
+    if (-not $global:registry.ContainsKey($LiteralPath)) { throw [Management.Automation.ItemNotFoundException]::new("Missing mock key: $LiteralPath") }
     $key=[pscustomobject]@{Name=$LiteralPath}
     $key | Add-Member ScriptMethod GetValueNames { return ,@($global:registry[$this.Name].Keys) }
     $key | Add-Member ScriptMethod GetValueKind { param($Name) return $global:registry[$this.Name][$Name].kind }
@@ -36,8 +36,7 @@ function Get-ItemProperty {
 function Get-ItemPropertyValue {
     param($LiteralPath,$Name,$ErrorAction)
     if ($global:registry.ContainsKey($LiteralPath) -and $global:registry[$LiteralPath].ContainsKey($Name)) { return $global:registry[$LiteralPath][$Name].value }
-    if ($ErrorAction -ne 'SilentlyContinue') { throw 'Mock registry value missing.' }
-    return $null
+    throw [Management.Automation.PSArgumentException]::new('Mock registry value missing (terminating even with SilentlyContinue).')
 }
 function Remove-Item {
     param($LiteralPath,[switch]$Recurse,[switch]$Force)
