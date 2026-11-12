@@ -199,6 +199,11 @@ test('Azure provider signs exact bytes with pinned identity, AzureCLI-only metad
     for(const call of result.extra.signs) {
       assert.deepEqual(call.arguments.slice(0,9),['sign','/fd','SHA256','/tr','http://timestamp.acs.microsoft.com','/td','SHA256','/dlib',path.join(directory,'Azure.CodeSigning.Dlib.dll')]);
       assert(!call.metadata.ExcludeCredentials.includes('AzureCliCredential'));
+      // ArtifactSigning.Client 1.0.151 rejects unknown credential names before creating its client.
+      assert.deepEqual(call.metadata.ExcludeCredentials,[
+        'EnvironmentCredential','WorkloadIdentityCredential','ManagedIdentityCredential','SharedTokenCacheCredential',
+        'VisualStudioCredential','VisualStudioCodeCredential','AzurePowerShellCredential','AzureDeveloperCliCredential','InteractiveBrowserCredential'
+      ]);
       for(const credential of ['EnvironmentCredential','ManagedIdentityCredential','AzurePowerShellCredential','InteractiveBrowserCredential']) assert(call.metadata.ExcludeCredentials.includes(credential));
       assert.equal(call.metadata.CodeSigningAccountName,'synthetic-signing');
       assert.equal(call.metadata.CertificateProfileName,'synthetic-profile');
@@ -324,6 +329,38 @@ test('Azure signature verification requires trusted status, timestamp and every 
   });
 });
 
+test('native signing failure retains bounded redacted private diagnostics without printing native secrets', async () => {
+  await withPackage(async (output,directory) => {
+    const nativeScript=path.join(directory,'native signing failure.ps1');
+    fs.writeFileSync(nativeScript,`Write-Output 'SignTool Error: synthetic failure 0x80070057'
+Write-Output 'Authorization: Bearer synthetic-sensitive-token'
+Write-Output 'access_token=synthetic-sensitive-token'
+Write-Output 'abcdefghijklmno.abcdefghijklmno.abcdefghijklmno'
+Write-Output ('x'*17000)
+exit 37`);
+    const result=runPowerShell(directory,`
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      $diagnostic=${quote(path.join(directory,'private-native.diagnostic.json'))}
+      $native=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+      $message='';try{Invoke-SetupSignTool -Path $native -Arguments @('-NoProfile','-NonInteractive','-File',${quote(nativeScript)}) -DiagnosticPath $diagnostic}catch{$message=$_.Exception.Message}
+      $record=Get-Content -LiteralPath $diagnostic -Raw -Encoding utf8 | ConvertFrom-Json -AsHashtable
+      $before=(Get-FileHash -LiteralPath $diagnostic -Algorithm SHA256).Hash
+      try{Invoke-SetupSignTool -Path $native -Arguments @('-NoProfile','-NonInteractive','-Command','exit 38') -DiagnosticPath $diagnostic}catch{}
+      Write-Output ('RESULT:'+(@{message=$message;record=$record;preserved=($before -ceq (Get-FileHash -LiteralPath $diagnostic -Algorithm SHA256).Hash)}|ConvertTo-Json -Depth 6 -Compress))
+    `);
+    assert.equal(result.record.nativeExitCode,37);
+    assert.equal(result.record.truncated,true);
+    assert.ok(result.record.output.length<=16384);
+    assert.match(result.record.output,/SignTool Error: synthetic failure 0x80070057/);
+    assert.match(result.record.output,/REDACTED/);
+    assert(!result.record.output.includes('synthetic-sensitive-token'));
+    assert(!result.record.output.includes('abcdefghijklmno'));
+    assert(!result.message.includes('0x80070057'));
+    assert.match(result.message,/private diagnostic/);
+    assert.equal(result.preserved,true);
+  });
+});
+
 test('Azure signing failure is journaled and Continue never blindly repeats the request or overwrites its file', async () => {
   await withPackage(async (output,directory) => {
     const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,true,`
@@ -332,11 +369,13 @@ test('Azure signing failure is journaled and Continue never blindly repeats the 
     `,'',azureSigningMock(directory)+`
       $options.AzureSigningConfigPath=$azureConfigPath;$options.AllowUnsignedEndpointScripts=$false
       $global:attempts=0
-      function Invoke-SetupSignTool { param($Path,$Arguments) $global:attempts++;throw 'Synthetic signer response lost' }
+      function Invoke-SetupSignTool { param($Path,$Arguments,$DiagnosticPath) $global:attempts++;[IO.File]::WriteAllText($DiagnosticPath,'{"nativeExitCode":37}');throw 'Synthetic signer response lost' }
     `));
     assert.equal(result.failed,true);assert.match(result.error,/no signing request was repeated/);
     assert.equal(result.extra.attempts,1);
     assert.equal(result.receipt.operations['AzureSign-edge-Install.ps1'].state,'Ambiguous');
+    assert.equal(result.receipt.operations['AzureSign-edge-Install.ps1'].diagnosticFile,'AzureSign-edge-Install.ps1.diagnostic.json');
+    assert.equal(result.receipt.operations['AzureSign-edge-Install.ps1'].diagnosticHash,createHash('sha256').update('{"nativeExitCode":37}').digest('hex').toUpperCase());
     assert.equal(result.extra.retainedHash,result.receipt.operations['AzureSign-edge-Install.ps1'].unsignedHash);
     assert.equal(result.receipt.scripts.length,0);
     assert.equal(result.calls.filter(call=>call.method==='POST').length,0);
