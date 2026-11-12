@@ -294,9 +294,25 @@ function Assert-SetupAzureSignedFile {
 }
 
 function Invoke-SetupSignTool {
-    param([string]$Path, [string[]]$Arguments)
-    $output=@(& $Path @Arguments 2>&1)
-    if ($LASTEXITCODE -ne 0) { throw 'Azure Artifact Signing failed. Preserve the receipt and signed/partial file; no automatic signing retry or fallback was performed.' }
+    param([string]$Path, [string[]]$Arguments, [string]$DiagnosticPath)
+    if ($DiagnosticPath -and [IO.File]::Exists($DiagnosticPath)) { throw 'Signing diagnostic already exists. Preserve it and the receipt; no automatic retry was performed.' }
+    $exitCode=$null;$output=@()
+    try { $output=@(& $Path @Arguments 2>&1);$exitCode=$LASTEXITCODE }
+    catch { $output+= $_.Exception.Message }
+    if ($null -eq $exitCode -or $exitCode -ne 0) {
+        if ($DiagnosticPath) {
+            # Keep troubleshooting evidence private and bounded; never print native output.
+            $detail=$output -join "`n"
+            $detail=$detail -replace '(?im)^.*(?:authorization|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|bearer)\b.*$','[REDACTED credential line]'
+            $detail=$detail -replace '\b[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b','[REDACTED token]'
+            $truncated=$detail.Length -gt 16384
+            if ($truncated) { $detail=$detail.Substring(0,16384) }
+            $diagnostic=@{recordedAtUtc=[DateTime]::UtcNow.ToString('o');nativeExitCode=$exitCode;output=$detail;truncated=$truncated;
+                requestOutcome='Unknown; a native failure does not prove whether a signing request reached the service.'}
+            [IO.File]::WriteAllText($DiagnosticPath,($diagnostic | ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
+        }
+        throw 'Azure Artifact Signing failed. Review the private diagnostic referenced by the receipt and preserve the signed/partial file; no automatic signing retry or fallback was performed.'
+    }
 }
 
 function Invoke-SetupAzureSign {
@@ -318,17 +334,19 @@ function Invoke-SetupAzureSign {
     $metadata=@{Endpoint=$Provider.config.Endpoint;CodeSigningAccountName=$Provider.config.CodeSigningAccountName;
         CertificateProfileName=$Provider.config.CertificateProfileName;CorrelationId=$Receipt.plan.deploymentId;
         ExcludeCredentials=@('EnvironmentCredential','WorkloadIdentityCredential','ManagedIdentityCredential','SharedTokenCacheCredential',
-            'VisualStudioCredential','VisualStudioCodeCredential','AzurePowerShellCredential','AzureDeveloperCliCredential','InteractiveBrowserCredential','BrokerCredential')}
+            'VisualStudioCredential','VisualStudioCodeCredential','AzurePowerShellCredential','AzureDeveloperCliCredential','InteractiveBrowserCredential')}
     $metadataPath=Join-Path $Directory 'azure-signing-metadata.json'
     [IO.File]::WriteAllText($metadataPath,($metadata | ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false))
-    $Receipt.operations[$operation]=@{state='Pending';providerFingerprint=$Provider.identity.configurationFingerprint;unsignedHash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash;signedHash=$null}
+    $diagnosticName=$operation+'.diagnostic.json';$diagnosticPath=Join-Path $Directory $diagnosticName
+    $Receipt.operations[$operation]=@{state='Pending';providerFingerprint=$Provider.identity.configurationFingerprint;unsignedHash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash;signedHash=$null;diagnosticFile=$diagnosticName}
     $Receipt.pendingOperation=$operation;Save-SetupReceipt $Receipt $Directory
     try {
-        Invoke-SetupSignTool $Provider.config.SignToolPath @('sign','/fd','SHA256','/tr','http://timestamp.acs.microsoft.com','/td','SHA256','/dlib',$Provider.config.DlibPath,'/dmdf',$metadataPath,$Path)
+        Invoke-SetupSignTool $Provider.config.SignToolPath @('sign','/fd','SHA256','/tr','http://timestamp.acs.microsoft.com','/td','SHA256','/dlib',$Provider.config.DlibPath,'/dmdf',$metadataPath,$Path) -DiagnosticPath $diagnosticPath
         Assert-SetupAzureSignedFile $Path $Provider | Out-Null
         $Receipt.operations[$operation].state='Confirmed';$Receipt.operations[$operation].signedHash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
         $Receipt.pendingOperation=$null;Save-SetupReceipt $Receipt $Directory
     } catch {
+        if ([IO.File]::Exists($diagnosticPath)) { $Receipt.operations[$operation].diagnosticHash=(Get-FileHash -LiteralPath $diagnosticPath -Algorithm SHA256).Hash }
         $Receipt.operations[$operation].state='Ambiguous';Save-SetupReceipt $Receipt $Directory
         throw
     }
