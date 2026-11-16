@@ -1,5 +1,22 @@
 # Release Status
 
+## Current public baseline — November 16, 2026
+
+| Component | Dated evidence |
+| --- | --- |
+| Chrome extension | The [Chrome Web Store listing](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml) checked November 16 shows 6.0.0, updated October 25. |
+| Edge extension | The owner confirmed 6.0 publication on October 25; the subsequent managed pilot observed the Edge extension installed. A fresh public listing could not be read by the documentation check on November 16. |
+| Windows Administrator Setup | [Signed installer 6.0.3](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3), with verified download, checksum and public-signature evidence. This is a separate version from the extension. |
+| Guided Microsoft 365 and Intune setup | One managed-PC pilot completed Chrome and Edge installation, employee sign-in and calendar discovery. Completed transcript import in that pilot remains unverified. |
+| Next extension update | In preparation. The Development schema load regression was corrected and the owner confirmed Brave loads it successfully. No new Store publication is claimed. |
+| New Intune settings editor | Deferred by the owner until its separate testing is complete. It is not part of this release's advertised capability. |
+
+Use [Administrator Deployment](Administrator-Deployment) for the supported setup route and [Support](Support) for questions or reports. Source tests, a tagged release, a submitted Intune assignment and an installed, working extension describe different results.
+
+## Historical qualification and incident records
+
+The generated qualification block and 5.x observations below preserve their original dates and acceptance limits. They are not the current public-version table above.
+
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
@@ -148,3 +165,10 @@ The source/package-bound [authorization report](https://github.com/Mr-GraphnStaf
 records positive owner UAT, missing exact-case evidence, unchanged permissions
 and the waived unchanged-window requirement. No missing certification becomes
 a passed test. Reviewed promotion to `master` and GitHub publication are complete; Chrome review and Edge certification submissions are accepted; approval, public listing parity and installed-upgrade verification remain pending.
+
+<!-- captionkeep-6.0.1-status:start -->
+> **6.0.1 delivery status:** 6.0.1 is development on `dev`. Candidate frozen: no.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
+> This development record does not change prior publication records or inherit prior owner exceptions.
+<!-- captionkeep-6.0.1-status:end -->

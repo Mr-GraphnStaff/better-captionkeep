@@ -18,9 +18,9 @@ Store installation provides a stable extension identity and automatic updates.
 3. Confirm **Add extension**.
 4. Open Edge's Extensions menu and show Better CaptionKeep on the toolbar if desired.
 
-Last documented public verification — October 14, 2026: Chrome Web Store and Microsoft Edge Add-ons both publicly serve **5.4.0**. Chrome shows the corrected title and BYOAI summary; Edge now shows the refreshed DAF-TECH description and all five 5.4 screenshots. Existing-install upgrade and post-upgrade smoke verification remain open for Chrome. A managed Edge installation received 5.4.0, but Edge displayed the vendor `_metadata` warning tracked in Microsoft issue #820 during the update, so its functional smoke verification also remains open. See [Release status](Release-Status).
+The Chrome Web Store listing checked on November 16, 2026 shows **6.0.0**, updated October 25. The owner confirmed 6.0 publication in both Stores on October 25, and the subsequent managed pilot observed Chrome and Edge installations. See [Release status](Release-Status) for dated observations; the extension and Administrator Setup have separate release versions.
 
-Version **6.0.0** is being qualified for release. Owner approval and local archival of 5.4 do not change the version served by a Store. Check [Release status](Release-Status) for promotion and public-availability evidence. Chrome, Edge, Brave, Firefox, and Opera are separate 6.0 qualification targets; the two Store links above do not establish publication in every browser's Store.
+For organization-wide Windows rollout and Microsoft 365 connection, use [Administrator Deployment](Administrator-Deployment). The signed setup application guides the administrator through the proposed tenant and Intune changes; ordinary local caption capture does not require this application or an Intune tenant.
 
 ## After installation
 
