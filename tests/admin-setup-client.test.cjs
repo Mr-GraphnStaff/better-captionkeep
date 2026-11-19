@@ -21,9 +21,9 @@ test('native timeout offers no automatic installer or duplicate launch',async()=
 test('unsupported platform and target never request privilege or download',async()=>{for(const options of [{platform:'MacIntel'},{target:'firefox'},{target:'opera'}]){const f=fixture(options);assert.equal(f.nodes.launchOrganizationSetup.disabled,true);await f.click('launchOrganizationSetup');assert.equal(f.calls.permission,0);assert.equal(f.calls.download,0);assert.match(f.nodes.organizationSetupStatus.textContent,/Windows x64/)}});
 
 test('truthy malformed ok does not report success',async()=>{const f=fixture({response:{protocolVersion:1,operation:'launch',ok:'yes'}});await f.click('launchOrganizationSetup');assert.match(f.nodes.organizationSetupStatus.textContent,/could not be confirmed/)});
-test('baseline real Store metadata validator accepts candidate required/optional sets',async()=>{
- const tools=path.join(process.env.AGENT_WORKING_DIR,'baseline-tools');fs.mkdirSync(tools);
- for(const name of ['check-store-metadata.mjs','manifest-localization.mjs'])fs.writeFileSync(path.join(tools,name),cp.execFileSync('git',['show',`4ba4ceb7bc3a41131c4b4c173e63b17b2dcfa809:scripts/${name}`]));
- const checker=await import(require('node:url').pathToFileURL(path.join(tools,'check-store-metadata.mjs')));
- checker.validateChromeStoreMetadata(JSON.parse(read('manifests/manifest.chrome-store.json')),JSON.parse(read('store-metadata/chrome.json')));
+test('Store metadata validator accepts the required/optional permission sets',async()=>{
+ const checker=await import(require('node:url').pathToFileURL(path.join(stage,'scripts','check-store-metadata.mjs')));
+ const {resolvedManifest}=await import(require('node:url').pathToFileURL(path.join(stage,'scripts','manifest-localization.mjs')));
+ const manifest=resolvedManifest(JSON.parse(read('manifests/manifest.chrome-store.json')),JSON.parse(read('teams-captions-saver/_locales/en/messages.json')));
+ checker.validateChromeStoreMetadata(manifest,JSON.parse(read('store-metadata/chrome.json')));
 });
