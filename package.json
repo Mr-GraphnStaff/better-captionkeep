@@ -1,6 +1,6 @@
 {
   "name": "better-captionkeep",
-  "version": "6.0.0",
+  "version": "6.0.3",
   "private": true,
   "description": "Developer tooling for Better CaptionKeep on Chromium browsers.",
   "scripts": {

@@ -15,7 +15,9 @@ coordinator. Store submission, approval, public availability and delivered
 upgrade remain separately recorded outcomes; the dated 5.4 public record below
 is not a claim that 6.0 is already live.
 
-October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The package does not request nativeMessaging, ship a native helper, connect MCP services or expose MCP operation controls. Reviewed BYOAI handoff remains available. Earlier helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
+6.0.3 update: the package adds an optional `nativeMessaging` permission, requested only when a tenant administrator opens organization setup, to launch the separately installed, signed Better CaptionKeep Administrator Setup through one fixed native host. It still ships no native helper, does not connect MCP services and does not expose MCP operation controls.
+
+October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The 6.0.0 package did not request nativeMessaging, ship a native helper, connect MCP services or expose MCP operation controls. Reviewed BYOAI handoff remains available. Earlier helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
 
 6.0 development review: the Live Workspace now puts chronological conversation
 first, with optional selected-caption actions and explicit Follow latest. Local
@@ -39,7 +41,8 @@ is unchanged.
 badge without discarding captured words. Caption menu controls and DOM-hidden
 meeting controls are not evidence of an active meeting. Live Teams retest pending.
 
-> Prepared source version: **6.0.0** on `codex/6.0`. Publication is authorized
+> Prepared source version: **6.0.3** on `dev` (development; not frozen, submitted or public). It adds the
+> guided Microsoft 365 / Intune administrator setup entry point. Previous prepared version: **6.0.0** on `codex/6.0`. Publication is authorized
 > with a documented owner exception; no Store submission or public availability
 > is implied by this source record. It introduces
 > the dark DAF-TECH operational shell, a single-decision popup, direct platform
@@ -159,7 +162,7 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 
 | Permission | Type | Justification |
 | --- | --- | --- |
-| `downloads` | permissions | Saves user-requested or user-configured TXT and Markdown transcript exports and opens the browser Downloads folder when requested. It is not used to download remote content. |
+| `downloads` | permissions | Saves user-requested or user-configured TXT and Markdown transcript exports, opens the browser Downloads folder when requested, and downloads the signed Windows Administrator Setup installer from the versioned Better CaptionKeep GitHub release only when an administrator explicitly chooses Download and install. The extension does not execute the downloaded installer. |
 | `activeTab` | permissions | Lets the user-invoked popup identify and communicate with the supported meeting tab currently in view. |
 | `storage` | permissions | Stores preferences, managed settings, recovery checkpoints, pending exports, temporary aliases, Evidence Board markers, and user-controlled local transcript history. |
 | `unlimitedStorage` | permissions | Lets the user-controlled local transcript archive grow beyond the default local-storage quota without silently evicting meetings. Explicit user deletion and managed retention remain authoritative. |
@@ -169,6 +172,7 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `https://teams.cloud.microsoft/*` | host_permissions | Reads captions and optional attendee information rendered in the current Microsoft Teams web application. |
 | `https://meet.google.com/*` | host_permissions | Reads captions rendered during Google Meet meetings. |
 | `https://app.zoom.us/*` | host_permissions | Reads captions rendered by the Zoom Web subtitle overlay. |
+| `nativeMessaging` | optional_permissions | Requested only when a tenant administrator explicitly opens organization setup. Launches the separately installed, signed Better CaptionKeep Administrator Setup through one fixed native host; it does not enable MCP, access arbitrary native applications, or affect local caption capture. |
 | `https://login.microsoftonline.com/*` | optional_host_permissions | Requested only when the user chooses Connect Microsoft 365; performs interactive organizational Microsoft Entra authorization with PKCE. |
 | `https://graph.microsoft.com/*` | optional_host_permissions | Requested only when the user chooses Connect Microsoft 365; shows up to five recent eligible Teams meetings, resolves the selected meeting, and retrieves its authorized official transcript. |
 
@@ -235,6 +239,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
+| 6.0.3 | 2026-11-19 | Adds the guided Microsoft 365 / Intune organization setup entry point: optional `nativeMessaging`, a pinned download of the signed Administrator Setup 6.0.3 installer, and reconnect to the installed setup application. | Development on `dev`; acceptance, freeze, Store submission and public rollout not yet performed |
 | 6.0.0 | 2026-10-13 | Introduces the dark DAF-TECH operational shell, one-button meeting entry, direct Teams/Meet/Zoom launchers, ready/not-ready state, and Meeting Receipt workspace over the existing local capture, archive, Evidence Board, export, privacy, and BYOAI capabilities. | Publication preparation on `codex/6.0`; owner-authorized exception recorded; Store submission, review and public rollout still require observed results |
 | 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Chrome and Edge; installed-upgrade and post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
