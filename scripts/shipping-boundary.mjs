@@ -27,13 +27,15 @@ export function assertShippingEntries(entries) {
     if(!/\.(?:js|json|html|css)$/i.test(name)) continue;
     const text=bytes.toString('utf8');
     let inspected=text;
-    if(name==='adminSetupClient.js') {
+    // Recursive package checks pass nested names such as brave-unpacked/manifest.json.
+    const base=name.replaceAll('\\','/').split('/').pop();
+    if(base==='adminSetupClient.js') {
       if(!text.includes("com.daftech.bettercaptionkeep.adminsetup") || /\bconnectNative\b|byomcp/i.test(text)) {
         throw Error(`Organization setup native boundary is invalid: ${name}`);
       }
       inspected=inspected.replaceAll('nativeMessaging','').replaceAll('sendNativeMessage','');
     }
-    if(name==='manifest.json') {
+    if(base==='manifest.json') {
       const manifest=JSON.parse(text);
       if((manifest.permissions||[]).includes('nativeMessaging')) throw Error(`Mandatory native messaging is forbidden: ${name}`);
       const optional=manifest.optional_permissions||[];

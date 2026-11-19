@@ -19,6 +19,12 @@ test('6.0 rejects deferred modules, native access, routes and dangling imports',
     ['manifest.json',Buffer.from('{"optional_permissions":["nativeMessaging"]}')],
     ['adminSetupClient.js',Buffer.from("chrome.runtime.sendNativeMessage('com.daftech.bettercaptionkeep.adminsetup',{})")]
   ])));
+  assert.doesNotThrow(()=>assertShippingEntries(new Map([
+    ['brave-unpacked/manifest.json',Buffer.from('{"optional_permissions":["nativeMessaging"]}')],
+    ['brave-unpacked/adminSetupClient.js',Buffer.from("chrome.runtime.sendNativeMessage('com.daftech.bettercaptionkeep.adminsetup',{})")]
+  ])));
+  assert.throws(()=>assertShippingEntries(new Map([['brave-unpacked/manifest.json',Buffer.from('{"permissions":["nativeMessaging"]}')]])),/forbidden/);
+  assert.throws(()=>assertShippingEntries(new Map([['brave-unpacked/other.js',Buffer.from("chrome.runtime.sendNativeMessage('x',{})")]])),/forbidden/);
   assert.doesNotThrow(()=>assertShippingEntries(new Map([['derivedArtifacts.js',Buffer.from('const historicalReceipt="action-result";')]])));
 });
 
