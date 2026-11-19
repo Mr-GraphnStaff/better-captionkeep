@@ -8,10 +8,9 @@ const root = path.join(__dirname, '..');
 const loadRecord = () => JSON.parse(fs.readFileSync(path.join(root, 'docs/release-state/6.0.json'), 'utf8'));
 const load = () => import('../scripts/release-status.mjs');
 
-test('one release status record matches the manifest and every published local view', async () => {
+test('historical 6.0 release status retains its identity and every historical local view', async () => {
   const api = await load(), record = loadRecord();
-  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'teams-captions-saver/manifest.json'), 'utf8'));
-  api.validateReleaseStatus(record, manifest.version);
+  api.validateReleaseStatus(record, record.version);
   for (const file of api.statusDocuments) api.reconcileStatusDocument(fs.readFileSync(path.join(root, file), 'utf8'), record);
 });
 test('contradictory status views fail and regeneration preserves unrelated historical text', async () => {

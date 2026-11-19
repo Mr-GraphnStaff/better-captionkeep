@@ -7,6 +7,7 @@ import { readEnglishMessages, resolveManifestMessage } from './manifest-localiza
 import {verifyPackageSource} from './verify-package-source.mjs';
 import {excludedShippingPath,shippingBoundary} from './shipping-boundary.mjs';
 import {inspectCandidateIdentity, validateReleaseStatus, verifyCandidateArtifacts} from './release-status.mjs';
+import {readReleaseState} from './release-state.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const distDir = process.env.CAPTIONKEEP_TEST_DIST ? path.resolve(process.env.CAPTIONKEEP_TEST_DIST) : path.join(projectRoot, 'dist');
@@ -155,7 +156,7 @@ for (const file of [...sourceFiles].sort()) {
 }
 const workingTreeDirty = !!execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'status', '--porcelain', '--untracked-files=normal'],
   {cwd:projectRoot, encoding:'utf8'}).trim();
-const releaseRecord = JSON.parse(await readFile(path.join(projectRoot, 'docs', 'release-state', '6.0.json'), 'utf8'));
+const {record:releaseRecord}=await readReleaseState(projectRoot,{version:sourceManifest.version});
 validateReleaseStatus(releaseRecord, sourceManifest.version);
 const artifactHashes = Object.fromEntries(artifacts.map(artifact => {
   const names = {
@@ -168,7 +169,7 @@ const artifactHashes = Object.fromEntries(artifacts.map(artifact => {
 }).filter(entry => entry.length));
 const candidateIdentity = releaseRecord.state === 'development'
   ? {commit, head:commit, changes:[]}
-  : inspectCandidateIdentity({root:projectRoot, candidateCommit:releaseRecord.candidate.commit});
+  : inspectCandidateIdentity({root:projectRoot, candidateCommit:releaseRecord.candidate.commit,version:releaseRecord.version});
 const candidateArtifactVerification = verifyCandidateArtifacts(releaseRecord, {
   commit:candidateIdentity.commit,
   hashes:artifactHashes,
