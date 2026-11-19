@@ -5,6 +5,9 @@ const {execFileSync}=require('node:child_process');
 const path=require('node:path');
 const os=require('node:os');
 
+const approvedClient=["const HOST_NAME = 'com.daftech.bettercaptionkeep.adminsetup';",
+  "const request = {permissions: ['nativeMessaging']};",
+  "chrome.runtime.sendNativeMessage(HOST_NAME, message, done);"].join('\n');
 test('6.0 rejects deferred modules, native access, routes and dangling imports',async()=>{
   const {assertShippingEntries}=await import('../scripts/shipping-boundary.mjs');
   for(const [name,text] of [
@@ -17,14 +20,24 @@ test('6.0 rejects deferred modules, native access, routes and dangling imports',
   ]) assert.throws(()=>assertShippingEntries(new Map([[name,Buffer.from(text)]])),/forbidden|missing/);
   assert.doesNotThrow(()=>assertShippingEntries(new Map([
     ['manifest.json',Buffer.from('{"optional_permissions":["nativeMessaging"]}')],
-    ['adminSetupClient.js',Buffer.from("chrome.runtime.sendNativeMessage('com.daftech.bettercaptionkeep.adminsetup',{})")]
+    ['adminSetupClient.js',Buffer.from(approvedClient)]
   ])));
   assert.doesNotThrow(()=>assertShippingEntries(new Map([
     ['brave-unpacked/manifest.json',Buffer.from('{"optional_permissions":["nativeMessaging"]}')],
-    ['brave-unpacked/adminSetupClient.js',Buffer.from("chrome.runtime.sendNativeMessage('com.daftech.bettercaptionkeep.adminsetup',{})")]
+    ['brave-unpacked/adminSetupClient.js',Buffer.from(approvedClient)]
   ])));
   assert.throws(()=>assertShippingEntries(new Map([['brave-unpacked/manifest.json',Buffer.from('{"permissions":["nativeMessaging"]}')]])),/forbidden/);
   assert.throws(()=>assertShippingEntries(new Map([['brave-unpacked/other.js',Buffer.from("chrome.runtime.sendNativeMessage('x',{})")]])),/forbidden/);
+  // Review finding on PR #233: every native call must use the one fixed host constant.
+  for(const client of [
+    approvedClient+"\nchrome.runtime.sendNativeMessage(userHost, {}, done);",
+    approvedClient+"\nchrome.runtime.sendNativeMessage('com.example.other', {}, done);",
+    approvedClient.replace("const HOST_NAME = 'com.daftech.bettercaptionkeep.adminsetup';","const HOST_NAME = 'com.example.other';"),
+    approvedClient+"\nHOST_NAME = userHost;",
+    approvedClient+"\nchrome.runtime.connectNative(HOST_NAME);",
+    "chrome.runtime.sendNativeMessage(HOST_NAME, {}, done); // com.daftech.bettercaptionkeep.adminsetup"
+  ]) assert.throws(()=>assertShippingEntries(new Map([['adminSetupClient.js',Buffer.from(client)]])),/invalid|forbidden/);
+  assert.throws(()=>assertShippingEntries(new Map([['adminSetupClient.js',Buffer.from(approvedClient+"\nconst extra = ['nativeMessaging', 'x'];")]])),/forbidden/);
   assert.doesNotThrow(()=>assertShippingEntries(new Map([['derivedArtifacts.js',Buffer.from('const historicalReceipt="action-result";')]])));
 });
 

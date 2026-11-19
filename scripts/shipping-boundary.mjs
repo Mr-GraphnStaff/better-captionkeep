@@ -30,10 +30,19 @@ export function assertShippingEntries(entries) {
     // Recursive package checks pass nested names such as brave-unpacked/manifest.json.
     const base=name.replaceAll('\\','/').split('/').pop();
     if(base==='adminSetupClient.js') {
-      if(!text.includes("com.daftech.bettercaptionkeep.adminsetup") || /\bconnectNative\b|byomcp/i.test(text)) {
+      // Exempt only the exact approved forms: one immutable fixed host constant, native
+      // calls that pass that constant, and the optional-permission request. Any other
+      // native reference stays visible to the general check below.
+      const hostDeclaration="const HOST_NAME = 'com.daftech.bettercaptionkeep.adminsetup';";
+      const approvedCall=/\bsendNativeMessage\(HOST_NAME,/g;
+      const approvedPermission="permissions: ['nativeMessaging']";
+      const count=(pattern)=>(text.match(pattern)||[]).length;
+      if(text.split(hostDeclaration).length!==2 || count(/\bHOST_NAME\s*=(?!=)/g)!==1
+          || count(approvedCall)<1 || count(/\bsendNativeMessage\b/g)!==count(approvedCall)
+          || /\bconnectNative\b|byomcp/i.test(text)) {
         throw Error(`Organization setup native boundary is invalid: ${name}`);
       }
-      inspected=inspected.replaceAll('nativeMessaging','').replaceAll('sendNativeMessage','');
+      inspected=inspected.replace(approvedCall,'(HOST_NAME,').replaceAll(approvedPermission,'');
     }
     if(base==='manifest.json') {
       const manifest=JSON.parse(text);
