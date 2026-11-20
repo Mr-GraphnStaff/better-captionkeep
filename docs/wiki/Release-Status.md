@@ -25,6 +25,13 @@ The generated qualification block and 5.x observations below preserve their orig
 > This status does not change historical 5.4 publication records.
 <!-- captionkeep-6.0-status:end -->
 
+<!-- captionkeep-6.0.3-status:start -->
+> **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
+> This development record does not change prior publication records or inherit prior owner exceptions.
+<!-- captionkeep-6.0.3-status:end -->
+
 6.0 distribution status updated: **October 24, 2026**. Historical Store observations below
 were last verified **October 14, 2026**; they are not a fresh Store inspection.
 

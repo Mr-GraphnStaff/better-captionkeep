@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "6.0.0",
+  "version": "6.0.3",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "homepage_url": "https://github.com/Mr-GraphnStaff/better-captionkeep",
@@ -11,6 +11,7 @@
     "48": "icons/sphere-48.png",
     "128": "icons/sphere-128.png"
   },
+  "optional_permissions": ["nativeMessaging"],
   "permissions": [
     "downloads",
     "activeTab",

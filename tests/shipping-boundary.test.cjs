@@ -5,16 +5,39 @@ const {execFileSync}=require('node:child_process');
 const path=require('node:path');
 const os=require('node:os');
 
+const approvedClient=["const HOST_NAME = 'com.daftech.bettercaptionkeep.adminsetup';",
+  "const request = {permissions: ['nativeMessaging']};",
+  "chrome.runtime.sendNativeMessage(HOST_NAME, message, done);"].join('\n');
 test('6.0 rejects deferred modules, native access, routes and dangling imports',async()=>{
   const {assertShippingEntries}=await import('../scripts/shipping-boundary.mjs');
   for(const [name,text] of [
     ['byomcpSetup.js',''],['byomcp-settings.css',''],['evidenceActionJobs.js',''],['evidenceActionContracts.js',''],
     ['better-captionkeep-byomcp-helper-6.0.0.zip',''],['byomcp-helper-hashes.json','{}'],
-    ['manifest.json','{"optional_permissions":["nativeMessaging"]}'],
+    ['manifest.json','{"permissions":["nativeMessaging"]}'],
     ['worker.js','chrome.runtime.connectNative("host")'],['worker.js','browser.runtime.sendNativeMessage("host",{})'],
     ['worker.js','const route="byomcp_settings"'],['popup.html','<script src="byomcpSetup.js"></script>'],
     ['service_worker.js',"importScripts('absent.js');"],['popup.html','<link href="missing.css">']
   ]) assert.throws(()=>assertShippingEntries(new Map([[name,Buffer.from(text)]])),/forbidden|missing/);
+  assert.doesNotThrow(()=>assertShippingEntries(new Map([
+    ['manifest.json',Buffer.from('{"optional_permissions":["nativeMessaging"]}')],
+    ['adminSetupClient.js',Buffer.from(approvedClient)]
+  ])));
+  assert.doesNotThrow(()=>assertShippingEntries(new Map([
+    ['brave-unpacked/manifest.json',Buffer.from('{"optional_permissions":["nativeMessaging"]}')],
+    ['brave-unpacked/adminSetupClient.js',Buffer.from(approvedClient)]
+  ])));
+  assert.throws(()=>assertShippingEntries(new Map([['brave-unpacked/manifest.json',Buffer.from('{"permissions":["nativeMessaging"]}')]])),/forbidden/);
+  assert.throws(()=>assertShippingEntries(new Map([['brave-unpacked/other.js',Buffer.from("chrome.runtime.sendNativeMessage('x',{})")]])),/forbidden/);
+  // Review finding on PR #233: every native call must use the one fixed host constant.
+  for(const client of [
+    approvedClient+"\nchrome.runtime.sendNativeMessage(userHost, {}, done);",
+    approvedClient+"\nchrome.runtime.sendNativeMessage('com.example.other', {}, done);",
+    approvedClient.replace("const HOST_NAME = 'com.daftech.bettercaptionkeep.adminsetup';","const HOST_NAME = 'com.example.other';"),
+    approvedClient+"\nHOST_NAME = userHost;",
+    approvedClient+"\nchrome.runtime.connectNative(HOST_NAME);",
+    "chrome.runtime.sendNativeMessage(HOST_NAME, {}, done); // com.daftech.bettercaptionkeep.adminsetup"
+  ]) assert.throws(()=>assertShippingEntries(new Map([['adminSetupClient.js',Buffer.from(client)]])),/invalid|forbidden/);
+  assert.throws(()=>assertShippingEntries(new Map([['adminSetupClient.js',Buffer.from(approvedClient+"\nconst extra = ['nativeMessaging', 'x'];")]])),/forbidden/);
   assert.doesNotThrow(()=>assertShippingEntries(new Map([['derivedArtifacts.js',Buffer.from('const historicalReceipt="action-result";')]])));
 });
 
@@ -46,7 +69,8 @@ test('all normal 6.0 targets and their ZIPs omit deferred implementation',async(
       const directory=['dev','uat','prod'].includes(target)?path.join(dist,target):path.join(dist,'prod',`${target}-unpacked`);
       await assertShippingDirectory(directory);
       const manifest=JSON.parse(await readFile(path.join(directory,'manifest.json')));
-      assert(!(manifest.permissions||[]).includes('nativeMessaging'));assert(!(manifest.optional_permissions||[]).includes('nativeMessaging'));
+      assert(!(manifest.permissions||[]).includes('nativeMessaging'));assert((manifest.optional_permissions||[]).includes('nativeMessaging'));
+      assert((await readFile(path.join(directory,'adminSetupClient.js'),'utf8')).includes('com.daftech.bettercaptionkeep.adminsetup'));
       const zip=await packageExtension(directory,path.join(dist,'zips'),target);
       const browserTarget=['chrome','edge','brave','opera','firefox'].includes(target)?target:target==='edge-store'?'edge':undefined;
       await verifyPackageSource(path.join(root,'teams-captions-saver'),{zipPath:zip,browserTarget});
