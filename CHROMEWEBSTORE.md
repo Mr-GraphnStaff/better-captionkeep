@@ -1,66 +1,6 @@
-# Chrome Web Store Listing — Better CaptionKeep
+# Chrome Web Store Listing — Better CaptionKeep 6.0.3
 
-Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.md).
-
-The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
-
-> Last Updated: 2026-10-24
-
-**6.0 publication preparation:** David Farris approved the bold DAF-TECH
-artwork on October 24 and authorized publication with documented exceptions
-for incomplete exact-package acceptance and the 48-hour unchanged window.
-Those exceptions do not turn missing checks into passes. Use the exact
-source/package hashes and reviewed exception record supplied by the release
-coordinator. Store submission, approval, public availability and delivered
-upgrade remain separately recorded outcomes; the dated 5.4 public record below
-is not a claim that 6.0 is already live.
-
-6.0.3 update: the package adds an optional `nativeMessaging` permission, requested only when a tenant administrator opens organization setup, to launch the separately installed, signed Better CaptionKeep Administrator Setup through one fixed native host. It still ships no native helper, does not connect MCP services and does not expose MCP operation controls.
-
-October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The 6.0.0 package did not request nativeMessaging, ship a native helper, connect MCP services or expose MCP operation controls. Reviewed BYOAI handoff remains available. Earlier helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
-
-6.0 development review: the Live Workspace now puts chronological conversation
-first, with optional selected-caption actions and explicit Follow latest. Local
-Templates, reviewed source-bound Notes/Ask, rolling notes, approved Moment PNG
-exports, and optional contrast presets have automated regression coverage. Pause,
-leave/rejoin, archive recovery and managed-policy repairs are implemented locally.
-These are development changes, not a public Store update or five-browser certification.
-
-6.0 development scope added October 14: reviewed shareable-summary drafts and
-explicit confidentiality/privilege handling labels. No automatic legal privilege
-determination, automatic email sending or guaranteed removal of privileged
-material is claimed. This workflow preserves the original and introduces no
-publisher-operated processing. Final copy and channel-specific listing fields
-require review against the submitted package. The seven current DAF-TECH
-artwork files are approved for the exact hashes in
-`store-assets/6.0/manifest.json`; illustrative panels use synthetic content and
-are not live-browser certification. The historical 5.4 publication record below
-is unchanged.
-
-6.0 development fix: Teams same-page meeting departure clears the live-capture
-badge without discarding captured words. Caption menu controls and DOM-hidden
-meeting controls are not evidence of an active meeting. Live Teams retest pending.
-
-> Prepared source version: **6.0.3** on `dev` (development; not frozen, submitted or public). It adds the
-> guided Microsoft 365 / Intune administrator setup entry point. Previous prepared version: **6.0.0** on `codex/6.0`. Publication is authorized
-> with a documented owner exception; no Store submission or public availability
-> is implied by this source record. It introduces
-> the dark DAF-TECH operational shell, a single-decision popup, direct platform
-> launchers, and the renamed
-> Meeting Receipt workspace while retaining the existing local capture and
-> evidence engine.
-
-> Historical public 5.4 record (October 2026): **5.4.0**. Azure Store Release run 716 submitted the
-> verified package on October 10, 2026. Microsoft Edge Add-ons publicly served
-> 5.4.0 later that day. Azure run 726 cancelled Chrome's original pending review
-> so the stale Store listing could be replaced. After the corrected DAF-TECH
-> listing was saved, run 731 resubmitted the unchanged 5.4.0 package. The public
-> Chrome Web Store served 5.4.0 with the corrected title and BYOAI summary;
-> installed-upgrade and post-upgrade smoke verification remain open.
-
-This is the canonical Chrome Web Store listing and review record. Operational publishing steps remain in `docs/CHROME-PUBLISH-PIPELINE.md`; duplicate listing copy should not be maintained elsewhere.
-
-**A DAF-TECH Product.** The DAF-TECH sphere is the parent-brand mark and the packaged 6.0 icon; inherited Scribble artwork remains preserved as product history.
+Updated November 20, 2026. Current extension and Administrator Setup version: **6.0.3**. Use the approved DAF-TECH sphere artwork and existing company themes. Guided Microsoft 365 setup and Intune deployment are the launch message. Store submission, review and public availability are separate states in [the current release record](docs/RELEASE-6.0.3.md). The [publication decision](docs/release-state/6.0.3-owner-publication.md) records unfinished acceptance and the known QA identity problem; none is represented as passed.
 
 ## Store Listing
 

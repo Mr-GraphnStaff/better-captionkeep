@@ -1,7 +1,7 @@
 # Better CaptionKeep 6.0.3
 
 Scope: guided Microsoft 365 / Intune administrator setup entry point. This is a
-development record, not a frozen candidate or publication approval.
+release record. The November 20 publication decision accepts documented unfinished checks; Store review and public availability remain separate outcomes.
 
 <!-- captionkeep-6.0.3-status:start -->
 > **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
@@ -44,7 +44,7 @@ persistent management bridge.
 The five extension files are the reviewed front-door candidate, applied without
 modification apart from the version label.
 
-## Required acceptance before freeze
+## Acceptance still unfinished — publication exception recorded
 
 - Production-ID browser flow in Chrome and Edge: permission prompt, download,
   install, launch, reconnect, decline and failure paths.
@@ -55,3 +55,7 @@ modification apart from the version label.
 - 48 uninterrupted hours on the unchanged frozen candidate.
 - Store drafts reviewed with the updated permission justifications before
   submission.
+
+## November 20 publication decision
+
+The owner directed publication to both Stores despite the known QA identity failure and unfinished checks. See [the exact decision and limitations](release-state/6.0.3-owner-publication.md). No failed or unfinished acceptance is recorded as passed.
