@@ -1,12 +1,108 @@
 {
   "product": "Better CaptionKeep",
   "version": "6.0.3",
-  "branch": "dev",
-  "state": "development",
+  "branch": "master",
+  "state": "candidate",
   "candidate": {
-    "frozen": false,
-    "commit": null,
-    "hashes": {}
+    "frozen": true,
+    "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+    "hashes": {
+      "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+      "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
+      "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
+      "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
+      "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
+      "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
+      "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+      "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+    },
+    "ownerException": {
+      "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+      "hashes": {
+        "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+        "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
+        "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
+        "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
+        "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
+        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
+        "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+        "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+      },
+      "approvedBy": "David Farris",
+      "approvedAt": "2026-11-20T23:35:54.638538+00:00",
+      "reason": "Owner explicitly directed both Store submissions after the known QA setup failure and unfinished acceptance were explained; latest direction supersedes earlier complete-checks-first decision. Checks remain unfinished.",
+      "waivedGates": [
+        "fullScopeAcceptance",
+        "accessibilityAndFailureUat",
+        "unchangedWindow"
+      ],
+      "waivedLiveCertification": [
+        "chrome",
+        "edge",
+        "brave",
+        "firefox",
+        "opera"
+      ],
+      "evidence": {
+        "path": "docs/release-state/6.0.3-owner-publication.md",
+        "sha256": "7cbd727d768a3306d5f35f07fea54c0dc596589661347ae961303e4a868402a7"
+      }
+    },
+    "promotion": {
+      "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+      "hashes": {
+        "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+        "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
+        "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
+        "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
+        "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
+        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
+        "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+        "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+      },
+      "approvedBy": "David Farris",
+      "targets": {
+        "chrome": "nabjdlnkkaonnbnimnmnhjcbigceebml",
+        "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
+      },
+      "uat": {
+        "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+        "hashes": {
+          "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+          "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
+          "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
+          "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
+          "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
+          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
+          "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+          "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+        },
+        "passed": false,
+        "report": {
+          "path": "docs/release-state/6.0.3-owner-publication.md",
+          "sha256": "7cbd727d768a3306d5f35f07fea54c0dc596589661347ae961303e4a868402a7"
+        }
+      },
+      "permissionDelta": {
+        "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+        "hashes": {
+          "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+          "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
+          "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
+          "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
+          "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
+          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
+          "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
+          "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+        },
+        "approved": true,
+        "report": {
+          "path": "docs/release-state/6.0.3-owner-publication.md",
+          "sha256": "7cbd727d768a3306d5f35f07fea54c0dc596589661347ae961303e4a868402a7"
+        }
+      },
+      "unchangedSince": "2026-11-20T23:35:54.638538+00:00"
+    }
   },
   "requiredBrowsers": [
     "chrome",
@@ -25,7 +121,7 @@
   "releaseGates": {
     "fullScopeAcceptance": false,
     "accessibilityAndFailureUat": false,
-    "artworkApproved": false,
+    "artworkApproved": true,
     "unchangedWindow": false,
     "storeApproval": false,
     "publicParity": false,
