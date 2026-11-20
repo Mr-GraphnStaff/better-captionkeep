@@ -173,9 +173,7 @@ records positive owner UAT, missing exact-case evidence, unchanged permissions
 and the waived unchanged-window requirement. No missing certification becomes
 a passed test. Reviewed promotion to `master` and GitHub publication are complete; Chrome review and Edge certification submissions are accepted; approval, public listing parity and installed-upgrade verification remain pending.
 
-<!-- captionkeep-6.0.1-status:start -->
-> **6.0.1 delivery status:** 6.0.1 is development on `dev`. Candidate frozen: no.
-> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
-> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
-> This development record does not change prior publication records or inherit prior owner exceptions.
-<!-- captionkeep-6.0.1-status:end -->
+The unpublished 6.0.1 development label for epic **#395** is superseded by
+**6.0.3**. Its historical records remain preserved; it is not a second active
+release for this scope. Use the 6.0.3 status above and
+[release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/dev/docs/RELEASE-6.0.3.md).
