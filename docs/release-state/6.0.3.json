@@ -5,7 +5,7 @@
   "state": "candidate",
   "candidate": {
     "frozen": true,
-    "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+    "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
     "hashes": {
       "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
       "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
@@ -17,7 +17,7 @@
       "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
     },
     "ownerException": {
-      "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+      "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
       "hashes": {
         "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
         "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
@@ -49,7 +49,7 @@
       }
     },
     "promotion": {
-      "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+      "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
       "hashes": {
         "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
         "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
@@ -66,7 +66,7 @@
         "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
       },
       "uat": {
-        "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+        "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
         "hashes": {
           "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
           "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
@@ -84,7 +84,7 @@
         }
       },
       "permissionDelta": {
-        "commit": "8e33f836268c39e1f18112d75e6c13bc87048f13",
+        "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
         "hashes": {
           "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
           "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
