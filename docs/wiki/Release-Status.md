@@ -29,3 +29,18 @@ Use the [6.0.3 machine record](https://github.com/Mr-GraphnStaff/better-captionk
 ## Historical versions
 
 6.0.1 and 6.0.2 were unpublished development labels, superseded by 6.0.3. [6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.md) and [5.4](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.4.md) remain historical records, not current release instructions.
+
+<details>
+<summary>Historical 6.0.0 release record — superseded by 6.0.3 above</summary>
+
+This retained October 24 record is historical; its pending states are not the current release status.
+
+<!-- captionkeep-6.0-status:start -->
+> **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
+> This status does not change historical 5.4 publication records.
+<!-- captionkeep-6.0-status:end -->
+
+</details>
