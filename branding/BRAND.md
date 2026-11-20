@@ -2,6 +2,8 @@
 
 ## Current company identity — DAF-TECH
 
+Owner-provided company brand reference: https://app.brandyhq.com/daf-tech. Consult it for future branding work; the 6.0.3 correction retains the already approved local assets below.
+
 Better CaptionKeep is a DAF-TECH product. The approved company mark is the sphere in `branding/daf-tech/daf-tech-sphere.png`; packaged copies and size variants are in `teams-captions-saver/icons/`. The approved 6.0 campaign artwork and its owner-approved SHA-256 identities are in `store-assets/6.0/manifest.json`.
 
 Keep the sphere, **DAF-TECH** name and **Better CaptionKeep** product name visible on the popup and Settings header in both light and dark themes. A theme choice changes surfaces and text contrast; it does not remove the company identity. Use the existing theme tokens in `teams-captions-saver/theme.css` and the layouts in `popup-v6.css`, rather than inventing a separate palette. The default CaptionKeep theme uses dark teal surfaces (`--ck-bg: #03100e`, `--ck-surface: #071b18`) and a teal primary accent (`#64cbc6`). Light and accessibility themes retain the same company mark with readable theme-specific text.
