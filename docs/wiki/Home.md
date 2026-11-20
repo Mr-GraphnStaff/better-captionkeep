@@ -10,6 +10,8 @@ For personal use, [install the extension](Installation) and [capture your first 
 
 Better CaptionKeep is one free product; organization setup does not introduce an Enterprise paywall. Microsoft licensing, browser support and administrator authority still apply. Ongoing Intune-console settings editing is a later feature under testing. See [Release status](Release-Status) for current versions and evidence. Safari and MCP connections/tool execution are deferred.
 
+The 6.0.3 release candidate adds **Open administrator setup** in **All Settings → Microsoft 365** to launch or install the signed setup app. The guided route avoids manually creating app registrations or copying tenant and client IDs between portals. The release status records when this extension update becomes public.
+
 ![DAF-TECH Better CaptionKeep 6.0 campaign artwork](https://raw.githubusercontent.com/Mr-GraphnStaff/better-captionkeep/27eb0227579c388c6ad22b6ba7e8b3f7586797f5/store-assets/6.0/01-one-button-meeting.png)
 
 *Bold DAF-TECH campaign artwork approved by the product owner on October 24. Product panels are illustrations with synthetic data; artwork approval is separate from browser certification and release approval.*

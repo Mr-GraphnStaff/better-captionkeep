@@ -95,6 +95,12 @@ Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have
 - Optional customer-owned Microsoft 365 transcript import through the organization's own single-tenant Entra application.
 - Managed browser policy, Intune deployment profiles, local retention controls, and documented release provenance.
 
+**Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.**
+
+New in 6.0.3: administrators can start guided organization setup from All Settings. Launch the signed Windows setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, and approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals. Microsoft 365/Intune licensing and administrator permissions are required. Begin with a pilot and verify device installation, employee sign-in and an authorized transcript import. Local caption capture remains available without organization setup. Better CaptionKeep remains one free DAF-TECH product.
+
+Administrator guide: https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Administrator-Deployment
+
 **Why it is different**
 
 - No meeting bot.
