@@ -563,6 +563,7 @@
     <script src="privacyScrubber.js" defer></script>
     <script src="promptTemplates.js" defer></script>
     <script src="browserCompat.js" defer></script>
+    <script src="adminSetupClient.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
@@ -674,6 +675,16 @@
                 <section class="graph-settings-card" aria-labelledby="graphConnectionHeading">
                     <h4 id="graphConnectionHeading">Connection and administrator setup</h4>
                     <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+                    <div class="graph-hero" id="organizationSetupCard">
+                        <strong>Administrator setup</strong>
+                        <p class="small-info-text">Connect Microsoft 365 and deploy through Intune. Sign in with Microsoft, choose browsers and a pilot group, then review the organization changes before approval. Windows x64 with Edge, Chrome or Brave is required. If setup is missing, download and install the signed administrator app, then return here to continue.</p>
+                        <div class="graph-actions">
+                            <button id="launchOrganizationSetup" type="button" aria-describedby="organizationSetupStatus">Open administrator setup</button>
+                            <button id="updateOrganizationSetup" type="button" aria-describedby="organizationSetupStatus" hidden>Download setup installer</button>
+                            <button id="cancelOrganizationSetup" type="button" hidden>Cancel</button>
+                        </div>
+                        <p class="small-info-text" id="organizationSetupStatus" role="status" aria-live="polite"></p>
+                    </div>
                     <div class="graph-actions">
                         <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
                         <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>

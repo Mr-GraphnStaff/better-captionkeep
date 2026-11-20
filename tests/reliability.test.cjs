@@ -1727,8 +1727,8 @@ test('extension pages use only packaged scripts and settings use progressive dis
     assert(!popup.includes('assistantBridgeAuth.js'));
     const manifest=JSON.parse(read('manifest.json'));
     assert(!manifest.permissions.includes('alarms'));
-    assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
-    assert(!manifest.permissions.includes('nativeMessaging'), '6.0 does not ship native messaging');
+    assert.deepEqual(manifest.optional_permissions, ['nativeMessaging'], 'organization setup is the only optional native access');
+    assert(!manifest.permissions.includes('nativeMessaging'), 'organization setup native access remains optional');
     assert(!manifest.optional_host_permissions.includes('https://*/*'));
 });
 test('managed release restrictions are enforced across extension action surfaces',()=>{
