@@ -19,7 +19,13 @@
 
 <img src="branding/daf-tech/daf-tech-sphere.png" alt="DAF-TECH sphere" width="120">
 
-![Better CaptionKeep by Señor Farris — Scribble, our listening transcript mascot](branding/scribble-concept.png)
+## Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.
+
+**New in the 6.0.3 release candidate:** a guided administrator setup entry point for Windows organizations. Open **All Settings → Microsoft 365 → Open administrator setup** to launch the signed setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, then approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals.
+
+Better CaptionKeep remains one free DAF-TECH product. Microsoft 365/Intune licensing and administrator permissions are required for organization setup; local caption capture works without it. Begin with a pilot and verify device installation, employee sign-in and an authorized transcript import before expanding. The candidate is not yet a public Store update.
+
+[Start administrator setup](docs/wiki/Administrator-Deployment.md) · [Review security and permissions](docs/wiki/Deployment-Security-and-Permissions.md) · [6.0.3 release status](docs/RELEASE-6.0.3.md)
 
 [Trust Center](docs/TRUST-CENTER.md) · [Privacy policy](PRIVACY.md) · [Report a vulnerability](SECURITY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -38,7 +44,7 @@ Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including th
 
 ### 6.0 release scope
 
-**6.0 MCP scope:** BYOMCP is deferred to a later release. Shipping 6.0 excludes MCP connections, native messaging and helper/tool-execution controls. Local capture, archives, exports, reviewed BYOAI handoff and existing receipt readability remain. Earlier MCP development is preserved separately; it is not a shipping feature or a completed acceptance claim.
+**6.0 MCP scope:** BYOMCP is deferred to a later release. Shipping 6.0 excludes MCP connections and helper/tool-execution controls. Version 6.0.3 adds only optional native messaging for the separately installed Administrator Setup, through one fixed host. Local capture, archives, exports, reviewed BYOAI handoff and existing receipt readability remain. Earlier MCP development is preserved separately; it is not a shipping feature or a completed acceptance claim.
 
 
 **6.0 development addition:** the transcript viewer's More transcript tools

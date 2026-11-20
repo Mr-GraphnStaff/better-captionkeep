@@ -608,7 +608,7 @@ function updateGraphSetupControls(settings, locked = new Set()) {
     if (UI_ELEMENTS.graphSetupStatus) {
         UI_ELEMENTS.graphSetupStatus.textContent = managed
             ? (graphConfigured ? 'Configured and locked by your organization.' : 'Microsoft 365 import is disabled or incomplete in organization policy.')
-            : (graphConfigured ? 'Customer-owned Microsoft 365 setup saved locally.' : 'Enter the tenant and client IDs from your organization’s Entra app registration.');
+            : (graphConfigured ? 'Customer-owned Microsoft 365 setup saved locally.' : 'Use guided administrator setup, or enter tenant and client IDs from an existing organization-owned Entra app registration.');
     }
 }
 
@@ -621,7 +621,7 @@ async function refreshGraphStatus() {
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
             : (status.configured
                 ? 'Microsoft 365 setup detected. Connect to begin.'
-                : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs under Administrator connection details.');
+                : 'Microsoft 365 setup required. Ask your administrator to use guided setup below, or configure an existing app under Administrator connection details.');
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
         graphConnected = false;
