@@ -1,12 +1,13 @@
 # Better CaptionKeep 6.0.3
 
 Scope: guided Microsoft 365 / Intune administrator setup entry point. This is a
-development record, not a frozen candidate or publication approval.
+release record. The November 20 publication decision accepts documented unfinished checks; Store review and public availability remain separate outcomes.
 
 <!-- captionkeep-6.0.3-status:start -->
-> **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
+> **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
-> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
+> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This development record does not change prior publication records or inherit prior owner exceptions.
 <!-- captionkeep-6.0.3-status:end -->
 
@@ -22,8 +23,8 @@ labels only and were never published. This record replaces the unpublished
 
 A bounded browser change on the published 6.0.0 baseline:
 
-- Organization setup entry point in the popup that downloads, installs and
-  reconnects the separately installed Administrator Setup.
+- Organization setup entry point that opens the installed Administrator Setup,
+  or downloads its installer for the administrator to run manually before reconnecting.
 - Optional `nativeMessaging` permission, requested only when an administrator
   opens organization setup, for one fixed native host.
 - Pinned download of `admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe`
@@ -44,7 +45,7 @@ persistent management bridge.
 The five extension files are the reviewed front-door candidate, applied without
 modification apart from the version label.
 
-## Required acceptance before freeze
+## Acceptance still unfinished — publication exception recorded
 
 - Production-ID browser flow in Chrome and Edge: permission prompt, download,
   install, launch, reconnect, decline and failure paths.
@@ -55,3 +56,7 @@ modification apart from the version label.
 - 48 uninterrupted hours on the unchanged frozen candidate.
 - Store drafts reviewed with the updated permission justifications before
   submission.
+
+## November 20 publication decision
+
+The owner directed publication to both Stores despite the known QA identity failure and unfinished checks. See [the exact decision and limitations](release-state/6.0.3-owner-publication.md). No failed or unfinished acceptance is recorded as passed.
