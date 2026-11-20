@@ -23,7 +23,17 @@ body:
     attributes:
       label: Better CaptionKeep version
       description: If you cannot find it, enter "Unknown" or leave this blank—we still want the report.
-      placeholder: "For example: 5.4.0"
+      placeholder: "For example: 6.0.0, or Unknown"
+  - type: dropdown
+    id: installation_source
+    attributes:
+      label: How was the extension installed?
+      options:
+        - Chrome Web Store
+        - Microsoft Edge Add-ons
+        - Organization / Intune deployment
+        - Load unpacked / Development or QA build
+        - Another route or unsure
   - type: dropdown
     id: provider
     attributes:
@@ -38,6 +48,9 @@ body:
         - Evidence Board side panel
         - Microsoft 365 transcript import
         - Store installation or update
+        - Administrator Setup download or installation
+        - Microsoft 365 administrator setup
+        - Intune deployment or organization policy
         - Somewhere else
     validations:
       required: true
@@ -77,6 +90,25 @@ body:
     attributes:
       label: Optional safe screenshot or diagnostic text
       description: Include it only after removing meeting, tenant, participant, account, and credential information.
+  - type: input
+    id: setup_version
+    attributes:
+      label: Administrator Setup version (if relevant)
+      description: Separate from the extension version. The downloaded installer filename includes its version; Unknown is fine.
+      placeholder: "For example: 6.0.3"
+  - type: dropdown
+    id: setup_stage
+    attributes:
+      label: Organization setup stage (if relevant)
+      options:
+        - Downloading the installer
+        - Installing or opening Administrator Setup
+        - Microsoft sign-in or prerequisites
+        - Reviewing or approving deployment
+        - Intune assignment or device installation
+        - Employee connection or transcript import
+        - Checking, continuing or removing a deployment
+        - Unsure
   - type: checkboxes
     id: checks
     attributes:

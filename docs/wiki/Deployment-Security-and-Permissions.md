@@ -1,194 +1,120 @@
 # Deployment security and permissions
 
-Review date: November 10, 2026. Audience: administrators, security reviewers, and employees deciding whether to deploy Better CaptionKeep.
+Reviewed November 16, 2026. This page describes the public **Administrator Setup 6.0.3** guided Win32 route and the existing extension capability boundaries. It does not certify a larger fleet, every tenant policy or the unreleased Intune settings editor/bridge.
 
-## What you are approving
+For the practical procedure, see [Administrator deployment](Administrator-Deployment). Review the actual prompts and package version before approving access.
 
-Better CaptionKeep reads displayed meeting captions and keeps a browser-local copy. Optional Microsoft 365 integration retrieves an official Teams transcript using the signed-in user's access. Intune can install the extension and enforce its settings.
+## Three components, three different boundaries
 
-The requested automated setup has two choices:
-
-| Choice | Intended result | Microsoft 365 requirement |
+| Component | Where it runs | Authority and purpose |
 | --- | --- | --- |
-| Deploy the extension | Install the unchanged Store extension and managed privacy settings for a selected pilot group | No transcript app registration or transcript consent |
-| Deploy with Microsoft 365 | Also provision the organization's transcript app, request consent, and populate the extension's tenant/client settings | Organization-owned app, delegated permissions, and Teams transcript API access |
+| Browser extension | Employee's browser profile | Local displayed-caption capture and review; optional employee Microsoft 365 access. |
+| Administrator Setup | Administrator's Windows account | Interactive Microsoft administrator sign-in, approved app provisioning and Intune deployment. Employees do not need it. |
+| Signed endpoint worker | Intune-managed pilot device, as SYSTEM | Applies the selected browser's force-install entry and extension policy; records policy beforeimages and detection state. |
 
-**Status:** managed settings, bundle generation, and the interactive transcript connector exist. The administrator package now has a Windows launcher, guided setup, and receipt-based status/continue entry points. Provisioning and endpoint logic have synthetic tests; the launcher has isolated Windows PowerShell tests. This remains development pilot tooling, not a released or tenant-certified feature, and is not launched from the extension UI. Local tests do not establish tenant deployment, endpoint enforcement, Store availability, or successful rollback. Use [Release status](Release-Status) and exact pilot evidence before production adoption.
+The normal public installer supplies a pre-signed endpoint worker. Customers do not need an Azure signing account, signing tools, private key or a pilot certificate imported into a trusted-root store. Customer-specific configuration is validated data delivered with the deployment; it is not a customer signing key.
 
-## Run the development pilot automation
+## What the administrator approves
 
-Build the administrator package from the reviewed checkout with `npm run build:enterprise-setup`, using the repository's required working-area launcher. Its default development output is `output/enterprise-setup-dev/`; it preserves retained Production and stays outside the load-unpacked extension folders. It contains `better-captionkeep-enterprise-setup.zip`, launchers, scripts, profiles, this security page, and SHA-256 file checksums. No Node installation is needed on the administrator's workstation. It contains no extension ZIP, customer credential, meeting content, receipt, or scratch folder. The builder refuses a nonempty destination so prior packages and operational records are not overwritten. Preserve the previous output and select a fresh approved destination for another build.
+The installation-only path deploys the Store extension and reviewed browser settings. The Microsoft 365 path additionally creates the organization's transcript app, grants delegated access and enables the approved Teams transcript API setting.
 
-On the administrator's Windows workstation, extract the complete ZIP and double-click **Start-Setup.cmd**. The launcher requires supported stable PowerShell 7.6 or newer. If missing or outdated, it offers an explicit choice to install or upgrade the current official Microsoft PowerShell package through WinGet or open Microsoft's installation guide. No downloaded script is evaluated, no execution policy is bypassed, and no installation starts without the administrator's choice. Windows elevation and Microsoft installer prompts remain visible. If installation needs a refreshed application path, the launcher explains that setup must be relaunched.
+The guided route uses Microsoft's Graph PowerShell administrative client with a process-scoped session. Its implemented delegated scopes are:
 
-The development package is not an organization-signed release. If Windows download marking or organizational execution policy blocks its administrator scripts, stop and obtain a reviewed, appropriately signed package through the organization's deployment process. Do not use an execution-policy bypass. Signing generated endpoint scripts in the wizard does not sign the downloaded administrator launcher or provisioning script; production package signing and trust distribution require their own qualification.
-
-The guided task is: choose Edge, Chrome, or both; choose whether to include Microsoft 365; sign in to the intended tenant; select an existing deployment group; review a plain-language change summary; then approve the provisioning and rollout. Browser/group selection and permissions stay explicit. The administrator does not create an app or copy tenant/client IDs between portals. Read the privilege explanation here and in the wizard before approving it.
-
-Keep the setup's `receipt.json`. Double-click **Check-Status.cmd** and choose that receipt to check a submitted rollout. Double-click **Continue-Setup.cmd** to select a receipt for an incomplete setup. Continuation must reconcile recorded objects and pending operations; do not start a second deployment merely because the first was interrupted. A status such as assignment submitted or script succeeded does not prove that the extension is installed and usable in a browser. Browser and Microsoft 365 acceptance remain separate until verified on the pilot device.
-
-For an already reviewed pilot, the equivalent commands are:
-
-```powershell
-# Install-only: no transcript app, Graph transcript grant, or Teams change.
-pwsh -NoProfile -File ./Enterprise-Setup.ps1 -WithoutMicrosoft365
-
-# Install plus customer-owned transcript app, consent, and managed connection IDs.
-pwsh -NoProfile -File ./Enterprise-Setup.ps1 -WithMicrosoft365
-
-# View scopes and mode offline without connecting or writing cloud resources.
-pwsh -NoProfile -File ./Enterprise-Setup.ps1 -WithoutMicrosoft365 -PlanOnly
-```
-
-`-Browser edge` or `-Browser chrome` narrows the browser choice. `-Hardened` selects the existing restrictive privacy profile for either browser. `-EnableSpeakerAttribution` separately opts into enabling attributed transcript access when Microsoft 365 setup is selected. Without that switch the existing attribution setting is preserved. The Microsoft 365 path enables the tenant-wide Graph transcript API setting after approval; it does not change meeting transcription policies or start transcription in meetings.
-
-Choose an organization-approved code-signing certificate in the guided setup, or supply `-SigningCertificateThumbprint` for automation. If no suitable certificate is available, the administrator must explicitly choose the unsigned pilot exception or stop. Unsigned mode is not the recommended production default. The endpoint script runs as 64-bit SYSTEM through Intune; clients must trust the signing chain when signature enforcement is enabled.
-
-The optional `-AzureSigningConfigPath` uses an already-provisioned Azure Artifact Signing profile and Microsoft's SignTool/dlib. Azure CLI must be signed in as the same user and commercial-cloud tenant as the approving Graph session. Signing access is a separate Azure RBAC permission, scoped to the intended profile; the Graph scopes below do not grant it. The configuration accepts only endpoint/account/profile identity, expected tenant and service/profile EKUs, and tool paths. It accepts no secrets. Generated metadata selects Azure CLI authentication only. The receipt pins the provider/configuration and tool hashes; generated files require a valid trusted Authenticode signature, timestamp, general code-signing EKU, and every approved service/profile EKU. Reviewed signed bytes retain their hashes and Intune signature enforcement. Uncertain signing results require reconciliation, with no automatic re-signing or unsigned fallback.
-
-Azure signing sends artifact digests to the configured regional `https://<region>.codesigning.azure.net` service and requests a signed timestamp from Microsoft's documented `http://timestamp.acs.microsoft.com` endpoint. It does not create an Azure account, change billing tier, grant roles, distribute private keys, or install device trust. Private Trust is not trusted by Windows by default and does not itself limit execution to Entra tenant members. Manage the exact trusted CA chain and approved publisher certificates separately, including leaf rotation and renewal. Signing already completed files during continuation requires neither another cloud request nor the original configuration/tools. [Microsoft integration and timestamp requirements](https://learn.microsoft.com/en-us/azure/artifact-signing/how-to-signing-integrations), [trust models](https://learn.microsoft.com/en-us/azure/artifact-signing/concept-trust-models).
-
-The wizard uses the official Microsoft Graph PowerShell administrative client, delegated sign-in, and a process-scoped Graph context. It explains the missing modules together before offering installation of `Microsoft.Graph.Authentication` and, only for Microsoft 365 setup, `MicrosoftTeams` from the official PowerShell Gallery. Module installation changes the workstation's user-module installation. Installed module versions and the package's provenance must be reviewed under the customer's software-supply-chain process. Microsoft Graph and Teams can require separate authentication or consent experiences; the package must not describe this as guaranteed silent sign-in.
-
-The implemented scopes are `GroupMember.Read.All` (existing-group lookup) and `DeviceManagementScripts.ReadWrite.All` (Intune script upload/assignment). The Microsoft 365 option additionally requests `Application.ReadWrite.All` (app/service-principal provisioning) and `DelegatedPermissionGrant.ReadWrite.All` (automated transcript-consent grant). These are administrative scopes granted to the provisioning client, not to the employee transcript app. The wizard does not currently use `DeviceManagementConfiguration.ReadWrite.All`, write group membership, create client secrets, or grant application-only transcript access.
-
-Before resource creation, the wizard displays tenant/account, group ID/name, browser choice, base privacy policies, employee/admin scopes, script-template hash, signature mode, and proposed global Teams changes. It creates the customer app with exact selected Store redirect URIs and a unique deployment identity. After creating the app it automatically fills the tenant/client IDs into both browser policies, generates installation/removal scripts, and displays their hashes. A second approval authorizes upload and assignment of those exact scripts. It never defaults to tenant-wide Intune assignment.
-
-The receipt directory defaults to `receipts/<deployment-id>/` beside the extracted package; `-OutputDirectory` selects a fresh customer-governed location. It records app/service-principal/grant IDs, pre-change Teams settings, script hashes/IDs, assignment progress, and any pending operation. It deliberately omits tokens. **These receipts are customer-specific operational records; do not publish them in the wiki or public issues.**
-
-The endpoint installation writes the official Store force-install entry and replaces only this extension's managed-policy subtree. A registry before-image is retained under `HKLM:\SOFTWARE\DAF-TECH\BetterCaptionKeep\Deployments\<deployment-id>\<browser>`. Existing unrelated force-install entries are preserved. A matching per-extension or wildcard `ExtensionSettings` rule causes a conflict stop rather than an attempt to override another management authority. Configurations on already deployed endpoints therefore need a conflict check before this pilot can replace a prior management method.
-
-Generated `<browser>-Remove.ps1` scripts restore the prior managed-policy tree and remove only a force-install entry created by this deployment. They stop if the current policy differs from the recorded applied state. Deploy removal scripts to the same pilot through the organization's approved Intune script process; they are not executed automatically on unassignment. No removal script deletes transcripts or exported files itself, but subsequent browser uninstall behavior may remove local extension storage. Cloud-app/consent deletion, global Teams rollback, and provisioning-grant revocation remain separate administrative operations, not automated rollback claims.
-
-**Known limits:** Graph Intune script APIs used here are beta; script upload is not endpoint success; a timed-out creation request may have created an object before its ID was returned. The wizard preserves an incomplete version 2 receipt and supports conservative continuation and reconciliation. Ambiguous or conflicting operations require manual reconciliation instead of blind retries or deletion. Automatic temporary-consent cleanup, a completed live Intune pilot, extension-launched setup UI, and automated cloud rollback remain unfinished. At exit it disconnects local sessions, but does not revoke the provisioning client's grants. Removing shared Microsoft Graph PowerShell consent without checking other workflows could disrupt them. These gaps prevent a production-ready claim.
-
-## The administrator experience we require
-
-1. Sign in to Microsoft with the organization's authorized administrative identity. Verify the tenant being targeted.
-2. Choose Edge, Chrome, or both; an existing deployment group; privacy settings; and whether Microsoft 365 integration is included.
-3. Review the exact app, redirects, permissions, scripts, policy values, group, and tenant-wide settings the automation proposes to change.
-4. Approve the Microsoft authorization requests and proposed changes. The automation performs the configuration and transfers the resulting IDs into deployment settings; the administrator does not copy identifiers between portals.
-5. Review a completion record that distinguishes objects created, assignments made, endpoint results, and unfinished steps. A partially completed setup must never report successful deployment.
-6. Test one managed device before expanding the assignment. Remove temporary provisioning access and verify its removal.
-
-The workflow must also explain how it obtains its initial provisioning identity. An unregistered extension cannot grant itself permission to create its first Entra app. A customer-approved administrative tool or separately approved bootstrap identity is required. The choice, publisher, requested scopes, and cleanup must be visible before approval. Employee transcript access must never silently acquire administrative permissions.
-
-## Three different permission boundaries
-
-### Browser extension permissions: current manifest
-
-These are browser capabilities, not Microsoft Graph consent. Inspect the exact Store build as well as the [source manifest](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/teams-captions-saver/manifest.json).
-
-| Permission | Purpose | Exposure and limitation |
+| Scope | When | Purpose and reach |
 | --- | --- | --- |
-| `downloads` | Save transcript exports | The extension can initiate browser downloads. Exported copies leave extension retention controls. |
-| `activeTab` | User-requested operations on the active tab, including meeting screenshots | A screenshot can contain names, chat, or video imagery. Images are not automatically scrubbed. |
-| `storage` | Preferences, transcripts, checkpoints, managed values | People or malware with access to the browser profile may access retained data. |
-| `unlimitedStorage` | Avoid the normal extension-storage quota for retained transcripts | Not unlimited physical disk space; configure retention and handle disk-full failures. |
-| `sidePanel` | Show the meeting workspace beside the meeting | Workspace text may be visible to someone viewing or sharing the screen. |
-| `identity` | Launch interactive Microsoft authentication | Not permission to read all Microsoft 365 data; Graph consent and tenant controls apply separately. |
+| `GroupMember.Read.All` | Setup | Find/select an existing deployment group. This is directory read access, not permission to change membership. |
+| `DeviceManagementApps.ReadWrite.All` | Win32 setup/continuation | Create, upload and assign Intune Win32 apps. This is broader app-management authority than one BCK deployment. |
+| `Application.ReadWrite.All` | Microsoft 365 setup | Provision the employee transcript application and service principal. This is broad application-management authority. |
+| `DelegatedPermissionGrant.ReadWrite.All` | Microsoft 365 setup | Write the employee app's delegated consent grant. This can change consent beyond the selected application. |
+| `DeviceManagementApps.Read.All` | Status-only operation | Read the existing Win32 deployment and device reports. |
 
-Required host access covers `teams.microsoft.com`, `teams.cloud.microsoft`, `meet.google.com`, and `app.zoom.us`. This permits access on matching sites, broader than a single caption element. Content-script selectors and feature restrictions are application controls, not a browser-enforced restriction to caption text. The manifest contains no blanket `<all_urls>` permission. Zoom content scripts target `/wc/` and can run in matching frames.
+The public Win32 route does not require `DeviceManagementScripts.ReadWrite.All` or `DeviceManagementConfiguration.ReadWrite.All`. Those belong to different workflows and must not be added merely to make a failed sign-in succeed. Device-status reporting uses a Microsoft Graph beta endpoint; report availability and API behavior can change.
 
-Optional host access covers `login.microsoftonline.com` and `graph.microsoft.com`. The current connection flow requests it when the user chooses Connect Microsoft 365. Managed provisioning of IDs does not prove silent browser-permission approval or silent sign-in.
+A selected pilot group limits the authored assignment. It does not narrow these OAuth scopes or turn them into per-deployment permissions. The review must identify the correct tenant, exact group, browsers, application configuration and proposed changes.
 
-The extension does not record microphone, tab audio, system audio, or video. Still-image capture is a separate explicit feature. Manifest capabilities and actual behavior must be checked again for every permission-changing release.
+### Administrator roles and prerequisites
 
-### Employee Microsoft 365 access: current connector
+The guided route accepts delegated sign-in to the commercial Microsoft cloud (`Global`) and uses `graph.microsoft.com`. Government and other sovereign-cloud endpoints are not supported by this route.
 
-The current connector requests these scopes through authorization-code flow with PKCE:
+An Intune role alone does not provide Entra consent or Teams administrative authority. Arrange the approved capabilities before starting:
 
-| Scope | Why requested | Risk and boundary |
-| --- | --- | --- |
-| `Calendars.ReadBasic` | Discover recent calendar meetings and join details | Exposes basic calendar metadata, which can itself be sensitive. |
-| `OnlineMeetings.Read` | Resolve the selected online meeting | Exposes meeting details within Microsoft's delegated authorization rules. |
-| `OnlineMeetingTranscript.Read.All` | Retrieve an official transcript the signed-in user is authorized to access | Sensitive transcript access; `Read.All` must not be described as a technical restriction to one user-selected meeting. Selection is our product behavior; Microsoft determines the permission boundary. |
-| `openid` | Establish authenticated identity | Identifies the signed-in account. |
-| `profile` | Obtain basic identity claims | Makes account profile claims available to the connector. |
-| `offline_access` | Refresh delegated access without repeating sign-in for every request | A refresh token is a credential. Session storage limits persistence but does not make it harmless. |
+| Capability | What your organization must authorize |
+| --- | --- |
+| Intune Win32 app management | Read, create, update and assign apps within the permitted scope. Intune's Application Manager is an example role family; scope and any custom role still matter. |
+| Entra app provisioning and delegated consent | A supported Entra role/custom role for the actual operations and consent policy. Application Administrator or Cloud Application Administrator may cover the relevant operations; validate the full permission set with your identity team. |
+| Teams transcript API setting | An authorized Teams administrative session for the tenant-wide meeting configuration change. |
 
-These are delegated scopes, not application-only collection. Administrator consent authorizes access; the current product still requires user sign-in and an explicit import. Actual availability depends on meeting type, transcript existence, Microsoft authorization, and tenant settings. See [Microsoft's transcript API permissions](https://learn.microsoft.com/en-us/graph/api/onlinemeeting-list-transcripts?view=graph-rest-1.0) and [Graph permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference).
+Microsoft documents the [Intune role permissions](https://learn.microsoft.com/en-us/intune/fundamentals/role-based-access-control/ref-built-in-roles) and [delegated consent operation/role requirements](https://learn.microsoft.com/en-us/graph/api/oauth2permissiongrant-post?view=graph-rest-1.0). A scope grant, role name or license alone is not a guarantee that a tenant's Conditional Access and administrative policy permit the whole workflow. Do not turn permanent Global Administrator access into a routine prerequisite.
 
-The customer app is single-tenant with exact Store redirect URLs, no wildcard redirects, and no client secret or private certificate embedded in the extension. Tenant/client IDs are public configuration identifiers, not passwords. The connector uses state and nonce checks and validates the configured tenant. These controls require negative-path tests; their presence in source is not an independent security audit.
+The administrator PC needs supported stable PowerShell 7.6 or newer. The wizard explains installation/update of Microsoft Graph Authentication and, for Microsoft 365 setup, Microsoft Teams modules from the official PowerShell Gallery. These are workstation prerequisite changes, separate from tenant deployment approval. The helper installer is per-user; prerequisite installation can require additional Windows approval under organizational policy.
 
-### Administrative provisioning: new workflow requirements
+### Teams changes are tenant-wide
 
-Setup authority is substantially more powerful than employee transcript access. Its exact scopes must be derived from the implemented API operations and displayed before consent. Do not request every scope below merely because it is listed.
+With Microsoft 365 selected, the approved workflow enables `EnableGraphTranscriptAccess`. Speaker attribution is a separate explicit choice; otherwise its previous value is preserved. The record retains the prior values. These settings are not limited by the Intune pilot group, and other authorized apps can also be affected. They do not start transcription in a meeting or replace meeting transcription policy. See [Microsoft's transcript API access controls](https://learn.microsoft.com/en-us/microsoftteams/meeting-transcript-api-access).
 
-| Operation | Microsoft permission considerations | Security consequence |
-| --- | --- | --- |
-| Create the transcript app | Microsoft's create API currently lists `AppRegistration.Create`; other required operations may need broader permissions | Creation-only permission does not establish permission to configure all properties, owners, or service principals. |
-| Update an app or create its service principal with delegated access | Current APIs list `Application.ReadWrite.All` | Can affect other applications subject to the signed-in administrator's authority; our intended object allowlist does not narrow the OAuth scope. |
-| Application-owned provisioning alternative | `Application.ReadWrite.OwnedBy` is an application permission, not a delegated scope | Requires a separately secured confidential identity; not a reason to embed a secret in the extension. |
-| Grant transcript consent | Prefer Microsoft's explicit administrator consent experience for the completed customer app | If grants are written through Graph instead, `DelegatedPermissionGrant.ReadWrite.All` is powerful authority to alter consent. Do not silently add it to simplify implementation. |
-| Create Intune configuration profiles | `DeviceManagementConfiguration.ReadWrite.All`, when that API path is used | Can change device configuration beyond this extension. Require separate justification and approved object targeting. |
-| Upload/assign Intune PowerShell or remediation scripts | Current APIs list `DeviceManagementScripts.ReadWrite.All` | Scripts can execute as SYSTEM on assigned endpoints. This is privileged code deployment, not merely saving extension preferences. |
-| Discover a deployment group | Use the least read scope supported by the selected group lookup API | Group names and membership can disclose organizational information. No group-write permission should be requested just to choose an existing group. |
-| Change Teams transcript settings | Authorized Microsoft Teams administrative session | Transcript API settings can affect the tenant, not just the extension's Intune group. Show and approve this separately. |
+## Employee Microsoft 365 permissions
 
-Sources: [create app](https://learn.microsoft.com/en-us/graph/api/application-post-applications?view=graph-rest-1.0), [update app](https://learn.microsoft.com/en-us/graph/api/application-update?view=graph-rest-1.0), [create service principal](https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-serviceprincipals?view=graph-rest-1.0), [write delegated consent](https://learn.microsoft.com/en-us/graph/api/oauth2permissiongrant-post?view=graph-rest-1.0), [Intune configuration](https://learn.microsoft.com/en-us/graph/api/intune-deviceconfigv2-devicemanagementconfigurationpolicy-create?view=graph-rest-beta), and [Intune scripts](https://learn.microsoft.com/en-us/graph/api/intune-devices-devicemanagementscript-create?view=graph-rest-beta).
+The employee connector uses authorization-code flow with PKCE against the organization's single-tenant public-client app. It requests:
 
-Delegated permission also requires a supported administrator role and applicable Intune RBAC. Tenant licensing, cloud environment, and API availability must be checked. A role or scope alone does not guarantee an operation will succeed. Prefer stable APIs; explicitly identify beta dependencies and test them for drift. Never make Global Administrator a permanent routine requirement, elevate roles automatically, or add directory-wide permissions as a silent fallback.
+| Scope | Use |
+| --- | --- |
+| `Calendars.ReadBasic` | Discover recent calendar meetings and join information. |
+| `OnlineMeetings.Read` | Resolve the selected online meeting. |
+| `OnlineMeetingTranscript.Read.All` | Retrieve an official transcript Microsoft authorizes the signed-in user to access. |
+| `openid`, `profile` | Establish the signed-in identity and profile claims. |
+| `offline_access` | Refresh delegated access during the browser session. |
 
-## Where data goes
+These are delegated permissions, not an unattended application-only transcript collector. The product asks the employee to connect and select a meeting. That selection is application behavior, not an OAuth restriction to one meeting; Microsoft's authorization and tenant settings determine actual access. Calendar discovery does not prove transcript retrieval is permitted. See [Microsoft's transcript API permissions](https://learn.microsoft.com/en-us/graph/api/onlinemeeting-list-transcripts?view=graph-rest-1.0).
 
-| Data | Destination | Retention boundary |
-| --- | --- | --- |
-| Displayed captions, local notes, recovery checkpoints | Browser extension storage | Local deletion and configured retention; no additional extension-provided encryption layer |
-| Official Teams transcript | Microsoft 365 first, then an explicitly imported browser-local copy | Tenant policy governs Microsoft's copy; local retention governs the imported copy |
-| Access/refresh tokens | Current connector's browser session storage | Sign-out/session clearing removes the local copy; revocation and already-issued token lifetime are separate concerns |
-| Tenant/client IDs and managed settings | Customer browser policy / Intune configuration | Configuration rather than credentials; still keep customer-specific records out of public support posts |
-| File, clipboard, email draft, or optional AI handoff | User-selected destination | Copies are not retracted by deleting local history or uninstalling the extension |
-| Setup approval and resource IDs | Customer-controlled change record | No tokens, passwords, transcript text, or private meeting links in logs or public wiki |
+The customer app uses exact browser redirect URIs. The extension contains no customer client secret. Tenant/client IDs are configuration identifiers, not passwords. Concealing their display is a presentation feature, not encryption or an access-control boundary; confirm that feature in the installed extension version.
 
-Core capture needs no publisher-operated transcript service. Optional Microsoft authentication, Graph retrieval, user-directed handoffs, browser sync of some preferences, and browser-provided model downloads have their own network boundaries. "Local" does not mean "the browser never contacts a service."
+## Browser permissions
 
-## Risks and how they must be controlled
+The existing extension uses `downloads`, `activeTab`, `storage`, `unlimitedStorage`, `sidePanel` and `identity` for its save, user-requested tab operations, local history, workspace and Microsoft sign-in features. Required site access covers the supported Teams, Meet and Zoom Web sites. That site access is broader than one caption element. There is no blanket `<all_urls>` permission in the reviewed manifest.
 
-| Risk | Existing control or required mitigation | Residual risk / evidence needed |
-| --- | --- | --- |
-| Administrative token theft | Required: distinct short-lived provisioning session; no tokens in packages/logs; disconnect after setup | Disconnect is not revocation of consent or proof that all issued tokens stopped working. Verify cleanup independently. |
-| Wrong tenant or excessive assignment | Required: verify tenant and exact existing group; preview changes; bind approval to the plan; no default All Users/All Devices | A compromised admin or provisioning tool can exceed our intended scope. Pilot and audit remain necessary. |
-| Partial setup or repeated execution | Required: record created object IDs; reconcile before retry; stop on ownership/configuration conflict | Never delete a same-named app or overwrite unrelated policy to get past a failure. |
-| Malicious endpoint script | Required: review exact script bytes/hash and SYSTEM context; honor organization's signing rules | Broad script-management permission remains dangerous. Signing establishes origin/integrity, not harmless behavior. |
-| Policy conflict or stale settings | Existing bundle validation; required live browser policy inspection and change/removal tests | A generated JSON file or registry write does not prove effective browser enforcement. |
-| Tenant-wide transcript exposure | Separately approve any Teams API/attribution changes and preserve prior values | A pilot Intune group does not limit a global Teams setting. Other authorized apps may also benefit. |
-| Local data theft or disk growth | Managed retention and endpoint protections | Local history is not additionally encrypted by this extension; disk encryption does not protect an unlocked compromised session. |
-| Sensitive exports or AI disclosure | Privacy Scrubber, managed release restrictions, destination review | Pattern masking can miss context and identifiers. Screenshots are not scrubbed. No DLP/compliance guarantee. |
-| Incorrect or incomplete evidence | Source-linked captions, separate derivatives and capture-health indicators | Provider captions can be wrong, absent, or incomplete; a source hash does not prove what was spoken. |
-| Compromised Store update | Exact Store identity/update source, reviewed release provenance and staged rollout | Hashes of our ZIP do not independently prove the bytes a Store served. Verify installed versions. |
-| Removal or rollback loses data | Pilot export/retention decision; staged unassignment; preserve recovery evidence | Uninstall can remove local transcripts; exported and tenant copies remain. Store downgrade is not assumed. |
+Microsoft identity/Graph host access is requested when the employee chooses to connect. Supporting administrator-launch builds also request optional `nativeMessaging` when the administrator opens setup. That connection launches the installed administrator application; it does not grant Microsoft 365 access or send transcript content to the helper. Store build availability of that entry point must be verified separately from publishing the installer.
 
-## What Intune can preconfigure today
+The extension does not record microphone, tab audio, system audio or video. An explicit still-image screenshot feature is separate and may include information visible in the meeting tab. Check the exact installed manifest and release notes after any permission-changing update.
 
-The managed schema supports `enableGraphTranscriptImport`, `graphTenantId`, and `graphClientId`. The automation should populate all three from the app it creates when Microsoft 365 is selected. When it is not selected, the deployment must not create a transcript application, seek transcript consent, or enable transcript import. It must explain whether an existing customer configuration will be preserved or changed before approval.
+## Signing and distribution
 
-Privacy, export, attendee, retention, locale, and AI-destination policies are documented in the [EUC runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/EUC-DEPLOYMENT.md) and [managed schema](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/teams-captions-saver/managed-schema.json). Optional Microsoft 365 integration must not become a prerequisite for local caption capture.
+The 6.0.3 release was downloaded anonymously and checked against its SHA-256 sidecar and valid public timestamped signature. Windows publisher: **DAVID ANTHONY FARRIS**, for this DAF-TECH release. Obtain the installer only from the [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3) or an approved organizational distribution.
 
-## Completion means measured results
+A valid signature identifies the publisher and protects signed bytes. It is not a promise of harmless code, permission approval or an absence of Windows warnings. SmartScreen also evaluates reputation, including a new file's history. Follow your organization's software approval process when Windows blocks execution. [Microsoft's explanation](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation).
 
-Record each item as passed, failed, blocked, or not run, separately for Edge and Chrome:
+The signed endpoint code runs as SYSTEM, which is privileged code execution. It applies the extension-specific policy tree and Store force-install entry, preserving unrelated force-install entries. Its ownership record contains the prior extension policy. Conflicting management or policy drift can prevent installation/removal rather than silently overwrite another administrator's state.
 
-- App creation/configuration, exact redirects, requested scopes, consent granted/denied, wrong-tenant rejection, and no embedded secrets.
-- Intune installation-only path without transcript provisioning; optional Microsoft 365 path with automatic policy population.
-- Admin denial/cancellation, missing roles/licenses, API failure, partial creation, retry, and stale/conflicting policy behavior.
-- Approved group only, effective browser policy, locked controls, actual Store install/version, and first useful synthetic meeting.
-- Sign-in/MFA/Conditional Access, browser permission request, transcript unavailable/denied, token expiry and consent revocation.
-- Restart/upgrade preserves settings and retained data; retention, prohibited exports, and AI restrictions work.
-- Assignment removal, policy rollback, app disable/revocation, local-data behavior, and provisioning-access cleanup.
+## Where information goes
 
-Do not treat "uploaded to Intune" as "installed," "registered app" as "consent granted," or "signed out" as "permission revoked." Use the organization's [enterprise review record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTERPRISE-SECURITY-REVIEW.md).
+| Information | Destination and retention boundary |
+| --- | --- |
+| Captions, local transcripts, notes and checkpoints | Browser extension storage. No additional extension-provided encryption layer is claimed. |
+| Official Teams transcript | Microsoft 365 first; an explicit import creates a separate local browser copy. |
+| Employee access/refresh tokens | Connector session storage. Disconnect/session clearing and tenant revocation are different operations. |
+| Connection identifiers and managed settings | Organization-controlled deployment/browser configuration; they are not client secrets. |
+| Setup record | The administrator's private deployment folder, normally `%LOCALAPPDATA%\DAF-TECH\Better CaptionKeep\Deployments\<operation-id>\receipt.json`. It records object identities and progress, not authentication tokens. |
+| Exports, clipboard, mail drafts or optional AI handoffs | The user's chosen destination, subject to policy. Local deletion cannot recall these copies. |
 
-## Disable, revoke, and recover
+Core capture does not require a publisher-hosted transcript service. Optional Microsoft sign-in, Graph access, browser sync of preferences and deliberate external handoffs have their own network boundaries. Local-first does not mean the browser never contacts another service.
 
-Stop expanding assignments. Preserve a sanitized record of affected versions and objects. Unassign the deployment in a test ring and verify endpoint results before broad removal. Revoke the specific customer app's delegated grants and follow the organization's Microsoft session-revocation procedure; verify denied access instead of assuming immediate invalidation. Disabling Graph import in the UI alone is not revocation.
+## Verify results without conflating them
 
-Remove temporary provisioning grants separately from the employee transcript app. Restore changed Teams settings only after checking the prior values and other applications' dependencies. Delete only resources proven to belong to this deployment, after reviewing local-data loss and shared-use consequences. Never delete a pre-existing customer app just because its display name matches.
+Record app creation/consent, Intune assignment, worker detection, browser installation, employee sign-in, discovery and transcript import separately. An Intune Installed result for the policy worker does not prove browser runtime or employee import.
 
-Local sign-out/uninstall does not delete Microsoft's transcript, exported files, clipboard history, backups, mail drafts, or copies submitted to AI. The customer must manage those copies through the corresponding systems.
+The recorded pilot verified Chrome/Edge Installed reporting plus employee sign-in and calendar discovery. Transcript import, broad fleet operation and the new ongoing settings-management bridge remain outside that acceptance. See [Administrator deployment](Administrator-Deployment) for the device checks.
 
-## Source and disclosure policy
+## Removal and access cleanup
 
-The wiki must change whenever scopes, hosts, defaults, script execution context, data destinations, provisioning identity, or cleanup behavior change. Publish the exact implemented permission inventory and dated pilot results before calling the automated flow production-ready. This page is a security explanation and acceptance contract, not a promise that every risk has been eliminated.
+1. Stop expanding the assignment and preserve permitted local data and the private setup record.
+2. Use the original Win32 app's approved Uninstall assignment and wait for endpoint reports. The recorded removal command restores the prior extension policy and removes a force-install entry only if this deployment created it. Ownership or policy drift requires investigation.
+3. Verify the browser's effective policy and extension state. A previously installed or independently managed extension can remain. Removing an assignment or deleting an Intune app is not proof of endpoint rollback.
+4. Separately review the employee Entra app, its delegated grants and the prior Teams settings. Disable/remove only resources proven to belong to this deployment, after checking shared dependencies.
+5. If no longer needed, uninstall **Better CaptionKeep Administrator Setup** through Windows installed-app management. That removes this account's helper files and matching browser connection; it does not perform cloud or endpoint rollback.
 
-Report security vulnerabilities through the repository's [security policy](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/SECURITY.md). Public issues and wiki examples must use synthetic data.
+Closing setup disconnects its local Microsoft sessions. It does **not** prove provisioning consent was revoked: the primary workflow preserves existing provisioning-client grants when ownership cannot be established. Have the identity administrator review those grants without breaking shared Microsoft Graph PowerShell workflows. An issued token's lifetime and revocation remain separate concerns.
+
+Neither uninstall nor local sign-out deletes Microsoft's transcript, exports, backups, clipboard history, mail drafts or AI submissions. Extension removal can affect local browser history, so decide retention before removing it.
+
+## Feedback and security reports
+
+Use [Support](Support) for ordinary problems and the repository's [security policy](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/SECURITY.md) for vulnerabilities. Public examples must be synthetic. Keep full receipts, private app/tenant/device identifiers, tokens, authentication codes and meeting content out of public reports.
