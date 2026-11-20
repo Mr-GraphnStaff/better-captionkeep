@@ -95,6 +95,12 @@ Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have
 - Optional customer-owned Microsoft 365 transcript import through the organization's own single-tenant Entra application.
 - Managed browser policy, Intune deployment profiles, local retention controls, and documented release provenance.
 
+**Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.**
+
+New in 6.0.3: administrators can start guided organization setup from All Settings. Launch the signed Windows setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, and approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals. Microsoft 365/Intune licensing and administrator permissions are required. Begin with a pilot and verify device installation, employee sign-in and an authorized transcript import. Local caption capture remains available without organization setup. Better CaptionKeep remains one free DAF-TECH product.
+
+Administrator guide: https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Administrator-Deployment
+
 **Why it is different**
 
 - No meeting bot.
@@ -125,7 +131,7 @@ Better CaptionKeep does not record microphone audio or video, run advertising or
 
 AI-assisted interface translation previews are available. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
 
-To begin in 6.0, join a supported meeting. Live transcript capture starts by default; pause it in **All Settings → Capture controls** whenever you choose. Open **Live Workspace** to review the transcript and evidence, or recover unavailable meeting captions. In Teams, opening the attendee panel and requesting the official transcript remain separate actions. To use Microsoft 365 import, an organization first creates its own single-tenant Entra app registration and enters its tenant and client IDs; tenant administrator consent may be required.
+To begin in 6.0, join a supported meeting. Live transcript capture starts by default; pause it in **All Settings → Capture controls** whenever you choose. Open **Live Workspace** to review the transcript and evidence, or recover unavailable meeting captions. In Teams, opening the attendee panel and requesting the official transcript remain separate actions. For Microsoft 365 import, ask your administrator to use **All Settings → Microsoft 365 → Open administrator setup**. Guided setup prepares the organization-owned Entra application and connection policy after administrator review and approval. An existing app registration with manually supplied tenant and client IDs remains an alternative; it is not a prerequisite for using guided setup. Microsoft licensing, delegated access and tenant administrator consent still apply.
 
 The seven current 6.0 artwork files were approved by David Farris on October 24, 2026 for the exact hashes in `store-assets/6.0/manifest.json`. Their product panels are clearly labeled synthetic illustrations. Match those approved bytes to the submitted package and listing; artwork approval is not browser/provider certification.
 
