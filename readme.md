@@ -211,7 +211,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. The last documented public Store baseline is `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` is published on GitHub with explicit owner exceptions to incomplete acceptance and the test window. Its Chrome submission is PENDING_REVIEW and the Edge certification submission was accepted; certification approval and Store availability are separate outcomes. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 release record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Current release: **6.0.3**, authorized for submission to Chrome Web Store and Microsoft Edge Add-ons. Store review, public availability and installed upgrade require separate observed receipts; none is implied by this source update. The last recorded public baseline is **6.0.0**. Use [the current release record](docs/RELEASE-6.0.3.md) and [Release status](docs/wiki/Release-Status.md). Earlier version evidence is historical.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 

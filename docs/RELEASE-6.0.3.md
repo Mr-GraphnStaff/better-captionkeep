@@ -23,8 +23,8 @@ labels only and were never published. This record replaces the unpublished
 
 A bounded browser change on the published 6.0.0 baseline:
 
-- Organization setup entry point in the popup that downloads, installs and
-  reconnects the separately installed Administrator Setup.
+- Organization setup entry point that opens the installed Administrator Setup,
+  or downloads its installer for the administrator to run manually before reconnecting.
 - Optional `nativeMessaging` permission, requested only when an administrator
   opens organization setup, for one fixed native host.
 - Pinned download of `admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe`
