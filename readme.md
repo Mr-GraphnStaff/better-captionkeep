@@ -21,7 +21,7 @@
 
 ## Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.
 
-**New in the 6.0.3 release candidate:** a guided administrator setup entry point for Windows organizations. Open **All Settings → Microsoft 365 → Open administrator setup** to launch the signed setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, then approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals.
+**New for 6.0.3 (currently under qualification):** a guided administrator setup entry point for Windows organizations. Open **All Settings → Microsoft 365 → Open administrator setup** to launch the signed setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, then approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals.
 
 Better CaptionKeep remains one free DAF-TECH product. Microsoft 365/Intune licensing and administrator permissions are required for organization setup; local caption capture works without it. Begin with a pilot and verify device installation, employee sign-in and an authorized transcript import before expanding. The candidate is not yet a public Store update.
 
@@ -273,31 +273,36 @@ remain pending. The machine record therefore stays candidate with those gates
 false; the existing owner acceptance exceptions remain explicitly unpassed.
 
 <!-- administrator-setup-pilot:start -->
-## Administrator setup (Dev pilot)
+## Administrator setup — signed Windows installer
 
-The guided administrator package automates approved Microsoft 365 transcript
-configuration and Intune rollout of the Store extension to a selected group.
-Organizations with an existing Azure Artifact Signing profile can optionally
-use a reviewed signing configuration; the wizard does not purchase that service
-or install certificate trust. The administrator guide covers its prerequisites.
-This is a **development pilot**, not a tenant-certified production installer or
-a new Store release. No tenant configuration changes occur merely by downloading it.
+The signed **Administrator Setup 6.0.3** Windows x64 application is available
+from its [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3).
+Its version is separate from the extension: the extension's 6.0.3 setup entry
+point is under qualification and is not yet a public Store update. Downloading
+or installing the administrator application does not itself change your tenant.
 
-1. Obtain `better-captionkeep-enterprise-setup.zip` from the reviewed **Dev
-   validation artifact** and extract the complete package. See the
-   [Dev validation runs](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/workflows/validate.yml).
-2. Double-click **Start-Setup.cmd**. The launcher checks for supported stable
-   **PowerShell 7.6 or newer** and offers the official Microsoft install/upgrade
-   route when needed. Choose the browsers, deployment group, and optional
-   Microsoft 365 setup, then review and approve the proposed privileged changes.
-3. Keep the generated `receipt.json`. Use **Check-Status.cmd** to inspect a
-   rollout and **Continue-Setup.cmd** to continue an incomplete setup. Assignment
-   or script success is not proof of working browser installation or Microsoft
-   365 access; verify a pilot device before expanding deployment.
+1. [Download the signed installer](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe),
+   verify the release SHA-256 and Windows signature from **DAVID ANTHONY FARRIS**,
+   then install it under the Windows account that will perform setup. A compatible
+   extension offers **All Settings → Microsoft 365 → Open administrator setup**
+   and a download/install/continue flow when the application is missing.
+2. Open the installed application and choose **Set up Microsoft 365**. Complete
+   work-administrator sign-in, choose Edge or Chrome and an existing pilot group,
+   review the proposed Microsoft 365/Intune changes, then approve deployment.
+   The application checks its supported PowerShell prerequisites and explains
+   any required Microsoft installation. Eligible Microsoft licensing and
+   administrator authority are required.
+3. Use **Check or continue an earlier setup** with the original private
+   `receipt.json` if deployment is interrupted. The application saves this record
+   automatically under `%LOCALAPPDATA%\DAF-TECH\Better CaptionKeep\Deployments\<operation-id>`.
+   Verify device installation, employee sign-in and an authorized transcript
+   import separately; assignment alone is not proof that those later steps work.
 
-The downloaded pilot package must satisfy your organization's script-signing
-policy. Do not bypass execution policy. Signing generated endpoint scripts does
-not sign the administrator launcher or provisioning package.
+This signed route includes the pre-signed endpoint worker. Administrators do
+not need their own signing certificate, Azure Artifact Signing account, Azure
+CLI, Node.js or .NET SDK. Retained developer ZIP/`Start-Setup.cmd` tooling is a
+separate advanced development route, not the public quick start. Never bypass
+Windows, organizational execution policy or certificate trust controls.
 
 Read the [administrator deployment guide](docs/wiki/Administrator-Deployment.md)
 and [security and permissions](docs/wiki/Deployment-Security-and-Permissions.md)
