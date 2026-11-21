@@ -5,7 +5,7 @@
   "state": "candidate",
   "candidate": {
     "frozen": true,
-    "commit": "0306eb1465cfbce8e2cfb1569a7f708400ca4cc9",
+    "commit": "7765970d04a5827c753d493ff58247cb783b488b",
     "hashes": {
       "edge-store": "e56f8fc319cb59e2a4bb6af3110bb2458c4565f868a681e95340998c7e9ba537",
       "chrome-store": "bc244c1dc7d259459e1df9390ac8bb8e7a3ce931e833c3890879902ae2ba868a",
@@ -17,7 +17,7 @@
       "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
     },
     "ownerException": {
-      "commit": "0306eb1465cfbce8e2cfb1569a7f708400ca4cc9",
+      "commit": "7765970d04a5827c753d493ff58247cb783b488b",
       "hashes": {
         "edge-store": "e56f8fc319cb59e2a4bb6af3110bb2458c4565f868a681e95340998c7e9ba537",
         "chrome-store": "bc244c1dc7d259459e1df9390ac8bb8e7a3ce931e833c3890879902ae2ba868a",
@@ -45,11 +45,11 @@
       ],
       "evidence": {
         "path": "docs/release-state/6.0.3-team-release-review-2026-11-20.md",
-        "sha256": "c2f6ad77da75a139fafd857892f848ccabe06fac9c2595fdee50178c8e10138d"
+        "sha256": "1b5b44493666be548b4bbf485f109c9ee422a99ff714dd3f6e14b009e3ad0a5f"
       }
     },
     "promotion": {
-      "commit": "0306eb1465cfbce8e2cfb1569a7f708400ca4cc9",
+      "commit": "7765970d04a5827c753d493ff58247cb783b488b",
       "hashes": {
         "edge-store": "e56f8fc319cb59e2a4bb6af3110bb2458c4565f868a681e95340998c7e9ba537",
         "chrome-store": "bc244c1dc7d259459e1df9390ac8bb8e7a3ce931e833c3890879902ae2ba868a",
@@ -66,7 +66,7 @@
         "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
       },
       "uat": {
-        "commit": "0306eb1465cfbce8e2cfb1569a7f708400ca4cc9",
+        "commit": "7765970d04a5827c753d493ff58247cb783b488b",
         "hashes": {
           "edge-store": "e56f8fc319cb59e2a4bb6af3110bb2458c4565f868a681e95340998c7e9ba537",
           "chrome-store": "bc244c1dc7d259459e1df9390ac8bb8e7a3ce931e833c3890879902ae2ba868a",
@@ -80,11 +80,11 @@
         "passed": false,
         "report": {
           "path": "docs/release-state/6.0.3-team-release-review-2026-11-20.md",
-          "sha256": "c2f6ad77da75a139fafd857892f848ccabe06fac9c2595fdee50178c8e10138d"
+          "sha256": "1b5b44493666be548b4bbf485f109c9ee422a99ff714dd3f6e14b009e3ad0a5f"
         }
       },
       "permissionDelta": {
-        "commit": "0306eb1465cfbce8e2cfb1569a7f708400ca4cc9",
+        "commit": "7765970d04a5827c753d493ff58247cb783b488b",
         "hashes": {
           "edge-store": "e56f8fc319cb59e2a4bb6af3110bb2458c4565f868a681e95340998c7e9ba537",
           "chrome-store": "bc244c1dc7d259459e1df9390ac8bb8e7a3ce931e833c3890879902ae2ba868a",
@@ -98,7 +98,7 @@
         "approved": true,
         "report": {
           "path": "docs/release-state/6.0.3-team-release-review-2026-11-20.md",
-          "sha256": "c2f6ad77da75a139fafd857892f848ccabe06fac9c2595fdee50178c8e10138d"
+          "sha256": "1b5b44493666be548b4bbf485f109c9ee422a99ff714dd3f6e14b009e3ad0a5f"
         }
       },
       "unchangedSince": "2026-11-21T03:15:58.523575+00:00"
