@@ -2,7 +2,7 @@
 
 Use Administrator Setup to deploy the Store extension to a small Windows pilot group, with optional Microsoft 365 transcript access. Employees use the browser extension; they do not need the administrator application.
 
-**Release context:** the signed [Administrator Setup 6.0.3 pilot installer](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3) is public. Helper and extension versions are separate. An Administrator Setup button in a development build does not establish that the public Store build has that button. Check [Release status](Release-Status) for extension publication and acceptance evidence.
+**Release context:** the signed [Administrator Setup 6.0.3 pilot installer](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2) is public. Helper and extension versions are separate. An Administrator Setup button in a development build does not establish that the public Store build has that button. Check [Release status](Release-Status) for extension publication and acceptance evidence.
 
 The recorded Chrome and Edge pilot reported Installed in Intune, and employee sign-in and recent-meeting discovery worked. Official transcript import remains unverified. These results do not establish large-fleet readiness.
 
@@ -23,12 +23,12 @@ If your installed extension offers **Open administrator setup**, choose it. A co
 
 If that entry point is absent from your extension build, use the same signed installer directly:
 
-**[Download Administrator Setup 6.0.3 for Windows x64](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe)**
+**[Download Administrator Setup 6.0.3 for Windows x64](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3-r2/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe)**
 
-The [release page](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3) includes the SHA-256 sidecar. The installer SHA-256 is:
+The [release page](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2) includes the SHA-256 sidecar. The installer SHA-256 is:
 
 ```text
-64baf5248e60624a8090d5be1afae0f5319dd37faa64eaf02c31829f89a94db4
+a007f49ad1709d57ec63c49dff16ce7382127ef5e99e6396ca4cae5c476185f5
 ```
 
 Check that Windows reports a valid digital signature from **DAVID ANTHONY FARRIS**, the verified publisher for this DAF-TECH release. A signature establishes publisher identity and file integrity; it does not guarantee that SmartScreen or an organization's policy will allow execution. See [Troubleshooting](Troubleshooting) if Windows blocks it.

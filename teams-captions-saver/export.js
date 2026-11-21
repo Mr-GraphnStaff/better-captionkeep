@@ -28,7 +28,15 @@ function decodeJobContent(job = currentJob) {
 }
 
 async function refreshFileExportPolicy({discardPending = false} = {}) {
-    const policy = CaptionKeepConfiguration.applyPolicy({}, await CaptionKeepConfiguration.readManaged());
+    let policy;
+    try {
+        policy = CaptionKeepConfiguration.applyPolicy({}, await CaptionKeepConfiguration.readManaged());
+    } catch (error) {
+        fileExportDisabled = true;
+        statusElement.textContent = `${error.message || 'Organization settings are unavailable.'} Reload this page to retry.`;
+        refreshButtons();
+        return false;
+    }
     fileExportDisabled = !!policy.settings.disableFileExport;
     if (fileExportDisabled && discardPending) {
         const stored = await chrome.storage.local.get(null);
@@ -198,7 +206,8 @@ document.getElementById('forget-folder').onclick = async () => {
     try {
         if (!await refreshFileExportPolicy({discardPending:true})) return;
         directory = await folderStore('readonly',store => store.get('exportFolder'));
-        const settings = await chrome.storage.sync.get(['saveAsType']);
+        const user = await chrome.storage.sync.get(['saveAsType']);
+        const {settings} = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
         const storedJob = jobId ? await chrome.storage.local.get(jobId) : {};
         currentJob = jobId && Object.hasOwn(storedJob, jobId) ? storedJob[jobId] : null;
         statusElement.textContent = currentJob ? 'Export ready. Choose where to save.' : 'Choose a folder or open a pending export.';

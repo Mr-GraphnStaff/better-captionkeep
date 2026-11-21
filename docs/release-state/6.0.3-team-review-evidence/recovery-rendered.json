@@ -1,0 +1,47 @@
+[
+  {
+    "width": 1280,
+    "role": "alert",
+    "left": 904,
+    "right": 1264,
+    "top": 317,
+    "bottom": 584,
+    "actions": 0,
+    "retained": "Retained words",
+    "state": "extension disconnected",
+    "stopped": true,
+    "overflow": false,
+    "rawTextInDOM": false,
+    "policyMessage": true
+  },
+  {
+    "width": 360,
+    "role": "alert",
+    "left": 16,
+    "right": 344,
+    "top": 275,
+    "bottom": 584,
+    "actions": 0,
+    "retained": "Retained words",
+    "state": "extension disconnected",
+    "stopped": true,
+    "overflow": false,
+    "rawTextInDOM": false,
+    "policyMessage": true
+  },
+  {
+    "width": 180,
+    "role": "alert",
+    "left": 16,
+    "right": 164,
+    "top": 16,
+    "bottom": 584,
+    "actions": 0,
+    "retained": "Retained words",
+    "state": "extension disconnected",
+    "stopped": true,
+    "overflow": false,
+    "rawTextInDOM": false,
+    "policyMessage": true
+  }
+]

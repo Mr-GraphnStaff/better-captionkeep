@@ -87,12 +87,23 @@
         return sanitizeGraphUserConfig(await chrome.storage.local.get(GRAPH_USER_KEYS));
     }
 
+    let managedPolicyObserved = false;
     async function readManaged() {
         if (!chrome.storage?.managed) return {};
         try {
-            return await chrome.storage.managed.get(POLICY_KEYS);
-        } catch {
-            return {};
+            const policy = await chrome.storage.managed.get(POLICY_KEYS);
+            if (policy && Object.keys(policy).length) managedPolicyObserved = true;
+            return policy;
+        } catch (error) {
+            // Firefox reports an unconfigured managed-storage provider as this exact
+            // error. Confirm the browser API identity; generic provider failures and
+            // loss of a previously observed policy remain failures, never permission.
+            if (!managedPolicyObserved && error?.message === 'Managed storage manifest not found'
+                && typeof chrome.runtime?.getBrowserInfo === 'function') {
+                try { if ((await chrome.runtime.getBrowserInfo())?.name === 'Firefox') return {}; } catch { /* Not a verified no-policy provider. */ }
+            }
+            // An unavailable managed store is not evidence that restrictions were removed.
+            throw new Error('Organization settings could not be read. Try again before exporting or sharing.');
         }
     }
 
