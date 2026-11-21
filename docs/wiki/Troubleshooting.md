@@ -11,7 +11,7 @@ In an extension build that includes **Open administrator setup**:
 - If setup says another instance is open, close or return to that window before retrying.
 - If it did not respond, check for an already-open setup window before starting another copy.
 
-If the public Store build has no setup button, download [Administrator Setup 6.0.3](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3) directly and follow [Administrator deployment](Administrator-Deployment). Installing on a different PC, or merely opening a shared project folder, does not install the browser connection on this PC.
+If the public Store build has no setup button, download [Administrator Setup 6.0.3-r2](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2) directly and follow [Administrator deployment](Administrator-Deployment). Installing on a different PC, or merely opening a shared project folder, does not install the browser connection on this PC.
 
 The installer registers the browser connection for the Windows account that runs it. Normal setup does not require a registry command, manual registration script or customer Azure signing configuration.
 
@@ -61,15 +61,19 @@ The new Intune console settings editor/bridge is not included in this release. E
 
 Open **All Settings → Microsoft 365 / Verified Teams transcripts**. Confirm the organization's connection was supplied and choose its Microsoft 365 Connect action. Browser host permission, Microsoft consent and employee sign-in are separate steps.
 
-For **AADSTS50011**, the administrator must compare the exact redirect URI for this installed browser identity with the organization's app registration. Do not add wildcards or replace it with a redirect from a different Store, Dev build or browser profile.
+For **AADSTS50011**, open **Administrator connection details** in the affected browser and copy its complete **Redirect URI:**. The app owner must compare it with **Entra app registrations → the existing app → Authentication → Single-page application** and add the approved exact URI if absent. Keep other approved callbacks. Follow [the browser-specific guide](Browser-Installation-and-Microsoft-365); Firefox does not use the Chromium callback format. Do not add wildcards or copy another installation's callback.
 
 If sign-in/discovery worked, do not assume import did. Check [Microsoft 365 connection](Microsoft-365-Connection) for official transcription, processing and access requirements. Live captions and a calendar invitation do not create an official transcript.
 
 ## A listed meeting has no importable transcript
 
-Check that Teams transcription ran, Microsoft has finished publishing the transcript, and the signed-in account is authorized to retrieve it. Tenant-level Graph transcript access and the app's delegated consent must also permit access. A meeting link alone cannot grant it.
+First check whether that transcript opens in Teams under the intended work account. Confirm the extension is connected to the same approved account and that you selected the intended meeting. Meeting visibility, app consent and transcript access are separate checks.
 
-Refresh after processing completes, or use the current-meeting/manual-link fallback shown by your build. Record a reproduced error without posting the meeting title, join link, participants or transcript. The current pilot has verified discovery; transcript import remains a separate unverified acceptance step.
+If it opens in Teams but BCK says it has not finished processing, do not keep waiting on that message alone. Version 6.0.3 can show that explanation when its Graph lookup returns no transcript; it has not checked processing state. [Issue #255](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/255) tracks the misleading message and unresolved retrieval. Use the normal Teams transcript access available to you while the BCK import is investigated.
+
+If no official transcript exists in Teams, check that transcription was actually started and permitted during the meeting. A calendar entry or live captions alone do not create it. Tenant transcript API settings and the signed-in user's permissions must also allow access.
+
+Report the browser, installed version, whether Teams opens the transcript and the sanitized error through [Support](Support). Keep real meeting titles, join links, participants, transcript text and organization identifiers out of public reports. Sign-in/discovery success does not establish successful import.
 
 ## Captions are not being captured
 

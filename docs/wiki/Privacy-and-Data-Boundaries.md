@@ -30,10 +30,18 @@ Microsoft 365 retains an official Teams transcript in the organization's tenant 
 
 Tenant IDs and public client IDs are configuration identifiers, not client secrets. Authentication tokens remain in browser session storage. Never put credentials, tokens, cookies, private meeting data or client secrets in source, Wiki pages, work items or support screenshots.
 
-## Deferred capabilities and distribution
+## Optional administrator setup
 
-Shipping 6.0 excludes MCP connections, native-helper payloads and external tool execution. Historical receipts remain readable/deletable without starting a new operation. Safari is deferred. No automatic upload or external action is implied by an Evidence marker or reviewed answer.
+Version 6.0.3 can request optional native messaging when you choose the administrator setup action. It connects to the separately installed, signed Windows Administrator Setup through its fixed native host and an approved extension identity. Arbitrary unpacked IDs are not automatically approved. If you explicitly choose its download action, the installer is downloaded from GitHub; a download does not install or execute it.
 
-For current candidate identity, freeze, acceptance exceptions and distribution evidence, use [Release status](Release-Status) and the [machine release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/release/6.0/docs/release-state/6.0.json). An owner publication exception does not turn incomplete checks into passes. Dated 5.4 Store evidence and historical incidents remain valid records after local folder archival.
+Administrator Setup signs in separately to Microsoft and prepares or performs reviewed Entra, Teams and Intune changes under the administrator's authority. It keeps private deployment/recovery records on Windows. Managed tenant/client settings can also exist in organization policy and those records; they are not confined to browser-local storage. Do not upload raw deployment records or authentication data to public support.
 
-Read the [security architecture](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/codex/6.0/docs/SECURITY-ARCHITECTURE.md), [privacy design](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/codex/6.0/docs/SECURITY-PRIVACY.md), and [Release status](Release-Status) before enterprise deployment.
+The extension does not automatically send meeting transcripts to this setup app. The administrator connection is separate from optional Microsoft Graph transcript import and from deferred MCP/tool execution.
+
+## Deferred capabilities and release information
+
+MCP service connections and external MCP tool execution are deferred. The optional signed Administrator Setup integration is the bounded native-messaging exception in 6.0.3. Safari is deferred. No automatic upload or external action is implied by an Evidence marker or reviewed answer.
+
+Use [Release status](Release-Status) for downloads and observed Store availability. Package publication does not certify an organization's deployment, browser/provider matrix or transcript access.
+
+Read the [current privacy policy](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md), [security architecture](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/SECURITY-ARCHITECTURE.md), [privacy design](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/SECURITY-PRIVACY.md) and [deployment permissions](Deployment-Security-and-Permissions) before organizational use.

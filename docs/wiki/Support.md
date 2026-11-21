@@ -11,9 +11,9 @@ The extension and Administrator Setup have separate versions. A Store installati
 - Browser name/full version, operating system and selected theme.
 - Extension version and Store installation versus controlled Development/UAT package.
 - Provider: Teams Web/PWA, Google Meet or Zoom Web.
-- For Administrator Setup, the installer version from the downloaded filename, separately from the extension version.
+- For Administrator Setup, the application version and full download release tag or repair revision if known (for example, `admin-setup-v6.0.3-r2`). The r2 executable still has `6.0.3` in its filename, so the filename alone does not identify the repair. Unknown is acceptable.
 - Expected and actual behavior, steps and whether the problem repeats.
-- Sanitized UI screenshot/error and affected tester case ID, if available.
+- Sanitized error text or screenshot, if available. A test-case ID is optional; ordinary users do not need one.
 
 For deployment problems, say where it stopped: download, installation, Microsoft sign-in, approval, Intune delivery, employee connection or transcript import. You do not need a receipt path to open a report. The managed Windows installation route targets Edge and Chrome; identify the browser actually affected. MCP and Safari are deferred rather than missing setup steps.
 
@@ -27,7 +27,7 @@ Do not upload raw setup receipts or full logs; they can contain organization con
 
 For sensitive vulnerabilities, follow [SECURITY.md](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/SECURITY.md) instead of posting exploit details publicly.
 
-Confirmed defects remain tracked even when fixed locally. The coordinator links the public issue to Azure Boards and distinguishes local repair, independent retest, published delivery and remaining acceptance. A passing unit test alone does not close a release defect.
+A confirmed defect stays tracked through correction and the appropriate verification. Its issue distinguishes a local repair from an available update; a passing local test does not mean a fix has shipped.
 
 ## What happens after a report
 

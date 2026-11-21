@@ -1,40 +1,40 @@
-# Development and UAT
+# Development and controlled testing
 
-This page is for contributors and controlled testers. Version 6.0 is in release qualification; a build in `dist/prod` does not by itself mean that the version is public or approved by a Store.
+This page is for source contributors and controlled testers. For normal installation, use [Installation](Installation) or the [browser-specific package guide](Browser-Installation-and-Microsoft-365). See [Release status](Release-Status) for available versions and acceptance limits.
 
-## One source checkout, three build lanes
+## Source revisions and build output
 
-The active source checkout is `P:\Projects\better-captionkeep-dev`. Do not create separate source folders for Development, UAT, or Production.
+Use a checked-out revision of [the repository](https://github.com/Mr-GraphnStaff/better-captionkeep). Follow its `AGENTS.md`, working-area rules, package scripts and applicable contribution instructions. A local directory name is not proof of the source commit, release state or approval.
 
-| Lane | Folder beneath the source checkout | Purpose |
+The currently published source build scripts use the following relative outputs. A different work branch can have a different layout; inspect that revision rather than copying a machine-specific path from a report.
+
+| Build target | Published-source output | Purpose |
 | --- | --- | --- |
-| Development | `dist/dev` | Current fixes and features |
-| UAT / Release Candidate | `dist/uat` | The Chromium candidate being accepted |
-| Production | `dist/prod` | Production-target packages and release evidence |
+| Development | `dist/dev` | Controlled development build |
+| UAT / Release Candidate | `dist/uat` | Chromium candidate for acceptance |
+| Production targets | `dist/prod` | Staged target packages and release evidence |
 
-The three Chromium lane roots have fixed extension identities and separate local storage. Browser-specific packages under Production are target artifacts, not additional lifecycle lanes. Only verified `dist/prod` artifacts are uploaded as release distributions. Development and UAT builds are not published.
+Git branches and build directories are different concepts. The governed branch route is scoped work → `dev` → `qa` → `master`; see [Three-lane release workflow](Three-Lane-Release-Workflow). A package appearing in a Production-named directory does not establish publication or acceptance.
 
-## Build and load Chromium UAT
+## Build and load a controlled package
 
-1. Use Node.js 22 or newer, as required by `package.json`.
-2. Run `npm ci` in the source checkout.
-3. Run `npm run build:uat` for UAT, or `npm run build:dev` for Development. Each command rebuilds its selected lane.
-4. Open `chrome://extensions`, `edge://extensions`, `brave://extensions`, or `opera://extensions` in the intended browser profile.
-5. Enable Developer mode and select **Load unpacked**.
-6. Choose `P:\Projects\better-captionkeep-dev\dist\uat` for UAT, or the corresponding `dist/dev` folder for Development.
+1. Use the Node.js version required by the checked-out `package.json`; the current published CI uses Node.js 22.
+2. Install locked dependencies with `npm ci` through the applicable checked working-area launcher.
+3. Use `npm run build:dev` or `npm run build:uat` for the intended target, following that revision's scratch/output rules. Preserve existing installations, private overlays and recovery material before a build can replace them.
+4. Open the intended browser's extension manager (`chrome://extensions`, `edge://extensions`, `brave://extensions` or `opera:extensions`), enable Developer mode and select Load unpacked.
+5. Choose the complete target folder containing `manifest.json` from that build. Do not choose a ZIP, the source repository root or a parent distribution folder.
+6. Verify the loaded path, version and extension identity. After a rebuild, save permitted in-progress work before reloading the extension and affected meeting page.
 
-Choose the folder containing `manifest.json`, not a ZIP or the `dist` parent. After rebuilding, use the extension card's **Reload** control and verify the loaded path and version. Avoid rebuilding a frozen candidate; changes must be reconciled with its recorded source and hashes.
+Do not rebuild an accepted frozen candidate and then reuse its old hashes or approval. A changed candidate needs renewed affected checks and a fresh identity record. Do not run Production-writing commands merely to inspect a development change.
 
-## Firefox target
+## Firefox
 
-Firefox requires the adapted Firefox package. Do not load the Chromium `dist/uat` manifest into Firefox. Release preparation creates `dist/prod/firefox-unpacked`; controlled temporary testing uses `about:debugging` → **This Firefox** → **Load Temporary Add-on**, selecting that target's `manifest.json`. A temporary installation is not a signed Mozilla Store installation or proof of live provider certification.
+Use the adapted Firefox package, not the Chromium UAT manifest. Current published source stages it under `dist/prod/firefox-unpacked`; downloaded releases can be extracted into any approved stable test folder. In Firefox, open `about:debugging` → This Firefox → Load Temporary Add-on and choose the target manifest. Temporary installation ends at restart and is not a signed Mozilla end-user distribution. Copy Firefox's actual identity callback for Microsoft 365 testing; do not construct a Chromium callback.
 
-## Acceptance and promotion
+## Acceptance evidence
 
-Chrome, Edge, Brave, Firefox, and Opera each require their own recorded live browser/provider acceptance for 6.0. Positive owner UAT is recorded separately from exact candidate identity and full certification. See [Release status](Release-Status).
+Record exact commit/package hashes, browser/OS/provider, synthetic test steps and observed outcomes. Sign-in, meeting discovery and official transcript import are separate checks. Live captions are not an official tenant transcript. Each browser/provider needs its own evidence; shared code or a successful package build does not certify it.
 
-```text
-Development -> automated validation -> live UAT -> accepted candidate -> Production promotion -> Store submission -> public upgrade verification
-```
+Keep real meeting data, private organization identifiers, credentials, raw deployment receipts and unsanitized screenshots out of public issues. Use [Support](Support) for a sanitized defect report and the private vulnerability route for sensitive security findings.
 
-A changed candidate requires renewed affected testing. Record the frozen commit, package hashes, tester, browser and provider results, and the normal unchanged-candidate window or an explicitly documented owner exception. See the [6.0 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/codex/6.0/docs/RELEASE-6.0.md), [release process](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/codex/6.0/docs/RELEASE_PROCESS.md), and [three-lane workflow](Three-Lane-Release-Workflow).
+The [release process](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE_PROCESS.md) and [current source record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json) preserve exact evidence, unpassed checks and any explicitly bound exceptions. An exception does not turn an unperformed test into a pass.
