@@ -10,9 +10,11 @@ The registration gives the extension a public identity for interactive delegated
 
 The extension uses OAuth 2.0 authorization-code flow with PKCE through `chrome.identity.launchWebAuthFlow`. Do not create or provide a client secret, certificate private key, tenant password, application-only credential, or exported refresh token.
 
+For Chrome, Edge, Brave, Opera and Firefox installation and the exact manual connection steps, use the [browser installation and Microsoft 365 guide](BROWSER-INSTALLATION-AND-MICROSOFT-365.md). Firefox uses its own identity callback; the Chromium URL examples below do not apply to Firefox.
+
 ## Before creating the registration
 
-Record the tenant owner, app owner, browsers to support, Better CaptionKeep extension IDs, exact redirect URIs, approved permissions, and rollback owner. The extension shows its runtime redirect URI in **Administrator connection details**. It has this form:
+Record the tenant owner, app owner, browsers to support, Better CaptionKeep extension IDs, exact redirect URIs, approved permissions, and rollback owner. The extension shows its runtime redirect URI in **Administrator connection details**. For Chromium browsers it has this form; Firefox administrators must copy Firefox's displayed callback instead:
 
 ```text
 https://<extension-id>.chromiumapp.org/microsoft
@@ -28,7 +30,7 @@ Chrome Store:  https://nabjdlnkkaonnbnimnmnhjcbigceebml.chromiumapp.org/microsof
 Edge Store:    https://edefcbdhahfolgkoamkbknjppojpaffk.chromiumapp.org/microsoft
 ```
 
-Register only the identities the organization will use. Store and governed unpacked IDs remain stable across normal upgrades, so the redirect does not change for every release. An ad hoc unpacked folder can receive a different extension ID and is unsupported.
+Register only the identities the organization will use. Store and governed unpacked IDs remain stable across normal upgrades, so the redirect does not change for every release. An ad hoc unpacked folder can receive a different extension ID. Its actual callback needs separate administrator approval and registration; it does not inherit the Store installation's identity or acceptance evidence.
 
 ## Create the customer-owned single-tenant application
 

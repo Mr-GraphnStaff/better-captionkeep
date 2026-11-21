@@ -31,6 +31,10 @@ The new Intune console settings editor/bridge is not included in this release. E
 
 Microsoft determines whether this account can access a particular meeting/transcript. The employee app requests delegated calendar, meeting and transcript permissions; it does not become an unattended tenant-wide collector. Some meetings visible in a calendar can still be inaccessible to the transcript API. [Permission details](Deployment-Security-and-Permissions#employee-microsoft-365-permissions).
 
+## Manual setup in Chrome, Edge, Brave, Opera or Firefox
+
+Follow [the browser installation and Microsoft 365 guide](Browser-Installation-and-Microsoft-365). It shows how to reuse an approved organization app, save the tenant/client IDs, find the Redirect URI line and add the exact callback to the existing Entra Single-page application platform. Chrome policy does not automatically configure other browsers, and Firefox callbacks must not be constructed from the Chromium format.
+
 ## Connection details and redirects
 
 Tenant and client IDs identify the organization's configuration; they are not passwords. Enforced values take precedence over local preferences. Changing a local field cannot override an organization's policy.

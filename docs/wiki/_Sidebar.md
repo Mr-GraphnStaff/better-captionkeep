@@ -20,3 +20,5 @@
 - [Development and UAT](Development-and-UAT)
 - [Development → UAT/Release Candidate → Production](Three-Lane-Release-Workflow)
 - [Release status and preserved history](Release-Status)
+
+* [Browser installation and Microsoft 365](Browser-Installation-and-Microsoft-365)

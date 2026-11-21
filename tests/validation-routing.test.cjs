@@ -57,7 +57,11 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
     'deployment/intune/Enterprise-Launcher.ps1', 'scripts/build-enterprise-package.mjs',
     'tests/enterprise-setup.test.cjs', 'tests/enterprise-launcher.test.cjs',
     'tests/enterprise-endpoint-verification.test.cjs', 'tests/fixtures/enterprise-registry-harness.ps1',
-    'docs/wiki/Deployment-Security-and-Permissions.md', 'docs/wiki/Administrator-Deployment.md'
+    'docs/wiki/Deployment-Security-and-Permissions.md', 'docs/wiki/Administrator-Deployment.md',
+    'docs/BROWSER-INSTALLATION-AND-MICROSOFT-365.md',
+    'docs/ENTRA-GRAPH-APP-REGISTRATION.md',
+    'docs/wiki/Browser-Installation-and-Microsoft-365.md',
+    'docs/wiki/Installation.md', 'docs/wiki/Microsoft-365-Connection.md', 'docs/wiki/_Sidebar.md'
   ]);
   const permitted = [...NONSHIPPING_CONTROL_FILES, '.agents/skills/software-team/SKILL.md',
     '.agents/skills/software-team/references/people-operations.md', 'docs/software-team/research.md'];
@@ -73,6 +77,25 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
   }
   assert.equal(classifyChangedPaths([]), 'candidate');
   assert.equal(classifyChangedPaths(null), 'candidate');
+});
+
+test('five-browser documentation routes without repackaging, while mixed runtime and adjacent unknown files require the candidate gate', async t => {
+  const {determineValidationMode} = await load();
+  const fixture = repository(t);
+  for (const file of ['docs/BROWSER-INSTALLATION-AND-MICROSOFT-365.md',
+    'docs/ENTRA-GRAPH-APP-REGISTRATION.md', 'docs/wiki/Browser-Installation-and-Microsoft-365.md',
+    'docs/wiki/Installation.md', 'docs/wiki/Microsoft-365-Connection.md', 'docs/wiki/_Sidebar.md']) {
+    fixture.write(file, '# Synthetic browser setup instructions\n');
+  }
+  fixture.commit('six-file browser documentation update');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base, 'codex/browser-docs', 'dev'), root:fixture.root}), 'nonshipping');
+  fixture.write('teams-captions-saver/runtime.js', 'changed runtime\n');
+  fixture.commit('runtime change alongside documentation');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base, 'codex/browser-docs', 'dev'), root:fixture.root}), 'candidate');
+  fixture.write('teams-captions-saver/runtime.js', 'original runtime\n');
+  fixture.write('docs/ENTRA-GRAPH-APP-REGISTRATION.json', '{"not":"approved Markdown"}\n');
+  fixture.commit('unrecognized adjacent file');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base, 'codex/browser-docs', 'dev'), root:fixture.root}), 'candidate');
 });
 
 test('admin npm convenience command cannot hide dependency or extension build changes', async () => {

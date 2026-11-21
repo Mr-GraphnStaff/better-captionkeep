@@ -25,7 +25,13 @@ export const NONSHIPPING_CONTROL_FILES = Object.freeze([
   'tests/enterprise-endpoint-verification.test.cjs',
   'tests/fixtures/enterprise-registry-harness.ps1',
   'docs/wiki/Deployment-Security-and-Permissions.md',
-  'docs/wiki/Administrator-Deployment.md'
+  'docs/wiki/Administrator-Deployment.md',
+  'docs/BROWSER-INSTALLATION-AND-MICROSOFT-365.md',
+  'docs/ENTRA-GRAPH-APP-REGISTRATION.md',
+  'docs/wiki/Browser-Installation-and-Microsoft-365.md',
+  'docs/wiki/Installation.md',
+  'docs/wiki/Microsoft-365-Connection.md',
+  'docs/wiki/_Sidebar.md'
 ]);
 
 const controlFiles = new Set(NONSHIPPING_CONTROL_FILES);
