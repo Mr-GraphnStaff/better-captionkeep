@@ -1,14 +1,12 @@
 # Capture Your First Meeting
 
-This guide describes the **6.0 release-qualification build**, not an assertion
-that 6.0 is publicly available. Confirm the installed version and consult
-[Installation](Installation) and [Release status](Release-Status).
+Use this guide with the Better CaptionKeep 6.0 interface. Check the installed version in your browser and use [Installation](Installation) and [Release status](Release-Status) for the appropriate package.
 
 Better CaptionKeep reads captions already displayed by the supported meeting page. It does not listen to the microphone or record video.
 
 ## Capture controls
 
-For 6.0, live transcript capture starts by default in supported meetings. Open **All Settings → Capture controls** to pause capture or configure saving when a meeting ends. Open **Live Workspace** to review captured words; if meeting captions are unavailable, use the visible caption recovery action. In Teams, attendee capture and official Microsoft 365 transcription remain separate explicit actions. Turning capture off stops new local capture without deleting words already collected. Provider and organization policies may prevent captions, rosters, or official transcription from becoming available. For the public 5.4 interface, consult its versioned release instructions.
+For 6.0, live transcript capture starts by default in supported meetings. Open **All Settings → Capture controls** to pause capture or configure saving when a meeting ends. Open **Live Workspace** to review captured words; if meeting captions are unavailable, use the visible caption recovery action. In Teams, attendee capture and official Microsoft 365 transcription remain separate explicit actions. Turning capture off stops new local capture without deleting words already collected. Provider and organization policies may prevent captions, rosters, or official transcription from becoming available.
 
 ## Microsoft Teams
 
@@ -50,9 +48,6 @@ Chrome, Edge, Brave, Firefox and Opera are the five 6.0 targets. Each requires
 its own test evidence; shared Chromium code does not certify another browser.
 Firefox uses its own package/sidebar. Safari and MCP setup are deferred.
 
-For controlled Chromium qualification, use the supplied
-`P:\Projects\better-captionkeep-dev\dist\uat` package with its recorded source
-identity. The parent `dist` folder is not an extension package. Preserve ordinary
-Store installations and archives; use the build owner's test instructions.
+For controlled testing, follow [the browser-specific installation guide](Browser-Installation-and-Microsoft-365) and select the extracted package for your actual browser. Keep its folder in a stable location and confirm the installed version. Source-build output paths depend on the checked-out revision; use [Development and UAT](Development-and-UAT) for developer instructions.
 
 Next: [Review, save, and export](Review-Save-and-Export).

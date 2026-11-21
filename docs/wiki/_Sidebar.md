@@ -6,6 +6,7 @@
 
 - [Home](Home)
 - [Install Better CaptionKeep](Installation)
+- [Five-browser installation and Microsoft 365 setup](Browser-Installation-and-Microsoft-365)
 - [Capture your first meeting](Getting-Started)
 - [Workspace, themes, review and export](Review-Save-and-Export)
 - [Microsoft 365 connection](Microsoft-365-Connection)
@@ -20,5 +21,3 @@
 - [Development and UAT](Development-and-UAT)
 - [Development → UAT/Release Candidate → Production](Three-Lane-Release-Workflow)
 - [Release status and preserved history](Release-Status)
-
-* [Browser installation and Microsoft 365](Browser-Installation-and-Microsoft-365)
