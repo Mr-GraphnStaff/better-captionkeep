@@ -1,10 +1,9 @@
 # Better CaptionKeep
 
 <!-- captionkeep-6.0.3-status:start -->
-> **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
+> **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This development record does not change prior publication records or inherit prior owner exceptions.
 <!-- captionkeep-6.0.3-status:end -->
 
@@ -228,12 +227,12 @@ Not affiliated with or endorsed by Microsoft.
 ## Administrator setup — signed Windows installer
 
 The signed **Administrator Setup 6.0.3** Windows x64 application is available
-from its [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3).
+from its [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2).
 Its version is separate from the extension: the extension's 6.0.3 setup entry
 point is included in the 6.0.3 update. Check release status for Store availability. Downloading
 or installing the administrator application does not itself change your tenant.
 
-1. [Download the signed installer](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe),
+1. [Download the signed installer](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3-r2/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe),
    verify the release SHA-256 and Windows signature from **DAVID ANTHONY FARRIS**,
    then install it under the Windows account that will perform setup. A compatible
    extension offers **All Settings → Microsoft 365 → Open administrator setup**

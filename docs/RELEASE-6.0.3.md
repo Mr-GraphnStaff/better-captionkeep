@@ -4,10 +4,9 @@ Scope: guided Microsoft 365 / Intune administrator setup entry point. This is a
 release record. The November 20 publication decision accepts documented unfinished checks; Store review and public availability remain separate outcomes.
 
 <!-- captionkeep-6.0.3-status:start -->
-> **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
+> **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This development record does not change prior publication records or inherit prior owner exceptions.
 <!-- captionkeep-6.0.3-status:end -->
 
@@ -27,9 +26,9 @@ A bounded browser change on the published 6.0.0 baseline:
   or downloads its installer for the administrator to run manually before reconnecting.
 - Optional `nativeMessaging` permission, requested only when an administrator
   opens organization setup, for one fixed native host.
-- Pinned download of `admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe`
-  (173,179,224 bytes, SHA-256
-  `64baf5248e60624a8090d5be1afae0f5319dd37faa64eaf02c31829f89a94db4`). The
+- Pinned download of `admin-setup-v6.0.3-r2/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe`
+  (173,196,280 bytes, SHA-256
+  `a007f49ad1709d57ec63c49dff16ce7382127ef5e99e6396ca4cae5c476185f5`). The
   extension does not verify each download's hash in the browser and does not
   execute the installer.
 - Corrected Store disclosures: the `downloads` justification now describes the

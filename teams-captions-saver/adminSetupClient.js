@@ -7,7 +7,7 @@
     const INSTALLER_RELEASE = Object.freeze({
         available: true,
         updateAvailable: true,
-        url: 'https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe'
+        url: 'https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3-r2/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe'
     });
     const NATIVE_TIMEOUT_MS = 15000;
 
@@ -17,7 +17,7 @@
 
     function missingHost(error) {
         return error?.code === 'setup-not-installed' ||
-            /native messaging host.*not found|specified native messaging host/i.test(String(error?.message || ''));
+            /(?:native messaging host.*not found|native messaging host.*not registered)/i.test(String(error?.message || ''));
     }
 
     function api() {
@@ -27,6 +27,7 @@
     function safeMessage(error) {
         const text = String(error?.message || '');
         if (/Close the existing Better CaptionKeep Administrator Setup window/i.test(text)) return text;
+        if (/forbidden|untrusted-extension-origin|not allowed/i.test(text)) return 'This extension identity is not authorized by the installed Administrator Setup connector. Install the current connector, then retry. Downloading alone does not update it.';
         if (/permission/i.test(text)) return 'Browser permission was not approved. No organization changes were made.';
         if (error?.code === 'native-timeout') return 'Administrator Setup did not respond. Check for an open setup window before trying again.';
         return 'Opening Administrator Setup could not be confirmed. Check for an open setup window before trying again.';
@@ -88,7 +89,7 @@
             throw new Error('Close the existing Better CaptionKeep Administrator Setup window, then try again.');
         }
         if (response.ok !== true) {
-            throw new Error('Organization setup returned an invalid response.');
+            throw new Error(response?.error === 'untrusted-extension-origin' ? 'untrusted-extension-origin' : 'Organization setup returned an invalid response.');
         }
         status.textContent = 'Organization setup opened. Continue in the setup window.';
     }
@@ -114,7 +115,7 @@
         let updating = false;
 
         function showUpdateAction() {
-            update.hidden = state !== 'ready' || !INSTALLER_RELEASE.available || !INSTALLER_RELEASE.updateAvailable;
+            update.hidden = state !== 'connector-update-required' || !INSTALLER_RELEASE.available || !INSTALLER_RELEASE.updateAvailable;
             update.disabled = update.hidden;
         }
 
@@ -180,6 +181,13 @@
                 }
             } catch (error) {
                 if (!isCurrent()) return;
+                if (/forbidden|untrusted-extension-origin|not allowed/i.test(String(error?.message || ''))) {
+                    state = 'connector-update-required';
+                    button.textContent = 'Open administrator setup';
+                    cancel.hidden = true;
+                    status.textContent = safeMessage(error) + ' Choose Update administrator setup and run the downloaded installer once.';
+                    return;
+                }
                 if (missingHost(error)) {
                     installationRequired(action === 'waiting-install');
                     return;

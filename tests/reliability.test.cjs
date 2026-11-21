@@ -2160,3 +2160,35 @@ test('a recent same-page checkpoint restores captions and warns about the gap',a
     assert.equal(h.run('documentSessionId'),'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.match(h.run('checkpointError'),/resumed from a recovery checkpoint/i);
 });
+
+test('invalidated Teams context stops obsolete work and retains available transcript',async()=>{
+ const h=await contentHarness();
+ h.run("capturing=true;transcriptArray.push({Name:'Synthetic',Text:'retain me',Time:'10'});mainLoopInterval=11;backupInterval=12;");
+ const cleared=[];h.context.clearInterval=id=>cleared.push(id);
+ let disconnected=0;h.context.fakeObserver={disconnect(){disconnected++}};
+ h.run('observer=fakeObserver;meetingObserver=fakeObserver;captionsObserver=fakeObserver;');
+ h.chrome.runtime.id=undefined;h.chrome.runtime.sendMessage=()=>{throw new Error('Extension context invalidated.')};
+ await h.run('handleCaptionsStateChange()');
+ assert.equal(h.run('extensionContextInvalidated'),true);assert.equal(h.run('capturing'),false);
+ assert.equal(h.run('captureState'),'extension disconnected');assert.equal(h.run('transcriptArray[0].Text'),'retain me');
+ assert.equal(disconnected,3);assert.deepEqual(cleared,[11,12]);
+ await h.run('handleCaptionsStateChange()');assert.equal(disconnected,3);
+});
+test('invalid context while logging an error does not throw recursively',async()=>{
+ const h=await contentHarness();h.chrome.runtime.sendMessage=()=>{throw new Error('Extension context invalidated.')};
+ assert.doesNotThrow(()=>h.run("ErrorHandler.log(new Error('other failure'),'synthetic')"));
+ assert.equal(h.run('extensionContextInvalidated'),true);
+});
+
+test('disconnected Teams page offers one local recovery export including pending words',async()=>{
+ const h=await contentHarness();const added=[];const links=[];const elements=new Map();
+ h.document.createElement=tag=>({tag,style:{},children:[],listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,f){this.listeners[k]=f},append(...items){this.children.push(...items)},click(){links.push(this)}});
+ h.document.getElementById=id=>elements.get(id)||null;
+ h.document.body={append(node){added.push(node);elements.set(node.id,node)}};
+ h.context.pendingBuffer={flushAll(){h.run("transcriptArray.push({Name:'Synthetic',Text:'pending words',Time:'10'})")}};
+ h.run('captionBuffer=pendingBuffer');let calls=0;h.chrome.runtime.sendMessage=()=>{calls++;throw new Error('Extension context invalidated.')};h.chrome.runtime.id=undefined;
+ await h.run('handleCaptionsStateChange()');await h.run('handleCaptionsStateChange()');
+ assert.equal(calls,0);assert.equal(added.length,1);assert.equal(added[0].role,'alert');
+ assert.match(added[0].children[0].textContent,/Capture has stopped/);assert.equal(h.run('transcriptArray[0].Text'),'pending words');
+ added[0].children[1].listeners.click();assert.equal(links.length,1);assert.equal(links[0].download,'BetterCaptionKeep-recovery.txt');assert.match(links[0].href,/^blob:/);
+});
