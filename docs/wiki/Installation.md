@@ -1,5 +1,9 @@
 # Installation
 
+## Browser-specific installation and Microsoft 365 setup
+
+Use [the five-browser setup guide](Browser-Installation-and-Microsoft-365) for Chrome, Edge, Brave, Opera and Firefox, including controlled 6.0.3 installation, existing tenant/app configuration, finding the exact browser callback and Firefox limitations.
+
 ## Recommended: install from your browser's Store
 
 Store installation provides a stable extension identity and automatic updates.
