@@ -1,0 +1,16 @@
+{
+  "popup.html": "3bc9cc2cc38e1fc18824077177463ad0154abcf48955a2dbe4f00fae099df5f6",
+  "theme.js": "831cc8e9f811a3bf2ac2ce60793371dcf89d5117073f2791e5ab25561936a50e",
+  "adminSetupClient.js": "252afbc4ba69e9b9d6acd74c30849673e18abb92c0cf1cfbfe376c0115ebb486",
+  "content_script.js": "3f56fb9a5290a411544ebb4fc43b75d94dfe8012c40996d4f805124321fd0faf",
+  "configuration.js": "a7876418a18eb158fd3eeb3f4969278b0abeafcb3c6bcb4a1560499065086087",
+  "export.js": "41e9d52bc44364b2969137e1f7f561e262cef83d72c77a43adbb827b2831b9df",
+  "_locales/en/messages.json": "b2df7aa0cdb18a29bb58c960ec1ca06a9b081f05772c1a35892c8d50666ab79d",
+  "byomcp-settings.css": "dd282c47e29fe0221a41578ccc2c6324020f158dbd7e6530398027f40ce60fe2",
+  "byomcp-workspace.css": "500649b22999c1e53b8bfc71626b5a18dc8204570a5cc2dd43894e91cb6e98cd",
+  "shareable.css": "fd80466e3b8dfb60f30dd220fd8595936e45f6398ac8ba6ea2b04a5bd43e0ff1",
+  "sidepanel.css": "6994762e88bf9e51e0803d6c3f3f2bf72cc47ddbcf6efe74b03068ddfc0288b2",
+  "surface-v6.css": "98b8f4946a175a3103c38c92d7e81f3ee40f59b2fb9f1f91f1782299cff47c7e",
+  "theme.css": "b3befb35d02609cea3badf5bfc7393b4533dff2144a8aa4c77fc8f8655b347b1",
+  "popup-v6.css": "a14e8e1026928b331ef960d2cc3b2cd95115a422a007bc35c6b1141ee9f07048"
+}

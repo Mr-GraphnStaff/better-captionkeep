@@ -87,7 +87,7 @@ The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** a
 
 ## Release lineage
 
-Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the last documented public Store baseline. [6.0](docs/RELEASE-6.0.md) is published on GitHub from protected `master`, with documented owner exceptions and the bounded Teams repair; Store rollout is pending. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, and [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release. [5.4](docs/RELEASE-5.4.md) is a historical release; [6.0.0](docs/RELEASE-6.0.md) is the last recorded public Store baseline. Version 6.0.3 is being prepared for submission. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Approved 6.0 interface illustrations
 
@@ -138,7 +138,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-The last documented Chrome and Edge Store baseline is `5.4.0`; 6.0 is published on GitHub and accepted for Chrome review and Edge certification; approval and public upgrades remain pending. Installed-upgrade and post-upgrade functional smoke verification remain separate evidence. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+The release documentation records `6.0.0` as the last observed public Store version. Version `6.0.3` is being prepared for submission; approval, public availability and installed-upgrade verification remain separate. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 

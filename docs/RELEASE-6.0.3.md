@@ -42,8 +42,9 @@ Explicitly excluded (deferred by the owner): the new Intune-console settings
 editor, the expanded 27-setting managed schema, ADMX/ADML templates and the
 persistent management bridge.
 
-The five extension files are the reviewed front-door candidate, applied without
-modification apart from the version label.
+This correction batch supersedes the earlier five-file front-door candidate and
+includes setup, recovery, managed-export and English-description changes. Fresh
+qualification and package identities are required.
 
 ## Acceptance still unfinished — publication exception recorded
 
@@ -59,4 +60,4 @@ modification apart from the version label.
 
 ## November 20 publication decision
 
-The owner directed publication to both Stores despite the known QA identity failure and unfinished checks. See [the exact decision and limitations](release-state/6.0.3-owner-publication.md). No failed or unfinished acceptance is recorded as passed.
+The owner directed publication to both Stores despite the known QA identity failure and unfinished checks. See [the exact decision and limitations](release-state/6.0.3-team-release-review-2026-11-20.md). No failed or unfinished acceptance is recorded as passed.

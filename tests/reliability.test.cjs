@@ -2180,15 +2180,19 @@ test('invalid context while logging an error does not throw recursively',async()
  assert.equal(h.run('extensionContextInvalidated'),true);
 });
 
-test('disconnected Teams page offers one local recovery export including pending words',async()=>{
- const h=await contentHarness();const added=[];const links=[];const elements=new Map();
- h.document.createElement=tag=>({tag,style:{},children:[],listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,f){this.listeners[k]=f},append(...items){this.children.push(...items)},click(){links.push(this)}});
- h.document.getElementById=id=>elements.get(id)||null;
- h.document.body={append(node){added.push(node);elements.set(node.id,node)}};
- h.context.pendingBuffer={flushAll(){h.run("transcriptArray.push({Name:'Synthetic',Text:'pending words',Time:'10'})")}};
- h.run('captionBuffer=pendingBuffer');let calls=0;h.chrome.runtime.sendMessage=()=>{calls++;throw new Error('Extension context invalidated.')};h.chrome.runtime.id=undefined;
- await h.run('handleCaptionsStateChange()');await h.run('handleCaptionsStateChange()');
- assert.equal(calls,0);assert.equal(added.length,1);assert.equal(added[0].role,'alert');
- assert.match(added[0].children[0].textContent,/Capture has stopped/);assert.equal(h.run('transcriptArray[0].Text'),'pending words');
- added[0].children[1].listeners.click();assert.equal(links.length,1);assert.equal(links[0].download,'BetterCaptionKeep-recovery.txt');assert.match(links[0].href,/^blob:/);
+test('disconnected Teams recovery never exports when policy cannot be checked',async()=>{
+ for(const policy of [{disableFileExport:true},{forceScrubbedExport:true},{},null]){
+  const h=await contentHarness();const added=[];const elements=new Map();let downloads=0,blobs=0;
+  h.document.createElement=tag=>({tag,style:{},children:[],listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,f){this.listeners[k]=f},append(...items){this.children.push(...items)},click(){downloads++}});
+  h.document.getElementById=id=>elements.get(id)||null;h.document.body={append(node){added.push(node);elements.set(node.id,node)}};
+  h.chrome.storage.managed.get=async()=>{if(policy===null)throw Error('Synthetic policy unavailable');return policy};
+  h.context.URL=class extends URL {static createObjectURL(){blobs++;return 'blob:should-not-exist'}};
+  h.context.pendingBuffer={flushAll(){h.run("transcriptArray.push({Name:'Synthetic',Text:'pending words',Time:'10'})")}};
+  h.run('captionBuffer=pendingBuffer');let messages=0;h.chrome.runtime.sendMessage=()=>{messages++;throw Error('Extension context invalidated.')};h.chrome.runtime.id=undefined;
+  await h.run('handleCaptionsStateChange()');await h.run('handleCaptionsStateChange()');
+  assert.equal(messages,0);assert.equal(blobs,0);assert.equal(downloads,0);assert.equal(added.length,1);
+  assert.equal(added[0].role,'alert');assert.equal(added[0].children.some(n=>n.tag==='button'||n.tag==='a'),false);
+  assert.match(added[0].children[0].textContent,/Capture has stopped/);assert.match(added[0].children[1].textContent,/policy cannot be checked/);
+  assert.equal(h.run('transcriptArray[0].Text'),'pending words');
+ }
 });

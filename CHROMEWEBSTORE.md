@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Better CaptionKeep 6.0.3
 
-Updated November 20, 2026. Current extension and Administrator Setup version: **6.0.3**. Use the approved DAF-TECH sphere artwork and existing company themes. Guided Microsoft 365 setup and Intune deployment are the launch message. Store submission, review and public availability are separate states in [the current release record](docs/RELEASE-6.0.3.md). The [publication decision](docs/release-state/6.0.3-owner-publication.md) records unfinished acceptance and the known QA identity problem; none is represented as passed.
+Updated November 20, 2026. Current extension and Administrator Setup version: **6.0.3**. Use the approved DAF-TECH sphere artwork and existing company themes. Guided Microsoft 365 setup and Intune deployment are the launch message. Store submission, review and public availability are separate states in [the current release record](docs/RELEASE-6.0.3.md). The [publication decision](docs/release-state/6.0.3-team-release-review-2026-11-20.md) records unfinished acceptance and the known QA identity problem; none is represented as passed.
 
 ## Store Listing
 
@@ -10,84 +10,25 @@ Better CaptionKeep — Live Meeting Transcript
 
 **Short Description**
 
-Local Teams, Meet, and Zoom transcripts with source-linked evidence and BYOAI—no bot, account, or AI subscription.
+Local Teams, Meet and Zoom Web captions, transcripts and evidence. No Better CaptionKeep account required.
 
 **Detailed Description**
 
-Better CaptionKeep is a private meeting note taker and live transcript tool for Microsoft Teams captions, Google Meet transcription, and Zoom Web transcripts. It turns captions already displayed in the meeting into searchable notes and source-linked evidence. It does not add a meeting bot, record microphone or video, or require a Better CaptionKeep account.
+Better CaptionKeep is a free DAF-TECH product for keeping displayed Microsoft Teams, Google Meet and Zoom Web captions as searchable local transcripts and source-linked meeting evidence.
 
-**Bring Your Own AI (BYOAI)**
+Review captured words, mark decisions and actions, and export transcripts. Better CaptionKeep captures displayed captions; it does not record microphone audio or video or add a meeting bot. Local caption capture requires no Better CaptionKeep account or organization setup.
 
-Use the ChatGPT, Claude, Microsoft Copilot, or Gemini workspace you already have. Better CaptionKeep does not sell a required AI subscription or route meetings through a mandatory DAF-TECH AI service. On the Fly turns selected meeting words into one-click Research, Explain, Reply, or Email outcomes. AI actions copy a bounded prompt and open the user's saved AI workspace; the user still pastes, reviews, and sends. Email opens a prefilled, recipient-free draft in the saved Outlook work or school, Outlook.com personal, Gmail, or browser/default email destination. **Review/edit** remains available when more control is needed. The broader BYOAI framework also accommodates future validated customer-owned hosted assistants and gateways. Version 6.0 claims only the workspace handoff, cited local derivatives, and controls implemented in the identified 6.0 package; the release record separately identifies tested coverage and owner-accepted exceptions.
+Optional Bring Your Own AI handoff prepares material for your chosen AI workspace. You control what you copy or attach and complete submission yourself. Privacy Scrubber can mask supported sensitive patterns; review material before sharing.
 
-**What you get**
+Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.
 
-- Live Workspace side panel for Teams, Google Meet, and Zoom Web.
-- Local caption capture starts on when supported meeting captions are available; pause or resume it in All Settings. Teams attendee capture and official Microsoft 365 transcription remain separate explicit actions.
-- Local transcript history, interruption recovery, full-text search, speaker aliases, corrections, and a local terminology dictionary.
-- Evidence Board markers for decisions, actions, questions, risks, follow-ups, and important moments, each tied to its source-caption ID.
-- On the Fly research, explanation, live-reply, and follow-up tasks using your chosen AI workspace.
-- Privacy Scrubber, on by default, for supported sensitive patterns before copy, export, or AI handoff.
-- TXT, Markdown, DOCX, Print/PDF, evidence-brief Markdown, and provenance JSON exports.
-- SRT and WebVTT when an imported official source contains real media cue timing.
-- User-reviewed loaded meeting-chat/shared-link snapshots and active-tab screenshots.
-- Feature-detected on-device translation with no silent cloud substitute.
-- Optional customer-owned Microsoft 365 transcript import through the organization's own single-tenant Entra application.
-- Managed browser policy, Intune deployment profiles, local retention controls, and documented release provenance.
+Version 6.0.3 adds an administrator setup entry point in All Settings → Microsoft 365. A compatible installed helper can open from there; otherwise, download and run the signed Windows x64 installer yourself. Downloading does not install or launch it.
 
-**Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.**
+For supported commercial Microsoft-cloud organizations, guided setup prepares deployment to Edge, Chrome or both through Intune, with optional organization-owned Microsoft 365 transcript access. It requires appropriate Microsoft licensing, enrolled Windows x64 pilot devices and administrator authority. Review proposed permissions and changes before approving deployment.
 
-New in 6.0.3: administrators can start guided organization setup from All Settings. Launch the signed Windows setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, and approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals. Microsoft 365/Intune licensing and administrator permissions are required. Begin with a pilot and verify device installation, employee sign-in and an authorized transcript import. Local caption capture remains available without organization setup. Better CaptionKeep remains one free DAF-TECH product.
+Start with a limited pilot. Verify browser installation, employee sign-in and authorized transcript import separately before expanding.
 
 Administrator guide: https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Administrator-Deployment
-
-**Why it is different**
-
-- No meeting bot.
-- No required Better CaptionKeep account or paid feature tier.
-- No required DAF-TECH AI subscription or publisher-operated transcript cloud; optional connected BYOAI remains customer-owned.
-- No automatic prompt submission, chat posting, connector execution, or fabricated assistant return channel.
-- Displayed-caption minimization instead of broad microphone, tab-audio, system-audio, or video recording.
-- Source-linked evidence and immutable caption references instead of an untraceable AI summary.
-- Customer-controlled Microsoft 365 and AI destinations, with managed policy for organizational deployment.
-
-Live transcript capture starts on for supported meeting pages and can be paused or resumed explicitly without losing already captured text. Teams attendee capture and Microsoft 365 transcription remain separate visible actions. The interface clearly distinguishes the local browser copy from the official tenant-retained transcript. A signed-in organizational user can select the current meeting or choose one of five recent Teams meetings to retrieve an authorized official transcript directly into the standard transcript viewer when their tenant permits the delegated access.
-
-Every feature included in Better CaptionKeep is available to every user. There is no paid tier, subscription, activation, or license key. Organization-managed security settings and Microsoft authorization requirements can still control how features operate in a managed environment.
-
-Capture displayed captions while you meet, review the transcript by speaker, search for what mattered, and export TXT or Markdown files. Local history and recovery checkpoints help protect work when a meeting page changes or the browser interrupts capture.
-
-Version 6.0 introduces the dark sphere interface, a one-button meeting decision, a persistent Transcript/Moments/Live Notes/Evidence/Ask workspace, restart-safe cited Rolling Notes, Capture Moment review, local Meeting Receipts, transcript-bound Q&A, and the advanced All Settings cockpit. The full transcript viewer remains available for live and completed history. Word exports, Print / PDF through the browser dialog, local reusable meeting templates, user-reviewed meeting chat and screenshot attachments, and feature-detected on-device translation remain available. Screenshot and chat attachment workflows do not imply audio/video recording or complete chat-history capture. Better CaptionKeep does not operate a transcript upload service.
-
-Separate quick-start buttons open Teams to Meet now or launch each provider's official new-meeting experience for Zoom and Google Meet. Better CaptionKeep does not create invitations or contact participants.
-
-The local Live Workspace keeps the live transcript and Evidence Board together beside the meeting. It lets you mark decisions, action items, questions, risks, follow-ups, and important moments without changing the source transcript. Evidence briefs retain source-caption references and can be copied, saved, or opened as a user-reviewed email draft with no recipients selected.
-
-Privacy Scrubber is enabled by default and can mask common sensitive patterns before copy, export, an optional AI handoff, or a user-requested email draft. Better CaptionKeep never puts meeting text in an AI-provider URL, pastes into an AI workspace automatically, or submits for the user. When the user explicitly chooses Email, the cleaned draft subject and body are placed in the selected webmail compose URL or default mail-handler request; recipients remain blank and nothing is sent automatically.
-
-On the Fly turns highlighted meeting words or a whole caption into a bounded, source-linked task. Research, Explain, and Reply copy the cleaned prompt and open the user's first saved AI destination in one click; the user pastes, reviews, and sends there. Email opens a recipient-free draft in the saved webmail destination. **Review/edit** opens the complete local prompt and provider chooser for exceptional cases. Results stay in the chosen external workspace; the extension does not claim an automatic assistant return channel.
-
-Better CaptionKeep does not record microphone audio or video, run advertising or analytics, or send transcripts to a developer-operated service. Recent Microsoft 365 calendar choices are transient. Authentication tokens remain in browser session storage. Imported transcripts, source provenance, and live-caption history remain under the user's local deletion and retention controls.
-
-AI-assisted interface translation previews are available. Preview languages are labeled as uncertified, retain English fallback, and provide a user-reviewed translation-report form. Opening a report never attaches transcript text, meeting links, participant data, tenant or account identifiers, browser history, or screenshots automatically.
-
-To begin in 6.0, join a supported meeting. Live transcript capture starts by default; pause it in **All Settings → Capture controls** whenever you choose. Open **Live Workspace** to review the transcript and evidence, or recover unavailable meeting captions. In Teams, opening the attendee panel and requesting the official transcript remain separate actions. For Microsoft 365 import, ask your administrator to use **All Settings → Microsoft 365 → Open administrator setup**. Guided setup prepares the organization-owned Entra application and connection policy after administrator review and approval. An existing app registration with manually supplied tenant and client IDs remains an alternative; it is not a prerequisite for using guided setup. Microsoft licensing, delegated access and tenant administrator consent still apply.
-
-The seven current 6.0 artwork files were approved by David Farris on October 24, 2026 for the exact hashes in `store-assets/6.0/manifest.json`. Their product panels are clearly labeled synthetic illustrations. Match those approved bytes to the submitted package and listing; artwork approval is not browser/provider certification.
-
-Support: https://github.com/Mr-GraphnStaff/better-captionkeep/issues
-
-**Category**
-
-Workflow & Planning
-
-**Single Purpose**
-
-Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares it through a reviewed handoff. The extension does not connect to MCP services or execute external tools in version 6.0.
-
-**Primary Language**
-
-English
 
 ## Graphics & Assets
 
@@ -105,6 +46,10 @@ English
 All artwork uses synthetic meetings and identities. Never substitute real participant names, meeting links, tenant identifiers, or transcript content.
 
 ## Permissions Justification
+
+**Single-purpose declaration**
+
+Capture, protect, review, and export meeting transcripts. Better CaptionKeep reads displayed captions from supported Microsoft Teams, Google Meet, and Zoom Web pages and, after customer-owned tenant setup, lets a signed-in organizational user privately import an authorized official Teams transcript from Microsoft 365. Transcript data stays in the user's browser unless the user explicitly exports, copies, or shares it through a reviewed handoff. The extension does not connect to MCP services or execute external tools in version 6.0.
 
 | Permission | Type | Justification |
 | --- | --- | --- |
@@ -185,7 +130,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 | Version | Date | Changes | Status |
 | --- | --- | --- | --- |
-| 6.0.3 | 2026-11-20 | Adds the guided Microsoft 365 / Intune organization setup entry point: optional `nativeMessaging`, a pinned download of the signed Administrator Setup 6.0.3 installer, and reconnect to the installed setup application. | Frozen for owner-authorized submission; unfinished acceptance recorded as exceptions; Store review/public rollout tracked separately |
+| 6.0.3 | 2026-11-20 | Adds the guided Microsoft 365 / Intune organization setup entry point, repairs connector/capture failures, and enforces export restrictions when organization settings cannot be read. | Team-reviewed correction candidate; hosted qualification passed and exact package identities verified. Owner-authorized submission remains pending; Store approval/public availability are separate. |
 | 6.0.0 | 2026-10-13 | Introduces the dark DAF-TECH operational shell, one-button meeting entry, direct Teams/Meet/Zoom launchers, ready/not-ready state, and Meeting Receipt workspace over the existing local capture, archive, Evidence Board, export, privacy, and BYOAI capabilities. | Historical public baseline; owner confirmed both Stores October 25; Chrome listing rechecked November 16 |
 | 5.4.0 | 2026-10-10 | Adds On the Fly BYOAI handoff, explicit meeting-source controls, localization previews, DAF-TECH parent branding, Trust Center, and refreshed Store artwork. | Public in Chrome and Edge; installed-upgrade and post-upgrade functional smoke pending |
 | 5.3.3 | 2026-10-07 | Unifies the live transcript and Evidence Board in one side-panel workspace, keeps the expanded viewer intentional, and stops intercepting the standard paste shortcut. | Chrome publicly serves 5.3.3 as of October 8; Edge status requires fresh verification |
@@ -205,7 +150,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 6. Confirm Privacy Scrubber is enabled by default. In Settings, choose an AI destination and Outlook work or school, Outlook.com personal, Gmail, or the browser/default email app for follow-up drafts.
 7. In the live transcript, highlight synthetic caption words. Verify Research, Explain, and Reply copy a bounded cleaned prompt and open the saved AI workspace without pasting or submitting it. Verify Email opens a recipient-free webmail draft, and Review/edit opens the complete local prompt and provider chooser.
 8. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
-9. For Microsoft 365 testing, use the reviewer's organization-owned single-tenant Entra app registration. Open All Settings, enter its tenant and client IDs under Administrator connection details, save setup, choose Connect Microsoft 365, then select and import an authorized official transcript. Better CaptionKeep embeds neither a shared app identity nor a client secret.
+9. Microsoft 365 import is optional. In an authorized test organization, review the guided administrator setup route in All Settings → Microsoft 365 and its licensing/permission prerequisites. Download and run the signed installer once if needed; inspect proposed changes before any approval. Manual organization-owned tenant/client IDs remain an alternative. Test an authorized transcript import only when that setup is complete.
 
 No developer-operated server, paid subscription, microphone recording, video recording, or shared test account is required for the extension itself.
 
@@ -226,7 +171,9 @@ No developer-operated server, paid subscription, microphone recording, video rec
 - Upload and publication require explicit release-owner authorization. A successful build does not grant it.
 - For 6.0, David Farris authorized publication on October 24 with documented owner exceptions for incomplete exact-package browser/provider, full-scope/accessibility/failure acceptance and the 48-hour unchanged window. Preserve the missing checks as missing, not passed; bind the reviewed exception to exact source/package hashes and approved targets. Hash/provenance, permission-delta, secret-handling and Production-only artifact checks still apply. Store review, public parity and delivered-upgrade verification remain rollout outcomes to observe.
 
-### Submission History
+### Submission History — historical 5.x records
+
+These dated records describe earlier releases. They are not current 6.0.3 submission instructions.
 
 Chrome 5.3.1 was submitted and then cancelled after the Microsoft 365 defect was confirmed. Edge 5.3.1 became public and exposed the defect. Azure run 619 submitted the corrected 5.3.2 package to both existing Store products on October 4, 2026. At 17:25 UTC, Microsoft's public update service served the signed Edge 5.3.2 CRX. Chrome Web Store publicly listed version 5.3.2 as updated October 6, 2026. Installed-upgrade verification remains separate evidence.
 

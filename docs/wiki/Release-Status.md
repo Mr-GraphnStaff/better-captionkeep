@@ -24,7 +24,7 @@ Open **All Settings → Microsoft 365 → Open administrator setup**. If prompte
 
 The QA identity omission and forbidden-host download loop are corrected in the r2 connector/source; installed launch acceptance and release promotion are tracked in [issue #221](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/221). Production-ID end-to-end setup remains unverified. The owner directed publication with these gaps and incomplete acceptance recorded, not passed.
 
-Use the [6.0.3 machine record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), [release notes](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.3.md), and [publication decision](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3-owner-publication.md).
+Use the [6.0.3 machine record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), [release notes](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.3.md), and [publication decision](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3-team-release-review-2026-11-20.md).
 
 ## Historical versions
 
