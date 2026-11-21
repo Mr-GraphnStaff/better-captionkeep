@@ -5,32 +5,32 @@
   "state": "candidate",
   "candidate": {
     "frozen": true,
-    "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
+    "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
     "hashes": {
-      "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-      "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
-      "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
-      "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
-      "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
-      "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
-      "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-      "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+      "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+      "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+      "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+      "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+      "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
+      "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
+      "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
+      "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
     },
     "ownerException": {
-      "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
+      "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
       "hashes": {
-        "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-        "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
-        "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
-        "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
-        "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
-        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
-        "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-        "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+        "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+        "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+        "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+        "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+        "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
+        "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
+        "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
+        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
       },
       "approvedBy": "David Farris",
       "approvedAt": "2026-11-20T23:35:54.638538+00:00",
-      "reason": "Owner explicitly directed both Store submissions after the known QA setup failure and unfinished acceptance were explained; latest direction supersedes earlier complete-checks-first decision. Checks remain unfinished.",
+      "reason": "Owner directed both Store submissions despite unfinished acceptance and then required correction of the actual QA failures. These corrected packages bind that continuing release authority after verified repairs; unfinished acceptance remains unpassed.",
       "waivedGates": [
         "fullScopeAcceptance",
         "accessibilityAndFailureUat",
@@ -44,21 +44,21 @@
         "opera"
       ],
       "evidence": {
-        "path": "docs/release-state/6.0.3-owner-publication.md",
-        "sha256": "7cbd727d768a3306d5f35f07fea54c0dc596589661347ae961303e4a868402a7"
+        "path": "docs/release-state/6.0.3-fix-verification-2026-11-20.md",
+        "sha256": "3f2780e4983ba5e0bc80a5b6514d64f9c4e0fe95739305f67c13dc6d285215a5"
       }
     },
     "promotion": {
-      "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
+      "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
       "hashes": {
-        "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-        "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
-        "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
-        "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
-        "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
-        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
-        "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-        "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+        "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+        "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+        "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+        "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+        "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
+        "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
+        "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
+        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
       },
       "approvedBy": "David Farris",
       "targets": {
@@ -66,42 +66,42 @@
         "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
       },
       "uat": {
-        "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
+        "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
         "hashes": {
-          "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-          "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
-          "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
-          "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
-          "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
-          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
-          "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-          "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+          "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+          "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+          "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+          "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+          "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
+          "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
+          "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
+          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
         },
         "passed": false,
         "report": {
-          "path": "docs/release-state/6.0.3-owner-publication.md",
-          "sha256": "7cbd727d768a3306d5f35f07fea54c0dc596589661347ae961303e4a868402a7"
+          "path": "docs/release-state/6.0.3-fix-verification-2026-11-20.md",
+          "sha256": "3f2780e4983ba5e0bc80a5b6514d64f9c4e0fe95739305f67c13dc6d285215a5"
         }
       },
       "permissionDelta": {
-        "commit": "7316260d4e3ab2e2f9bb3352a9a02397f81e1051",
+        "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
         "hashes": {
-          "chrome": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-          "edge": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161",
-          "brave": "b81b53b9171a5a81cc4fb05c1186b5dbfa735cc200e9c7fcfb154a5de2806f31",
-          "opera": "c7f96de8842e5bec4cd5150fb46a61274fb02f99de893d45c178695fdcd46613",
-          "firefox": "54c4282b7381cd490cb09ecff2d25431450f3a739f459e39b2dc95179d0cd419",
-          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39",
-          "chrome-store": "572b52195c0210e38ba20e9c729277ddbed5715b43e3def091b2ef2c4745e467",
-          "edge-store": "8703f00fa95fe3752ef8bb527812b827e71b69d78087494ce7b9fe1a06f45161"
+          "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+          "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+          "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
+          "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
+          "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
+          "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
+          "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
+          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
         },
         "approved": true,
         "report": {
-          "path": "docs/release-state/6.0.3-owner-publication.md",
-          "sha256": "7cbd727d768a3306d5f35f07fea54c0dc596589661347ae961303e4a868402a7"
+          "path": "docs/release-state/6.0.3-fix-verification-2026-11-20.md",
+          "sha256": "3f2780e4983ba5e0bc80a5b6514d64f9c4e0fe95739305f67c13dc6d285215a5"
         }
       },
-      "unchangedSince": "2026-11-20T23:35:54.638538+00:00"
+      "unchangedSince": "2026-11-21T00:13:48.516245+00:00"
     }
   },
   "requiredBrowsers": [

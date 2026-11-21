@@ -44,6 +44,8 @@ const SELECTORS = {
 // --- State ---
 const transcriptArray = [];
 let capturing = false;
+let extensionContextInvalidated = false;
+let mainLoopInterval = null;
 let trackingAllowed = true;
 let attendeesAllowed = true;
 let attendeeCaptureRequested = false;
@@ -182,6 +184,7 @@ function formatTimestamp(date = new Date()) {
 
 // --- Real-time Broadcasting ---
 function broadcastCaptionUpdate(data) {
+    if (extensionContextInvalidated) return;
     try {
         chrome.runtime.sendMessage({
             message: "live_caption_update",
@@ -231,6 +234,46 @@ function flushPendingCaptions() {
     captionBuffer?.flushAll();
 }
 
+// An open meeting page can outlive an extension update. Stop its obsolete
+// callbacks without discarding the in-page transcript or refreshing the meeting.
+function invalidateExtensionContext() {
+    if (extensionContextInvalidated) return;
+    extensionContextInvalidated = true;
+    // Commit pending words only to the retained in-page transcript. Messaging
+    // is disabled above, so this cannot call the destroyed extension context.
+    flushPendingCaptions();
+    capturing = false;
+    captureState = 'extension disconnected';
+    cleanupObservers();
+    if (!document.createElement || !document.body || document.getElementById('captionkeep-recovery-notice')) return;
+    const notice = document.createElement('div');
+    notice.id = 'captionkeep-recovery-notice';
+    notice.setAttribute('role', 'alert');
+    notice.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:2147483647;width:min(360px,calc(100vw - 32px));box-sizing:border-box;max-height:calc(100vh - 32px);overflow:auto;padding:16px;background:#fff;color:#172027;border:2px solid #172027;border-radius:8px;font:14px/1.5 system-ui';
+    const message = document.createElement('p');
+    message.textContent = 'Better CaptionKeep lost its extension connection. Capture has stopped. Save available text below before reopening or refreshing Teams. Missing captions are not recovered automatically.';
+    const save = document.createElement('button');
+    save.textContent = 'Save available transcript';
+    save.addEventListener('click', () => {
+        const text = transcriptArray.map(row => [row.Time, row.Name, row.Text].filter(Boolean).join(' ')).join('\n');
+        const url = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'}));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'BetterCaptionKeep-recovery.txt';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    notice.append(message, save);
+    document.body.append(notice);
+}
+
+function extensionContextAvailable() {
+    if (extensionContextInvalidated) return false;
+    try { if (chrome.runtime.id) return true; } catch (_) { /* context destroyed */ }
+    invalidateExtensionContext();
+    return false;
+}
+
 // --- Error Handling & Logging ---
 class ErrorHandler {
     static getErrorMessage(error) {
@@ -264,6 +307,10 @@ class ErrorHandler {
     static log(error, context = '', silent = false) {
         const timestamp = new Date().toISOString();
         const message = ErrorHandler.getErrorMessage(error);
+        if (/extension context invalidated/i.test(message) || !extensionContextAvailable()) {
+            invalidateExtensionContext();
+            return {timestamp, context, message};
+        }
         const errorInfo = {
             timestamp,
             context,
@@ -280,10 +327,13 @@ class ErrorHandler {
         
         if (!silent) {
             // Could send to analytics or show user notification
-            chrome.runtime.sendMessage({
-                message: "error_logged",
-                error: errorInfo
-            }).catch(() => {}); // Prevent recursive errors
+            try {
+                Promise.resolve(chrome.runtime.sendMessage({message: 'error_logged', error: errorInfo})).catch(error => {
+                    if (/extension context invalidated/i.test(String(error?.message))) invalidateExtensionContext();
+                });
+            } catch (error) {
+                if (/extension context invalidated/i.test(String(error?.message))) invalidateExtensionContext();
+            }
         }
         
         return errorInfo;
@@ -291,6 +341,7 @@ class ErrorHandler {
     
     static wrap(fn, context = '', fallback = null) {
         return async function(...args) {
+            if (!extensionContextAvailable()) return fallback;
             try {
                 return await fn.apply(this, args);
             } catch (error) {
@@ -838,6 +889,7 @@ const handleCaptionsStateChange = ErrorHandler.wrap(async function() {
 }, 'Captions state change handler');
 
 function ensureObserverIsActive() {
+    if (!extensionContextAvailable()) return;
     if (!capturing || !trackingAllowed) return;
 
     const captionContainer = getCachedElement(SELECTORS.CAPTIONS_RENDERER);
@@ -920,6 +972,7 @@ function captureBackupSnapshot() {
 }
 
 async function persistBackup(snapshot = captureBackupSnapshot()) {
+    if (!extensionContextAvailable()) return;
     if (!ACTIVE_CAPTURE_KEY || !snapshot.transcript.length) return;
     try {
         await queueBackupWrite(async () => {
@@ -1216,17 +1269,20 @@ function initializeEventDrivenSystem() {
     setupCaptionsObserver();
     
     // Periodically check observer status (much less frequent than before)
-    setInterval(() => {
+    mainLoopInterval = setInterval(() => {
+        if (!extensionContextAvailable()) return;
         handleMeetingStateChange();
         ensureObserverIsActive();
     }, TIMING.MAIN_LOOP_INTERVAL);
     document.addEventListener('visibilitychange', () => {
+        if (!extensionContextAvailable()) return;
         clearElementCache();
         handleMeetingStateChange();
         ensureObserverIsActive();
         persistBackup();
     });
     document.addEventListener('click', event => {
+        if (!extensionContextAvailable()) return;
         if (event.target.closest?.(SELECTORS.LEAVE_BUTTONS)) {
             leaveRequested = true;
             leaveRequestedAt = Date.now();
@@ -1242,8 +1298,14 @@ function initializeEventDrivenSystem() {
 
 // --- Memory Leak Prevention ---
 function cleanupObservers() {
-    publishCaptureTabProtection(false);
-    flushPendingCaptions();
+    if (!extensionContextInvalidated) {
+        publishCaptureTabProtection(false);
+        flushPendingCaptions();
+    }
+    if (mainLoopInterval) clearInterval(mainLoopInterval);
+    mainLoopInterval = null;
+    if (backupInterval) clearInterval(backupInterval);
+    backupInterval = null;
     if (observer) {
         observer.disconnect();
         observer = null;
@@ -1285,8 +1347,8 @@ readEffectiveCaptureSettings().then(async settings => {
     trackingAllowed = settings.trackCaptions !== false;
     attendeesAllowed = settings.trackAttendees !== false;
     await restoreActiveCapture();
-    initializeEventDrivenSystem();
-});
+    if (extensionContextAvailable()) initializeEventDrivenSystem();
+}).catch(error => ErrorHandler.log(error, 'Capture initialization'));
 
 // --- Message Handling ---
 function supportedTeamsJoinUrl(value) {

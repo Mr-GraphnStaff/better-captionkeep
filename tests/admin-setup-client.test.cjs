@@ -13,7 +13,7 @@ test('accessible standalone markup, no inline handlers or Development promise',(
 test('no permission, native or download until user click',()=>assert.deepEqual(fixture().calls,{permission:0,native:0,download:0}));
 test('installed helper launch exact protocol and production extension ID',async()=>{const f=fixture();await f.click('launchOrganizationSetup');assert.equal(f.calls.native,1);assert.equal(f.calls.host,'com.daftech.bettercaptionkeep.adminsetup');assert.equal(f.calls.message.operation,'launch');assert.equal(f.calls.message.extensionId,'edefcbdhahfolgkoamkbknjppojpaffk');assert.equal(f.calls.download,0);assert.match(f.nodes.organizationSetupStatus.textContent,/opened/)});
 test('denied permission stops before native and download',async()=>{const f=fixture({granted:false});await f.click('launchOrganizationSetup');assert.equal(f.calls.native,0);assert.equal(f.calls.download,0);assert.match(f.nodes.organizationSetupStatus.textContent,/permission/)});
-test('missing host -> explicit download -> Continue re-probe, no auto execution',async()=>{const f=fixture({error:'Specified native messaging host not found.'});await f.click('launchOrganizationSetup');assert.equal(f.nodes.launchOrganizationSetup.textContent,'Download and install');assert.equal(f.calls.download,0);await f.click('launchOrganizationSetup');assert.equal(f.calls.download,1);assert.match(f.calls.downloadArgs.url,/admin-setup-v6\.0\.3\/BetterCaptionKeep-AdministratorSetup-6\.0\.3-win-x64.exe$/);assert.equal(f.nodes.launchOrganizationSetup.textContent,'Continue setup');await f.click('launchOrganizationSetup');assert.equal(f.calls.native,2);assert.equal(f.calls.download,1)});
+test('missing host -> explicit download -> Continue re-probe, no auto execution',async()=>{const f=fixture({error:'Specified native messaging host not found.'});await f.click('launchOrganizationSetup');assert.equal(f.nodes.launchOrganizationSetup.textContent,'Download and install');assert.equal(f.calls.download,0);await f.click('launchOrganizationSetup');assert.equal(f.calls.download,1);assert.match(f.calls.downloadArgs.url,/admin-setup-v6\.0\.3-r2\/BetterCaptionKeep-AdministratorSetup-6\.0\.3-win-x64.exe$/);assert.equal(f.nodes.launchOrganizationSetup.textContent,'Continue setup');await f.click('launchOrganizationSetup');assert.equal(f.calls.native,2);assert.equal(f.calls.download,1)});
 test('failed download remains retryable',async()=>{const f=fixture({error:'Specified native messaging host not found.',downloadFail:true});await f.click('launchOrganizationSetup');await f.click('launchOrganizationSetup');assert.match(f.nodes.organizationSetupStatus.textContent,/could not start/);assert.equal(f.nodes.launchOrganizationSetup.disabled,false)});
 test('cancel invalidates in-flight permission completion',async()=>{const f=fixture({deferPermission:true});const pending=f.click('launchOrganizationSetup');await f.click('cancelOrganizationSetup');f.calls.grant();await pending;assert.equal(f.calls.native,0);assert.match(f.nodes.organizationSetupStatus.textContent,/cancelled/)});
 test('malformed host response does not claim success or assert tenant unchanged',async()=>{const f=fixture({response:{ok:true}});await f.click('launchOrganizationSetup');assert.match(f.nodes.organizationSetupStatus.textContent,/could not be confirmed/);assert(!f.nodes.organizationSetupStatus.textContent.includes('No organization changes'));assert.equal(f.calls.native,1)});
@@ -26,4 +26,17 @@ test('Store metadata validator accepts the required/optional permission sets',as
  const {resolvedManifest}=await import(require('node:url').pathToFileURL(path.join(stage,'scripts','manifest-localization.mjs')));
  const manifest=resolvedManifest(JSON.parse(read('manifests/manifest.chrome-store.json')),JSON.parse(read('teams-captions-saver/_locales/en/messages.json')));
  checker.validateChromeStoreMetadata(manifest,JSON.parse(read('store-metadata/chrome.json')));
+});
+
+test('forbidden QA identity is not mistaken for a missing host or another download',async()=>{
+ const f=fixture({error:'Access to the specified native messaging host is forbidden.'});
+ await f.click('launchOrganizationSetup');await f.click('launchOrganizationSetup');
+ assert.equal(f.calls.download,0);assert.equal(f.calls.native,2);
+ assert.match(f.nodes.organizationSetupStatus.textContent,/identity is not authorized/);
+ assert.equal(f.nodes.launchOrganizationSetup.textContent,'Open administrator setup');
+ assert.equal(f.nodes.updateOrganizationSetup.hidden,false);
+});
+test('an installed helper does not advertise an unverified update on every load',async()=>{
+ const f=fixture();assert.equal(f.nodes.updateOrganizationSetup.hidden,true);
+ await f.click('launchOrganizationSetup');assert.equal(f.calls.download,0);
 });
