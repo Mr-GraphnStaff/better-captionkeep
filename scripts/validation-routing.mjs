@@ -25,7 +25,23 @@ export const NONSHIPPING_CONTROL_FILES = Object.freeze([
   'tests/enterprise-endpoint-verification.test.cjs',
   'tests/fixtures/enterprise-registry-harness.ps1',
   'docs/wiki/Deployment-Security-and-Permissions.md',
-  'docs/wiki/Administrator-Deployment.md'
+  'docs/wiki/Administrator-Deployment.md',
+  'docs/BROWSER-INSTALLATION-AND-MICROSOFT-365.md',
+  'docs/ENTRA-GRAPH-APP-REGISTRATION.md',
+  'docs/wiki/Browser-Installation-and-Microsoft-365.md',
+  'docs/wiki/Installation.md',
+  'docs/wiki/Microsoft-365-Connection.md',
+  'docs/wiki/_Sidebar.md',
+  'PRIVACY.md',
+  'SUPPORT.md',
+  'docs/wiki/Home.md',
+  'docs/wiki/Getting-Started.md',
+  'docs/wiki/Troubleshooting.md',
+  'docs/wiki/Support.md',
+  'docs/wiki/Release-Status.md',
+  'docs/wiki/Privacy-and-Data-Boundaries.md',
+  'docs/wiki/Development-and-UAT.md',
+  'docs/wiki/Three-Lane-Release-Workflow.md'
 ]);
 
 const controlFiles = new Set(NONSHIPPING_CONTROL_FILES);
@@ -77,6 +93,49 @@ export function isAdminReadmeOnly(beforeText, afterText) {
     && after.block.includes('docs/wiki/Deployment-Security-and-Permissions.md');
 }
 
+const reservedReadmeMarker = /<!--\s*captionkeep-/gi;
+function readmeStatusBlocks(text) {
+  if(typeof text!=='string') throw new Error('README text is unavailable');
+  const markers=new RegExp(reservedReadmeMarker);
+  const token=/<!-- captionkeep-((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)-status:(start|end) -->/y;
+  const blocks=new Map();
+  let active=null;
+  for(const marker of text.matchAll(markers)) {
+    token.lastIndex=marker.index;
+    const match=token.exec(text);
+    if(!match||match[1].split('.').some(part=>Number(part)>65535)) throw new Error('Malformed README status marker');
+    const [,key,boundary]=match;
+    if(boundary==='start') {
+      if(active||blocks.has(key)) throw new Error('Nested or duplicate README status block');
+      active={key,start:marker.index};
+    } else {
+      if(!active||active.key!==key) throw new Error('Unmatched README status boundary');
+      const block=text.slice(active.start,token.lastIndex);
+      // A lossy UTF-8 decode cannot establish byte identity of generated state.
+      if(block.includes('\uFFFD')) throw new Error('Unreadable README status block');
+      blocks.set(key,block);
+      active=null;
+    }
+  }
+  if(active||!blocks.size) throw new Error('Missing or incomplete README status blocks');
+  return blocks;
+}
+
+export function isReadmeDocumentationOnly(beforeText,afterText) {
+  try {
+    const before=readmeStatusBlocks(beforeText),after=readmeStatusBlocks(afterText);
+    return before.size===after.size&&[...before].every(([key,block])=>after.get(key)===block);
+  } catch { return false; }
+}
+
+function isAllowedReadmeEdit(beforeText,afterText) {
+  if(isReadmeDocumentationOnly(beforeText,afterText)) return true;
+  // Preserve the older marked-pilot exception, but never use it to bypass a
+  // missing, malformed or altered captionkeep generated-status block.
+  if(new RegExp(reservedReadmeMarker).test(beforeText)||new RegExp(reservedReadmeMarker).test(afterText)) return false;
+  return isAdminReadmeOnly(beforeText,afterText);
+}
+
 function gitReader(root) {
   return args => execFileSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, ...args],
     {cwd:root, encoding:'utf8', windowsHide:true, timeout:10000, maxBuffer:16 * 1024 * 1024});
@@ -115,6 +174,19 @@ export function determineValidationMode({eventName, ref, event, root,
     readGit(['merge-base', '--is-ancestor', base, head]);
     const diff = readGit(['diff', '--name-only', '-z', '--no-renames', '--no-ext-diff',
       '--no-textconv', base, head, '--']);
+    if(diff==='') {
+      // An ancestry-only synchronization is not a new artifact candidate. Empty
+      // output alone is insufficient: prove distinct, literal commit identities
+      // and identical complete Git trees after the event/full-range checks above.
+      if(base===head) return 'candidate';
+      const baseCommit=readGit(['rev-parse','--verify',`${base}^{commit}`]).trim();
+      const headCommit=readGit(['rev-parse','--verify',`${head}^{commit}`]).trim();
+      if(baseCommit!==base||headCommit!==head) return 'candidate';
+      const baseTree=readGit(['rev-parse','--verify',`${base}^{tree}`]).trim();
+      const headTree=readGit(['rev-parse','--verify',`${head}^{tree}`]).trim();
+      return validCommit(baseTree)&&validCommit(headTree)&&baseTree===headTree
+        ? 'nonshipping' : 'candidate';
+    }
     if (!diff || !diff.endsWith('\0')) return 'candidate';
     const paths = diff.slice(0, -1).split('\0');
     // Admin tooling has its own executed tests/package checks; this narrow npm
@@ -122,7 +194,7 @@ export function determineValidationMode({eventName, ref, event, root,
     if (paths.some(name=>name==='package.json'||name==='readme.md')
         && paths.every(name => name === 'package.json' || name === 'readme.md' || isNonshippingPath(name))
         && (!paths.includes('package.json') || isAdminBuildCommandOnly(readGit(['show', `${base}:package.json`]), readGit(['show', `${head}:package.json`])))
-        && (!paths.includes('readme.md') || isAdminReadmeOnly(readGit(['show', `${base}:readme.md`]), readGit(['show', `${head}:readme.md`])))) return 'nonshipping';
+        && (!paths.includes('readme.md') || isAllowedReadmeEdit(readGit(['show', `${base}:readme.md`]), readGit(['show', `${head}:readme.md`])))) return 'nonshipping';
     return classifyChangedPaths(paths);
   } catch {
     // Unknown events, unavailable history and Git failures never reduce checks.

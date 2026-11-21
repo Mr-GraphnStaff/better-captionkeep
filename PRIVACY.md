@@ -1,8 +1,8 @@
 # Better CaptionKeep Privacy Policy
 
-Effective date: October 4, 2026
+Effective date: November 21, 2026
 
-Better CaptionKeep, by Señor Farris, is an independent browser extension for capturing, reviewing, and exporting live captions from Microsoft Teams, Google Meet, and the Zoom Web client in supported Chromium browsers. This policy describes the Better CaptionKeep product, including its optional Bring Your Own AI (BYOAI) handoff features.
+Better CaptionKeep is a DAF-TECH browser extension for capturing, reviewing and exporting captions displayed in Microsoft Teams, Google Meet and Zoom Web in supported browser installations. This policy covers the product, including optional Bring Your Own AI (BYOAI) handoff and the 6.0.3 Windows Administrator Setup connection. Feature availability depends on the installed version and browser.
 
 ## Information the extension handles
 
@@ -10,7 +10,7 @@ The extension reads captions already displayed by Microsoft Teams, Google Meet, 
 
 It also handles user preferences, such as capture settings, export format, filename patterns, save locations, selected AI providers, approved provider workspace URLs, custom masking terms, and temporary speaker aliases. An administrator may supply read-only managed settings through the browser's enterprise-policy system.
 
-When an organization enables Verified Teams Transcript, it supplies its own single-tenant Microsoft Entra tenant ID and application client ID. Those public configuration identifiers are stored only in browser local storage, are not browser-synchronized, and are never sent to the developer. A signed-in organizational user can select the current meeting, choose from up to five recent eligible Teams meetings, or paste a meeting join link before explicitly importing an available official transcript from Microsoft Graph. To populate the recent-meeting choices, the extension requests only basic calendar fields: event subject, start and end time, organizer flag, and Teams join information. Those calendar results are held only while the popup is open and are not added to transcript history, synchronized preferences, exports, or developer logs. Microsoft Entra and Teams administrator policy determine access and whether speaker attribution is available. The feature does not request audio or video and does not automatically collect transcripts across the tenant.
+When an organization enables Verified Teams Transcript, it supplies its own single-tenant Microsoft Entra tenant ID and application client ID. Manually entered public configuration identifiers are stored in browser local storage and are not browser-synchronized or sent to the developer. Organization-managed values can instead be supplied through browser policy; the organization's Entra/Intune configuration and private administrator deployment records also contain relevant identifiers outside the browser. A signed-in organizational user can select the current meeting, choose from up to five recent eligible Teams meetings, or paste a meeting join link before explicitly importing an available official transcript from Microsoft Graph. To populate the recent-meeting choices, the extension requests only basic calendar fields: event subject, start and end time, organizer flag, and Teams join information. Calendar results are used in memory to populate the connection interface; they are not added to transcript history, synchronized preferences, exports, or developer logs. Microsoft Entra and Teams administrator policy determine access and whether speaker attribution is available. The feature does not request audio or video and does not automatically collect transcripts across the tenant.
 
 ## Storage and use
 
@@ -62,9 +62,13 @@ The use of user data is limited to providing or improving the extension's single
 
 Better CaptionKeep's use and transfer of user data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements.
 
-## MCP release boundary
+## Optional Windows administrator connection and MCP boundary
 
-MCP integration is deferred from version 6.0. This release does not request native messaging, connect to a native helper or MCP service, authenticate MCP providers, or execute external MCP tools. Existing saved records and historical action receipts remain readable and deletable through the normal local archive controls. The extension does not uninstall separately installed helpers or purge their credentials. Reviewed BYOAI handoff remains an explicit user-controlled copy/export action.
+Version 6.0.3 can request optional native messaging when the user chooses the administrator setup action. The extension connects through one fixed native host to the separately installed, signed Windows Administrator Setup. The helper permits approved extension identities; arbitrary unpacked IDs are not automatically approved. The extension does not automatically send meeting transcripts to this setup app.
+
+If the user explicitly chooses the installer download action, the signed installer is downloaded from GitHub. GitHub receives the normal download request; the installer URL contains no transcript. Downloading does not install or execute the helper. The administrator application signs in separately to Microsoft services and performs reviewed Entra, Teams and Intune configuration/deployment operations under that administrator's authority. It maintains private Windows deployment and recovery records that can contain organizational app, group, device and policy identifiers. Those records are outside browser-local storage and should not be posted publicly.
+
+MCP service connections, MCP-provider authentication and external MCP tool execution remain deferred. The optional administrator connection is separate from those capabilities and from Microsoft Graph transcript import. Existing saved records remain readable and deletable through the normal archive controls; the extension does not uninstall separately installed helpers or purge their credentials. Reviewed BYOAI handoff remains user-controlled.
 
 ## Retention and controls
 

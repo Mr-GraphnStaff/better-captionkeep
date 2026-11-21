@@ -1,14 +1,35 @@
-# Better CaptionKeep 6.0.3 release status
+# Versions, downloads and known limitations
 
-Updated November 20, 2026. **6.0.3 is the current repaired release being prepared for Chrome Web Store and Microsoft Edge Add-ons.** Store review and public availability must be confirmed separately; this page does not claim either is complete.
+Updated November 21, 2026. Extension and Windows Administrator Setup versions are separate. Check the version actually installed in your browser and the full installer release tag.
 
-## Current versions
+| Component | Available release / last verified status | Download or details |
+| --- | --- | --- |
+| Browser extension | **6.0.3** published on GitHub | [6.0.3 release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.3) |
+| Windows Administrator Setup | **6.0.3-r2**, signed Windows x64 installer; executable filename retains 6.0.3 | [Signed r2 release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2) |
+| Chrome Web Store | Public listing checked November 21 shows 6.0.0. The corrected 6.0.3 submission was last verified Pending review on November 21. | [Chrome listing](https://chromewebstore.google.com/detail/better-captionkeep/nabjdlnkkaonnbnimnmnhjcbigceebml) |
+| Microsoft Edge Add-ons | 6.0.0 was the last verified live baseline. The corrected 6.0.3 submission was last verified In review on November 20. Current public approval has not been independently confirmed. | [Edge listing](https://microsoftedge.microsoft.com/addons/detail/better-captionkeep/edefcbdhahfolgkoamkbknjppojpaffk) |
 
-| Component | Current version and status |
-| --- | --- |
-| Extension release | 6.0.3 — setup/capture repairs verified as recorded below; Store submission pending |
-| Signed Windows Administrator Setup | 6.0.3 — downloadable signed installer |
-| Public Store baseline | Last recorded observation: 6.0.0; refresh after 6.0.3 approval |
+Store observations are dated checks, not live monitoring. GitHub availability, Store review, Store publication and an installed upgrade are different states. Follow [Installation](Installation) for regular use or the [five-browser guide](Browser-Installation-and-Microsoft-365) for controlled testing; do not assume a Store download is 6.0.3 until its installed version confirms it.
+
+## What to verify before relying on it
+
+- Test displayed-caption capture and export in the browser/provider you will actually use. A package or synthetic test does not establish a complete live acceptance matrix.
+- Optional Microsoft 365 import has an [open retrieval issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/255). An empty lookup can be mislabeled as incomplete processing even when Teams opens the transcript. See [Troubleshooting](Troubleshooting).
+- Initial organization provisioning needs the approved Windows helper, identity permissions, licensing and a limited pilot. Verify endpoint policy/installation, employee sign-in and transcript import independently. [Administrator deployment](Administrator-Deployment).
+- A local unpacked extension can have a different OAuth callback and may not be approved by the native helper. Use the [browser guide](Browser-Installation-and-Microsoft-365).
+
+Safari, MCP connections/tool execution, native Teams desktop capture and the later Intune-console settings editor are outside this release.
+
+## Release history and support
+
+[Extension 6.0.3 release notes and assets](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.3) · [Administrator 6.0.3-r2](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2) · [Earlier extension 6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) · [Support](Support)
+
+Extension 6.0.1 and 6.0.2 were development labels. Administrator Setup has its own release history. Old receipts and local development snapshots are not current installation instructions.
+
+<details>
+<summary>Maintainer source-freeze and acceptance records</summary>
+
+These retained machine-generated records describe source/candidate evidence, including unfinished checks. They do not report current Store availability or turn unpassed tests into passes. Use the dated customer table above for distribution status.
 
 <!-- captionkeep-6.0.3-status:start -->
 > **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
@@ -17,23 +38,6 @@ Updated November 20, 2026. **6.0.3 is the current repaired release being prepare
 > Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This development record does not change prior publication records or inherit prior owner exceptions.
 <!-- captionkeep-6.0.3-status:end -->
-
-## Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.
-
-Open **All Settings → Microsoft 365 → Open administrator setup**. If prompted to install, download and run the signed Windows installer once, then return to the extension. Downloading alone does not install or launch it. Sign in as an authorized administrator, choose Edge or Chrome and a pilot group, review proposed changes, then approve. Verify the pilot before expanding. Microsoft licensing and administrator authority apply; local caption capture does not require setup.
-
-The QA identity omission and forbidden-host download loop are corrected in the r2 connector/source; installed launch acceptance and release promotion are tracked in [issue #221](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/221). Production-ID end-to-end setup remains unverified. The owner directed publication with these gaps and incomplete acceptance recorded, not passed.
-
-Use the [6.0.3 machine record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), [release notes](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.3.md), and [publication decision](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3-team-release-review-2026-11-20.md).
-
-## Historical versions
-
-6.0.1 and 6.0.2 were unpublished development labels, superseded by 6.0.3. [6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.md) and [5.4](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-5.4.md) remain historical records, not current release instructions.
-
-<details>
-<summary>Historical 6.0.0 release record — superseded by 6.0.3 above</summary>
-
-This retained October 24 record is historical; its pending states are not the current release status.
 
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
