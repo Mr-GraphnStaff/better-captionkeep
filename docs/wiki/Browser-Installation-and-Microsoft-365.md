@@ -24,8 +24,8 @@ An administrator can approve the same organization-owned Entra app for multiple 
 
 Chrome's Intune policy does not automatically supply settings to Brave, Opera or Firefox. Browser policy locations and deployment support are separate. The current signed Windows administrator helper supports Chrome, Edge and Brave; this does not establish an Opera or Firefox guided Intune deployment. Manually entered identifiers are supported when organization policy permits them. Enforced managed settings take precedence; local edits cannot override them.
 
-1. In the chosen browser, open Better CaptionKeep from its toolbar icon.
-2. Expand **Administrator connection details**.
+1. In the chosen browser, open Better CaptionKeep from its toolbar icon, then select the gear **All Settings** link to open the full settings tab.
+2. In All Settings, expand **Verified Teams transcripts**, then expand **Administrator connection details**.
 3. Enter the organization's **Directory (tenant) ID** and **Application (client) ID**.
 4. Select **Save Microsoft 365 setup**.
 5. Find the **Redirect URI:** line below those fields. Select and copy the complete displayed address. Use the value from this installation, even if another browser is already connected.
