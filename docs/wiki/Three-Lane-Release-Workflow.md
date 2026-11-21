@@ -1,36 +1,39 @@
-# Three-Lane Release Workflow
+# Three-lane release workflow
 
-Better CaptionKeep uses one source checkout with `dist/dev`, `dist/uat`, and `dist/prod`, and one lifecycle with three lanes. UAT is the proposed Production behavior; promotion must not silently remove features.
+Better CaptionKeep uses a governed Git promotion route:
+
+```text
+Scoped work branch → dev → qa → master → tagged release → Store submission → public/installed verification
+```
+
+Branch names, build directories, releases and Store availability are separate states. The customer-facing [Release status](Release-Status) records actual downloads and dated Store observations.
 
 ## Development
 
-- Fixes and features begin on a scoped branch.
-- `codex/6.0` is a Development branch; `release/6.0` is the 6.0 release integration branch.
-- Automated tests, extension validation, security checks, and review run against the exact commit.
-- Candidate defects return here for correction.
+- Begin a focused change on a scoped branch such as `codex/<task>` and open its pull request into `dev`.
+- Validate the exact source and merge preview. Required checks and review must pass; a backup/recovery draft is not merge-ready work.
+- Keep unpublished/deferred work out of the released product scope. Record confirmed defects and remaining acceptance without exposing private records.
 
-## UAT/Release Candidate
+## QA
 
-- The single `release/<version>` integration branch receives approved Development changes through reviewed pull requests. Its presence on GitHub is not proof of promotion; current candidate identity and freeze state belong in the machine release record and Release status.
-- Chrome, Edge, Brave, Firefox, and Opera each need recorded live browser/provider acceptance for 6.0. Firefox uses its adapted target under `dist/prod`, not the Chromium UAT manifest.
-- Record the frozen candidate commit, package hashes, tester and actual results. The normal rule requires 48 uninterrupted hours on the unchanged candidate. An explicitly authorized, source/package-bound owner exception must remain labeled as an exception; it never establishes elapsed time or a passed test.
-- A changed candidate requires renewed affected testing.
+- Promote `dev` into `qa` through a pull request; do not skip directly from a feature branch to Production.
+- Development must include current Production before QA promotion. Retest the actual candidate and affected browser/provider workflows.
+- Record commit, package hashes, permissions, required acceptance and any explicitly authorized source/package-bound exception. A changed candidate needs renewed affected testing.
+- Retain unfinished checks as unfinished. The normal unchanged-candidate window and any permitted exception are evidence requirements, not inferred from a branch name or elapsed calendar time.
 
 ## Production
 
-- Production promotes the accepted behavior; it does not become a different feature edition.
-- The local Prod lane has a fixed unpacked identity; Store builds keep their separate Store-assigned identities.
-- `master`, the release tag, GitHub release artifacts, Azure Boards state, and pipeline evidence must agree.
-- Only verified artifacts from `dist/prod` are uploaded as release distributions. `dist/dev` and `dist/uat` are not published.
-- Browser Store submission is a separate controlled step.
-- Archiving the local 5.4 checkout preserves history; it does not remove GitHub tags, change Store availability, or merge 6.0 into `master`.
+- Promote `qa` into `master` through the required pull request, automated checks and QA-acceptance environment decision.
+- The proposed Production merge tree must match the reviewed QA candidate. A stale event, changed source or failed check blocks promotion.
+- A source merge is not a new product publication. Tagged release packaging and Store actions have their own frozen-source, artifact, approval and identity checks.
+- GitHub publication, Store upload/review, Store approval/publication and an installed upgrade must be reported separately. Never mark a failed or unperformed check passed to make a release appear complete.
 
-## Promotion rule
+## Local build directories
 
-```text
-Development fix -> automated validation -> UAT acceptance -> Production promotion -> Store submission -> public upgrade verification
-```
+The currently published build scripts use `dist/dev`, `dist/uat` and `dist/prod`; these are build targets, not extra Git branches. Work-branch layouts can differ. Follow the exact revision's scripts and [Development and controlled testing](Development-and-UAT), preserve active installations/recovery records and verify the selected extension identity after loading a package.
 
-A GitHub tag or release is not proof that a browser Store update is public. The release record must distinguish frozen, uploaded, in review, approved, public, and upgrade verified.
+## Documentation and support
 
-For the exact current status, use [Release status](Release-Status), the [machine release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), and the [6.0 release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.3.md). Owner GO, artwork approval and accepted exceptions are decisions; candidate freeze, test evidence, Store approval, public listing parity and installed-upgrade verification are separate recorded outcomes.
+Repository documentation follows reviewed PR/promotion controls. The Wiki has its own version history; verify published page contents after an update and keep its source mirrors aligned. Customer pages should state current user actions and known limitations; retain source-freeze history as clearly labeled maintainer evidence.
+
+Use the [current source release record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), [release process](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE_PROCESS.md), [Release status](Release-Status) and [Support](Support). Historical tags and records remain evidence of their own versions; deleted development branch names are not current installation or promotion instructions.
