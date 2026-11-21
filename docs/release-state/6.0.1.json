@@ -1,0 +1,38 @@
+{
+  "product": "Better CaptionKeep",
+  "version": "6.0.1",
+  "branch": "dev",
+  "state": "development",
+  "candidate": {
+    "frozen": false,
+    "commit": null,
+    "hashes": {}
+  },
+  "requiredBrowsers": [
+    "chrome",
+    "edge",
+    "brave",
+    "firefox",
+    "opera"
+  ],
+  "liveCertification": {
+    "chrome": "pending",
+    "edge": "pending",
+    "brave": "pending",
+    "firefox": "pending",
+    "opera": "pending"
+  },
+  "releaseGates": {
+    "fullScopeAcceptance": false,
+    "accessibilityAndFailureUat": false,
+    "artworkApproved": false,
+    "unchangedWindow": false,
+    "storeApproval": false,
+    "publicParity": false,
+    "installedUpgrade": false
+  },
+  "boardEpic": 395,
+  "deferredFeatures": [
+    "byomcp"
+  ]
+}
