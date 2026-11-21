@@ -1,6 +1,12 @@
 # Better CaptionKeep public project context
 
-Updated October 24, 2026. This document records public product state, team ownership and evidence limits. Release records govern release identity and distribution; a role assignment is not a completed test or independent approval.
+Updated November 20, 2026. This document records public product state, team ownership and evidence limits. Release records govern release identity and distribution; a role assignment is not a completed test or independent approval.
+
+## Active 6.0.3 launch review
+
+Nadia owns English Store/release messaging; Mara owns DAF-TECH brand consistency and setup presentation; Lena independently reviews QA/accessibility; Morgan independently reviews security. Four separate reviewer agents executed these assignments. Codex owns integration and publication. Their actual findings, corrections and acceptance limits are recorded in the [6.0.3 team release review](../release-state/6.0.3-team-release-review-2026-11-20.md). A release-role assignment alone does not establish approval.
+
+The English copy promotes guided Microsoft 365/Intune setup with licensing, administrator and Windows prerequisites. Download is distinct from installation; organization setup is optional for local capture. Preserve the approved DAF-TECH sphere and company themes. Existing translated preview entries are not certified by the English review. The signed Administrator Setup 6.0.3-r2 helper is public; the corrected 6.0.3 extension is awaiting package requalification and Store submission. The last recorded public extension baseline is 6.0.0. Historical sections below do not override this status.
 
 ## Current product and distribution
 
@@ -8,21 +14,21 @@ Better CaptionKeep 6.0 is a local-first caption and meeting-evidence extension f
 
 [GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) was published October 24, 2026. Tag `v6.0.0` identifies `7470bbf1fe2347ce9c850ed7666ac326e79e7278`; repaired source is `9dabe8174ad51ef07662e739ab0ee2affec5cd75`. Published package hashes and provenance are recorded with the release. GitHub server immutability is disabled; the assets are operationally frozen and hash-verified, not server-enforced immutable assets.
 
-The tracked [Release Status](../wiki/Release-Status.md) records accepted Chrome review and Edge certification submissions, with approval, public listing parity and installed-upgrade verification still pending. These are recorded submission outcomes, not a new Store-dashboard inspection by this context update. The [machine release state](../release-state/6.0.json) remains candidate. Named unfinished acceptance and test-window checks remain unpassed under the explicit [owner publication exception](../release-state/6.0-owner-exception.md); do not relabel them passed or apply that release-specific decision to future work.
+The 6.0 submission history and its [machine release state](../release-state/6.0.json) are historical. Current 6.0.3 preparation is governed by [Release Status](../wiki/Release-Status.md), its [machine state](../release-state/6.0.3.json) and the linked current team review. Named unfinished checks remain unpassed; the 6.0 owner exception does not automatically authorize later releases.
 
 Use the [6.0 release record](../RELEASE-6.0.md), [preparation evidence](../release-state/6.0-preparation.md), [roadmap](../ROADMAP-6.0.md) and [release process](../RELEASE_PROCESS.md) for detailed requirements and history. Earlier preparation-stage authorization limits are historical; they do not revoke later recorded publication decisions.
 
 ## One active source checkout
 
-The approved source checkout is `P:/Projects/better-captionkeep-dev`. Verify the actual branch and working tree at the start of each assignment; the current research branch is `codex/market-research-nadia`, while the historical 6.0 implementation branch was `codex/6.0` and the release was promoted through protected `master`.
+The approved source checkout is `P:/Projects/Better CaptionKeep`. Verify the actual branch and working tree at the start of each assignment. Preserve the owner's existing uncommitted work; the scoped 6.0.3 correction branch is `codex/6.0.3-team-launch-review`, prepared in a retained managed worktree under this checkout's `working/`. Historical research and release branch names are not current checkout instructions.
 
-Use the three existing build lanes within this checkout:
+The owner uses real `Dev`, `QA` and `Production` build folders inside the neutral project root. Build scripts also generate target-specific distribution outputs:
 
 - `dist/dev`: Development.
 - `dist/uat`: UAT/Release Candidate.
 - `dist/prod`: Production distribution packages and release evidence.
 
-Only `dist/prod` supplies published distribution assets. Preserve existing Development and UAT work. Sandbox artifacts are evidence, not alternate installation targets. The former 5.4 checkouts and unused top-level lane remnants were archived recoverably under `P:/projectsArchive`; the active checkout has self-contained Git metadata. Do not recreate separate top-level UAT/Production source checkouts. Use `P:/Projects/better-captionkeep-sandbox` for project scratch, artifacts and preservation work.
+Publish only the exact qualified release artifacts identified by the release record. Preserve existing development and QA material. Owner-required `working/` is the only permitted scratch location and all development/test/research commands use the checked launcher; older sandbox guidance is superseded by AGENTS.md. Temporary browser profiles, logs and screenshots remain in managed runs unless deliberately retained as release evidence.
 
 ## Confirmed team and ownership
 

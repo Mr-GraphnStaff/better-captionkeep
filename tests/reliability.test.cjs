@@ -1727,8 +1727,8 @@ test('extension pages use only packaged scripts and settings use progressive dis
     assert(!popup.includes('assistantBridgeAuth.js'));
     const manifest=JSON.parse(read('manifest.json'));
     assert(!manifest.permissions.includes('alarms'));
-    assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
-    assert(!manifest.permissions.includes('nativeMessaging'), '6.0 does not ship native messaging');
+    assert.deepEqual(manifest.optional_permissions, ['nativeMessaging'], 'organization setup is the only optional native access');
+    assert(!manifest.permissions.includes('nativeMessaging'), 'organization setup native access remains optional');
     assert(!manifest.optional_host_permissions.includes('https://*/*'));
 });
 test('managed release restrictions are enforced across extension action surfaces',()=>{
@@ -2159,4 +2159,40 @@ test('a recent same-page checkpoint restores captions and warns about the gap',a
     assert.equal(h.run('transcriptArray.length'),1);
     assert.equal(h.run('documentSessionId'),'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     assert.match(h.run('checkpointError'),/resumed from a recovery checkpoint/i);
+});
+
+test('invalidated Teams context stops obsolete work and retains available transcript',async()=>{
+ const h=await contentHarness();
+ h.run("capturing=true;transcriptArray.push({Name:'Synthetic',Text:'retain me',Time:'10'});mainLoopInterval=11;backupInterval=12;");
+ const cleared=[];h.context.clearInterval=id=>cleared.push(id);
+ let disconnected=0;h.context.fakeObserver={disconnect(){disconnected++}};
+ h.run('observer=fakeObserver;meetingObserver=fakeObserver;captionsObserver=fakeObserver;');
+ h.chrome.runtime.id=undefined;h.chrome.runtime.sendMessage=()=>{throw new Error('Extension context invalidated.')};
+ await h.run('handleCaptionsStateChange()');
+ assert.equal(h.run('extensionContextInvalidated'),true);assert.equal(h.run('capturing'),false);
+ assert.equal(h.run('captureState'),'extension disconnected');assert.equal(h.run('transcriptArray[0].Text'),'retain me');
+ assert.equal(disconnected,3);assert.deepEqual(cleared,[11,12]);
+ await h.run('handleCaptionsStateChange()');assert.equal(disconnected,3);
+});
+test('invalid context while logging an error does not throw recursively',async()=>{
+ const h=await contentHarness();h.chrome.runtime.sendMessage=()=>{throw new Error('Extension context invalidated.')};
+ assert.doesNotThrow(()=>h.run("ErrorHandler.log(new Error('other failure'),'synthetic')"));
+ assert.equal(h.run('extensionContextInvalidated'),true);
+});
+
+test('disconnected Teams recovery never exports when policy cannot be checked',async()=>{
+ for(const policy of [{disableFileExport:true},{forceScrubbedExport:true},{},null]){
+  const h=await contentHarness();const added=[];const elements=new Map();let downloads=0,blobs=0;
+  h.document.createElement=tag=>({tag,style:{},children:[],listeners:{},setAttribute(k,v){this[k]=v},addEventListener(k,f){this.listeners[k]=f},append(...items){this.children.push(...items)},click(){downloads++}});
+  h.document.getElementById=id=>elements.get(id)||null;h.document.body={append(node){added.push(node);elements.set(node.id,node)}};
+  h.chrome.storage.managed.get=async()=>{if(policy===null)throw Error('Synthetic policy unavailable');return policy};
+  h.context.URL=class extends URL {static createObjectURL(){blobs++;return 'blob:should-not-exist'}};
+  h.context.pendingBuffer={flushAll(){h.run("transcriptArray.push({Name:'Synthetic',Text:'pending words',Time:'10'})")}};
+  h.run('captionBuffer=pendingBuffer');let messages=0;h.chrome.runtime.sendMessage=()=>{messages++;throw Error('Extension context invalidated.')};h.chrome.runtime.id=undefined;
+  await h.run('handleCaptionsStateChange()');await h.run('handleCaptionsStateChange()');
+  assert.equal(messages,0);assert.equal(blobs,0);assert.equal(downloads,0);assert.equal(added.length,1);
+  assert.equal(added[0].role,'alert');assert.equal(added[0].children.some(n=>n.tag==='button'||n.tag==='a'),false);
+  assert.match(added[0].children[0].textContent,/Capture has stopped/);assert.match(added[0].children[1].textContent,/policy cannot be checked/);
+  assert.equal(h.run('transcriptArray[0].Text'),'pending words');
+ }
 });

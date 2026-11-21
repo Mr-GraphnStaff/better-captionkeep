@@ -52,7 +52,12 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
     'scripts/check-promotion.mjs', 'scripts/check-release-promotion.mjs',
     'tests/promotion-policy.test.cjs', 'tests/release-promotion.test.cjs',
     'tests/reliability.test.cjs',
-    'scripts/validation-routing.mjs', 'tests/validation-routing.test.cjs'
+    'scripts/validation-routing.mjs', 'tests/validation-routing.test.cjs',
+    'deployment/intune/Enterprise-Setup.ps1', 'deployment/intune/Enterprise-Endpoint.ps1',
+    'deployment/intune/Enterprise-Launcher.ps1', 'scripts/build-enterprise-package.mjs',
+    'tests/enterprise-setup.test.cjs', 'tests/enterprise-launcher.test.cjs',
+    'tests/enterprise-endpoint-verification.test.cjs', 'tests/fixtures/enterprise-registry-harness.ps1',
+    'docs/wiki/Deployment-Security-and-Permissions.md', 'docs/wiki/Administrator-Deployment.md'
   ]);
   const permitted = [...NONSHIPPING_CONTROL_FILES, '.agents/skills/software-team/SKILL.md',
     '.agents/skills/software-team/references/people-operations.md', 'docs/software-team/research.md'];
@@ -68,6 +73,34 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
   }
   assert.equal(classifyChangedPaths([]), 'candidate');
   assert.equal(classifyChangedPaths(null), 'candidate');
+});
+
+test('admin npm convenience command cannot hide dependency or extension build changes', async () => {
+  const {isAdminBuildCommandOnly,determineValidationMode} = await load();
+  const before={name:'synthetic',scripts:{build:'unchanged'},devDependencies:{example:'1.0.0'}};
+  const after=structuredClone(before);after.scripts['build:enterprise-setup']='node scripts/build-enterprise-package.mjs';
+  assert.equal(isAdminBuildCommandOnly(JSON.stringify(before),JSON.stringify(after)),true);
+  for (const mutate of [v=>{v.devDependencies.example='2.0.0';},v=>{v.scripts.build='other';},v=>{v.scripts['build:enterprise-setup']='node evil.mjs';}]) {
+    const altered=structuredClone(after);mutate(altered);
+    assert.equal(isAdminBuildCommandOnly(JSON.stringify(before),JSON.stringify(altered)),false);
+  }
+  const base='a'.repeat(40),head='b'.repeat(40);
+  const readGit=args=>args[0]==='rev-parse'?head:args[0]==='diff'?'package.json\0deployment/intune/Enterprise-Setup.ps1\0'
+    :args[0]==='show'?JSON.stringify(args[1].startsWith(base)?before:after):'';
+  assert.equal(determineValidationMode({...pullRequest(base),readGit}),'nonshipping');
+  assert.equal(determineValidationMode({...pullRequest(base),readGit:args=>args[0]==='diff'?'package.json\0teams-captions-saver/runtime.js\0':readGit(args)}),'candidate');
+});
+
+test('administrator README discovery permits only its marked pilot section', async () => {
+  const {isAdminReadmeOnly}=await load();
+  const before='# Product\n\nStable release metadata stays unchanged.\n';
+  const block='<!-- administrator-setup-pilot:start -->\nDevelopment pilot: Start-Setup.cmd; docs/wiki/Administrator-Deployment.md; docs/wiki/Deployment-Security-and-Permissions.md\n<!-- administrator-setup-pilot:end -->';
+  const after=before.trimEnd()+'\n\n'+block+'\n';
+  assert.equal(isAdminReadmeOnly(before,after),true);
+  assert.equal(isAdminReadmeOnly(before,after.replace('Stable release metadata','Forged release metadata')),false);
+  assert.equal(isAdminReadmeOnly(before,after.replace('Start-Setup.cmd','unknown.exe')),false);
+  assert.throws(()=>isAdminReadmeOnly(before,after+'\n'+block),/Malformed/);
+  assert.throws(()=>isAdminReadmeOnly(before,after.replace('<!-- administrator-setup-pilot:end -->','')),/Malformed/);
 });
 
 test('path traversal, absolute paths and control characters never qualify as nonshipping', async () => {

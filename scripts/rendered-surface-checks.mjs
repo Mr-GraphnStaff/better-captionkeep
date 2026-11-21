@@ -164,6 +164,41 @@ const popupAssertions = `(() => {
   return {checks};
 })()`;
 
+// Company identity must survive theme changes, not merely exist in hidden markup.
+const brandingAssertions = `(async () => {
+  const checks = [];
+  const settings = document.documentElement.dataset.view === 'settings';
+  const header = document.querySelector(settings ? 'header.settings-page-intro' : '.brand.v6-popup-only');
+  const original = document.documentElement.dataset.themePreference;
+  const luminance = color => {
+    const channels = color.match(/[\\d.]+/g).slice(0,3).map(value => {
+      const channel = Number(value) / 255;
+      return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
+    });
+    return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+  };
+  for (const theme of ['captionkeep','light','midnight','slate','high-contrast']) {
+    CaptionKeepTheme.apply(theme);
+    await new Promise(resolve => setTimeout(resolve,200));
+    window.scrollTo(0,0);
+    const image = header?.querySelector('img');
+    const rect = header?.getBoundingClientRect();
+    const visible = rect && rect.width > 0 && rect.height > 0 && rect.left >= -1 && rect.right <= innerWidth + 1 && getComputedStyle(header).visibility !== 'hidden';
+    checks.push({name:'Company branding visible in '+theme,passed:!!visible && header.innerText.includes('DAF-TECH') && header.innerText.includes('Better CaptionKeep')});
+    checks.push({name:'Approved company sphere loaded in '+theme,passed:!!image && image.complete && image.naturalWidth > 0 && image.getBoundingClientRect().width > 0 && image.getAttribute('src') === 'icons/daf-tech-sphere.png'});
+    if (settings && header) {
+      const background = luminance(getComputedStyle(document.body).backgroundColor);
+      for (const selector of ['h2','.company-signature']) {
+        const foreground = luminance(getComputedStyle(header.querySelector(selector)).color);
+        const contrast = (Math.max(background,foreground)+.05)/(Math.min(background,foreground)+.05);
+        checks.push({name:'Company '+selector+' contrast in '+theme,passed:contrast >= 4.5,actual:{contrast,foreground:getComputedStyle(header.querySelector(selector)).color,background:getComputedStyle(document.body).backgroundColor}});
+      }
+    }
+  }
+  CaptionKeepTheme.apply(original);
+  return {checks};
+})()`;
+
 const viewerAssertions = `(() => {
   const checks = [];
   const visible = element => !!element && element.getBoundingClientRect().height > 0 && !element.closest('[hidden]');
@@ -327,6 +362,12 @@ export async function runChromiumSurface(binary, directory, screenshot, options 
       validateSurfaceResult(result.result.value,cdp.exceptions);
       checks.push(...result.result.value.checks);
       checks.push(...await themeChecks(cdp,surface));
+      if (surface === 'settings' || surface === 'popup') {
+        const brand = await cdp.send('Runtime.evaluate',{expression:brandingAssertions,returnByValue:true,awaitPromise:true});
+        if (brand.exceptionDetails) throw new Error(brand.exceptionDetails.exception?.description || brand.exceptionDetails.text);
+        validateSurfaceResult(brand.result.value,cdp.exceptions);
+        checks.push(...brand.result.value.checks);
+      }
       if (options.afterSurface) {
         const extra = await options.afterSurface(surface, cdp);
         if (extra) {

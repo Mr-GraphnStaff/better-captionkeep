@@ -563,16 +563,17 @@
     <script src="privacyScrubber.js" defer></script>
     <script src="promptTemplates.js" defer></script>
     <script src="browserCompat.js" defer></script>
+    <script src="adminSetupClient.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
 <body data-graph-configured="unknown"><main class="popup-main">
     <header class="brand v6-popup-only">
         <img src="icons/daf-tech-sphere.png" width="44" height="44" alt="">
-        <div class="v6-brand-copy"><h2>Better CaptionKeep</h2><p>Meeting record</p></div>
+        <div class="v6-brand-copy"><h2>Better CaptionKeep</h2><p>DAF-TECH · Meeting record</p></div>
         <a class="v6-settings-link" href="settings.html" target="_blank" rel="noopener" aria-label="Open all settings"><span aria-hidden="true">⚙</span></a>
     </header>
-    <header class="brand settings-page-intro"><img src="icons/daf-tech-sphere.png" width="56" height="56" alt=""><div><h2>Better CaptionKeep</h2><p class="signature">All settings · Version 6.0</p></div></header>
+    <header class="brand settings-page-intro"><img src="icons/daf-tech-sphere.png" width="56" height="56" alt=""><div><h2>Better CaptionKeep</h2><p class="company-signature">DAF-TECH · All settings</p></div></header>
     <p class="subtitle settings-page-intro">Keep the words. Stay in the conversation.</p>
     <section class="settings-command-center all-settings-only" aria-labelledby="settings-command-title">
         <div><p class="settings-eyebrow">6.0 control room</p><h1 id="settings-command-title">Simple in front. Powerful back here.</h1><p>Configure capture, meeting intelligence, privacy, destinations, enterprise sources, exports, and diagnostics without crowding the everyday meeting button.</p></div>
@@ -674,6 +675,17 @@
                 <section class="graph-settings-card" aria-labelledby="graphConnectionHeading">
                     <h4 id="graphConnectionHeading">Connection and administrator setup</h4>
                     <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+                    <div class="graph-hero" id="organizationSetupCard">
+                        <strong>Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.</strong>
+                        <p class="small-info-text">Connect Microsoft 365 and deploy through Intune. Sign in with Microsoft, choose browsers and a pilot group, then review the organization changes before approval. Windows x64 with Edge, Chrome or Brave is required. If setup is missing, download and install the signed administrator app, then return here to continue.</p>
+                        <p class="small-info-text">Organization setup requires appropriate Microsoft 365/Intune licensing and administrator privileges. It is optional for local caption capture.</p>
+                        <div class="graph-actions">
+                            <button id="launchOrganizationSetup" type="button" aria-describedby="organizationSetupStatus">Open administrator setup</button>
+                            <button id="updateOrganizationSetup" type="button" aria-describedby="organizationSetupStatus" hidden>Download setup installer</button>
+                            <button id="cancelOrganizationSetup" type="button" hidden>Cancel</button>
+                        </div>
+                        <p class="small-info-text" id="organizationSetupStatus" role="status" aria-live="polite"></p>
+                    </div>
                     <div class="graph-actions">
                         <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
                         <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>

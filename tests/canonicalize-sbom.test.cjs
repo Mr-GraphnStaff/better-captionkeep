@@ -15,5 +15,5 @@ test('SBOM canonicalization removes only volatile identity fields and is determi
   assert.equal(parsed.serialNumber, undefined);
   assert.equal(parsed.metadata.timestamp, undefined);
   assert.equal(parsed.metadata.component.name, 'better-captionkeep');
-  assert.equal(parsed.metadata.component.version, '6.0.0');
+  assert.equal(parsed.metadata.component.version, require('../package.json').version);
 });

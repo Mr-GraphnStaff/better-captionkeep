@@ -19,7 +19,7 @@ async function harness() {
         for (const key of (Array.isArray(keys) ? keys : [keys])) delete data[key];
     }};
     const chrome = {storage:{local:area,sync:area,session:area,managed:area,onChanged:{addListener() {}}},
-        runtime:{onMessage:{addListener() {}},async sendMessage(message) {
+        runtime:{id:'synthetic-connected-teams',onMessage:{addListener() {}},async sendMessage(message) {
             messages.push(structuredClone(message));
             if (message.message === 'get_capture_surface') return {ok:true,surfaceId:'teams-tab-9'};
             if (message.message === 'save_session_history') {

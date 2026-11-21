@@ -1,8 +1,9 @@
 import {readFile,readdir} from 'node:fs/promises';
 import path from 'node:path';
 
-// Deferred implementation remains in the repository, never in 6.0 extension payloads.
-export const shippingBoundary = '6.0-without-mcp-v1';
+// Deferred MCP implementation remains in the repository, never in 6.0 extension payloads.
+// The separately reviewed organization-setup launcher is the only native-messaging exception.
+export const shippingBoundary = '6.0-without-mcp-admin-setup-v2';
 export function excludedShippingPath(filename) {
   const normalized=filename.replaceAll('\\','/');
   return /(?:^|\/)byomcp[^/]*\.(?:js|css)$/i.test(normalized)
@@ -25,7 +26,33 @@ export function assertShippingEntries(entries) {
     if(excludedShippingPath(name)) throw Error(`Deferred MCP payload is forbidden: ${name}`);
     if(!/\.(?:js|json|html|css)$/i.test(name)) continue;
     const text=bytes.toString('utf8');
-    if(/\bnativeMessaging\b|\b(?:connectNative|sendNativeMessage)\b|\bbyomcp_(?:settings|action)\b|(?:src|href)=["'][^"']*byomcp|["']byomcp[^"']*\.(?:js|css)["']/i.test(text)) {
+    let inspected=text;
+    // Recursive package checks pass nested names such as brave-unpacked/manifest.json.
+    const base=name.replaceAll('\\','/').split('/').pop();
+    if(base==='adminSetupClient.js') {
+      // Exempt only the exact approved forms: one immutable fixed host constant, native
+      // calls that pass that constant, and the optional-permission request. Any other
+      // native reference stays visible to the general check below.
+      const hostDeclaration="const HOST_NAME = 'com.daftech.bettercaptionkeep.adminsetup';";
+      const approvedCall=/\bsendNativeMessage\(HOST_NAME,/g;
+      const approvedPermission="permissions: ['nativeMessaging']";
+      const count=(pattern)=>(text.match(pattern)||[]).length;
+      if(text.split(hostDeclaration).length!==2 || count(/\bHOST_NAME\s*=(?!=)/g)!==1
+          || count(approvedCall)<1 || count(/\bsendNativeMessage\b/g)!==count(approvedCall)
+          || /\bconnectNative\b|byomcp/i.test(text)) {
+        throw Error(`Organization setup native boundary is invalid: ${name}`);
+      }
+      inspected=inspected.replace(approvedCall,'(HOST_NAME,').replaceAll(approvedPermission,'');
+    }
+    if(base==='manifest.json') {
+      const manifest=JSON.parse(text);
+      if((manifest.permissions||[]).includes('nativeMessaging')) throw Error(`Mandatory native messaging is forbidden: ${name}`);
+      const optional=manifest.optional_permissions||[];
+      if(optional.filter(value=>value==='nativeMessaging').length>1) throw Error(`Duplicate native messaging permission is forbidden: ${name}`);
+      manifest.optional_permissions=optional.filter(value=>value!=='nativeMessaging');
+      inspected=JSON.stringify(manifest);
+    }
+    if(/\bnativeMessaging\b|\b(?:connectNative|sendNativeMessage)\b|\bbyomcp_(?:settings|action)\b|(?:src|href)=["'][^"']*byomcp|["']byomcp[^"']*\.(?:js|css)["']/i.test(inspected)) {
       throw Error(`Deferred MCP capability or reference is forbidden: ${name}`);
     }
   }

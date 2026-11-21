@@ -1,37 +1,34 @@
 # Better CaptionKeep
 
-<!-- captionkeep-6.0-status:start -->
-> **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
+<!-- captionkeep-6.0.3-status:start -->
+> **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
-> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
 > Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
-> This status does not change historical 5.4 publication records.
-<!-- captionkeep-6.0-status:end -->
+> This development record does not change prior publication records or inherit prior owner exceptions.
+<!-- captionkeep-6.0.3-status:end -->
 
 **A DAF-TECH Product** — Keep the words. Stay in the conversation.
 
 <img src="branding/daf-tech/daf-tech-sphere.png" alt="DAF-TECH sphere" width="120">
 
-![Better CaptionKeep by Señor Farris — Scribble, our listening transcript mascot](branding/scribble-concept.png)
+## Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.
+
+**New in 6.0.3:** a guided administrator setup entry point for Windows organizations. Open **All Settings → Microsoft 365 → Open administrator setup** to launch the signed setup app, or download and install it when prompted. Sign in with Microsoft, choose Edge or Chrome and an existing pilot group, review the proposed changes, then approve deployment. Setup prepares the organization-owned Microsoft 365 configuration and deploys the Store extension through Intune, without manually creating app registrations or copying tenant and client IDs between portals.
+
+Better CaptionKeep remains one free DAF-TECH product. Microsoft 365/Intune licensing and administrator permissions are required for organization setup; local caption capture works without it. Begin with a pilot and verify device installation, employee sign-in and an authorized transcript import before expanding. See the release status for Store submission and public availability; submission does not make the update immediately public.
+
+[Start administrator setup](docs/wiki/Administrator-Deployment.md) · [Review security and permissions](docs/wiki/Deployment-Security-and-Permissions.md) · [6.0.3 release status](docs/RELEASE-6.0.3.md)
 
 [Trust Center](docs/TRUST-CENTER.md) · [Privacy policy](PRIVACY.md) · [Report a vulnerability](SECURITY.md) · [Report an issue](https://github.com/Mr-GraphnStaff/better-captionkeep/issues) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
-**Testing 6.0?** Use the [hands-on QA and acceptance packet](docs/software-team/TESTER-ACCEPTANCE-6.0.md).
-Start with the Brave first-session checks; record results against the actual
-installed build. The authoritative release record identifies the current candidate and owner's explicit publication exception; missing live acceptance is not certification.
-The [October 24 release-preparation record](docs/release-state/6.0-preparation.md)
-identifies the single next Chromium test package at
-`P:\Projects\better-captionkeep-dev\dist\uat`; existing Development files are preserved.
+**Testing 6.0.3?** Use the [QA acceptance packet](docs/software-team/TESTER-ACCEPTANCE-6.0.md), record the actual installed version, and use the current [release record](docs/RELEASE-6.0.3.md).
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme.
 
-> **Distribution status — October 24, 2026:** [GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0) is published with 15 hash-verified assets. Chrome accepted 6.0 for review and Microsoft accepted it for Edge certification in Store pipeline 858. Certification approval and public upgrades remain unverified. The last documented public Store baseline is 5.4.0, verified in October; see [Release status](docs/wiki/Release-Status.md).
-
-> **6.0 GitHub publication; Store rollout pending:** The 6.0 line is a real working extension, not a detached wireframe or a completed release. Version `6.0.0` applies the dark sphere shell across the product. The popup keeps one primary meeting decision, direct Teams, Meet, and Zoom launchers, clear capture status and a quiet Meeting Receipt history path. The deeper workspace offers Transcript, Moments, cited Live Notes, Evidence, Templates and source-bound Ask. Rolling Notes retain bounded, restart-safe cited revisions without changing raw captions. Reviewed shareable summaries are implemented locally with synthetic coverage. BYOMCP is deferred from this release. Automated tests, eight-page surface checks, dependency audits, five target packages, Store art, hashes, extension SBOMs and provenance support review. The authoritative release record binds repaired source `9dabe817` and all eight frozen hashes. The published tag is `7470bbf1`, promoted through protected `master`; its packages match the clean bounded-repair build. The original build evidence is preserved. David Farris explicitly authorized publication with the documented unfinished acceptance and unchanged-window exceptions; those checks remain unpassed. Store approval, public parity and installed-upgrade verification remain rollout checks.
-
 ### 6.0 release scope
 
-**6.0 MCP scope:** BYOMCP is deferred to a later release. Shipping 6.0 excludes MCP connections, native messaging and helper/tool-execution controls. Local capture, archives, exports, reviewed BYOAI handoff and existing receipt readability remain. Earlier MCP development is preserved separately; it is not a shipping feature or a completed acceptance claim.
+**6.0 MCP scope:** BYOMCP is deferred to a later release. Shipping 6.0 excludes MCP connections and helper/tool-execution controls. Version 6.0.3 adds only optional native messaging for the separately installed Administrator Setup, through one fixed host. Local capture, archives, exports, reviewed BYOAI handoff and existing receipt readability remain. Earlier MCP development is preserved separately; it is not a shipping feature or a completed acceptance claim.
 
 
 **6.0 development addition:** the transcript viewer's More transcript tools
@@ -90,7 +87,7 @@ The `5.3.3` hotfix candidate removes the popup's competing **View Transcript** a
 
 ## Release lineage
 
-Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release, and [5.4](docs/RELEASE-5.4.md) is the last documented public Store baseline. [6.0](docs/RELEASE-6.0.md) is published on GitHub from protected `master`, with documented owner exceptions and the bounded Teams repair; Store rollout is pending. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
+Better CaptionKeep began as a fork of the MIT-licensed Live-Captions-Saver project and is now independently developed. The [5.0 record](docs/RELEASE-5.0.md) established the shared multi-provider architecture, [5.1](docs/RELEASE-5.1.md) added governed Zoom Web support, [5.2](docs/RELEASE-5.2.md) introduced the enterprise security-review line, and [5.3.2](docs/RELEASE-5.3.2.md) records the Store-recovery release. [5.4](docs/RELEASE-5.4.md) is a historical release; [6.0.0](docs/RELEASE-6.0.md) is the last recorded public Store baseline. Version 6.0.3 is being prepared for submission. Historical release documents preserve what was and was not available in each artifact; they do not override the current product status above.
 
 ## Approved 6.0 interface illustrations
 
@@ -141,7 +138,7 @@ Choose **Automatically** to save transcripts without opening a Better CaptionKee
 
 ## Install for local testing
 
-The last documented Chrome and Edge Store baseline is `5.4.0`; 6.0 is published on GitHub and accepted for Chrome review and Edge certification; approval and public upgrades remain pending. Installed-upgrade and post-upgrade functional smoke verification remain separate evidence. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
+The release documentation records `6.0.0` as the last observed public Store version. Version `6.0.3` is being prepared for submission; approval, public availability and installed-upgrade verification remain separate. Use the [wiki installation page](https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/Installation) for ordinary installation; the instructions below are for controlled local testing only.
 
 ### Three lifecycle environments
 
@@ -214,7 +211,7 @@ Browser API identifiers such as `chrome.storage` remain unchanged because Edge i
 
 ## Publication status
 
-Target stores: **Microsoft Edge Add-ons and the Chrome Web Store**. Version 4.7 was retired from publication. The last documented public Store baseline is `5.4.0`; installed-upgrade and post-upgrade functional smoke remain separate verification gates. Version `6.0.0` is published on GitHub with explicit owner exceptions to incomplete acceptance and the test window. Its Chrome submission is PENDING_REVIEW and the Edge certification submission was accepted; certification approval and Store availability are separate outcomes. The [privacy policy](PRIVACY.md) is published. Use the [5.4 release record](docs/RELEASE-5.4.md), [6.0 release record](docs/RELEASE-6.0.md), and [Chrome Web Store checklist](docs/CHROME-WEB-STORE-SUBMISSION.md) for per-Store evidence.
+Current release: **6.0.3**, authorized for submission to Chrome Web Store and Microsoft Edge Add-ons. Store review, public availability and installed upgrade require separate observed receipts; none is implied by this source update. The last recorded public baseline is **6.0.0**. Use [the current release record](docs/RELEASE-6.0.3.md) and [Release status](docs/wiki/Release-Status.md). Earlier version evidence is historical.
 
 Production changes reach `master` only through review and validation. See the [contribution guide](CONTRIBUTING.md) and [release process](docs/RELEASE_PROCESS.md).
 
@@ -224,37 +221,57 @@ Better CaptionKeep originated from [Live-Captions-Saver](https://github.com/Zerg
 
 Not affiliated with or endorsed by Microsoft.
 
-## October 24 publication decision
+## Historical releases
 
-David Farris explicitly authorized “Publish with a documented owner exception.”
-The [exception report](docs/release-state/6.0-owner-exception.md) records known
-UAT gaps, the waived test window and unchanged permissions. The machine record
-binds source, all eight artifact hashes, Store targets and the report digest.
-No unfinished test is recorded as passed. Production distributions come only
-from `dist/prod`; approved shipping ZIP bytes remain unchanged.
+[6.0.0 publication and acceptance history](docs/RELEASE-6.0.md) and [5.4 history](docs/RELEASE-5.4.md) describe earlier releases. Current delivery is tracked only by the 6.0.3 record above.
 
-## GitHub publication evidence
+## Administrator setup — signed Windows installer
 
-[GitHub v6.0.0](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/v6.0.0)
-was published on October 24, 2026 at 03:47:23 America/Chicago (08:47:23 UTC),
-with 15 assets. Tag `7470bbf1fe2347ce9c850ed7666ac326e79e7278` and
-[Package run 40079055054](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/runs/40079055054)
-bind the repaired candidate, eight frozen hashes and 14 verified attestation
-subjects. GitHub's API reports server immutability disabled; the approved
-artifacts are operationally frozen and hash-verified. The release remains in
-the logical candidate state until Store approval, public listing parity and
-installed-upgrade verification are recorded. Chrome review and Edge certification decisions are pending.
+The signed **Administrator Setup 6.0.3** Windows x64 application is available
+from its [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2).
+Its version is separate from the extension: the extension's 6.0.3 setup entry
+point is included in the 6.0.3 update. Check release status for Store availability. Downloading
+or installing the administrator application does not itself change your tenant.
 
-## Store submission receipts — October 24, 2026
+1. [Download the signed installer](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/download/admin-setup-v6.0.3-r2/BetterCaptionKeep-AdministratorSetup-6.0.3-win-x64.exe),
+   verify the release SHA-256 and Windows signature from **DAVID ANTHONY FARRIS**,
+   then install it under the Windows account that will perform setup. A compatible
+   extension offers **All Settings → Microsoft 365 → Open administrator setup**
+   and a download/install/continue flow when the application is missing.
+2. Open the installed application and choose **Set up Microsoft 365**. Complete
+   work-administrator sign-in, choose Edge or Chrome and an existing pilot group,
+   review the proposed Microsoft 365/Intune changes, then approve deployment.
+   The application checks its supported PowerShell prerequisites and explains
+   any required Microsoft installation. Eligible Microsoft licensing and
+   administrator authority are required.
+3. Use **Check or continue an earlier setup** with the original private
+   `receipt.json` if deployment is interrupted. The application saves this record
+   automatically under `%LOCALAPPDATA%\DAF-TECH\Better CaptionKeep\Deployments\<operation-id>`.
+   Verify device installation, employee sign-in and an authorized transcript
+   import separately; assignment alone is not proof that those later steps work.
 
-[Store pipeline 858](https://dev.azure.com/DAF-TECH/Better%20CaptionKeep/_build/results?buildId=858)
-succeeded using tag `v6.0.0` at `7470bbf1fe2347ce9c850ed7666ac326e79e7278`.
-Chrome accepted 6.0 for review at 08:58:01 UTC with state **PENDING_REVIEW**,
-configured for immediate publication after approval. Microsoft accepted the
-Edge update for certification at 08:58:33 UTC; the submission operation
-succeeded, which is not certification approval.
+This signed route includes the pre-signed endpoint worker. Administrators do
+not need their own signing certificate, Azure Artifact Signing account, Azure
+CLI, Node.js or .NET SDK. Retained developer ZIP/`Start-Setup.cmd` tooling is a
+separate advanced development route, not the public quick start. Never bypass
+Windows, organizational execution policy or certificate trust controls.
 
-Chrome's pre-submission API check still reported public **5.4.0**. Store
-certification decisions, 6.0 public listings and installed-upgrade verification
-remain pending. The machine record therefore stays candidate with those gates
-false; the existing owner acceptance exceptions remain explicitly unpassed.
+Read the [administrator deployment guide](docs/wiki/Administrator-Deployment.md)
+and [security and permissions](docs/wiki/Deployment-Security-and-Permissions.md)
+for the exact consent, signing, status, recovery, and remaining acceptance boundaries.
+<!-- administrator-setup-pilot:end -->
+
+<details>
+<summary>Historical 6.0.0 release record — superseded by 6.0.3 above</summary>
+
+This retained October 24 record is historical; its pending states are not the current release status.
+
+<!-- captionkeep-6.0-status:start -->
+> **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#335**.
+> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
+> This status does not change historical 5.4 publication records.
+<!-- captionkeep-6.0-status:end -->
+
+</details>

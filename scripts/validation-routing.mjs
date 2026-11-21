@@ -15,7 +15,17 @@ export const NONSHIPPING_CONTROL_FILES = Object.freeze([
   'tests/release-promotion.test.cjs',
   'tests/reliability.test.cjs',
   'scripts/validation-routing.mjs',
-  'tests/validation-routing.test.cjs'
+  'tests/validation-routing.test.cjs',
+  'deployment/intune/Enterprise-Setup.ps1',
+  'deployment/intune/Enterprise-Endpoint.ps1',
+  'deployment/intune/Enterprise-Launcher.ps1',
+  'scripts/build-enterprise-package.mjs',
+  'tests/enterprise-setup.test.cjs',
+  'tests/enterprise-launcher.test.cjs',
+  'tests/enterprise-endpoint-verification.test.cjs',
+  'tests/fixtures/enterprise-registry-harness.ps1',
+  'docs/wiki/Deployment-Security-and-Permissions.md',
+  'docs/wiki/Administrator-Deployment.md'
 ]);
 
 const controlFiles = new Set(NONSHIPPING_CONTROL_FILES);
@@ -38,6 +48,33 @@ export function isNonshippingPath(value) {
 export function classifyChangedPaths(paths) {
   return Array.isArray(paths) && paths.length > 0 && paths.every(isNonshippingPath)
     ? 'nonshipping' : 'candidate';
+}
+
+export function isAdminBuildCommandOnly(beforeText, afterText) {
+  const before = JSON.parse(beforeText), after = JSON.parse(afterText);
+  const command = 'node scripts/build-enterprise-package.mjs';
+  if (!before.scripts || !after.scripts || after.scripts['build:enterprise-setup'] !== command
+      || (before.scripts['build:enterprise-setup'] !== undefined && before.scripts['build:enterprise-setup'] !== command)) return false;
+  delete before.scripts['build:enterprise-setup'];
+  delete after.scripts['build:enterprise-setup'];
+  const canonical = value => Array.isArray(value) ? value.map(canonical)
+    : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+  return JSON.stringify(canonical(before)) === JSON.stringify(canonical(after));
+}
+
+export function isAdminReadmeOnly(beforeText, afterText) {
+  const start='<!-- administrator-setup-pilot:start -->',end='<!-- administrator-setup-pilot:end -->';
+  const split=text=>{
+    const starts=text.split(start).length-1,ends=text.split(end).length-1;
+    if (!starts&&!ends) return {outside:text.trimEnd(),block:''};
+    if (starts!==1||ends!==1||text.indexOf(end)<text.indexOf(start)) throw new Error('Malformed administrator README block');
+    const block=text.slice(text.indexOf(start),text.indexOf(end)+end.length);
+    return {outside:text.replace(block,'').trimEnd(),block};
+  };
+  const before=split(beforeText),after=split(afterText);
+  return before.outside===after.outside && /pilot/i.test(after.block) && after.block.includes('Start-Setup.cmd')
+    && after.block.includes('docs/wiki/Administrator-Deployment.md')
+    && after.block.includes('docs/wiki/Deployment-Security-and-Permissions.md');
 }
 
 function gitReader(root) {
@@ -79,7 +116,14 @@ export function determineValidationMode({eventName, ref, event, root,
     const diff = readGit(['diff', '--name-only', '-z', '--no-renames', '--no-ext-diff',
       '--no-textconv', base, head, '--']);
     if (!diff || !diff.endsWith('\0')) return 'candidate';
-    return classifyChangedPaths(diff.slice(0, -1).split('\0'));
+    const paths = diff.slice(0, -1).split('\0');
+    // Admin tooling has its own executed tests/package checks; this narrow npm
+    // convenience command must not allow dependency or extension-build changes.
+    if (paths.some(name=>name==='package.json'||name==='readme.md')
+        && paths.every(name => name === 'package.json' || name === 'readme.md' || isNonshippingPath(name))
+        && (!paths.includes('package.json') || isAdminBuildCommandOnly(readGit(['show', `${base}:package.json`]), readGit(['show', `${head}:package.json`])))
+        && (!paths.includes('readme.md') || isAdminReadmeOnly(readGit(['show', `${base}:readme.md`]), readGit(['show', `${head}:readme.md`])))) return 'nonshipping';
+    return classifyChangedPaths(paths);
   } catch {
     // Unknown events, unavailable history and Git failures never reduce checks.
     return 'candidate';

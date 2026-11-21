@@ -1,0 +1,42 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const vm=require('node:vm');const cp=require('node:child_process');const crypto=require('node:crypto');
+// Reviewed organization-setup front-door contracts (issue #231), run against the repository.
+const stage=path.join(__dirname,'..');const read=n=>fs.readFileSync(path.join(stage,n),'utf8');const code=read('teams-captions-saver/adminSetupClient.js');
+function fixture(options={}){
+ const nodes={};for(const id of ['launchOrganizationSetup','organizationSetupStatus','cancelOrganizationSetup','updateOrganizationSetup'])nodes[id]={hidden:id!=='launchOrganizationSetup',disabled:false,textContent:'',listeners:{},addEventListener(k,f){this.listeners[k]=f},focus(){this.focused=true}};
+ const calls={permission:0,native:0,download:0};let timer;const chrome={runtime:{id:'edefcbdhahfolgkoamkbknjppojpaffk',getManifest:()=>({version:'6.0.3'}),sendNativeMessage(host,msg,cb){calls.native++;calls.host=host;calls.message=msg;if(options.timeout)return; if(options.error){chrome.runtime.lastError={message:options.error};cb();delete chrome.runtime.lastError}else cb(options.response||{protocolVersion:1,operation:'launch',ok:true})}},permissions:{request(args,cb){calls.permission++;if(options.deferPermission)calls.grant=()=>cb(true);else cb(options.granted!==false)}},downloads:{download(args,cb){calls.download++;calls.downloadArgs=args;cb(options.downloadFail?undefined:12)}}};
+ const context={chrome,document:{readyState:'complete',getElementById:id=>nodes[id]},navigator:{platform:options.platform||'Win32'},CaptionKeepBrowserRuntime:{target:options.target||'edge'},setTimeout:f=>(timer=f,1),clearTimeout(){}};vm.runInNewContext(code,context);
+ return {nodes,calls,click:async id=>{await nodes[id].listeners.click?.();await new Promise(setImmediate)},timeout:()=>timer?.()};
+}
+test('baseline20 schema, unchanged popup logic; no bridge assets',()=>{assert.equal(Object.keys(JSON.parse(read('teams-captions-saver/managed-schema.json')).properties).length,20);assert(!fs.existsSync(path.join(stage,'admin-setup')));assert(!read('teams-captions-saver/popup.js').includes('graphRevealIdentifiers'))});
+test('optional permission only and matching version/disclosure',()=>{for(const n of ['teams-captions-saver/manifest.json','manifests/manifest.chrome-store.json']){const m=JSON.parse(read(n));assert.deepEqual(m.optional_permissions,['nativeMessaging']);assert(!m.permissions.includes('nativeMessaging'));assert.equal(m.version,'6.0.3')}assert.match(read('store-metadata/chrome.json'),/does not execute the downloaded installer/)});
+test('accessible standalone markup, no inline handlers or Development promise',()=>{const html=read('teams-captions-saver/popup.html');for(const id of ['launchOrganizationSetup','cancelOrganizationSetup','updateOrganizationSetup','organizationSetupStatus'])assert.equal(html.split(`id="${id}"`).length,2);assert.match(html,/organizationSetupStatus" role="status" aria-live="polite"/);assert(!html.includes('Administrator setup — Development'));assert(html.indexOf('adminSetupClient.js')<html.indexOf('src="popup.js"'));assert(!html.includes('onclick='))});
+test('no permission, native or download until user click',()=>assert.deepEqual(fixture().calls,{permission:0,native:0,download:0}));
+test('installed helper launch exact protocol and production extension ID',async()=>{const f=fixture();await f.click('launchOrganizationSetup');assert.equal(f.calls.native,1);assert.equal(f.calls.host,'com.daftech.bettercaptionkeep.adminsetup');assert.equal(f.calls.message.operation,'launch');assert.equal(f.calls.message.extensionId,'edefcbdhahfolgkoamkbknjppojpaffk');assert.equal(f.calls.download,0);assert.match(f.nodes.organizationSetupStatus.textContent,/opened/)});
+test('denied permission stops before native and download',async()=>{const f=fixture({granted:false});await f.click('launchOrganizationSetup');assert.equal(f.calls.native,0);assert.equal(f.calls.download,0);assert.match(f.nodes.organizationSetupStatus.textContent,/permission/)});
+test('missing host -> explicit download -> Continue re-probe, no auto execution',async()=>{const f=fixture({error:'Specified native messaging host not found.'});await f.click('launchOrganizationSetup');assert.equal(f.nodes.launchOrganizationSetup.textContent,'Download and install');assert.equal(f.calls.download,0);await f.click('launchOrganizationSetup');assert.equal(f.calls.download,1);assert.match(f.calls.downloadArgs.url,/admin-setup-v6\.0\.3-r2\/BetterCaptionKeep-AdministratorSetup-6\.0\.3-win-x64.exe$/);assert.equal(f.nodes.launchOrganizationSetup.textContent,'Continue setup');await f.click('launchOrganizationSetup');assert.equal(f.calls.native,2);assert.equal(f.calls.download,1)});
+test('failed download remains retryable',async()=>{const f=fixture({error:'Specified native messaging host not found.',downloadFail:true});await f.click('launchOrganizationSetup');await f.click('launchOrganizationSetup');assert.match(f.nodes.organizationSetupStatus.textContent,/could not start/);assert.equal(f.nodes.launchOrganizationSetup.disabled,false)});
+test('cancel invalidates in-flight permission completion',async()=>{const f=fixture({deferPermission:true});const pending=f.click('launchOrganizationSetup');await f.click('cancelOrganizationSetup');f.calls.grant();await pending;assert.equal(f.calls.native,0);assert.match(f.nodes.organizationSetupStatus.textContent,/cancelled/)});
+test('malformed host response does not claim success or assert tenant unchanged',async()=>{const f=fixture({response:{ok:true}});await f.click('launchOrganizationSetup');assert.match(f.nodes.organizationSetupStatus.textContent,/could not be confirmed/);assert(!f.nodes.organizationSetupStatus.textContent.includes('No organization changes'));assert.equal(f.calls.native,1)});
+test('native timeout offers no automatic installer or duplicate launch',async()=>{const f=fixture({timeout:true});const pending=f.click('launchOrganizationSetup');await new Promise(setImmediate);f.timeout();await pending;assert.match(f.nodes.organizationSetupStatus.textContent,/did not respond/);assert.equal(f.calls.native,1);assert.equal(f.calls.download,0)});
+test('unsupported platform and target never request privilege or download',async()=>{for(const options of [{platform:'MacIntel'},{target:'firefox'},{target:'opera'}]){const f=fixture(options);assert.equal(f.nodes.launchOrganizationSetup.disabled,true);await f.click('launchOrganizationSetup');assert.equal(f.calls.permission,0);assert.equal(f.calls.download,0);assert.match(f.nodes.organizationSetupStatus.textContent,/Windows x64/)}});
+
+test('truthy malformed ok does not report success',async()=>{const f=fixture({response:{protocolVersion:1,operation:'launch',ok:'yes'}});await f.click('launchOrganizationSetup');assert.match(f.nodes.organizationSetupStatus.textContent,/could not be confirmed/)});
+test('Store metadata validator accepts the required/optional permission sets',async()=>{
+ const checker=await import(require('node:url').pathToFileURL(path.join(stage,'scripts','check-store-metadata.mjs')));
+ const {resolvedManifest}=await import(require('node:url').pathToFileURL(path.join(stage,'scripts','manifest-localization.mjs')));
+ const manifest=resolvedManifest(JSON.parse(read('manifests/manifest.chrome-store.json')),JSON.parse(read('teams-captions-saver/_locales/en/messages.json')));
+ checker.validateChromeStoreMetadata(manifest,JSON.parse(read('store-metadata/chrome.json')));
+});
+
+test('forbidden QA identity is not mistaken for a missing host or another download',async()=>{
+ const f=fixture({error:'Access to the specified native messaging host is forbidden.'});
+ await f.click('launchOrganizationSetup');await f.click('launchOrganizationSetup');
+ assert.equal(f.calls.download,0);assert.equal(f.calls.native,2);
+ assert.match(f.nodes.organizationSetupStatus.textContent,/identity is not authorized/);
+ assert.equal(f.nodes.launchOrganizationSetup.textContent,'Open administrator setup');
+ assert.equal(f.nodes.updateOrganizationSetup.hidden,false);
+});
+test('an installed helper does not advertise an unverified update on every load',async()=>{
+ const f=fixture();assert.equal(f.nodes.updateOrganizationSetup.hidden,true);
+ await f.click('launchOrganizationSetup');assert.equal(f.calls.download,0);
+});

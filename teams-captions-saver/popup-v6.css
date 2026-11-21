@@ -278,6 +278,22 @@ html[data-view="settings"] body {
     color: var(--ck-text);
 }
 html[data-view="settings"] .settings-page-intro { display: none; }
+/* Parent branding stays visible in every theme, above the settings cockpit. */
+html[data-view="settings"] header.settings-page-intro {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 18px;
+    background: transparent;
+    box-shadow: none;
+}
+html[data-view="settings"] header.settings-page-intro h2 { color: var(--ck-text); }
+html[data-view="settings"] header.settings-page-intro .company-signature {
+    color: var(--ck-text);
+    margin: 4px 0 0;
+    font-size: 12px;
+    font-weight: 650;
+}
 html[data-view="settings"] .settings-command-center {
     display: grid;
     gap: 18px;
