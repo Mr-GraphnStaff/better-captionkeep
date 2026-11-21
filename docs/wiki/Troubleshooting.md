@@ -2,6 +2,24 @@
 
 Start with what you observed: the control you chose, the result and the installed version if you know it. The extension, Administrator Setup and Intune endpoint app are separate components; their version/status numbers are not interchangeable. See [Support](Support) to report a problem without having to diagnose it yourself.
 
+## Store update warns about `_metadata`
+
+A Store-installed extension can show:
+
+> Cannot load extension with file or directory name _metadata. Filenames starting with "_" are reserved for use by the system.
+
+That message alone does not establish that the extension failed to load. In the reported Chrome Store 6.0.3 case on November 21, the extension remained enabled and its popup opened. Caption capture, transcript import and complete installed-upgrade acceptance were not established by that observation.
+
+The verified 6.0.3 release ZIP contains no `_metadata` entry. The served Chrome Store package adds `_metadata/verified_contents.json` and the Store's manifest `update_url`; all other file bytes matched the release. These are expected Store-managed integrity/distribution additions. A similar Edge Store-update report is tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820).
+
+Current [Chromium `ValidateExtension` source](https://chromium.googlesource.com/chromium/src/+/HEAD/extensions/common/file_util.cc) can record this exact reserved-name text as an `InstallWarning` without blocking loading. Its [CRX test loader](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/browser/extensions/chrome_test_extension_loader.cc) also recognizes legitimate Store signing metadata. Together these support a shared browser diagnostic explanation; the exact internal update trigger has not been reproduced. [BCK issue #260](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/260) records the current evidence.
+
+1. Check the installed version and enabled state in `chrome://extensions` or `edge://extensions`, then check whether the popup opens.
+2. Test the intended capture workflow separately with synthetic content. An open popup is not proof that capture or Microsoft 365 import works.
+3. If the extension is actually disabled or the popup fails, report that separate symptom and sanitized error through [Support](Support). Preserve permitted saved work before changing the installation.
+
+Do not delete Store integrity files, edit the installed manifest, reinstall, clear extension data or reset the browser profile just to remove this diagnostic. Those actions can remove history or damage the managed installation without identifying the cause.
+
 ## Administrator Setup will not open
 
 In an extension build that includes **Open administrator setup**:
