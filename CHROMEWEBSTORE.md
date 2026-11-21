@@ -1,4 +1,4 @@
-# Chrome Web Store Listing â€” Better CaptionKeep 6.0.3
+# Chrome Web Store Listing — Better CaptionKeep 6.0.3
 
 Updated November 20, 2026. Current extension and Administrator Setup version: **6.0.3**. Use the approved DAF-TECH sphere artwork and existing company themes. Guided Microsoft 365 setup and Intune deployment are the launch message. Store submission, review and public availability are separate states in [the current release record](docs/RELEASE-6.0.3.md). The [publication decision](docs/release-state/6.0.3-team-release-review-2026-11-20.md) records unfinished acceptance and the known QA identity problem; none is represented as passed.
 
@@ -6,7 +6,7 @@ Updated November 20, 2026. Current extension and Administrator Setup version: **
 
 **Extension Name**
 
-Better CaptionKeep â€” Live Meeting Transcript
+Better CaptionKeep — Live Meeting Transcript
 
 **Short Description**
 
@@ -22,7 +22,7 @@ Optional Bring Your Own AI handoff prepares material for your chosen AI workspac
 
 Guided Microsoft 365 setup. Deploy Better CaptionKeep with Intune.
 
-Version 6.0.3 adds an administrator setup entry point in All Settings â†’ Microsoft 365. A compatible installed helper can open from there; otherwise, download and run the signed Windows x64 installer yourself. Downloading does not install or launch it.
+Version 6.0.3 adds an administrator setup entry point in All Settings → Microsoft 365. A compatible installed helper can open from there; otherwise, download and run the signed Windows x64 installer yourself. Downloading does not install or launch it.
 
 For supported commercial Microsoft-cloud organizations, guided setup prepares deployment to Edge, Chrome or both through Intune, with optional organization-owned Microsoft 365 transcript access. It requires appropriate Microsoft licensing, enrolled Windows x64 pilot devices and administrator authority. Review proposed permissions and changes before approving deployment.
 
@@ -34,14 +34,14 @@ Administrator guide: https://github.com/Mr-GraphnStaff/better-captionkeep/wiki/A
 
 | Asset | Dimensions | Status | Filename |
 | --- | --- | --- | --- |
-| Store Icon | 128Ã—128 PNG | Ready | `teams-captions-saver/icons/sphere-128.png` |
-| Screenshot 1 | 1280Ã—800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/01-one-button-meeting.png` |
-| Screenshot 2 | 1280Ã—800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/02-rolling-live-notes.png` |
-| Screenshot 3 | 1280Ã—800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/03-capture-moment.png` |
-| Screenshot 4 | 1280Ã—800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/04-meeting-receipt.png` |
-| Screenshot 5 | 1280Ã—800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/05-advanced-settings.png` |
-| Small Promo Tile | 440Ã—280 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/small-promotional-tile.png` |
-| Marquee Promo Tile | 1400Ã—560 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/marquee-promotional-tile.png` |
+| Store Icon | 128×128 PNG | Ready | `teams-captions-saver/icons/sphere-128.png` |
+| Screenshot 1 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/01-one-button-meeting.png` |
+| Screenshot 2 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/02-rolling-live-notes.png` |
+| Screenshot 3 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/03-capture-moment.png` |
+| Screenshot 4 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/04-meeting-receipt.png` |
+| Screenshot 5 | 1280×800 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/05-advanced-settings.png` |
+| Small Promo Tile | 440×280 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/small-promotional-tile.png` |
+| Marquee Promo Tile | 1400×560 PNG | Owner-approved October 24; manifest hash-bound | `store-assets/6.0/marquee-promotional-tile.png` |
 
 All artwork uses synthetic meetings and identities. Never substitute real participant names, meeting links, tenant identifiers, or transcript content.
 
@@ -118,7 +118,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 
 ## Developer Info
 
-**Publisher Name:** SeÃ±or Farris
+**Publisher Name:** Señor Farris
 
 **Contact Email:** Use the existing verified Chrome Web Store publisher contact. Confirm it in the dashboard before submission; do not place a private address in repository files.
 
@@ -150,7 +150,7 @@ https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/PRIVACY.md
 6. Confirm Privacy Scrubber is enabled by default. In Settings, choose an AI destination and Outlook work or school, Outlook.com personal, Gmail, or the browser/default email app for follow-up drafts.
 7. In the live transcript, highlight synthetic caption words. Verify Research, Explain, and Reply copy a bounded cleaned prompt and open the saved AI workspace without pasting or submitting it. Verify Email opens a recipient-free webmail draft, and Review/edit opens the complete local prompt and provider chooser.
 8. Microsoft Teams live-caption capture can be tested on either supported Teams web host.
-9. Microsoft 365 import is optional. In an authorized test organization, review the guided administrator setup route in All Settings â†’ Microsoft 365 and its licensing/permission prerequisites. Download and run the signed installer once if needed; inspect proposed changes before any approval. Manual organization-owned tenant/client IDs remain an alternative. Test an authorized transcript import only when that setup is complete.
+9. Microsoft 365 import is optional. In an authorized test organization, review the guided administrator setup route in All Settings → Microsoft 365 and its licensing/permission prerequisites. Download and run the signed installer once if needed; inspect proposed changes before any approval. Manual organization-owned tenant/client IDs remain an alternative. Test an authorized transcript import only when that setup is complete.
 
 No developer-operated server, paid subscription, microphone recording, video recording, or shared test account is required for the extension itself.
 
@@ -171,7 +171,7 @@ No developer-operated server, paid subscription, microphone recording, video rec
 - Upload and publication require explicit release-owner authorization. A successful build does not grant it.
 - For 6.0, David Farris authorized publication on October 24 with documented owner exceptions for incomplete exact-package browser/provider, full-scope/accessibility/failure acceptance and the 48-hour unchanged window. Preserve the missing checks as missing, not passed; bind the reviewed exception to exact source/package hashes and approved targets. Hash/provenance, permission-delta, secret-handling and Production-only artifact checks still apply. Store review, public parity and delivered-upgrade verification remain rollout outcomes to observe.
 
-### Submission History â€” historical 5.x records
+### Submission History — historical 5.x records
 
 These dated records describe earlier releases. They are not current 6.0.3 submission instructions.
 
@@ -181,6 +181,6 @@ Azure Store Release run 716 submitted the immutable 5.4.0 packages on October 10
 
 After the public Store pages exposed stale version-5-era marketing, Azure Store Release run 726 used Chrome's official `cancelSubmission` operation on October 10, 2026. Its preflight recorded `published=PUBLISHED/5.3.3` and `submitted=PENDING_REVIEW/5.4.0`; Chrome then returned the 5.4.0 submission to draft without uploading or replacing the immutable package. The corrected DAF-TECH listing copy and artwork must be applied in the Chrome Developer Dashboard before the existing draft is resubmitted.
 
-After the product owner saved the corrected description, five screenshots, small promotional tile, and marquee tile, Azure Store Release run 731 reverified and re-uploaded the same immutable 5.4.0 Chrome ZIP, passed the protected Production approval, and submitted the corrected draft for automatic publication after review. On October 12, the official Chrome Web Store listing was verified serving **Version 5.4.0**, **Updated October 11, 2026**, the corrected title **Better CaptionKeep â€” Live Meeting Transcript**, and the BYOAI summary. Chrome public availability is verified; successful existing-install upgrade and post-upgrade functional smoke testing remain open.
+After the product owner saved the corrected description, five screenshots, small promotional tile, and marquee tile, Azure Store Release run 731 reverified and re-uploaded the same immutable 5.4.0 Chrome ZIP, passed the protected Production approval, and submitted the corrected draft for automatic publication after review. On October 12, the official Chrome Web Store listing was verified serving **Version 5.4.0**, **Updated October 11, 2026**, the corrected title **Better CaptionKeep — Live Meeting Transcript**, and the BYOAI summary. Chrome public availability is verified; successful existing-install upgrade and post-upgrade functional smoke testing remain open.
 
 Later on October 10, the public Microsoft Edge Add-ons listing served version 5.4.0. A managed Edge installation received the update but reproduced the Store-generated `_metadata` warning tracked in [Microsoft issue #820](https://github.com/microsoft/MicrosoftEdge-Extensions/issues/820). The immutable submitted ZIP contains no `_metadata` entry. On October 14, the official Edge listing was verified serving the refreshed DAF-TECH description and all five 5.4 screenshots, including the three-platform, explicit-control, On the Fly, BYOAI, and enterprise-control story. Edge public availability and the listing refresh are verified; post-upgrade functional smoke testing remains open.
