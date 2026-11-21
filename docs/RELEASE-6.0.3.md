@@ -4,10 +4,9 @@ Scope: guided Microsoft 365 / Intune administrator setup entry point. This is a
 release record. The November 20 publication decision accepts documented unfinished checks; Store review and public availability remain separate outcomes.
 
 <!-- captionkeep-6.0.3-status:start -->
-> **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
+> **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This development record does not change prior publication records or inherit prior owner exceptions.
 <!-- captionkeep-6.0.3-status:end -->
 
@@ -42,8 +41,9 @@ Explicitly excluded (deferred by the owner): the new Intune-console settings
 editor, the expanded 27-setting managed schema, ADMX/ADML templates and the
 persistent management bridge.
 
-The five extension files are the reviewed front-door candidate, applied without
-modification apart from the version label.
+This correction batch supersedes the earlier five-file front-door candidate and
+includes setup, recovery, managed-export and English-description changes. Fresh
+qualification and package identities are required.
 
 ## Acceptance still unfinished — publication exception recorded
 
@@ -59,4 +59,4 @@ modification apart from the version label.
 
 ## November 20 publication decision
 
-The owner directed publication to both Stores despite the known QA identity failure and unfinished checks. See [the exact decision and limitations](release-state/6.0.3-owner-publication.md). No failed or unfinished acceptance is recorded as passed.
+The owner directed publication to both Stores despite the known QA identity failure and unfinished checks. See [the exact decision and limitations](release-state/6.0.3-team-release-review-2026-11-20.md). No failed or unfinished acceptance is recorded as passed.

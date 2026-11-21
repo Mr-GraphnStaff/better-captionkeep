@@ -11,10 +11,9 @@ Updated November 20, 2026. **6.0.3 is the current repaired release being prepare
 | Public Store baseline | Last recorded observation: 6.0.0; refresh after 6.0.3 approval |
 
 <!-- captionkeep-6.0.3-status:start -->
-> **6.0.3 delivery status:** 6.0.3 is candidate on `master`. Candidate frozen: yes.
+> **6.0.3 delivery status:** 6.0.3 is development on `dev`. Candidate frozen: no.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
 > Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
-> Owner publication exception: David Farris; accepted unfinished gates: fullScopeAcceptance, accessibilityAndFailureUat, unchangedWindow; live certifications: chrome, edge, brave, firefox, opera. These checks remain unpassed.
 > This development record does not change prior publication records or inherit prior owner exceptions.
 <!-- captionkeep-6.0.3-status:end -->
 
@@ -24,7 +23,7 @@ Open **All Settings → Microsoft 365 → Open administrator setup**. If prompte
 
 The QA identity omission and forbidden-host download loop are corrected in the r2 connector/source; installed launch acceptance and release promotion are tracked in [issue #221](https://github.com/Mr-GraphnStaff/better-captionkeep/issues/221). Production-ID end-to-end setup remains unverified. The owner directed publication with these gaps and incomplete acceptance recorded, not passed.
 
-Use the [6.0.3 machine record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), [release notes](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.3.md), and [publication decision](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3-owner-publication.md).
+Use the [6.0.3 machine record](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3.json), [release notes](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/RELEASE-6.0.3.md), and [publication decision](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/release-state/6.0.3-team-release-review-2026-11-20.md).
 
 ## Historical versions
 

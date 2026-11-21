@@ -251,19 +251,10 @@ function invalidateExtensionContext() {
     notice.setAttribute('role', 'alert');
     notice.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:2147483647;width:min(360px,calc(100vw - 32px));box-sizing:border-box;max-height:calc(100vh - 32px);overflow:auto;padding:16px;background:#fff;color:#172027;border:2px solid #172027;border-radius:8px;font:14px/1.5 system-ui';
     const message = document.createElement('p');
-    message.textContent = 'Better CaptionKeep lost its extension connection. Capture has stopped. Save available text below before reopening or refreshing Teams. Missing captions are not recovered automatically.';
-    const save = document.createElement('button');
-    save.textContent = 'Save available transcript';
-    save.addEventListener('click', () => {
-        const text = transcriptArray.map(row => [row.Time, row.Name, row.Text].filter(Boolean).join(' ')).join('\n');
-        const url = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'}));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'BetterCaptionKeep-recovery.txt';
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
-    notice.append(message, save);
+    message.textContent = 'Better CaptionKeep lost its extension connection. Capture has stopped. Available text remains in this page memory until it closes.';
+    const recovery = document.createElement('p');
+    recovery.textContent = 'Export from this disconnected page is unavailable because current organization policy cannot be checked. Open Better CaptionKeep Live Workspace to review any saved checkpoint. Reopen Teams when ready; unsaved or missing captions may be unavailable.';
+    notice.append(message, recovery);
     document.body.append(notice);
 }
 

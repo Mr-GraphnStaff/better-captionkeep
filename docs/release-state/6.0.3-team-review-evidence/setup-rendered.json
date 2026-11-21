@@ -1,0 +1,7 @@
+{
+  "status": "This extension identity is not authorized by the installed Administrator Setup connector. Install the current connector, then retry. Downloading alone does not update it. Choose Download setup installer and run the downloaded installer once.",
+  "label": "Download setup installer",
+  "visible": true,
+  "downloads": 0,
+  "prerequisites": true
+}

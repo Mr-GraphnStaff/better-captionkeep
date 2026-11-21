@@ -1,108 +1,12 @@
 {
   "product": "Better CaptionKeep",
   "version": "6.0.3",
-  "branch": "master",
-  "state": "candidate",
+  "branch": "dev",
+  "state": "development",
   "candidate": {
-    "frozen": true,
-    "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
-    "hashes": {
-      "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-      "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-      "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-      "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-      "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
-      "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
-      "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
-      "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
-    },
-    "ownerException": {
-      "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
-      "hashes": {
-        "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-        "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-        "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-        "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-        "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
-        "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
-        "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
-        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
-      },
-      "approvedBy": "David Farris",
-      "approvedAt": "2026-11-20T23:35:54.638538+00:00",
-      "reason": "Owner directed both Store submissions despite unfinished acceptance and then required correction of the actual QA failures. These corrected packages bind that continuing release authority after verified repairs; unfinished acceptance remains unpassed.",
-      "waivedGates": [
-        "fullScopeAcceptance",
-        "accessibilityAndFailureUat",
-        "unchangedWindow"
-      ],
-      "waivedLiveCertification": [
-        "chrome",
-        "edge",
-        "brave",
-        "firefox",
-        "opera"
-      ],
-      "evidence": {
-        "path": "docs/release-state/6.0.3-fix-verification-2026-11-20.md",
-        "sha256": "3f2780e4983ba5e0bc80a5b6514d64f9c4e0fe95739305f67c13dc6d285215a5"
-      }
-    },
-    "promotion": {
-      "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
-      "hashes": {
-        "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-        "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-        "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-        "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-        "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
-        "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
-        "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
-        "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
-      },
-      "approvedBy": "David Farris",
-      "targets": {
-        "chrome": "nabjdlnkkaonnbnimnmnhjcbigceebml",
-        "edge": "0e48419c-ed3f-4a9c-808b-5578a195c81b"
-      },
-      "uat": {
-        "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
-        "hashes": {
-          "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-          "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-          "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-          "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-          "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
-          "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
-          "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
-          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
-        },
-        "passed": false,
-        "report": {
-          "path": "docs/release-state/6.0.3-fix-verification-2026-11-20.md",
-          "sha256": "3f2780e4983ba5e0bc80a5b6514d64f9c4e0fe95739305f67c13dc6d285215a5"
-        }
-      },
-      "permissionDelta": {
-        "commit": "910d796566dd3f218c97146ec2827750cd7fe170",
-        "hashes": {
-          "edge-store": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-          "chrome-store": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-          "chrome": "644de4693939e0c25ed355c90faaceff1ce1b2052ba93806f229ab3b5be20031",
-          "edge": "9b4992a06fbcf7d4ff89e4a9454e57faedc87e0a256ee39bedb12ed467e71dac",
-          "brave": "fbf07dec1a9705c5c951cb18109b6a38a51feb64dd257e75bf00a82f856e60d9",
-          "opera": "a7ef14bdae1c109fbd7cce9e9e52d54b3334d50103420d7fb47207f78ef50037",
-          "firefox": "cf1d29d67c9bb98c91966f95b714c2feffa88a132caf29a676eb7333d78e38da",
-          "sbom": "7a74d709f803902eec49c815a983ef8db2f4dcd9369c75280e486b3386b39f39"
-        },
-        "approved": true,
-        "report": {
-          "path": "docs/release-state/6.0.3-fix-verification-2026-11-20.md",
-          "sha256": "3f2780e4983ba5e0bc80a5b6514d64f9c4e0fe95739305f67c13dc6d285215a5"
-        }
-      },
-      "unchangedSince": "2026-11-21T00:13:48.516245+00:00"
-    }
+    "frozen": false,
+    "commit": null,
+    "hashes": {}
   },
   "requiredBrowsers": [
     "chrome",

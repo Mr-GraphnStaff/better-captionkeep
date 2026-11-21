@@ -185,7 +185,7 @@
                     state = 'connector-update-required';
                     button.textContent = 'Open administrator setup';
                     cancel.hidden = true;
-                    status.textContent = safeMessage(error) + ' Choose Update administrator setup and run the downloaded installer once.';
+                    status.textContent = safeMessage(error) + ' Choose Download setup installer and run the downloaded installer once.';
                     return;
                 }
                 if (missingHost(error)) {
