@@ -30,11 +30,11 @@ test('release asset verifier binds tag, checksums, provenance, and ZIPs', async 
 
 test('release workflow publishes only the canonical production lane', async () => {
   const workflow = await readFile(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8');
-  assert(workflow.includes('cd dist/prod'));
-  assert(workflow.includes('dist/prod/better_captionkeep-*.zip'));
-  assert(workflow.includes('dist/prod/release-provenance.json'));
+  assert(workflow.includes('cd Production'));
+  assert(workflow.includes('Production/better_captionkeep-*.zip'));
+  assert(workflow.includes('Production/release-provenance.json'));
   assert(workflow.includes('id: attest_release'));
-  assert(workflow.includes('dist/prod/release-attestation.sigstore.json'));
+  assert(workflow.includes('Production/release-attestation.sigstore.json'));
   assert(!workflow.includes('dist/chrome-store/'));
   assert(!workflow.includes('cd dist\n'));
 });

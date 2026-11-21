@@ -21,7 +21,7 @@ test('actual public helper source packages and imports offline after ZIP extract
         const sbom={bomFormat:'CycloneDX',metadata:{component:{version:helper.version,purl:`pkg:npm/${helper.name}@${helper.version}`}},
             components:Object.entries(lock.packages).filter(([name])=>name).map(([name,item])=>({name:name.slice('node_modules/'.length),version:item.version}))};
         const {names}=await api.packageByomcpHelper({root,sbomText:JSON.stringify(sbom)});
-        const entries=zipEntries(await fs.readFile(path.join(root,'dist/prod',names.zip)));
+        const entries=zipEntries(await fs.readFile(path.join(root,'Production',names.zip)));
         for(const [name,bytes] of entries){const file=path.resolve(extracted,name);assert(file.startsWith(path.resolve(extracted)+path.sep));await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,bytes);}
         const cli=pathToFileURL(path.join(extracted,'companion/byomcp/cli.mjs')).href;
         const output=execFileSync(process.execPath,['--input-type=module','-e',`const module=await import(${JSON.stringify(cli)});if(typeof module.launch!=='function')throw Error('missing CLI');console.log('OFFLINE_IMPORT_OK');`],

@@ -13,6 +13,28 @@
     ]);
     const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const TEAMS_JOIN_HOSTS = new Set(['teams.microsoft.com', 'teams.cloud.microsoft']);
+    let authenticationGeneration = 0;
+    let authStorageQueue = Promise.resolve();
+
+    function mutateAuthStorage(operation) {
+        const mutation = authStorageQueue.then(operation);
+        authStorageQueue = mutation.catch(() => undefined);
+        return mutation;
+    }
+
+    function requireCurrentAuthentication(generation) {
+        if (generation !== authenticationGeneration) {
+            throw new GraphConnectorError('AUTH_CANCELLED', 'Microsoft sign-in was cancelled by Disconnect.');
+        }
+    }
+
+    function storeAuthentication(chromeApi, auth, generation) {
+        return mutateAuthStorage(async () => {
+            requireCurrentAuthentication(generation);
+            await chromeApi.storage.session.set({ [AUTH_STORAGE_KEY]: auth });
+            requireCurrentAuthentication(generation);
+        });
+    }
 
     class GraphConnectorError extends Error {
         constructor(code, message) {
@@ -134,6 +156,7 @@
     }
 
     async function connect(settings, dependencies = {}) {
+        const generation = authenticationGeneration;
         const config = validateManagedConfig(settings);
         const chromeApi = dependencies.chromeApi || chrome;
         const cryptoApi = dependencies.cryptoApi || crypto;
@@ -143,7 +166,9 @@
         }
         const redirectUri = chromeApi.identity.getRedirectURL('microsoft');
         const request = await createAuthorizationRequest(config, redirectUri, cryptoApi);
+        requireCurrentAuthentication(generation);
         const finalUrl = await chromeApi.identity.launchWebAuthFlow({ url: request.url, interactive: true });
+        requireCurrentAuthentication(generation);
         if (!finalUrl) throw new GraphConnectorError('AUTH_CANCELLED', 'Microsoft sign-in was cancelled.');
 
         const expected = new URL(redirectUri);
@@ -173,7 +198,7 @@
             throw new GraphConnectorError('NONCE_MISMATCH', 'Microsoft sign-in nonce validation failed.');
         }
         delete auth.idToken;
-        await chromeApi.storage.session.set({ [AUTH_STORAGE_KEY]: auth });
+        await storeAuthentication(chromeApi, auth, generation);
         return publicAuthStatus(auth, redirectUri);
     }
 
@@ -192,6 +217,7 @@
     }
 
     async function getAccessToken(settings, dependencies = {}) {
+        const generation = authenticationGeneration;
         const config = validateManagedConfig(settings);
         const chromeApi = dependencies.chromeApi || chrome;
         const fetchImpl = dependencies.fetchImpl || fetch;
@@ -203,12 +229,16 @@
         if (!Number.isFinite(auth.expiresAt) || auth.expiresAt <= Date.now() + 120000) {
             try {
                 auth = await refresh(config, auth, fetchImpl);
-                await chromeApi.storage.session.set({ [AUTH_STORAGE_KEY]: auth });
+                await storeAuthentication(chromeApi, auth, generation);
             } catch (error) {
-                await chromeApi.storage.session.remove(AUTH_STORAGE_KEY);
+                await mutateAuthStorage(async () => {
+                    // A cancelled old refresh must not remove a newer sign-in.
+                    if (generation === authenticationGeneration) await chromeApi.storage.session.remove(AUTH_STORAGE_KEY);
+                });
                 throw error;
             }
         }
+        requireCurrentAuthentication(generation);
         return auth.accessToken;
     }
 
@@ -239,8 +269,9 @@
     }
 
     async function disconnect(dependencies = {}) {
+        authenticationGeneration++;
         const chromeApi = dependencies.chromeApi || chrome;
-        await chromeApi.storage.session.remove(AUTH_STORAGE_KEY);
+        await mutateAuthStorage(() => chromeApi.storage.session.remove(AUTH_STORAGE_KEY));
         return { connected: false };
     }
 
@@ -461,7 +492,7 @@
         const response = await graphResponse(url, token, fetchImpl);
         const body = await response.json();
         const transcripts = Array.isArray(body?.value) ? body.value : [];
-        if (!transcripts.length) throw new GraphConnectorError('TRANSCRIPT_NOT_FOUND', 'Teams has not made an official transcript available for this meeting.');
+        if (!transcripts.length) throw new GraphConnectorError('TRANSCRIPT_NOT_FOUND', 'Microsoft Graph returned no transcript for this meeting. This response does not establish whether Teams is still processing it.');
         return transcripts.sort((a, b) => Date.parse(b.createdDateTime || '') - Date.parse(a.createdDateTime || ''));
     }
 

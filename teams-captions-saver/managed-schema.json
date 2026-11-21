@@ -1,25 +1,241 @@
 {
   "type": "object",
   "properties": {
-    "forcePrivacyScrubber": { "type": "boolean" },
-    "forceProfanityFilter": { "type": "boolean" },
-    "forceUiLocale": { "type": "string" },
-    "forceScrubbedExport": { "type": "boolean" },
-    "disableAiHandoff": { "type": "boolean" },
-    "disableClipboard": { "type": "boolean" },
-    "disableFileExport": { "type": "boolean" },
-    "disableEvidenceEmail": { "type": "boolean" },
-    "disableAttendeeCapture": { "type": "boolean" },
-    "disableSessionHistory": { "type": "boolean" },
-    "maxStoredSessions": { "type": "integer", "minimum": 1, "maximum": 10000 },
-    "sessionRetentionDays": { "type": "integer", "minimum": 1, "maximum": 365 },
-    "enableGraphTranscriptImport": { "type": "boolean" },
-    "graphTenantId": { "type": "string" },
-    "graphClientId": { "type": "string" },
-    "allowedAiProviders": { "type": "array", "items": { "type": "string" } },
-    "chatgptWorkspaceUrl": { "type": "string" },
-    "claudeWorkspaceUrl": { "type": "string" },
-    "claudeConsoleUrl": { "type": "string" },
-    "customScrubTerms": { "type": "array", "items": { "type": "string" } }
+    "forcePrivacyScrubber": {
+      "type": "boolean",
+      "title": "Force Privacy Scrubber"
+    },
+    "forceProfanityFilter": {
+      "type": "boolean",
+      "title": "Force Profanity Filter"
+    },
+    "forceUiLocale": {
+      "type": "string",
+      "title": "Force Ui Locale",
+      "maxLength": 2048,
+      "enum": [
+        "system",
+        "en",
+        "fr",
+        "fr-CA",
+        "es",
+        "es_419",
+        "de",
+        "pt_BR",
+        "pt_PT",
+        "it",
+        "nl",
+        "pl",
+        "cs",
+        "el",
+        "ro",
+        "sv",
+        "uk",
+        "ru",
+        "tr",
+        "hi",
+        "bn",
+        "gu",
+        "kn",
+        "ml",
+        "mr",
+        "ta",
+        "te",
+        "id",
+        "fil",
+        "ms",
+        "th",
+        "vi",
+        "ja",
+        "ko",
+        "zh_CN",
+        "zh_TW",
+        "ar",
+        "he",
+        "fa",
+        "sw"
+      ],
+      "pattern": "^[^\\x00-\\x1f]*$"
+    },
+    "forceScrubbedExport": {
+      "type": "boolean",
+      "title": "Force Scrubbed Export"
+    },
+    "disableAiHandoff": {
+      "type": "boolean",
+      "title": "Disable Ai Handoff"
+    },
+    "disableClipboard": {
+      "type": "boolean",
+      "title": "Disable Clipboard"
+    },
+    "disableFileExport": {
+      "type": "boolean",
+      "title": "Disable File Export"
+    },
+    "disableEvidenceEmail": {
+      "type": "boolean",
+      "title": "Disable Evidence Email"
+    },
+    "disableAttendeeCapture": {
+      "type": "boolean",
+      "title": "Disable Attendee Capture"
+    },
+    "disableSessionHistory": {
+      "type": "boolean",
+      "title": "Disable Session History"
+    },
+    "maxStoredSessions": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "title": "Max Stored Sessions"
+    },
+    "sessionRetentionDays": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365,
+      "title": "Session Retention Days"
+    },
+    "enableGraphTranscriptImport": {
+      "type": "boolean",
+      "title": "Enable Graph Transcript Import"
+    },
+    "graphTenantId": {
+      "type": "string",
+      "title": "Graph Tenant Id",
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    },
+    "graphClientId": {
+      "type": "string",
+      "title": "Graph Client Id",
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    },
+    "allowedAiProviders": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 20,
+        "minLength": 1,
+        "enum": [
+          "chatgpt",
+          "claude",
+          "claude_console",
+          "copilot",
+          "gemini"
+        ],
+        "pattern": "^[^\\x00-\\x1f]*$"
+      },
+      "title": "Allowed Ai Providers",
+      "maxItems": 5
+    },
+    "chatgptWorkspaceUrl": {
+      "type": "string",
+      "title": "Chatgpt Workspace Url",
+      "maxLength": 2048,
+      "pattern": "^https://chatgpt\\.com(?:/[^?#\\\\\\x00-\\x20]*)?$",
+      "minLength": 1
+    },
+    "claudeWorkspaceUrl": {
+      "type": "string",
+      "title": "Claude Workspace Url",
+      "maxLength": 2048,
+      "pattern": "^https://claude\\.ai(?:/[^?#\\\\\\x00-\\x20]*)?$",
+      "minLength": 1
+    },
+    "claudeConsoleUrl": {
+      "type": "string",
+      "title": "Claude Console Url",
+      "maxLength": 2048,
+      "pattern": "^https://console\\.anthropic\\.com(?:/[^?#\\\\\\x00-\\x20]*)?$",
+      "minLength": 1
+    },
+    "customScrubTerms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 2,
+        "pattern": "^[^\\x00-\\x1f]*$"
+      },
+      "title": "Custom Scrub Terms",
+      "maxItems": 100
+    },
+    "defaultSaveFormat": {
+      "type": "string",
+      "enum": [
+        "txt",
+        "md",
+        "docx"
+      ],
+      "title": "Default transcript export format",
+      "maxLength": 2048,
+      "pattern": "^[^\\x00-\\x1f]*$"
+    },
+    "saveAsType": {
+      "type": "string",
+      "enum": [
+        "prompt",
+        "downloads",
+        "custom"
+      ],
+      "title": "Default transcript save behavior",
+      "maxLength": 2048,
+      "pattern": "^[^\\x00-\\x1f]*$"
+    },
+    "saveLocation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "title": "Downloads subfolder",
+      "pattern": "^[^<>:\"\\\\|?*\\x00-\\x1f]+$"
+    },
+    "timestampFormat": {
+      "type": "string",
+      "enum": [
+        "12hr",
+        "24hr",
+        "relative"
+      ],
+      "title": "Caption timestamps",
+      "maxLength": 2048,
+      "pattern": "^[^\\x00-\\x1f]*$"
+    },
+    "filenamePattern": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "title": "Default transcript filename pattern",
+      "pattern": "^[^<>:\"/\\\\|?*\\x00-\\x1f]+$"
+    },
+    "uiTheme": {
+      "type": "string",
+      "enum": [
+        "captionkeep",
+        "light",
+        "midnight",
+        "slate",
+        "high-contrast",
+        "system"
+      ],
+      "title": "Appearance",
+      "maxLength": 2048,
+      "pattern": "^[^\\x00-\\x1f]*$"
+    },
+    "webmailDestination": {
+      "type": "string",
+      "enum": [
+        "outlook_work",
+        "outlook_personal",
+        "outlook",
+        "gmail",
+        "default"
+      ],
+      "title": "Evidence email destination",
+      "maxLength": 2048,
+      "pattern": "^[^\\x00-\\x1f]*$"
+    }
   }
 }

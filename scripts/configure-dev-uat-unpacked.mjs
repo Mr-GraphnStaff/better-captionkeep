@@ -12,7 +12,7 @@ const clientId = String(process.env.BCK_DEV_UAT_GRAPH_CLIENT_ID || '').trim();
 const guid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 if (!guid.test(tenantId) || !guid.test(clientId)) throw new Error('Valid local tenant and client GUIDs are required.');
 
-const targetDir = path.join(projectRoot, 'dist', target);
+const targetDir = path.join(projectRoot, target === 'dev' ? 'Dev' : 'QA');
 const manifest = JSON.parse(await readFile(path.join(targetDir, 'manifest.json'), 'utf8'));
 const expectedName = target === 'dev'
   ? 'Better CaptionKeep - Development'

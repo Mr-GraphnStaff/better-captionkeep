@@ -32,6 +32,82 @@ function chromeHarness(initial = {}) {
   };
 }
 
+function deferredResult() {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return {promise, resolve};
+}
+
+test('Disconnect invalidates late OAuth at PKCE, identity, token exchange, and persistence boundaries', async () => {
+  for (const boundary of ['pkce', 'identity', 'token', 'storage']) {
+    const harness = chromeHarness();
+    const reached = deferredResult();
+    const release = deferredResult();
+    let nonce;
+    let tokenRequests = 0;
+    let identityRequests = 0;
+    harness.api.identity.launchWebAuthFlow = async ({url}) => {
+      identityRequests++;
+      const request = new URL(url);
+      nonce = request.searchParams.get('nonce');
+      if (boundary === 'identity') { reached.resolve(); await release.promise; }
+      return `${harness.api.identity.getRedirectURL('microsoft')}?code=synthetic&state=${request.searchParams.get('state')}`;
+    };
+    const originalSet = harness.api.storage.session.set;
+    harness.api.storage.session.set = async values => {
+      if (boundary === 'storage') { reached.resolve(); await release.promise; }
+      await originalSet(values);
+    };
+    const connecting = Graph.connect(SETTINGS, {
+      chromeApi:harness.api, cryptoApi:boundary === 'pkce' ? {
+        getRandomValues:array => webcrypto.getRandomValues(array),
+        subtle:{async digest(...args) {
+          reached.resolve();
+          await release.promise;
+          return await webcrypto.subtle.digest(...args);
+        }}
+      } : webcrypto,
+      fetchImpl:async () => {
+        tokenRequests++;
+        if (boundary === 'token') { reached.resolve(); await release.promise; }
+        return Response.json({access_token:jwt({tid:SETTINGS.graphTenantId}),
+          id_token:jwt({tid:SETTINGS.graphTenantId,aud:SETTINGS.graphClientId,nonce}), expires_in:3600});
+      }
+    });
+    const cancelled = assert.rejects(connecting, error => error.code === 'AUTH_CANCELLED');
+    await reached.promise;
+    const disconnecting = Graph.disconnect({chromeApi:harness.api});
+    release.resolve();
+    await Promise.all([cancelled, disconnecting]);
+    assert.equal((await Graph.status(SETTINGS, {chromeApi:harness.api})).connected, false, boundary);
+    assert.equal(harness.session.graphTranscriptAuthV1, undefined, boundary);
+    if (boundary === 'identity') assert.equal(tokenRequests, 0);
+    if (boundary === 'pkce') assert.equal(identityRequests, 0);
+  }
+});
+
+test('Disconnect prevents an already-started refresh from restoring its token', async () => {
+  const harness = chromeHarness({graphTranscriptAuthV1:{tenantId:SETTINGS.graphTenantId,
+    clientId:SETTINGS.graphClientId, accessToken:'old', refreshToken:'synthetic', expiresAt:0}});
+  const reached = deferredResult();
+  const release = deferredResult();
+  const refreshing = Graph.listRecentMeetings(SETTINGS, {
+    chromeApi:harness.api,
+    fetchImpl:async () => {
+      reached.resolve();
+      await release.promise;
+      return Response.json({access_token:jwt({tid:SETTINGS.graphTenantId}), expires_in:3600});
+    }
+  });
+  const cancelled = assert.rejects(refreshing, error => error.code === 'AUTH_CANCELLED');
+  await reached.promise;
+  await Graph.disconnect({chromeApi:harness.api});
+  release.resolve();
+  await cancelled;
+  assert.equal((await Graph.status(SETTINGS, {chromeApi:harness.api})).connected, false);
+  assert.equal(harness.session.graphTranscriptAuthV1, undefined);
+});
+
 test('managed Graph configuration is opt-in and requires tenant and client GUIDs', () => {
   assert.throws(() => Graph.validateManagedConfig({}), error => error.code === 'GRAPH_NOT_ENABLED');
   assert.throws(() => Graph.validateManagedConfig({enableGraphTranscriptImport:true}), error => error.code === 'GRAPH_CONFIG_INVALID');

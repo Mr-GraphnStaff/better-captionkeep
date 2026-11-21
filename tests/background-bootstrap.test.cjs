@@ -58,7 +58,7 @@ function assertInitialized(instance) {
 
 for (const target of ['firefox']) {
     test(`${target} document background executes packaged dependencies and handles capture messages`, () => {
-        const directory = path.join(isolatedDist, 'prod', `${target}-unpacked`);
+        const directory = path.join(isolatedDist,'Production', `${target}-unpacked`);
         const manifest = JSON.parse(read(directory, 'manifest.json'));
         assert.equal(manifest.manifest_version, 3);
         assert.equal(manifest.background.scripts.at(-1), 'service_worker.js');
@@ -73,7 +73,7 @@ test('worker background loads dependencies synchronously and handles capture mes
     const instance = background(path.join(project, 'teams-captions-saver'), true);
     instance.execute('service_worker.js');
     assertInitialized(instance);
-    const manifest = JSON.parse(read(path.join(isolatedDist,'prod/firefox-unpacked'),'manifest.json'));
+    const manifest = JSON.parse(read(path.join(isolatedDist,'Production/firefox-unpacked'),'manifest.json'));
     assert.deepEqual(instance.loaded.slice(1), manifest.background.scripts.slice(0, -1));
 });
 

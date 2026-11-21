@@ -101,12 +101,12 @@ async function releaseIdentity(root) {
 }
 
 async function outputDirectory(root) {
-  for (const relative of ['dist','dist/prod']) {
+  for (const relative of ['Production']) {
     const directory = path.join(root,relative);
     await mkdir(directory,{recursive:true});
     if (!(await lstat(directory)).isDirectory()) throw new Error('Helper output must be a real directory, not a symlink.');
   }
-  return path.join(root,'dist/prod');
+  return path.join(root,'Production');
 }
 
 export async function packageByomcpHelper({root = projectRoot, sbomText, npmCli = process.env.npm_execpath} = {}) {
@@ -149,7 +149,7 @@ export async function packageByomcpHelper({root = projectRoot, sbomText, npmCli 
 }
 
 export async function verifyByomcpHelper(root = projectRoot) {
-  const version = await releaseIdentity(root), names = helperArtifactNames(version), destination = path.join(root,'dist/prod');
+  const version = await releaseIdentity(root), names = helperArtifactNames(version), destination = path.join(root,'Production');
   const {files,helper,lock} = await collectHelperSources(root);
   const sbom = await regularBytes(path.join(destination,names.sbom));
   validateSbom(sbom.toString('utf8'),helper,lock);

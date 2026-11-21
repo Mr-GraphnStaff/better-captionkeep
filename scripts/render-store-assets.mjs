@@ -8,13 +8,14 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const assetDir = path.join(projectRoot, 'store-assets', '6.0');
 const source = path.join(assetDir, 'source.html');
 const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-// Keep disposable browser state separate from real profiles and on the P: sandbox.
-const scratchRoot = path.resolve(projectRoot, '..', 'better-captionkeep-sandbox', 'scratch');
+// The owner-required checked launcher supplies the only permitted scratch run.
+if (!process.env.AGENT_WORKING_DIR) throw new Error('Run artwork rendering through working_area.py run.');
+const scratchRoot = path.resolve(process.env.AGENT_WORKING_DIR);
 const profileRoot = path.resolve(process.env.CAPTIONKEEP_STORE_PROFILE_ROOT || scratchRoot);
 const profileRelative = path.relative(scratchRoot, profileRoot);
 if (!/^P:[\\/]/i.test(profileRoot) || profileRelative === '..'
     || profileRelative.startsWith(`..${path.sep}`) || path.isAbsolute(profileRelative)) {
-  throw new Error('Store artwork browser profiles must stay inside the P: sandbox scratch directory.');
+  throw new Error('Store artwork browser profiles must stay inside the checked P: working run.');
 }
 await mkdir(profileRoot, {recursive: true});
 const profileDir = await mkdtemp(path.join(profileRoot, 'store-artwork-profile-'));

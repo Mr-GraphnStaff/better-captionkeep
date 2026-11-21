@@ -124,14 +124,14 @@ export async function runNativeDiscovery({root=ROOT,binary,productionWrapper=fal
   try {
     binary ||= (await installedBrowsers()).find(browser=>browser.browser==='brave')?.binary;
     if(process.platform!=='win32' || !path.isAbsolute(binary || ''))throw Error('probe-platform-unsupported');
-    const source=JSON.parse(await readFile(path.join(root,'dist/dev/manifest.json'),'utf8'));
+    const source=JSON.parse(await readFile(path.join(root,'Dev/manifest.json'),'utf8'));
     const manifest=discoveryManifest(source.key);
     temporary=await mkdtemp(path.join(os.tmpdir(),'captionkeep-native-discovery-'));
     const extension=path.join(temporary,'extension'),profile=path.join(temporary,'profile');
     await mkdir(extension);await mkdir(profile);
     await writeFile(path.join(extension,'manifest.json'),JSON.stringify(manifest));
     const page=productionWrapper?'popup.html':'probe.html';
-    if(productionWrapper)await writeFile(path.join(extension,'byomcpNativeClient.js'),await readFile(path.join(root,'dist/dev/byomcpNativeClient.js')));
+    if(productionWrapper)await writeFile(path.join(extension,'byomcpNativeClient.js'),await readFile(path.join(root,'Dev/byomcpNativeClient.js')));
     await writeFile(path.join(extension,page),`<!doctype html><html><head><meta charset="utf-8"><title>Native discovery diagnostic</title></head><body>${productionWrapper?'<script src="byomcpNativeClient.js"></script>':''}<script src="probe.js"></script></body></html>`);
     await writeFile(path.join(extension,'probe.js'),`(${(productionWrapper?productionWrapperPage:discoveryPage).toString()})();`);
     result.stage='browser-start';

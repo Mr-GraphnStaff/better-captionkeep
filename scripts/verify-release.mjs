@@ -7,10 +7,12 @@ import { readEnglishMessages, resolveManifestMessage } from './manifest-localiza
 import {verifyPackageSource} from './verify-package-source.mjs';
 import {excludedShippingPath,shippingBoundary} from './shipping-boundary.mjs';
 import {inspectCandidateIdentity, validateReleaseStatus, verifyCandidateArtifacts} from './release-status.mjs';
+import {readReleaseState} from './release-state.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const distDir = process.env.CAPTIONKEEP_TEST_DIST ? path.resolve(process.env.CAPTIONKEEP_TEST_DIST) : path.join(projectRoot, 'dist');
-const prodDir = path.join(distDir, 'prod');
+const distDir = process.env.CAPTIONKEEP_TEST_DIST ? path.resolve(process.env.CAPTIONKEEP_TEST_DIST) : projectRoot;
+const lifecycleFolders = {dev:'Dev', uat:'QA', prod:'Production'};
+const prodDir = path.join(distDir, 'Production');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
 
 function hasForbiddenPathPart(file) {
@@ -55,13 +57,13 @@ if (/graphTenantId\s*:|graphClientId\s*:|enableGraphTranscriptImport\s*:\s*true/
   throw new Error('Store Microsoft 365 runtime configuration contains an organization identity.');
 }
 const artifacts = [];
-const deferredArtifacts=(await filesUnder(distDir)).filter(excludedShippingPath);
+const deferredArtifacts=(await Promise.all(Object.values(lifecycleFolders).map(name=>filesUnder(path.join(distDir,name))))).flat().filter(excludedShippingPath);
 if(deferredArtifacts.length) throw Error(`Stale deferred MCP release payload: ${deferredArtifacts.join(', ')}`);
 const sourceFiles = await filesUnder(path.join(projectRoot, 'teams-captions-saver'));
 const forbiddenSource = sourceFiles.filter(hasForbiddenPathPart);
 if (forbiddenSource.length) throw new Error(`Store source contains forbidden files: ${forbiddenSource.join(', ')}`);
 for (const target of ['dev', 'uat', 'prod']) {
-  const root = path.join(distDir, target);
+  const root = path.join(distDir, lifecycleFolders[target]);
   const files = await filesUnder(root);
   const bad = files.filter(hasForbiddenPathPart);
   if (bad.length) throw new Error(`${target} package contains forbidden files: ${bad.join(', ')}`);
@@ -101,7 +103,7 @@ for (const target of ['dev', 'uat', 'prod']) {
 }
 
 const lifecycleKeys = await Promise.all(['dev', 'uat', 'prod'].map(async target => {
-  const manifest = JSON.parse(await readFile(path.join(distDir, target, 'manifest.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(path.join(distDir, lifecycleFolders[target], 'manifest.json'), 'utf8'));
   return manifest.key;
 }));
 if (new Set(lifecycleKeys).size !== lifecycleKeys.length) {
@@ -155,7 +157,7 @@ for (const file of [...sourceFiles].sort()) {
 }
 const workingTreeDirty = !!execFileSync('git', ['-c', `safe.directory=${safeProjectRoot}`, 'status', '--porcelain', '--untracked-files=normal'],
   {cwd:projectRoot, encoding:'utf8'}).trim();
-const releaseRecord = JSON.parse(await readFile(path.join(projectRoot, 'docs', 'release-state', '6.0.json'), 'utf8'));
+const {record:releaseRecord}=await readReleaseState(projectRoot,{version:sourceManifest.version});
 validateReleaseStatus(releaseRecord, sourceManifest.version);
 const artifactHashes = Object.fromEntries(artifacts.map(artifact => {
   const names = {
@@ -168,7 +170,7 @@ const artifactHashes = Object.fromEntries(artifacts.map(artifact => {
 }).filter(entry => entry.length));
 const candidateIdentity = releaseRecord.state === 'development'
   ? {commit, head:commit, changes:[]}
-  : inspectCandidateIdentity({root:projectRoot, candidateCommit:releaseRecord.candidate.commit});
+  : inspectCandidateIdentity({root:projectRoot, candidateCommit:releaseRecord.candidate.commit,version:releaseRecord.version});
 const candidateArtifactVerification = verifyCandidateArtifacts(releaseRecord, {
   commit:candidateIdentity.commit,
   hashes:artifactHashes,

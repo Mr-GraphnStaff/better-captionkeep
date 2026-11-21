@@ -1,6 +1,6 @@
 {
   "name": "better-captionkeep",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "private": true,
   "description": "Developer tooling for Better CaptionKeep on Chromium browsers.",
   "scripts": {
@@ -15,7 +15,7 @@
     "security:audit:helper": "npm audit --prefix companion/byomcp --omit=dev --audit-level=high",
     "package:helper": "node scripts/package-byomcp-helper.mjs",
     "clean:dist": "node scripts/clean-dist.mjs",
-    "build": "node scripts/build-browser-targets.mjs edge-store && node scripts/package-extension.mjs dist/prod/edge-store-unpacked dist/prod better_captionkeep edge",
+    "build": "node scripts/build-browser-targets.mjs edge-store && node scripts/package-extension.mjs Production/edge-store-unpacked Production better_captionkeep edge",
     "build:targets": "node scripts/build-browser-targets.mjs",
     "build:browsers": "node scripts/build-browser-targets.mjs browsers",
     "package:browsers": "node scripts/package-browser-release.mjs",
@@ -26,21 +26,22 @@
     "build:prod": "node scripts/build-browser-targets.mjs prod",
     "build:chrome-test": "npm run build:uat",
     "build:edge-test": "npm run build:uat",
-    "build:chrome-store": "node scripts/build-browser-targets.mjs chrome-store && node scripts/package-extension.mjs dist/prod/chrome-store-unpacked dist/prod/chrome-store && node scripts/verify-chrome-store.mjs",
-    "build:intune": "node scripts/build-intune-bundle.mjs deployment/intune/profile.json dist/prod/intune-edge edge",
-    "build:intune:chrome": "node scripts/build-intune-bundle.mjs deployment/intune/profile.chrome.json dist/prod/intune-chrome chrome",
-    "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json dist/prod/intune-local-only edge",
+    "build:chrome-store": "node scripts/build-browser-targets.mjs chrome-store && node scripts/package-extension.mjs Production/chrome-store-unpacked Production/chrome-store && node scripts/verify-chrome-store.mjs",
+    "build:intune": "node scripts/build-intune-bundle.mjs deployment/intune/profile.json Production/intune-edge edge",
+    "build:intune:chrome": "node scripts/build-intune-bundle.mjs deployment/intune/profile.chrome.json Production/intune-chrome chrome",
+    "build:intune:local-only": "node scripts/build-intune-bundle.mjs deployment/intune/profile.local-only.json Production/intune-local-only edge",
+    "build:enterprise-setup": "node scripts/build-enterprise-package.mjs",
     "store:metadata:check": "node scripts/check-store-metadata.mjs",
     "release:candidate": "npm run release:status:check && npm run test:release && npm run lint && npm run audit:surfaces && npm run security:audit && npm run store:metadata:check && npm run clean:dist && npm run build:targets && npm run build:browsers && npm run package:browsers && npm run test:browser-surfaces && npm run build && npm run build:chrome-store && npm run build:intune && node scripts/verify-release.mjs",
     "publish:edge": "node scripts/edge-publish.mjs",
     "publish:chrome": "node scripts/chrome-publish.mjs",
-    "test:release": "node scripts/test-release.mjs",
-    "build:enterprise-setup": "node scripts/build-enterprise-package.mjs"
+    "test:release": "node scripts/test-release.mjs"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "devDependencies": {
-    "archiver": "^8.0.0"
+    "archiver": "^8.0.0",
+    "re2-wasm": "1.0.2"
   }
 }

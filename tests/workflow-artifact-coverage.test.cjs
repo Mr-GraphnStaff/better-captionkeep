@@ -33,7 +33,7 @@ async function fixture(run) {
     await mkdir(path.join(root,'teams-captions-saver'),{recursive:true});
     await writeFile(path.join(root,'teams-captions-saver/manifest.json'),JSON.stringify({version}));
     for (const name of files) {
-      const file = path.join(root,'dist/prod',name); await mkdir(path.dirname(file),{recursive:true});
+      const file = path.join(root,'Production',name); await mkdir(path.dirname(file),{recursive:true});
       await writeFile(file,`Synthetic release fixture: ${name}\n`);
     }
     const workflow = (await readFile(workflowPath,'utf8')).replaceAll('\r\n','\n');
@@ -50,7 +50,7 @@ async function fixture(run) {
 test('actual release checksum command covers all five browsers and evidence while preserving Store-only contract', async () => {
   await fixture(async ({root,files,version,execute}) => {
     execute();
-    const readChecksums = async name => new Map((await readFile(path.join(root,'dist/prod',name),'utf8')).trim().split('\n').map(line => {
+    const readChecksums = async name => new Map((await readFile(path.join(root,'Production',name),'utf8')).trim().split('\n').map(line => {
       const match = /^([a-f0-9]{64})\s+\*?([^/\\]+)$/.exec(line); assert(match,`Invalid checksum: ${line}`);
       return [match[2],match[1]];
     }));
@@ -59,7 +59,7 @@ test('actual release checksum command covers all five browsers and evidence whil
     const complete = await readChecksums('RELEASE-SHA256SUMS.txt');
     assert.equal(complete.size,files.length + 1);
     for (const name of [...files,'SHA256SUMS.txt']) {
-      assert.equal(complete.get(path.basename(name)),hash(await readFile(path.join(root,'dist/prod',name))),`Wrong/missing hash: ${name}`);
+      assert.equal(complete.get(path.basename(name)),hash(await readFile(path.join(root,'Production',name))),`Wrong/missing hash: ${name}`);
     }
     assert.equal((await readFile(path.join(root,'github-env.txt'),'utf8')).trim(),`RELEASE_VERSION=${version}`);
   });
@@ -67,7 +67,7 @@ test('actual release checksum command covers all five browsers and evidence whil
 
 test('actual release checksum command fails when a required browser asset is missing', async () => {
   await fixture(async ({root,version,execute}) => {
-    await rm(path.join(root,'dist/prod',`browser-packages/better-captionkeep-chrome-${version}.zip`));
+    await rm(path.join(root,'Production',`browser-packages/better-captionkeep-chrome-${version}.zip`));
     assert.throws(execute,error => error.status !== 0);
   });
 });
@@ -75,11 +75,11 @@ test('actual release checksum command fails when a required browser asset is mis
 test('attestation, workflow upload and future draft release include complete distribution artifacts', async () => {
   const workflow = (await readFile(workflowPath,'utf8')).replaceAll('\r\n','\n');
   const required = [
-    'dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip',
-    'dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json',
-    'dist/prod/browser-package-hashes.json','dist/prod/browser-certification.json',
-    'dist/prod/release-provenance.json','dist/prod/SHA256SUMS.txt','dist/prod/RELEASE-SHA256SUMS.txt',
-    'dist/prod/better-captionkeep-sbom.cdx.json','dist/prod/better_captionkeep-*.zip'
+    'Production/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip',
+    'Production/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json',
+    'Production/browser-package-hashes.json','Production/browser-certification.json',
+    'Production/release-provenance.json','Production/SHA256SUMS.txt','Production/RELEASE-SHA256SUMS.txt',
+    'Production/better-captionkeep-sbom.cdx.json','Production/better_captionkeep-*.zip'
   ];
   for (const name of ['Attest release provenance','Upload workflow artifact']) {
     const block = step(workflow,name);
@@ -90,10 +90,10 @@ test('attestation, workflow upload and future draft release include complete dis
   assert(draft.includes('--draft --verify-tag'));
   assert(draft.includes("if: github.event_name == 'push'"));
   const validation = await readFile(path.resolve(__dirname,'../.github/workflows/validate.yml'),'utf8');
-  assert(validation.includes('dist/prod/*.cdx.json'));
-  assert(validation.includes('dist/prod/browser-packages/'));
+  assert(validation.includes('Production/*.cdx.json'));
+  assert(validation.includes('Production/browser-packages/'));
   assert(!/better-captionkeep-byomcp-helper|byomcp-helper-hashes/.test(validation));
   for(const name of ['Attest release provenance','Upload workflow artifact','Create draft GitHub release']) assert(!/byomcp/i.test(step(workflow,name)));
 });
 
-test('release checksum command rejects stale helper distribution payload',async()=>{await fixture(async({root,execute})=>{await writeFile(path.join(root,'dist/prod/byomcp-helper-hashes.json'),'{}');assert.throws(execute,error=>error.status!==0);});});
+test('release checksum command rejects stale helper distribution payload',async()=>{await fixture(async({root,execute})=>{await writeFile(path.join(root,'Production/byomcp-helper-hashes.json'),'{}');assert.throws(execute,error=>error.status!==0);});});

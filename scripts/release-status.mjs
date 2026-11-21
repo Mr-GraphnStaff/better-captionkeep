@@ -3,19 +3,20 @@ import {pathToFileURL, fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {readReleaseState,releaseStatePaths} from './release-state.mjs';
 
 const BROWSERS = ['chrome', 'edge', 'brave', 'firefox', 'opera'];
 const ARTIFACTS = [...BROWSERS, 'chrome-store', 'edge-store', 'sbom'];
 const GATES = ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'artworkApproved',
   'unchangedWindow', 'storeApproval', 'publicParity', 'installedUpgrade'];
 const EXCEPTION_GATES = ['fullScopeAcceptance', 'accessibilityAndFailureUat', 'unchangedWindow'];
-const START = '<!-- captionkeep-6.0-status:start -->';
-const END = '<!-- captionkeep-6.0-status:end -->';
+// Retain the historical export for callers explicitly inspecting the 6.0 record.
 export const statusDocuments = ['readme.md', 'docs/RELEASE-6.0.md', 'docs/wiki/Release-Status.md'];
-const candidateMetadataDocuments = new Set(['docs/release-state/6.0.json', ...statusDocuments]);
 
-export function inspectCandidateIdentity({root, candidateCommit} = {}) {
+export function inspectCandidateIdentity({root, candidateCommit,version='6.0.0'} = {}) {
   if (!/^[a-f0-9]{40}$/i.test(candidateCommit || '')) throw new Error('Invalid frozen candidate source commit');
+  const routes=releaseStatePaths(version);
+  const candidateMetadataDocuments=new Set([routes.record,...routes.documents]);
   const run = args => execFileSync('git', args, {cwd:root, encoding:'utf8', windowsHide:true}).trim();
   const head = run(['rev-parse','HEAD']);
   if (head !== candidateCommit) {
@@ -128,8 +129,8 @@ export async function verifyStorePromotion({channel, action, target, packagePath
   read = readFile, identity, now = Date.now(), root = fileURLToPath(new URL('../', import.meta.url))} = {}) {
   if (!['chrome', 'edge'].includes(channel)) throw new Error('Invalid Store promotion channel');
   assertVerifiableStoreAction(action);
-  const record = JSON.parse(await read(path.join(root, 'docs/release-state/6.0.json'), 'utf8'));
   const manifest = JSON.parse(await read(path.join(root, 'teams-captions-saver/manifest.json'), 'utf8'));
+  const {record}=await readReleaseState(root,{version:manifest.version,read});
   validateReleaseStatus(record, manifest.version);
   if (record.state !== 'candidate' || !record.candidate.frozen) throw new Error('Store promotion requires a frozen candidate');
   if (version && version !== record.version) throw new Error('Store promotion version mismatch');
@@ -168,11 +169,11 @@ export async function verifyStorePromotion({channel, action, target, packagePath
       || started > now || (!exception?.waivedGates.includes('unchangedWindow') && now - started < 48 * 60 * 60 * 1000)) throw new Error('Candidate has not completed the 48-hour unchanged window');
   // candidate.commit identifies the reviewed source commit. A later metadata-only
   // commit records hashes and gates without creating an impossible self-reference.
-  const observed = identity ? await identity() : inspectCandidateIdentity({root, candidateCommit:candidate.commit});
+  const observed = identity ? await identity() : inspectCandidateIdentity({root, candidateCommit:candidate.commit,version:record.version});
   if (observed?.commit !== candidate.commit || !Array.isArray(observed.changes) || observed.changes.length) {
     throw new Error('Candidate source commit changed or worktree contains unreviewed changes');
   }
-  const filename = packagePath || path.join(root, 'dist', 'prod',
+  const filename = packagePath || path.join(root, 'Production',
     channel === 'chrome' ? `better_captionkeep-chrome-${record.version}.zip` : `better_captionkeep-${record.version}.zip`);
   const bytes = await read(filename);
   const digest = createHash('sha256').update(bytes).digest('hex');
@@ -187,14 +188,17 @@ export function assertVerifiableStoreAction(action) {
 }
 
 export function renderReleaseStatus(record) {
+  const {start:START,end:END,key}=releaseStatePaths(record.version);
   const pending = BROWSERS.filter(browser => record.liveCertification[browser] !== 'passed');
   const open = GATES.filter(gate => !record.releaseGates[gate]);
   const exception = ownerException(record);
   const exceptionStatus = exception ? `\n> Owner publication exception: ${exception.approvedBy}; accepted unfinished gates: ${exception.waivedGates.join(', ') || 'none'}; live certifications: ${exception.waivedLiveCertification.join(', ') || 'none'}. These checks remain unpassed.` : '';
-  return `${START}\n> **6.0 delivery status:** ${record.version} is ${record.state} on \`${record.branch}\`. Candidate frozen: ${record.candidate.frozen ? 'yes' : 'no'}.\n> Live provider certification outstanding: ${pending.join(', ') || 'none'}.\n> Open release gates: ${open.join(', ') || 'none'}. Azure Boards epic: **#${record.boardEpic}**.${exceptionStatus}\n> This status does not change historical 5.4 publication records.\n${END}`;
+  const history=record.version==='6.0.0'?'This status does not change historical 5.4 publication records.':'This development record does not change prior publication records or inherit prior owner exceptions.';
+  return `${START}\n> **${key} delivery status:** ${record.version} is ${record.state} on \`${record.branch}\`. Candidate frozen: ${record.candidate.frozen ? 'yes' : 'no'}.\n> Live provider certification outstanding: ${pending.join(', ') || 'none'}.\n> Open release gates: ${open.join(', ') || 'none'}. Azure Boards epic: **#${record.boardEpic}**.${exceptionStatus}\n> ${history}\n${END}`;
 }
 
 export function reconcileStatusDocument(text, record, write = false) {
+  const {start:START,end:END}=releaseStatePaths(record.version);
   const start = text.indexOf(START), end = text.indexOf(END);
   if (start < 0 || end < start || text.indexOf(START, start + START.length) !== -1
       || text.indexOf(END, end + END.length) !== -1) throw new Error('Missing or duplicate generated status boundary');
@@ -206,16 +210,18 @@ export function reconcileStatusDocument(text, record, write = false) {
 
 async function main() {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const record = JSON.parse(await readFile(path.join(root, 'docs/release-state/6.0.json'), 'utf8'));
   const manifest = JSON.parse(await readFile(path.join(root, 'teams-captions-saver/manifest.json'), 'utf8'));
-  validateReleaseStatus(record, manifest.version);
+  const index=process.argv.indexOf('--version');
+  const version=index<0?manifest.version:process.argv[index+1];
+  const {record,routes}=await readReleaseState(root,{version});
+  validateReleaseStatus(record,version);
   if (process.argv.includes('--require-candidate')) requireFrozenCandidate(record);
-  for (const file of statusDocuments) {
+  for (const file of routes.documents) {
     const absolute = path.join(root, file);
     const text = await readFile(absolute, 'utf8');
     const updated = reconcileStatusDocument(text, record, process.argv.includes('--write'));
     if (process.argv.includes('--write')) await writeFile(absolute, updated, 'utf8');
   }
-  console.log(`Verified ${record.version} release status across ${statusDocuments.length} views; state=${record.state}.`);
+  console.log(`Verified ${record.version} release status across ${routes.documents.length} views; state=${record.state}.`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) await main();

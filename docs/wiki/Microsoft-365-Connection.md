@@ -1,38 +1,52 @@
 # Connect Microsoft 365
 
-> **Release context:** Microsoft 365 setup is part of the 6.0 qualification build. The last documented public baseline is 5.4.0; see [Release status](Release-Status) for dated Store evidence. Candidate qualification is separate from Store publication and installed-upgrade verification.
+Microsoft 365 connection lets BCK discover recent Teams meetings and request an official transcript directly from Microsoft Graph. It is optional: local displayed-caption capture works independently.
 
-The connector retrieves an official Teams transcript directly from Microsoft Graph into the browser's private local history. Better CaptionKeep's developer does not receive the transcript.
+**Current acceptance:** employee sign-in and recent-meeting discovery worked in the recorded Chrome/Edge pilot. Official transcript import has not yet passed that pilot's acceptance. Use a synthetic authorized meeting to verify import in your environment before relying on it.
 
-## Before the meeting
+## Two transcript sources
 
-Teams has two different controls:
+| Meeting control | Result |
+| --- | --- |
+| Live captions | Words displayed by the meeting provider that BCK can preserve as a browser-local transcript. |
+| Teams Start transcription | An official transcript retained by Microsoft 365 under the organization's policy. BCK's optional import requests that separate source. |
 
-- **Live captions** display words in the meeting and allow Better CaptionKeep to create a local browser transcript.
-- **Start transcription** tells Microsoft 365 to retain an official transcript in the organization's tenant.
+An invitation or live captions alone do not create Microsoft's official transcript. Transcription must be permitted and started in the meeting; Microsoft can need time afterward to finish processing it.
 
-A calendar invitation or live captions alone does not create the official Microsoft 365 transcript. Turn on transcription separately when organizational policy and meeting roles permit it.
+## Your administrator connects the organization once
 
-## Connect and import
+Use [Administrator deployment](Administrator-Deployment) for the signed Administrator Setup 6.0.3 workflow. The administrator reviews the tenant, browser identities, pilot group, delegated permissions and Teams setting before deploying. The organization owns the employee transcript app; BCK does not supply a shared publisher-owned transcript application.
 
-1. Your Microsoft 365 administrator creates an organization-owned single-tenant Entra app registration using the linked runbook.
-2. Open Better CaptionKeep → **All Settings**, find Microsoft 365, and expand **Administrator connection details**. In 6.0 the connection/import workspace is in this full browser tab, so setup and sign-in do not depend on keeping the toolbar popup open.
-3. Enter the organization's Directory tenant ID and Application client ID, then select **Save Microsoft 365 setup**. These public identifiers stay in this browser profile.
-4. Select **Connect Microsoft 365**, approve the one-time browser access request for Microsoft identity and Graph, and complete Microsoft sign-in. This optional access is not requested during extension installation or update.
-5. Select **Refresh** to list up to five recent eligible Teams meetings.
-6. Choose a meeting, or use the current-meeting/manual-link fallback.
-7. Select **Import verified transcript**. Better CaptionKeep opens it in the normal viewer with the same local review and export functions.
+The normal guided deployment provides the tenant/client identifiers through browser policy. Employees do not need the administrator helper, an Azure signing account or a client secret. If your organization deliberately uses a manually registered app instead, its administrator must validate the exact redirect and delegated permissions before supplying its identifiers. That is a separate advanced configuration choice.
 
-Microsoft may need time after a meeting ends to finish producing the transcript. Refresh and retry if Teams still reports it unavailable.
+The new Intune console settings editor/bridge is not included in this release. Existing managed browser configuration and initial guided provisioning are separate from that later work.
 
-## Administrator requirements
+## Connect your employee account
 
-Better CaptionKeep does not operate a shared Entra app. Each organization owns a single-tenant app registration, grants the documented delegated permissions, and registers the exact Store redirect URI for each browser it deploys. Wildcard redirects do not work.
+1. Open BCK → **All Settings** and find **Microsoft 365 / Verified Teams transcripts**. Use the full settings tab rather than depending on the toolbar popup staying open.
+2. If the organization supplied the connection, use the Microsoft 365 Connect button shown by your build. Older builds can expose the identifiers in an administrator-details disclosure; newer presentation must not be assumed available until its extension release is verified.
+3. Review the browser's optional Microsoft identity/Graph access prompt, then complete Microsoft work-account sign-in and any MFA/consent required by your organization.
+4. Choose **Refresh** to retrieve up to five recent eligible Teams meetings. Select a meeting, use the current-meeting action or paste its join link in the fallback control.
+5. When Microsoft has published an authorized transcript, choose the import action offered by the page. A successful import should open the transcript in the normal local viewer and create its local history entry. Verify both outcomes in the pilot; their availability is not established merely by seeing a meeting card.
 
-Store installations keep Store-assigned identities. The three governed Chromium unpacked lanes also have fixed identities. Register exact redirects for the identities actually tested; a Store identity or Chromium test redirect does not certify a different browser target. Live authentication and transcript import must be accepted separately for each supported browser.
+Microsoft determines whether this account can access a particular meeting/transcript. The employee app requests delegated calendar, meeting and transcript permissions; it does not become an unattended tenant-wide collector. Some meetings visible in a calendar can still be inaccessible to the transcript API. [Permission details](Deployment-Security-and-Permissions#employee-microsoft-365-permissions).
 
-See [Administrator deployment](Administrator-Deployment) and the full [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md).
+## Manual setup in Chrome, Edge, Brave, Opera or Firefox
 
-## Local capture remains independent
+Follow [the browser installation and Microsoft 365 guide](Browser-Installation-and-Microsoft-365). It shows how to reuse an approved organization app, save the tenant/client IDs, find the Redirect URI line and add the exact callback to the existing Entra Single-page application platform. Chrome policy does not automatically configure other browsers, and Firefox callbacks must not be constructed from the Chromium format.
 
-Microsoft 365 connection is optional. Displayed-caption capture does not require Microsoft sign-in or official transcription. The official import is a separate source; reviewed summaries and AI handoffs do not overwrite its original transcript. No shared publisher tenant, MCP helper, or automatic AI submission is required for 6.0.
+## Connection details and redirects
+
+Tenant and client IDs identify the organization's configuration; they are not passwords. Enforced values take precedence over local preferences. Changing a local field cannot override an organization's policy.
+
+An administrator troubleshooting a redirect failure must use the exact redirect for the installed Store/build identity. Store, Dev and browser identities are not interchangeable. See [Troubleshooting](Troubleshooting) for AADSTS50011 and setup recovery; use the [Entra registration runbook](https://github.com/Mr-GraphnStaff/better-captionkeep/blob/master/docs/ENTRA-GRAPH-APP-REGISTRATION.md) only for an intentionally managed manual configuration.
+
+## Data and disconnect
+
+Microsoft retains its original transcript according to tenant policy. A successful BCK import creates a separate browser-local copy; the developer does not receive that transcript. Local notes, exports and deliberate AI handoffs have their own retention/destination boundaries.
+
+Disconnecting clears the connector's local session access. It does not revoke tenant consent or delete Microsoft's transcript, an already-imported local copy, an export or an external handoff. Administrators handle access revocation and deployment removal separately. [Security and cleanup](Deployment-Security-and-Permissions#removal-and-access-cleanup).
+
+## Need help?
+
+Use [Support](Support) for sign-in, discovery or import failures. A plain description and sanitized error are enough to start. Keep transcripts, real join links, tenant/client identifiers, account details and deployment receipts out of public reports.

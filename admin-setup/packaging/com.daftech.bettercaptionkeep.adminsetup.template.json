@@ -1,0 +1,10 @@
+{
+  "name": "com.daftech.bettercaptionkeep.adminsetup",
+  "description": "Launches the signed Better CaptionKeep organization setup application.",
+  "path": "__SIGNED_NATIVE_HOST_EXE__",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://__EDGE_EXTENSION_ID__/",
+    "chrome-extension://__CHROME_EXTENSION_ID__/"
+  ]
+}

@@ -1,6 +1,9 @@
 // --- Constants for DOM Elements and Data ---
 const UI_ELEMENTS = {
     statusMessage: document.getElementById('status-message'),
+    policyStatusBanner: document.getElementById('policyStatusBanner'),
+    policyStatusMessage: document.getElementById('policyStatusMessage'),
+    retryPolicySettings: document.getElementById('retryPolicySettings'),
     copyButton: document.getElementById('copyButton'),
     copyDropdownButton: document.getElementById('copyDropdownButton'),
     copyOptions: document.getElementById('copyOptions'),
@@ -72,6 +75,14 @@ const UI_ELEMENTS = {
     graphSaveSetup: document.getElementById('graphSaveSetup'),
     graphClearSetup: document.getElementById('graphClearSetup'),
     graphSetupStatus: document.getElementById('graphSetupStatus'),
+    graphSetupActions: document.getElementById('graphSetupActions'),
+    graphManagedSetupSummary: document.getElementById('graphManagedSetupSummary'),
+    graphManagedSetupHeading: document.getElementById('graphManagedSetupHeading'),
+    graphIdentifierStatus: document.getElementById('graphIdentifierStatus'),
+    graphRevealTenantId: document.getElementById('graphRevealTenantId'),
+    graphRevealClientId: document.getElementById('graphRevealClientId'),
+    graphCopyTenantId: document.getElementById('graphCopyTenantId'),
+    graphCopyClientId: document.getElementById('graphCopyClientId'),
     graphConnectButton: document.getElementById('graphConnectButton'),
     graphDisconnectButton: document.getElementById('graphDisconnectButton'),
     graphJoinUrl: document.getElementById('graphJoinUrl'),
@@ -88,6 +99,9 @@ let currentEnterprisePolicy = {};
 let graphConnected = false;
 let graphConfigured = false;
 let graphBusy = false;
+let graphConnecting = false;
+let graphConnectionAttempt = 0;
+let graphPermissionIntentWrites = Promise.resolve();
 let currentMeetingTab = null;
 let currentMeetingStatus = {};
 let hasSavedSessions = false;
@@ -294,15 +308,28 @@ function safeExecute(fn, context = '', fallback = null) {
 }
 
 async function requestMicrosoft365HostAccess() {
+    const attempt = graphConnectionAttempt;
+    const cancelled = () => attempt !== graphConnectionAttempt;
     if (!chrome.permissions?.request || !chrome.permissions?.contains) {
         return {granted: true, continuesInWorker: false};
     }
     const request = {origins: [...MICROSOFT_365_HOST_ACCESS]};
-    if (await chrome.permissions.contains(request)) {
+    const hasAccess = await chrome.permissions.contains(request);
+    if (cancelled()) return {granted:false, continuesInWorker:false};
+    if (hasAccess) {
         return {granted: true, continuesInWorker: false};
     }
-    await chrome.storage.session.set({graphConnectPending: {createdAt: Date.now()}});
+    const createdAt = Date.now();
+    // Cancel waits for all already-enqueued publications before asking the
+    // worker to retire the intent. A late session.set cannot resurrect it.
+    const publication = graphPermissionIntentWrites.then(async () => {
+        if (!cancelled()) await chrome.storage.session.set({graphConnectPending: {createdAt}});
+    });
+    graphPermissionIntentWrites = publication.catch(() => undefined);
+    await publication;
+    if (cancelled()) return {granted:false, continuesInWorker:false};
     const granted = await chrome.permissions.request(request);
+    if (cancelled()) return {granted:false, continuesInWorker:false};
     if (!granted) await chrome.storage.session.remove('graphConnectPending');
     return {granted, continuesInWorker: granted};
 }
@@ -409,13 +436,15 @@ async function updateStatusUI({ capturing, captionCount, lastCaptionAt, isInMeet
 }
 
 function updateButtonStates(hasData) {
-    UI_ELEMENTS.copyButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
-    UI_ELEMENTS.copyDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableClipboard;
-    UI_ELEMENTS.saveButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
-    UI_ELEMENTS.saveDropdownButton.disabled = !hasData || !!currentEnterprisePolicy.disableFileExport;
+    UI_ELEMENTS.copyButton.disabled = popupPolicyUnavailable || !hasData || !!currentEnterprisePolicy.disableClipboard;
+    UI_ELEMENTS.copyDropdownButton.disabled = popupPolicyUnavailable || !hasData || !!currentEnterprisePolicy.disableClipboard;
+    UI_ELEMENTS.saveButton.disabled = popupPolicyUnavailable || !hasData || !!currentEnterprisePolicy.disableFileExport;
+    UI_ELEMENTS.saveDropdownButton.disabled = popupPolicyUnavailable || !hasData || !!currentEnterprisePolicy.disableFileExport;
 }
 
 async function refreshEnterprisePolicy() {
+    const generation = popupPolicyReadGeneration;
+    try {
     const user = {
         ...await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS),
         ...await CaptionKeepConfiguration.readGraphUserConfig()
@@ -426,20 +455,28 @@ async function refreshEnterprisePolicy() {
         globalThis.CaptionKeepGraphRuntimeConfig,
         runtimeManifest
     );
+    if (generation !== popupPolicyReadGeneration || popupPolicyUnavailable) {
+        throw new Error('Organization settings changed. Retry settings to continue.');
+    }
     currentEnterprisePolicy = policy.settings;
     return currentEnterprisePolicy;
+    } catch (error) {
+        if (generation === popupPolicyReadGeneration) showPopupPolicyUnavailable();
+        throw error;
+    }
 }
 
 function refreshGraphControls() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
-    UI_ELEMENTS.graphConnectButton.disabled = graphBusy || graphConnected || !graphConfigured;
-    UI_ELEMENTS.graphDisconnectButton.disabled = graphBusy || !graphConnected;
-    UI_ELEMENTS.graphUseCurrentMeeting.disabled = graphBusy;
-    UI_ELEMENTS.graphRefreshMeetings.disabled = graphBusy || !graphConnected;
+    UI_ELEMENTS.graphConnectButton.disabled = popupPolicyUnavailable || graphBusy || graphConnected || !graphConfigured;
+    UI_ELEMENTS.graphDisconnectButton.disabled = popupPolicyUnavailable || (!graphConnecting && (graphBusy || !graphConnected));
+    UI_ELEMENTS.graphDisconnectButton.textContent = graphConnecting ? 'Cancel sign-in' : 'Disconnect';
+    UI_ELEMENTS.graphUseCurrentMeeting.disabled = popupPolicyUnavailable || graphBusy;
+    UI_ELEMENTS.graphRefreshMeetings.disabled = popupPolicyUnavailable || graphBusy || !graphConnected;
     UI_ELEMENTS.graphRecentMeetings?.querySelectorAll('button').forEach(button => {
-        button.disabled = graphBusy || !graphConnected;
+        button.disabled = popupPolicyUnavailable || graphBusy || !graphConnected;
     });
-    UI_ELEMENTS.graphImportButton.disabled = graphBusy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
+    UI_ELEMENTS.graphImportButton.disabled = popupPolicyUnavailable || graphBusy || !graphConnected || !UI_ELEMENTS.graphJoinUrl.value.trim();
 }
 
 function setGraphBusy(busy) {
@@ -455,7 +492,7 @@ function graphErrorMessage(error) {
         ErrorAccessDenied: 'Your organization did not grant access to the required calendar or transcript data.',
         GraphAccessToTranscriptsDisabled: 'Your Teams administrator has disabled transcript access through Microsoft Graph.',
         MEETING_NOT_FOUND: 'Microsoft 365 could not find that meeting for this account.',
-        TRANSCRIPT_NOT_FOUND: 'Teams has not finished producing an official transcript for this meeting.',
+        TRANSCRIPT_NOT_FOUND: 'No transcript was returned for this meeting through Microsoft Graph. If it opens in Teams, check that Better CaptionKeep is connected to the same Microsoft 365 account and that you selected the correct meeting.',
         JOIN_URL_INVALID: 'Choose a recent Teams meeting or paste its complete Teams join link.',
         AUTH_CANCELLED: 'Microsoft 365 sign-in was cancelled.',
         GRAPH_NOT_ENABLED: 'The Microsoft 365 connection is not configured for this installation.',
@@ -591,39 +628,226 @@ function isGraphGuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 }
 
+// Keep real configuration separate from the concealed presentation. OAuth uses
+// the effective configuration; neither Save nor Copy reads a displayed mask.
+const GRAPH_IDENTIFIER_MASK = '••••••••';
+let popupPolicyUnavailable = false;
+let popupPolicyReadGeneration = 0;
+let popupEventListenersReady = false;
+let popupPolicyRetrying = false;
+const popupPolicyControlStates = new Map();
+
+function beginPopupPolicyCheck() {
+    popupPolicyUnavailable = true;
+    document.body.dataset.policyUnavailable = 'true';
+    concealGraphIdentifiers();
+    for (const control of document.querySelectorAll('.popup-main button, .popup-main input, .popup-main select, .popup-main textarea')) {
+        if (control === UI_ELEMENTS.retryPolicySettings) continue;
+        if (!popupPolicyControlStates.has(control)) popupPolicyControlStates.set(control, control.disabled);
+        control.disabled = true;
+    }
+}
+
+function showPopupPolicyUnavailable() {
+    beginPopupPolicyCheck();
+    if (UI_ELEMENTS.policyStatusBanner) UI_ELEMENTS.policyStatusBanner.hidden = false;
+    if (UI_ELEMENTS.policyStatusMessage) UI_ELEMENTS.policyStatusMessage.textContent = 'Could not check organization settings. Copying, exporting and connection changes are paused. Retry settings to continue.';
+    if (UI_ELEMENTS.retryPolicySettings) UI_ELEMENTS.retryPolicySettings.disabled = popupPolicyRetrying;
+    if (UI_ELEMENTS.statusMessage) UI_ELEMENTS.statusMessage.textContent = 'Organization settings unavailable. Retry settings to continue.';
+    if (UI_ELEMENTS.graphConnectionStatus) UI_ELEMENTS.graphConnectionStatus.textContent = 'Organization settings unavailable. Retry settings to continue.';
+    if (UI_ELEMENTS.v6ReadyTitle) UI_ELEMENTS.v6ReadyTitle.textContent = 'Organization settings unavailable';
+    if (UI_ELEMENTS.v6ProviderState) UI_ELEMENTS.v6ProviderState.textContent = 'Settings unavailable';
+}
+
+function restorePopupPolicyControls() {
+    popupPolicyUnavailable = false;
+    document.body.dataset.policyUnavailable = 'false';
+    for (const [control, disabled] of popupPolicyControlStates) control.disabled = disabled;
+    popupPolicyControlStates.clear();
+    const retryHadFocus = document.activeElement === UI_ELEMENTS.retryPolicySettings;
+    if (UI_ELEMENTS.policyStatusBanner) UI_ELEMENTS.policyStatusBanner.hidden = true;
+    if (retryHadFocus) {
+        const heading = isFullSettingsPage ? document.querySelector('.settings-header') : UI_ELEMENTS.v6ReadyTitle;
+        heading?.setAttribute('tabindex', '-1');
+        heading?.focus();
+    }
+}
+const GRAPH_IDENTIFIER_FIELDS = [
+    {key:'graphTenantId', reveal:'graphRevealTenantId', copy:'graphCopyTenantId', label:'tenant ID'},
+    {key:'graphClientId', reveal:'graphRevealClientId', copy:'graphCopyClientId', label:'client ID'}
+];
+const graphIdentifierState = Object.fromEntries(GRAPH_IDENTIFIER_FIELDS.map(field => [field.key, {value:'', revealed:false}]));
+let graphIdentifiersManaged = false;
+let graphIdentifierRevision = 0;
+let graphIdentifierNoticeTimer;
+let graphIdentifierLastNotice = '';
+
+function clearGraphIdentifierNotice() {
+    clearTimeout(graphIdentifierNoticeTimer);
+    if (UI_ELEMENTS.graphIdentifierStatus) UI_ELEMENTS.graphIdentifierStatus.textContent = popupPolicyUnavailable ? 'Copying is paused until organization settings are checked.' : currentEnterprisePolicy.disableClipboard ? 'Copying is disabled by your organization.' : '';
+}
+
+function showGraphIdentifierNotice(message) {
+    clearGraphIdentifierNotice();
+    const status = UI_ELEMENTS.graphIdentifierStatus;
+    if (!status) return;
+    // Repeated copy feedback must still be announced by assistive technology.
+    const text = message === graphIdentifierLastNotice ? message + '\u00a0' : message;
+    graphIdentifierLastNotice = text;
+    status.textContent = text;
+    graphIdentifierNoticeTimer = setTimeout(clearGraphIdentifierNotice, 3000);
+}
+
+function refreshGraphIdentifierActions(field) {
+    const state = graphIdentifierState[field.key];
+    const reveal = UI_ELEMENTS[field.reveal];
+    const copy = UI_ELEMENTS[field.copy];
+    if (reveal) {
+        reveal.textContent = state.revealed ? 'Hide' : 'Reveal';
+        reveal.setAttribute('aria-label', `${state.revealed ? 'Hide' : 'Reveal'} ${field.label}`);
+        reveal.setAttribute('aria-pressed', String(state.revealed));
+        reveal.disabled = popupPolicyUnavailable || !state.value;
+    }
+    if (copy) copy.disabled = popupPolicyUnavailable || !state.value || !!currentEnterprisePolicy.disableClipboard;
+}
+
+function renderGraphIdentifier(field) {
+    const input = UI_ELEMENTS[field.key];
+    if (!input) return;
+    const state = graphIdentifierState[field.key];
+    input.value = state.revealed ? state.value : (state.value ? GRAPH_IDENTIFIER_MASK : '');
+    input.readOnly = graphIdentifiersManaged || (!state.revealed && !!state.value);
+    input.disabled = popupPolicyUnavailable;
+    refreshGraphIdentifierActions(field);
+}
+
+function concealGraphIdentifiers() {
+    graphIdentifierRevision++;
+    clearGraphIdentifierNotice();
+    for (const field of GRAPH_IDENTIFIER_FIELDS) {
+        graphIdentifierState[field.key].revealed = false;
+        renderGraphIdentifier(field);
+    }
+    if (!popupPolicyUnavailable && currentEnterprisePolicy.disableClipboard && UI_ELEMENTS.graphIdentifierStatus) {
+        UI_ELEMENTS.graphIdentifierStatus.textContent = 'Copying is disabled by your organization.';
+    }
+}
+
+async function copyGraphIdentifier(key) {
+    if (popupPolicyUnavailable) {
+        showGraphIdentifierNotice('Copying is paused until organization settings are checked.');
+        return;
+    }
+    if (currentEnterprisePolicy.disableClipboard) {
+        showGraphIdentifierNotice('Copying is disabled by your organization.');
+        return;
+    }
+    const value = graphIdentifierState[key]?.value;
+    if (!value) return;
+    const revision = graphIdentifierRevision;
+    try {
+        await navigator.clipboard.writeText(value);
+        if (revision === graphIdentifierRevision) showGraphIdentifierNotice(key === 'graphTenantId' ? 'Tenant ID copied.' : 'Client ID copied.');
+    } catch {
+        if (revision === graphIdentifierRevision) showGraphIdentifierNotice('Could not copy. Reveal the ID to select and copy it.');
+    }
+}
+
+function setupGraphIdentifierControls() {
+    for (const field of GRAPH_IDENTIFIER_FIELDS) {
+        UI_ELEMENTS[field.reveal]?.addEventListener('click', () => {
+            const state = graphIdentifierState[field.key];
+            state.revealed = !state.revealed;
+            graphIdentifierRevision++;
+            clearGraphIdentifierNotice();
+            renderGraphIdentifier(field);
+        });
+        UI_ELEMENTS[field.copy]?.addEventListener('click', () => copyGraphIdentifier(field.key));
+        UI_ELEMENTS[field.key]?.addEventListener('input', event => {
+            if (popupPolicyUnavailable || event.target.readOnly || event.target.disabled) return;
+            graphIdentifierState[field.key].value = event.target.value;
+            graphIdentifierState[field.key].revealed = true;
+            graphIdentifierRevision++;
+            clearGraphIdentifierNotice();
+            // Preserve the caret and typed value; only update the action labels.
+            refreshGraphIdentifierActions(field);
+        });
+    }
+    UI_ELEMENTS.graphAdminDetails?.addEventListener('toggle', () => {
+        if (!UI_ELEMENTS.graphAdminDetails.open) concealGraphIdentifiers();
+    });
+    globalThis.addEventListener?.('pagehide', concealGraphIdentifiers);
+}
+
+function updateManagedPreferenceControls(locked) {
+    const fields = [
+        ['defaultSaveFormat', UI_ELEMENTS.defaultSaveFormatSelect],
+        ['saveAsType', UI_ELEMENTS.saveAsTypeSelect],
+        ['saveLocation', UI_ELEMENTS.saveLocationInput],
+        ['timestampFormat', UI_ELEMENTS.timestampFormat],
+        ['filenamePattern', UI_ELEMENTS.filenamePattern],
+        ['uiTheme', UI_ELEMENTS.themeSelect],
+        ['webmailDestination', UI_ELEMENTS.webmailDestination]
+    ];
+    for (const [key, input] of fields) {
+        if (!input) continue;
+        const managed = locked.has(key);
+        input.dataset.policyManaged = String(managed);
+        input.disabled = managed || (key === 'saveLocation' && UI_ELEMENTS.saveAsTypeSelect?.value !== 'custom');
+        input.title = managed ? 'Managed by your organization.' : '';
+        const label = document.querySelector(`label[for="${input.id}"]`);
+        if (!label) continue;
+        let note = label.querySelector('.managed-setting-note');
+        if (!note && managed) {
+            note = document.createElement('span');
+            note.className = 'managed-setting-note';
+            note.textContent = 'Managed';
+            label.append(note);
+        }
+        if (note) note.hidden = !managed;
+    }
+}
+
 function updateGraphSetupControls(settings, locked = new Set()) {
     const tenantId = String(settings.graphTenantId || '');
     const clientId = String(settings.graphClientId || '');
     graphConfigured = settings.enableGraphTranscriptImport === true
         && isGraphGuid(tenantId) && isGraphGuid(clientId);
     document.body.dataset.graphConfigured = String(graphConfigured);
-    if (UI_ELEMENTS.graphTenantId) UI_ELEMENTS.graphTenantId.value = tenantId;
-    if (UI_ELEMENTS.graphClientId) UI_ELEMENTS.graphClientId.value = clientId;
     const managed = ['enableGraphTranscriptImport', 'graphTenantId', 'graphClientId'].some(key => locked.has(key));
-    for (const input of [UI_ELEMENTS.graphTenantId, UI_ELEMENTS.graphClientId]) {
-        if (input) input.disabled = managed;
-    }
+    graphIdentifiersManaged = managed;
+    graphIdentifierState.graphTenantId.value = tenantId;
+    graphIdentifierState.graphClientId.value = clientId;
+    concealGraphIdentifiers();
+    if (UI_ELEMENTS.graphAdminDetails) UI_ELEMENTS.graphAdminDetails.dataset.managed = String(managed);
+    if (UI_ELEMENTS.graphManagedSetupSummary) UI_ELEMENTS.graphManagedSetupSummary.hidden = !managed;
+    if (UI_ELEMENTS.graphManagedSetupHeading) UI_ELEMENTS.graphManagedSetupHeading.textContent = graphConfigured ? 'Configured by your organization' : 'Managed by your organization';
+    if (UI_ELEMENTS.graphSetupActions) UI_ELEMENTS.graphSetupActions.hidden = managed;
     if (UI_ELEMENTS.graphSaveSetup) UI_ELEMENTS.graphSaveSetup.disabled = managed;
     if (UI_ELEMENTS.graphClearSetup) UI_ELEMENTS.graphClearSetup.disabled = managed || (!tenantId && !clientId);
     if (UI_ELEMENTS.graphSetupStatus) {
         UI_ELEMENTS.graphSetupStatus.textContent = managed
-            ? (graphConfigured ? 'Configured and locked by your organization.' : 'Microsoft 365 import is disabled or incomplete in organization policy.')
+            ? (graphConfigured ? 'Configured by your organization.' : 'Microsoft 365 import is disabled or incomplete in organization policy.')
             : (graphConfigured ? 'Customer-owned Microsoft 365 setup saved locally.' : 'Enter the tenant and client IDs from your organization’s Entra app registration.');
     }
 }
 
 async function refreshGraphStatus() {
     if (!UI_ELEMENTS.graphTranscriptSection || UI_ELEMENTS.graphTranscriptSection.hidden) return;
+    concealGraphIdentifiers();
+    const attempt = graphConnectionAttempt;
     try {
         const status = await sendGraphMessage({message:'graph_get_status'});
+        if (attempt !== graphConnectionAttempt) return;
         graphConnected = !!status.connected;
         UI_ELEMENTS.graphConnectionStatus.textContent = graphConnected
             ? `Connected${status.accountLabel ? ` as ${status.accountLabel}` : ''}. Recent meetings are read directly from Microsoft 365 and are not retained.`
             : (status.configured
                 ? 'Microsoft 365 setup detected. Connect to begin.'
-                : 'Microsoft 365 setup required. Add your organization’s tenant and client IDs under Administrator connection details.');
+                : 'Microsoft 365 setup required. Use Administrator setup or add your organization’s IDs under Technical connection details.');
         UI_ELEMENTS.graphRedirectUri.textContent = status.redirectUri ? `Redirect URI: ${status.redirectUri}` : '';
     } catch (error) {
+        if (attempt !== graphConnectionAttempt) return;
         graphConnected = false;
         UI_ELEMENTS.graphConnectionStatus.textContent = `Connection status unavailable: ${error.message}`;
     }
@@ -662,7 +886,7 @@ function updateSaveBehaviorHint(type) {
     if (!UI_ELEMENTS.saveBehaviorHint) return;
     const custom = type === 'custom';
     if (UI_ELEMENTS.saveLocationRow) UI_ELEMENTS.saveLocationRow.style.display = custom ? 'flex' : 'none';
-    if (UI_ELEMENTS.saveLocationInput) UI_ELEMENTS.saveLocationInput.disabled = !custom;
+    if (UI_ELEMENTS.saveLocationInput) UI_ELEMENTS.saveLocationInput.disabled = popupPolicyUnavailable || !custom || UI_ELEMENTS.saveLocationInput.dataset.policyManaged === 'true';
     UI_ELEMENTS.saveBehaviorHint.textContent = type === 'prompt'
         ? 'Your browser asks where to put each transcript.'
         : custom
@@ -794,6 +1018,10 @@ async function renderSpeakerAliases(tab) {
 
 // --- Settings Management ---
 async function loadSettings() {
+    const generation = ++popupPolicyReadGeneration;
+    beginPopupPolicyCheck();
+    let policy;
+    try {
     const userSettings = await chrome.storage.sync.get([
         'autoSaveOnEnd',
         'defaultSaveFormat',
@@ -817,14 +1045,20 @@ async function loadSettings() {
     ]);
     Object.assign(userSettings, await CaptionKeepConfiguration.readGraphUserConfig());
     const managedPolicy = CaptionKeepConfiguration.applyPolicy(userSettings, await CaptionKeepConfiguration.readManaged());
-    const policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
+    policy = CaptionKeepConfiguration.applyGraphRuntimeConfig(
         managedPolicy,
         globalThis.CaptionKeepGraphRuntimeConfig,
         runtimeManifest
     );
+    } catch (error) {
+        if (generation === popupPolicyReadGeneration) showPopupPolicyUnavailable();
+        throw error;
+    }
+    if (generation !== popupPolicyReadGeneration) return false;
     const settings = policy.settings;
     const locked = new Set(policy.locked);
     currentEnterprisePolicy = settings;
+    restorePopupPolicyControls();
     if (UI_ELEMENTS.uiLocaleSelect && globalThis.CaptionKeepLocalization) {
         CaptionKeepLocalization.populateLocaleSelect(UI_ELEMENTS.uiLocaleSelect);
         UI_ELEMENTS.uiLocaleSelect.value = settings.uiLocale === 'fr-CA' ? 'fr' : (settings.uiLocale || 'system');
@@ -915,11 +1149,27 @@ async function loadSettings() {
         if (settings.saveAsType === 'default') chrome.storage.sync.set({saveAsType});
     }
     if (UI_ELEMENTS.saveLocationInput) UI_ELEMENTS.saveLocationInput.value = settings.saveLocation || '';
+    updateManagedPreferenceControls(locked);
+    refreshGraphControls();
     await refreshLastTranscriptFolderButton();
+    return true;
 }
 
 // --- Event Handling ---
 function setupEventListeners() {
+    if (popupEventListenersReady) return;
+    popupEventListenersReady = true;
+    setupGraphIdentifierControls();
+    UI_ELEMENTS.retryPolicySettings?.addEventListener('click', async () => {
+        if (popupPolicyRetrying) return;
+        popupPolicyRetrying = true;
+        UI_ELEMENTS.retryPolicySettings.disabled = true;
+        try { await initializePopup(); }
+        finally {
+            popupPolicyRetrying = false;
+            UI_ELEMENTS.retryPolicySettings.disabled = false;
+        }
+    });
     document.getElementById('meetingExtrasButton').addEventListener('click', () => openMeetingExtras(false));
     document.getElementById('meetingScreenshotButton').addEventListener('click', () => openMeetingExtras(true));
     UI_ELEMENTS.graphJoinUrl?.addEventListener('input', () => {
@@ -929,10 +1179,14 @@ function setupEventListeners() {
     UI_ELEMENTS.graphUseCurrentMeeting?.addEventListener('click', () => populateCurrentTeamsMeeting());
     UI_ELEMENTS.graphRefreshMeetings?.addEventListener('click', () => refreshRecentGraphMeetings());
     UI_ELEMENTS.graphConnectButton?.addEventListener('click', async () => {
+        if (popupPolicyUnavailable) return;
+        const attempt = ++graphConnectionAttempt;
+        graphConnecting = true;
         setGraphBusy(true);
         UI_ELEMENTS.graphConnectionStatus.textContent = 'Requesting Microsoft 365 access…';
         try {
             const access = await requestMicrosoft365HostAccess();
+            if (attempt !== graphConnectionAttempt) return;
             if (!access.granted) {
                 UI_ELEMENTS.graphConnectionStatus.textContent = 'Microsoft 365 access was not granted. Local caption capture still works.';
                 setGraphBusy(false);
@@ -940,21 +1194,45 @@ function setupEventListeners() {
             }
             if (access.continuesInWorker) {
                 UI_ELEMENTS.graphConnectionStatus.textContent = 'Access approved. Opening Microsoft sign-in…';
-                return;
+                const outcome = await sendGraphMessage({message:'graph_resume_connect'});
+                if (attempt !== graphConnectionAttempt) return;
+                if (outcome.outcome === 'expired') {
+                    UI_ELEMENTS.graphConnectionStatus.textContent = 'Access approved. The sign-in request expired. Click Connect Microsoft 365 again to start sign-in.';
+                    setGraphBusy(false);
+                    return;
+                }
+                if (outcome.outcome === 'failed') {
+                    const error = new Error(outcome.error || 'Microsoft 365 sign-in failed.');
+                    error.code = outcome.code;
+                    throw error;
+                }
+                if (outcome.outcome === 'in_flight') return;
             }
-            UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
-            await sendGraphMessage({message:'graph_connect'});
+            if (!access.continuesInWorker) {
+                UI_ELEMENTS.graphConnectionStatus.textContent = 'Opening Microsoft sign-in…';
+                await sendGraphMessage({message:'graph_connect'});
+                if (attempt !== graphConnectionAttempt) return;
+            }
+            graphConnecting = false;
             await refreshGraphStatus();
+            if (attempt !== graphConnectionAttempt) return;
             await refreshRecentGraphMeetings();
         } catch (error) {
+            if (attempt !== graphConnectionAttempt) return;
             graphConnected = false;
             UI_ELEMENTS.graphConnectionStatus.textContent = graphErrorMessage(error);
             setGraphBusy(false);
+        } finally {
+            if (attempt === graphConnectionAttempt) {
+                graphConnecting = false;
+                refreshGraphControls();
+            }
         }
     });
     UI_ELEMENTS.graphSaveSetup?.addEventListener('click', async () => {
-        const tenantId = UI_ELEMENTS.graphTenantId.value.trim().toLowerCase();
-        const clientId = UI_ELEMENTS.graphClientId.value.trim().toLowerCase();
+        if (popupPolicyUnavailable || graphIdentifiersManaged) return;
+        const tenantId = graphIdentifierState.graphTenantId.value.trim().toLowerCase();
+        const clientId = graphIdentifierState.graphClientId.value.trim().toLowerCase();
         if (!isGraphGuid(tenantId) || !isGraphGuid(clientId)) {
             UI_ELEMENTS.graphSetupStatus.textContent = 'Enter valid GUID values for both the tenant ID and client ID.';
             return;
@@ -966,6 +1244,7 @@ function setupEventListeners() {
         await refreshGraphStatus();
     });
     UI_ELEMENTS.graphClearSetup?.addEventListener('click', async () => {
+        if (popupPolicyUnavailable || graphIdentifiersManaged) return;
         if (graphConnected) await sendGraphMessage({message:'graph_disconnect'});
         await chrome.storage.local.remove(CaptionKeepConfiguration.GRAPH_USER_KEYS);
         graphConnected = false;
@@ -973,11 +1252,18 @@ function setupEventListeners() {
         await refreshGraphStatus();
     });
     UI_ELEMENTS.graphDisconnectButton?.addEventListener('click', async () => {
+        concealGraphIdentifiers();
+        const cancelling = graphConnecting;
+        graphConnectionAttempt++;
+        graphConnecting = false;
         setGraphBusy(true);
         try {
+            await graphPermissionIntentWrites;
             await sendGraphMessage({message:'graph_disconnect'});
             graphConnected = false;
-            UI_ELEMENTS.graphConnectionStatus.textContent = 'Disconnected. Tenant consent was not changed.';
+            UI_ELEMENTS.graphConnectionStatus.textContent = cancelling
+                ? 'Microsoft 365 sign-in cancelled. Close any Microsoft sign-in window still open.'
+                : 'Disconnected. Tenant consent was not changed.';
             UI_ELEMENTS.graphJoinUrl.value = '';
             renderRecentGraphMeetings([]);
         } catch (error) {
@@ -1106,6 +1392,7 @@ function setupEventListeners() {
     }
 
     UI_ELEMENTS.exportConfiguration?.addEventListener('click', async () => {
+        if (popupPolicyUnavailable) return;
         const settings = await chrome.storage.sync.get(CaptionKeepConfiguration.USER_KEYS);
         const content = CaptionKeepConfiguration.createExport(settings);
         const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
@@ -1117,8 +1404,9 @@ function setupEventListeners() {
         UI_ELEMENTS.configurationStatus.textContent = 'Settings exported. Transcript history was not included.';
     });
 
-    UI_ELEMENTS.importConfiguration?.addEventListener('click', () => UI_ELEMENTS.configurationFile?.click());
+    UI_ELEMENTS.importConfiguration?.addEventListener('click', () => { if (!popupPolicyUnavailable) UI_ELEMENTS.configurationFile?.click(); });
     UI_ELEMENTS.configurationFile?.addEventListener('change', async (event) => {
+        if (popupPolicyUnavailable) return;
         try {
             const file = event.target.files?.[0];
             if (!file) return;
@@ -1183,6 +1471,7 @@ function setupEventListeners() {
 }
 
 async function openMeetingExtras(withScreenshot) {
+    if (popupPolicyUnavailable) return;
     try {
         await refreshEnterprisePolicy();
         if (currentEnterprisePolicy.disableSessionHistory) throw new Error('Local meeting retention is disabled by your organization.');
@@ -1248,7 +1537,8 @@ function setupDropdown(mainButton, dropdownButton, optionsContainer, actionHandl
 
 async function handleCopy(target) {
     if (!target.dataset.copyType) return;
-    await refreshEnterprisePolicy();
+    if (popupPolicyUnavailable) return;
+    try { await refreshEnterprisePolicy(); } catch { return; }
     if (currentEnterprisePolicy.disableClipboard) {
         UI_ELEMENTS.statusMessage.textContent = 'Clipboard copy is disabled by your organization.';
         return;
@@ -1281,7 +1571,8 @@ async function handleCopy(target) {
 async function handleSave(target) {
     const format = target.dataset.format;
     if (!format) return;
-    await refreshEnterprisePolicy();
+    if (popupPolicyUnavailable) return;
+    try { await refreshEnterprisePolicy(); } catch { return; }
     if (currentEnterprisePolicy.disableFileExport) {
         UI_ELEMENTS.statusMessage.textContent = 'File export is disabled by your organization.';
         return;
@@ -1544,12 +1835,11 @@ async function initializePopup() {
         document.querySelector('.settings-intro').textContent = 'Your preferences save as you change them. Organization-managed controls remain enforced. Microsoft 365 connection and all advanced controls are available here.';
         if ((location.hash === '#microsoft365' || location.hash === '#graphTranscriptSection') && UI_ELEMENTS.graphAdminDetails) {
             UI_ELEMENTS.graphTranscriptSection.open = true;
-            UI_ELEMENTS.graphAdminDetails.open = true;
         }
     }
-    await loadSettings();
-    await initializeMeetingTemplates();
     setupEventListeners();
+    try { if (await loadSettings() === false) return; } catch { return; }
+    await initializeMeetingTemplates();
     await refreshGraphStatus();
     await initializeSessionHistory(); // Initialize session history
 
@@ -1621,7 +1911,7 @@ document.addEventListener('DOMContentLoaded', initializePopup);
 chrome.storage.onChanged.addListener((changes, areaName) => {
     const graphChanged = areaName === 'local'
         && CaptionKeepConfiguration.GRAPH_USER_KEYS.some(key => Object.hasOwn(changes, key));
-    if (areaName === 'managed' || graphChanged) void loadSettings().catch(error => {
-        UI_ELEMENTS.statusMessage.textContent = `Could not refresh managed settings: ${error.message}`;
+    if (areaName === 'managed' || graphChanged) void loadSettings().catch(() => {
+        // loadSettings already presents a retryable, fail-closed policy state.
     });
 });

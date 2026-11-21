@@ -60,7 +60,7 @@ export async function prepareByomcpNativeProbe({root=project,baseDirectory,cloud
     root=path.resolve(root);
     const base=privateBase(baseDirectory),setup=path.join(base,'setup'),extension=path.join(base,'extension'),profileDirectory=path.join(base,'profile'),installation=path.join(base,'installation');
     await mkdir(setup,{recursive:true});await mkdir(profileDirectory,{recursive:true});
-    const source=path.join(root,'dist/prod/brave-unpacked');
+    const source=path.join(root,'Production/brave-unpacked');
     const manifest=JSON.parse(await readFile(path.join(source,'manifest.json'),'utf8'));
     if(!(manifest.optional_permissions || []).includes('nativeMessaging'))throw Error('Packaged optional nativeMessaging permission is missing.');
     const build=await readFile(path.join(root,'scripts/build-browser-targets.mjs'),'utf8');
@@ -72,8 +72,8 @@ export async function prepareByomcpNativeProbe({root=project,baseDirectory,cloud
     await writeFile(path.join(extension,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
     const runtime=await readFile(path.join(extension,'browserRuntimeConfig.js'),'utf8');
     if(!runtime.includes('"target":"brave"'))throw Error('Probe extension does not carry the Brave runtime identity.');
-    const names=helperArtifactNames(manifest.version),archive=await readFile(path.join(root,'dist/prod',names.zip));
-    const published=JSON.parse(await readFile(path.join(root,'dist/prod',names.hashes),'utf8'));
+    const names=helperArtifactNames(manifest.version),archive=await readFile(path.join(root,'Production',names.zip));
+    const published=JSON.parse(await readFile(path.join(root,'Production',names.hashes),'utf8'));
     if(published.zip!==names.zip || published.zipSha256!==sha(archive).toUpperCase())throw Error('Public helper ZIP hash differs from its release manifest.');
     const entries=zipEntries(archive);
     if(entries.size!==published.entries.length)throw Error('Public helper ZIP entry count differs.');

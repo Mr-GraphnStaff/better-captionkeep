@@ -65,7 +65,7 @@ Run:
 npm run build:intune
 ```
 
-Generated files are written to `dist/prod/intune-edge`:
+Generated files are written to `Production/intune-edge`:
 
 - `edge-extension-settings.json` — importable JSON for Edge `ExtensionSettings` management;
 - `edge-extension-force-install.txt` — the equivalent `ExtensionInstallForcelist` value;
@@ -82,7 +82,7 @@ Run:
 npm run build:intune:local-only
 ```
 
-The bundle in `dist/prod/intune-local-only` is the recommended starting point for a security-sensitive pilot. It:
+The bundle in `Production/intune-local-only` is the recommended starting point for a security-sensitive pilot. It:
 
 - disables AI handoff;
 - disables clipboard release;
@@ -102,7 +102,7 @@ The committed Chrome Store identity is recorded in `deployment/intune/profile.ch
 npm run build:intune:chrome
 ```
 
-The bundle is written to `dist/prod/intune-chrome/` with Chrome-specific `ExtensionSettings`, force-install, detection, and remediation files. It uses Google's official Chrome Web Store update URL and writes managed values only beneath the Chrome policy path.
+The bundle is written to `Production/intune-chrome/` with Chrome-specific `ExtensionSettings`, force-install, detection, and remediation files. It uses Google's official Chrome Web Store update URL and writes managed values only beneath the Chrome policy path.
 
 If an organization intentionally uses a different Chrome Store or private identity, supply that reviewed 32-character ID through `CAPTIONKEEP_CHROME_EXTENSION_ID`. Do not use an unverified ID copied from a test or unpacked installation.
 
@@ -182,6 +182,7 @@ Managed settings override user controls:
 | --- | --- | --- |
 | `forcePrivacyScrubber` | Boolean | Keeps Scrubby enabled in managed UI paths |
 | `forceProfanityFilter` | Boolean | Enables the optional local profanity rule |
+| `forceUiLocale` | String locale identifier | Locks the extension's interface language; `system` follows the browser language |
 | `forceScrubbedExport` | Boolean | Re-scrubs transcript, attendee, and evidence releases at enforcement points |
 | `disableAiHandoff` | Boolean | Disables AI handoff generation and use |
 | `allowedAiProviders` | String array | Restricts providers to supported identifiers |
@@ -196,13 +197,37 @@ Managed settings override user controls:
 | `disableSessionHistory` | Boolean | Prevents completed-session history and clears indexed history |
 | `maxStoredSessions` | Integer 1–10,000 | Applies an explicit administrator maximum to the completed local archive; unset retains records until user deletion or another managed retention rule |
 | `sessionRetentionDays` | Integer 1–365 | Removes completed sessions older than the selected age |
-| `enableGraphTranscriptImport` | Boolean | Reveals the 5.3 Graph pilot only when valid tenant and client identifiers are also managed |
+| `enableGraphTranscriptImport` | Boolean | Enables Microsoft 365 transcript import when valid tenant and client identifiers are configured |
 | `graphTenantId` | String GUID | Restricts interactive authentication to the approved Microsoft Entra tenant |
 | `graphClientId` | String GUID | Identifies the approved public-client app registration; it is not a credential |
 
+### Expanded management — development candidate
+
+The next candidate exposes the existing organization policies through grouped administrator controls and adds seven managed preferences:
+
+| Key | Type | Preference scope |
+| --- | --- | --- |
+| `defaultSaveFormat` | `txt`, `md`, `docx` | Default transcript export format |
+| `saveAsType` | `prompt`, `downloads`, `custom` | Default transcript download mode |
+| `saveLocation` | Relative Downloads subfolder | Default subfolder when the download mode is `custom` |
+| `timestampFormat` | `12hr`, `24hr`, `relative` | Transcript timestamp presentation |
+| `filenamePattern` | String | Default transcript export filename pattern |
+| `uiTheme` | Supported theme identifier | Extension appearance |
+| `webmailDestination` | Supported mail destination identifier | Default email destination |
+
+Unset preferences retain employee choice. Configured preferences override the corresponding saved employee value and show as managed in Settings; removing the preference restores that employee choice. These are preferences, not format allowlists or filesystem confinement. Explicit format, Save As, existing direct-folder and summary-export actions retain their documented semantics. Use `disableFileExport`, `disableClipboard` and the other release restrictions when an action must be prohibited.
+
+The standard profile's existing defaults are preserved. Administrator setup generates Microsoft 365 tenant/client values rather than asking employees to type them. Its policy review records the exact selected values before any deployment changes. Check Status remains read-only for older deployments; continuing an incomplete deployment requires its original approved endpoint package.
+
+This candidate editor selects values for a new deployment. An existing completed deployment cannot yet be edited through it: the current worker deliberately rejects a different configuration hash. Ongoing management needs a reviewed update mechanism for the same Intune apps and their existing endpoints. Do not change command-line configuration by hand or create a competing deployment to simulate an update.
+
+The selected ongoing workflow is **Intune's web console**. The development candidate includes versioned ADMX/ADML templates for named Edge and Chrome controls and a bounded endpoint bridge under review. Template import was created but native processing and delivery remain unverified; no profile is assigned. The current installed pilot has not gained this update capability. See the [management evidence and acceptance record](software-team/INTUNE-MANAGEMENT-2026-11-15.md) for the implementation boundary and remaining checks.
+
+The new schema must ship in both the extension and the signed endpoint worker, which embeds that schema. Rebuild and verify the worker, encrypted Intune package and descriptor together. Adding values only to an old deployment's configuration is insufficient. The current live pilot is not automatically upgraded by this development work.
+
 `disableSessionHistory` does not disable short-lived recovery checkpoints. Document that residual persistence in the organization's risk decision.
 
-The Graph pilot must remain disabled in standard profiles until the organization completes the [Entra app-registration runbook](ENTRA-GRAPH-APP-REGISTRATION.md). Assign the three Graph values only to a named test group. App registration, Teams transcript API access, and browser managed policy are separate controls; failure or removal of any one must block new imports. Do not place a secret or certificate in browser policy.
+Use guided Microsoft 365 setup to create the organization-owned app registration and review its consent and named pilot-group deployment. The [Entra app-registration runbook](ENTRA-GRAPH-APP-REGISTRATION.md) documents the manual route. App registration, Teams transcript API access, and browser managed policy are separate controls; failure or removal of any one must block new imports. Do not place a secret or certificate in browser policy. Tenant and application IDs are public-client identifiers; hiding them in normal UI is presentation cleanup, not encryption or an access control.
 
 Managed keys restrict actions supplied by Better CaptionKeep. They are not a substitute for browser or endpoint DLP, do not defeat developer tools or screenshots, and cannot recall a file, clipboard value, mail draft, or AI submission created before a policy change.
 

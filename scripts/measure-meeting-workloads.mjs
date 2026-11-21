@@ -79,7 +79,7 @@ const report = {generatedAt:new Date().toISOString(),runtime:process.version,pla
   cpu:os.cpus()[0]?.model,sources,
   scope:'Synthetic pure-module CPU timing only; excludes browser DOM, IPC, storage latency, live providers, browser memory, and certification. No performance pass/fail threshold is claimed.',
   workloads};
-const output = path.resolve(project,process.argv[2] || 'dist/prod/meeting-workload-baseline.json');
+const output = path.resolve(project,process.argv[2] || 'Production/meeting-workload-baseline.json');
 await mkdir(path.dirname(output),{recursive:true});
 await writeFile(output,JSON.stringify(report,null,2)+'\n','utf8');
 console.log(JSON.stringify(report,null,2));

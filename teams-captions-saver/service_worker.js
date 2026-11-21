@@ -19,7 +19,17 @@ const MICROSOFT_365_HOST_ACCESS = Object.freeze([
     'https://graph.microsoft.com/*'
 ]);
 const GRAPH_CONNECT_PENDING_MAX_AGE_MS = 2 * 60 * 1000;
-let graphConnectResumeInProgress = false;
+let graphConnectInFlight = null;
+let graphConnectPendingSettlement = null;
+let graphConnectResumeQueue = Promise.resolve();
+let graphConnectionGeneration = 0;
+let graphPendingWriteQueue = Promise.resolve();
+
+function mutateGraphPending(operation) {
+    const mutation = graphPendingWriteQueue.then(operation);
+    graphPendingWriteQueue = mutation.catch(() => undefined);
+    return mutation;
+}
 
 async function readEffectivePolicy(userKeys = []) {
     const user = {
@@ -34,27 +44,144 @@ async function readEffectivePolicy(userKeys = []) {
     );
 }
 
-async function resumePendingMicrosoft365Connect() {
-    if (graphConnectResumeInProgress || !chrome.permissions?.contains) return;
+function connectMicrosoft365SingleFlight() {
+    if (graphConnectInFlight) return graphConnectInFlight;
+    const generation = graphConnectionGeneration;
+    const operation = (async () => {
+        const policy = await readEffectivePolicy();
+        if (generation !== graphConnectionGeneration) {
+            const error = new Error('Microsoft sign-in was cancelled by Disconnect.');
+            error.code = 'AUTH_CANCELLED';
+            throw error;
+        }
+        return await CaptionKeepGraphTranscript.connect(policy.settings);
+    })();
+    graphConnectInFlight = operation;
+    operation.then(() => {
+        if (graphConnectInFlight === operation) graphConnectInFlight = null;
+    }, () => {
+        if (graphConnectInFlight === operation) graphConnectInFlight = null;
+    });
+    return operation;
+}
+
+async function writeGraphConnectPendingState(pending, state, error = null) {
+    const generation = graphConnectionGeneration;
+    return await mutateGraphPending(async () => {
+        if (generation !== graphConnectionGeneration) return;
+        const {graphConnectPending} = await chrome.storage.session.get('graphConnectPending');
+        if (!graphConnectPending || !Object.is(Number(graphConnectPending.createdAt), Number(pending.createdAt))) return;
+        const next = {createdAt:pending.createdAt, state};
+        if (error) {
+            next.code = String(error.code || 'UNEXPECTED_ERROR').slice(0, 100);
+            next.error = String(error.message || 'Microsoft 365 sign-in failed.').slice(0, 300);
+        }
+        await chrome.storage.session.set({graphConnectPending:next});
+    });
+}
+
+async function settlePendingMicrosoft365Connect(pending, operation) {
+    const generation = graphConnectionGeneration;
+    try {
+        await operation;
+        if (generation !== graphConnectionGeneration) {
+            return {outcome:'failed', code:'AUTH_CANCELLED', error:'Microsoft sign-in was cancelled by Disconnect.'};
+        }
+        if (pending) await writeGraphConnectPendingState(pending, 'completed');
+        return {outcome:'completed'};
+    } catch (error) {
+        if (pending && generation === graphConnectionGeneration) await writeGraphConnectPendingState(pending, 'failed', error);
+        return {
+            outcome:'failed',
+            code:String(error.code || 'UNEXPECTED_ERROR'),
+            error:String(error.message || 'Microsoft 365 sign-in failed.')
+        };
+    }
+}
+
+async function decidePendingMicrosoft365Connect() {
+    const generation = graphConnectionGeneration;
+    if (!chrome.permissions?.contains) return {outcome:'failed', code:'PERMISSIONS_API_UNAVAILABLE', error:'Browser permissions are unavailable.'};
     const {graphConnectPending} = await chrome.storage.session.get('graphConnectPending');
-    if (!graphConnectPending) return;
+    if (!graphConnectPending) {
+        // A fresh explicit Connect can consume the permission intent while
+        // joining the same OAuth operation. Missing intent is not expiry of
+        // that already-started operation; observing it never starts a new one.
+        return graphConnectInFlight
+            ? {outcome:'in_flight', operation:graphConnectInFlight}
+            : {outcome:'expired'};
+    }
+    if (graphConnectPending.state === 'completed') return {outcome:'completed'};
+    if (graphConnectPending.state === 'failed') {
+        return {
+            outcome:'failed',
+            code:graphConnectPending.code || 'UNEXPECTED_ERROR',
+            error:graphConnectPending.error || 'Microsoft 365 sign-in failed.'
+        };
+    }
+    if (graphConnectPending.state === 'expired') return {outcome:'expired'};
+    if (graphConnectPending.state === 'in_flight') {
+        if (graphConnectPendingSettlement) {
+            return {outcome:'settling', settlement:graphConnectPendingSettlement};
+        }
+        return graphConnectInFlight
+            ? {outcome:'in_flight', pending:graphConnectPending, operation:graphConnectInFlight}
+            : {outcome:'failed', code:'SIGN_IN_STATE_LOST', error:'Microsoft 365 sign-in was interrupted. Click Connect Microsoft 365 to try again.'};
+    }
     const age = Date.now() - Number(graphConnectPending.createdAt || 0);
     if (!Number.isFinite(age) || age < 0 || age > GRAPH_CONNECT_PENDING_MAX_AGE_MS) {
-        await chrome.storage.session.remove('graphConnectPending');
-        return;
+        await writeGraphConnectPendingState(graphConnectPending, 'expired');
+        return {outcome:'expired'};
     }
     const hasAccess = await chrome.permissions.contains({origins: [...MICROSOFT_365_HOST_ACCESS]});
-    if (!hasAccess) return;
-    graphConnectResumeInProgress = true;
-    await chrome.storage.session.remove('graphConnectPending');
-    try {
-        const policy = await readEffectivePolicy();
-        await CaptionKeepGraphTranscript.connect(policy.settings);
-    } catch (error) {
-        console.warn('[CaptionKeep] Microsoft 365 sign-in could not continue after permission approval:', error.message);
-    } finally {
-        graphConnectResumeInProgress = false;
+    const {graphConnectPending:latestPending} = await chrome.storage.session.get('graphConnectPending');
+    if (!latestPending
+        || !Object.is(Number(latestPending.createdAt), Number(graphConnectPending.createdAt))
+        || latestPending.state) {
+        return {outcome:'expired'};
     }
+    const latestAge = Date.now() - Number(latestPending.createdAt || 0);
+    if (!Number.isFinite(latestAge) || latestAge < 0 || latestAge > GRAPH_CONNECT_PENDING_MAX_AGE_MS) {
+        await writeGraphConnectPendingState(latestPending, 'expired');
+        return {outcome:'expired'};
+    }
+    if (!hasAccess) {
+        return {outcome:'failed', code:'HOST_PERMISSION_MISSING', error:'Microsoft 365 browser access was not granted.'};
+    }
+    await writeGraphConnectPendingState(latestPending, 'in_flight');
+    if (generation !== graphConnectionGeneration) return {outcome:'expired'};
+    const operation = connectMicrosoft365SingleFlight();
+    return {outcome:'in_flight', pending:latestPending, operation};
+}
+
+async function resumePendingMicrosoft365Connect({waitForCompletion = false} = {}) {
+    const decision = graphConnectResumeQueue.then(() => decidePendingMicrosoft365Connect());
+    graphConnectResumeQueue = decision.then(() => undefined, () => undefined);
+    const result = await decision;
+    if (result.outcome === 'settling') {
+        return waitForCompletion ? await result.settlement : {outcome:'in_flight'};
+    }
+    if (result.outcome !== 'in_flight' || !result.operation) return result;
+    if (!result.pending) {
+        return waitForCompletion
+            ? await settlePendingMicrosoft365Connect(null, result.operation)
+            : {outcome:'in_flight'};
+    }
+    if (!graphConnectPendingSettlement) {
+        const settlement = settlePendingMicrosoft365Connect(result.pending, result.operation);
+        graphConnectPendingSettlement = settlement;
+        settlement.then(() => {
+            if (graphConnectPendingSettlement === settlement) graphConnectPendingSettlement = null;
+        });
+    }
+    const settlement = graphConnectPendingSettlement;
+    if (waitForCompletion) return await settlement;
+    settlement.then(outcome => {
+        if (outcome.outcome === 'failed') {
+            console.warn('[CaptionKeep] Microsoft 365 sign-in could not continue after permission approval:', outcome.error);
+        }
+    });
+    return {outcome:'in_flight'};
 }
 
 chrome.permissions?.onAdded?.addListener(() => {
@@ -241,7 +368,7 @@ function sanitizeSubfolderPath(path) {
 }
 
 async function resolveSavePreferences({ forAutoSave = false } = {}) {
-    const settings = await chrome.storage.sync.get(['saveAsType', 'saveLocation']);
+    const {settings} = await readEffectivePolicy(['saveAsType', 'saveLocation']);
     const saveAsType = settings.saveAsType === 'default' ? 'downloads' : (settings.saveAsType || 'prompt');
 
     const saveAs = saveAsType === 'prompt';
@@ -380,7 +507,7 @@ async function saveTranscript(meetingTitle, transcriptArray, aliases, format, re
     const processedAttendeeReport = applyAliasesToAttendeeReport(attendeeReport, aliases);
 
     // Get filename pattern from settings
-    const { filenamePattern } = await chrome.storage.sync.get('filenamePattern');
+    const {settings:{filenamePattern}} = await readEffectivePolicy(['filenamePattern']);
     const requestedFormat = typeof format === 'string' ? format.toLowerCase() : 'txt';
     const normalizedFormat = requestedFormat === 'webvtt' ? 'vtt' : ['md', 'txt', 'docx', 'srt', 'vtt'].includes(requestedFormat) ? requestedFormat : 'txt';
     const filename = await generateFilename(filenamePattern, meetingTitle, normalizedFormat, processedAttendeeReport, recordingStartTime);
@@ -546,14 +673,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         'get_meeting_extras','save_meeting_extras','delete_meeting_extras',
         'get_derived_artifacts','save_derived_artifact','delete_derived_artifact','update_evidence_markers',
         'download_captions','save_on_leave','open_ai_assistants','display_captions','update_badge_status','error_logged',
-        'graph_get_status','graph_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript','set_capture_tab_protection']);
+        'graph_get_status','graph_connect','graph_resume_connect','graph_disconnect','graph_list_recent_meetings','graph_import_transcript','set_capture_tab_protection']);
     if (!handled.has(message?.message)) {
         sendResponse({ok:false,error:'unsupported-operation'});
         return false;
     }
     if (sender.id !== chrome.runtime.id) return false;
     const extensionPageOnly = ['retry_archive','delete_session','clear_sessions','get_corrections','save_correction','undo_correction',
-        'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_disconnect',
+        'save_correction_dictionary','apply_correction_dictionary','graph_get_status','graph_connect','graph_resume_connect','graph_disconnect',
         'graph_list_recent_meetings','graph_import_transcript','get_meeting_extras','save_meeting_extras','delete_meeting_extras'];
     extensionPageOnly.push('get_derived_artifacts','save_derived_artifact','delete_derived_artifact','update_evidence_markers');
     if (extensionPageOnly.includes(message.message) && !sender.url?.startsWith(chrome.runtime.getURL(''))) return false;
@@ -573,13 +700,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
             case 'graph_connect':
                 {
-                    const policy = await readEffectivePolicy();
-                    responsePayload = await CaptionKeepGraphTranscript.connect(policy.settings);
+                    // Keep the originating intent's acknowledgment when another
+                    // surface joins sign-in before its permission callback returns.
+                    const activeOperation = graphConnectInFlight;
+                    if (activeOperation) responsePayload = await activeOperation;
+                    else {
+                        const generation = graphConnectionGeneration;
+                        await mutateGraphPending(() => chrome.storage.session.remove('graphConnectPending'));
+                        if (generation !== graphConnectionGeneration) {
+                            const error = new Error('Microsoft sign-in was cancelled by Disconnect.');
+                            error.code = 'AUTH_CANCELLED';
+                            throw error;
+                        }
+                        responsePayload = await connectMicrosoft365SingleFlight();
+                    }
                 }
                 break;
 
+            case 'graph_resume_connect':
+                responsePayload = await resumePendingMicrosoft365Connect({waitForCompletion:true});
+                break;
+
             case 'graph_disconnect':
-                responsePayload = await CaptionKeepGraphTranscript.disconnect();
+                graphConnectionGeneration++;
+                // Invalidate native OAuth immediately, including token exchanges
+                // still pending, then retire the permission intent after decisions.
+                {
+                    const disconnected = CaptionKeepGraphTranscript.disconnect();
+                    const oldSettlement = graphConnectPendingSettlement;
+                    graphConnectInFlight = null;
+                    await graphConnectResumeQueue;
+                    await mutateGraphPending(() => chrome.storage.session.remove('graphConnectPending'));
+                    if (graphConnectPendingSettlement === oldSettlement) graphConnectPendingSettlement = null;
+                    responsePayload = await disconnected;
+                }
                 break;
 
             case 'graph_list_recent_meetings':
@@ -887,7 +1041,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 lastAutoSaveId = saveId;
 
                 try {
-                    const settings = await chrome.storage.sync.get(['autoSaveOnEnd', 'defaultSaveFormat']);
+                    const {settings} = await readEffectivePolicy(['autoSaveOnEnd', 'defaultSaveFormat']);
                     const policy = await readEffectivePolicy(['profanityFilterEnabled', 'customScrubTerms']);
                     if (settings.autoSaveOnEnd && message.transcriptArray.length > 0 && !policy.settings.disableFileExport) {
                         let formatToSave = typeof settings.defaultSaveFormat === 'string'

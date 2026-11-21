@@ -46,7 +46,7 @@ test('helper package includes offline dependencies, licenses and exact runtime l
     await write('companion/byomcp/node_modules/unlocked/index.js','Do not distribute');
     const {names,record} = await api.packageByomcpHelper({root,sbomText});
     const {zipEntries} = await import('../scripts/verify-package-source.mjs');
-    const entries = zipEntries(await readFile(path.join(root,'dist/prod',names.zip)));
+    const entries = zipEntries(await readFile(path.join(root,'Production',names.zip)));
     assert(entries.has('companion/byomcp/cli.mjs'));
     assert(entries.has('teams-captions-saver/byomcpRuntimeAdapter.js'));
     assert(entries.has('teams-captions-saver/evidenceActionContracts.js'));
@@ -71,7 +71,7 @@ test('helper verification rejects a stale ZIP after source changes', async () =>
 test('helper verification rejects altered ZIP bytes even when the published checksum is replaced', async () => {
   await fixture(async ({root,api,sbomText}) => {
     const {names} = await api.packageByomcpHelper({root,sbomText});
-    const directory = path.join(root,'dist/prod'), zipPath = path.join(directory,names.zip);
+    const directory = path.join(root,'Production'), zipPath = path.join(directory,names.zip);
     const {zipEntries} = await import('../scripts/verify-package-source.mjs');
     const entries = zipEntries(await readFile(zipPath));
     entries.set('companion/byomcp/cli.mjs',Buffer.from('// synthetic altered payload'));

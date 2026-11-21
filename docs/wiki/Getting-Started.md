@@ -51,7 +51,7 @@ its own test evidence; shared Chromium code does not certify another browser.
 Firefox uses its own package/sidebar. Safari and MCP setup are deferred.
 
 For controlled Chromium qualification, use the supplied
-`P:\Projects\better-captionkeep-dev\dist\uat` package with its recorded source
+`P:\Projects\Better CaptionKeep\QA` package with its recorded source
 identity. The parent `dist` folder is not an extension package. Preserve ordinary
 Store installations and archives; use the build owner's test instructions.
 

@@ -1,5 +1,41 @@
 # Better CaptionKeep
 
+**Project folders:** [current layout](docs/PROJECT-LAYOUT.md). The neutral project
+root is `P:\Projects\Better CaptionKeep`; `Dev`, `QA`, and `Production` are the
+development, test-candidate, and released-production build folders. Source and
+tools live in this one repository. Historical release records keep their original paths.
+
+<!-- administrator-setup-pilot:start -->
+## Administrator setup (Dev pilot)
+
+The browser guides missing-helper installation through **Download and install**, **Cancel**, and **Continue setup**. The [signed installer pilot](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3) is published and its anonymous download, checksum and public signature have been independently verified. Run the downloaded installer on the same Windows PC as the browser. A shared drive does not share Windows registrations between PCs. One live pilot now has Intune-confirmed Edge and Chrome installations, managed Microsoft 365 configuration, employee sign-in and calendar discovery. Transcript import and broader deployment acceptance remain separate checks; this is not a new Store release.
+
+The desktop helper provides one **Set up Microsoft 365** action with graphical choices and approval screens, automatic organization discovery, and receipt-based status/recovery. Customers do not create a bootstrap app, copy tenant/client IDs or configure a signing service. A static publisher-signed native worker carries out the approved browser policy configuration through an Intune Win32 app; customer settings remain separate validated data. See [desktop setup and verification limits](admin-setup/README.md).
+
+The guided administrator package automates approved Microsoft 365 transcript
+configuration and Intune rollout of the Store extension to a selected group.
+The publisher handles release signing. The wizard does not purchase a signing
+service or install certificate trust. The administrator guide covers prerequisites.
+This is a **development pilot**, not a tenant-certified production installer or
+a new Store release. No tenant configuration changes occur merely by downloading it.
+
+1. Open **Administrator setup** in the extension. When the helper is missing,
+   choose **Download and install**, run the installer, then choose **Continue setup**.
+2. Choose **Set up Microsoft 365**, complete Microsoft's administrator sign-in,
+   choose browsers and a pilot group, and review the proposed changes.
+3. Use **Check deployment status** or **Continue saved setup** for the recorded
+   deployment. Intune app success confirms policy configuration; verify Store
+   installation, browser operation and employee access before expanding rollout.
+
+The downloaded pilot package must satisfy your organization's script-signing
+policy. Do not bypass execution policy. The installed helper, its setup scripts,
+native device worker, uninstaller and outer installer have separate signatures.
+
+Read the [administrator deployment guide](docs/wiki/Administrator-Deployment.md)
+and [security and permissions](docs/wiki/Deployment-Security-and-Permissions.md)
+for the exact consent, signing, status, recovery, and remaining acceptance boundaries.
+<!-- administrator-setup-pilot:end -->
+
 <!-- captionkeep-6.0-status:start -->
 > **6.0 delivery status:** 6.0.0 is candidate on `master`. Candidate frozen: yes.
 > Live provider certification outstanding: chrome, edge, brave, firefox, opera.
@@ -21,7 +57,7 @@ Start with the Brave first-session checks; record results against the actual
 installed build. The authoritative release record identifies the current candidate and owner's explicit publication exception; missing live acceptance is not certification.
 The [October 24 release-preparation record](docs/release-state/6.0-preparation.md)
 identifies the single next Chromium test package at
-`P:\Projects\better-captionkeep-dev\dist\uat`; existing Development files are preserved.
+`P:\Projects\Better CaptionKeep\QA`; existing Development files are preserved.
 
 Save live captions from Microsoft Teams, Google Meet, and Zoom Web, including the Teams PWA. Live transcript capture starts by default for supported meetings and can be paused with the Capture setting. Export TXT, Markdown, or Word documents, choose a save location, revisit the durable local completed-meeting archive, and select a synchronized interface theme.
 
@@ -58,6 +94,8 @@ Better CaptionKeep is one product: every shipped feature is available to every u
 The viewer also exports SRT/WebVTT when a newly imported official Teams transcript contains real media cue boundaries. Live browser observation times and older imports without preserved boundaries are rejected rather than assigned invented timing. Use `npm run build:dev` for development and `npm run build:uat` for the one release candidate; ad hoc output folders are intentionally unsupported.
 
 ## Current product
+
+**Administrator setup development:** `npm run build:enterprise-setup` generates a separate administrator-tool ZIP for Intune deployment, with optional automatic customer-owned Microsoft 365 app/consent provisioning and managed connection settings. The signed 6.0.3 installer pilot has live installation and sign-in evidence on one managed PC; transcript import, broader endpoint coverage and temporary-provisioning-consent lifecycle remain separate acceptance items. The next development candidate exposes 27 managed keys through grouped administrator controls, adds managed export/appearance preferences and hides connection identifiers behind masked technical details with explicit Reveal/Copy actions. These candidate additions do not change the currently installed Store extension or the live pilot's policies. See [managed-policy scope](docs/EUC-DEPLOYMENT.md). Read the [deployment security and permissions wiki source](docs/wiki/Deployment-Security-and-Permissions.md) before approving access. Use the mandatory working-area launcher for project commands.
 
 Better CaptionKeep is a free, local-first transcript and meeting-evidence workspace for Microsoft Teams, Google Meet, and Zoom Web. It captures captions already displayed to the participant rather than recording microphone, tab, or system audio. Browser-local history, search, exports, Privacy Scrubber, Evidence Board, on-device translation where the browser supports it, and review-first AI handoff are available without an account, subscription, or publisher-operated transcript service.
 
@@ -147,27 +185,27 @@ The last documented Chrome and Edge Store baseline is `5.4.0`; 6.0 is published 
 
 Generated output has exactly three stable locations:
 
-Use one active source checkout, `P:\Projects\better-captionkeep-dev`, with the
+Use one active source checkout, `P:\Projects\Better CaptionKeep`, with the
 three generated lanes below. Separate top-level UAT/production checkouts are
-archived outside `P:\Projects`, under `P:\projectsArchive`. Only `dist/prod`
-supplies published GitHub distribution assets and Store submissions; `dist/dev`
-and `dist/uat` are not published. Generated `dist/` files remain ignored by Git.
+archived outside `P:\Projects`, under `P:\projectsArchive`. Only `Production`
+supplies published GitHub distribution assets and Store submissions; `Dev`
+and `QA` are not published. These generated build folders remain ignored by Git.
 
-- `dist/dev` — current development build.
-- `dist/uat` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
-- `dist/prod` — directly loadable production build plus Store packages, deployment bundles, hashes, and provenance.
+- `Dev` — current development build.
+- `QA` — the single QA/UAT release candidate loaded unpacked in Chrome or Edge.
+- `Production` — directly loadable production build plus Store packages, deployment bundles, hashes, and provenance.
 
 Run `npm run build:targets` to refresh all three directly loadable roots without creating browser-specific, timestamped, feature-review, or frozen copies. Dev, UAT, and local Prod each have a separate stable extension identity and local storage. Rebuilding or upgrading a lane does not change its Microsoft redirect URI and does not overwrite a Store installation. Store installations retain the stable identity assigned by their Store.
 
-Dev and UAT may use an ignored local Graph overlay for controlled testing. Production—whether loaded from `dist/prod` or installed from a Store—uses the customer-facing setup fields or managed policy. Tenant and client identifiers are excluded from source and release ZIPs. See the [Dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
+Dev and UAT may use an ignored local Graph overlay for controlled testing. Production—whether loaded from `Production` or installed from a Store—uses the customer-facing setup fields or managed policy. Tenant and client identifiers are excluded from source and release ZIPs. See the [Dev/UAT Graph runbook](docs/DEV-UAT-GRAPH.md).
 
-For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `dist/uat`. This is the only supported release-candidate path.
+For Chrome, open `chrome://extensions`; for Edge, open `edge://extensions`. Enable Developer mode, choose **Load unpacked**, and select `QA`. This is the only supported release-candidate path.
 
-To inspect the promoted production build locally, choose **Load unpacked** and select `dist/prod`. The production root has its own `manifest.json`; ZIPs and deployment evidence in that same lane are ignored by Chromium when it loads the extension.
+To inspect the promoted production build locally, choose **Load unpacked** and select `Production`. The production root has its own `manifest.json`; ZIPs and deployment evidence in that same lane are ignored by Chromium when it loads the extension.
 
 1. Open Microsoft Edge and visit `edge://extensions`.
 2. Enable Developer mode.
-3. Choose **Load unpacked** and select `dist/uat`.
+3. Choose **Load unpacked** and select `QA`.
 4. Open a supported meeting. Better CaptionKeep requests live captions automatically unless **Live transcript capture** is switched off.
 
 After the project folder move, reload the extension from its new location if needed.
@@ -195,14 +233,14 @@ Helper dependencies are development-only and are not required or shipped by the
 
 - `npm run lint`: validate the extension manifest and assets.
 - `npm run locales:generate`: regenerate all packaged locale catalogs from the reviewed English source and preview translation map.
-- `npm run build`: build the Edge Store ZIP in `dist/prod/`.
-- `npm run build:dev`: refresh only `dist/dev`.
-- `npm run build:uat`: refresh only `dist/uat`.
-- `npm run build:prod`: refresh only the directly loadable `dist/prod` root (and clear older production artifacts).
-- `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `dist/prod/intune-edge/`.
-- `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `dist/prod/intune-chrome/`.
+- `npm run build`: build the Edge Store ZIP in `Production/`.
+- `npm run build:dev`: refresh only `Dev`.
+- `npm run build:uat`: refresh only `QA`.
+- `npm run build:prod`: refresh only the directly loadable `Production` root (and clear older production artifacts).
+- `npm run build:intune`: generate the Edge force-install and managed-policy bundle in `Production/intune-edge/`.
+- `npm run build:intune:chrome`: after the Chrome Store assigns an extension ID, generate the Chrome force-install and managed-policy bundle in `Production/intune-chrome/`.
 - `npm run build:intune:local-only`: generate the optional high-security bundle that disables AI handoff.
-- `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store package in `dist/prod/`.
+- `npm run build:chrome-store`: generate and verify the production-labeled Chrome Web Store package in `Production/`.
 - `npm run build:browsers && npm run package:browsers`: build and hash separate Chrome, Edge, Brave, Opera, and Firefox packages, emit the CycloneDX SBOM, and create the still-pending live-certification record.
 - `npm run test:browser-surfaces`: record isolated installed-browser rendering evidence without confusing it with provider or extension-runtime certification.
 - `npm run store:assets:render`: regenerate the versioned synthetic-data 6.0 screenshots, promotional artwork, and asset hashes.
@@ -231,7 +269,7 @@ The [exception report](docs/release-state/6.0-owner-exception.md) records known
 UAT gaps, the waived test window and unchanged permissions. The machine record
 binds source, all eight artifact hashes, Store targets and the report digest.
 No unfinished test is recorded as passed. Production distributions come only
-from `dist/prod`; approved shipping ZIP bytes remain unchanged.
+from `Production`; approved shipping ZIP bytes remain unchanged.
 
 ## GitHub publication evidence
 
@@ -259,34 +297,9 @@ certification decisions, 6.0 public listings and installed-upgrade verification
 remain pending. The machine record therefore stays candidate with those gates
 false; the existing owner acceptance exceptions remain explicitly unpassed.
 
-<!-- administrator-setup-pilot:start -->
-## Administrator setup (Dev pilot)
-
-The guided administrator package automates approved Microsoft 365 transcript
-configuration and Intune rollout of the Store extension to a selected group.
-Organizations with an existing Azure Artifact Signing profile can optionally
-use a reviewed signing configuration; the wizard does not purchase that service
-or install certificate trust. The administrator guide covers its prerequisites.
-This is a **development pilot**, not a tenant-certified production installer or
-a new Store release. No tenant configuration changes occur merely by downloading it.
-
-1. Obtain `better-captionkeep-enterprise-setup.zip` from the reviewed **Dev
-   validation artifact** and extract the complete package. See the
-   [Dev validation runs](https://github.com/Mr-GraphnStaff/better-captionkeep/actions/workflows/validate.yml).
-2. Double-click **Start-Setup.cmd**. The launcher checks for supported stable
-   **PowerShell 7.6 or newer** and offers the official Microsoft install/upgrade
-   route when needed. Choose the browsers, deployment group, and optional
-   Microsoft 365 setup, then review and approve the proposed privileged changes.
-3. Keep the generated `receipt.json`. Use **Check-Status.cmd** to inspect a
-   rollout and **Continue-Setup.cmd** to continue an incomplete setup. Assignment
-   or script success is not proof of working browser installation or Microsoft
-   365 access; verify a pilot device before expanding deployment.
-
-The downloaded pilot package must satisfy your organization's script-signing
-policy. Do not bypass execution policy. Signing generated endpoint scripts does
-not sign the administrator launcher or provisioning package.
-
-Read the [administrator deployment guide](docs/wiki/Administrator-Deployment.md)
-and [security and permissions](docs/wiki/Deployment-Security-and-Permissions.md)
-for the exact consent, signing, status, recovery, and remaining acceptance boundaries.
-<!-- administrator-setup-pilot:end -->
+<!-- captionkeep-6.0.1-status:start -->
+> **6.0.1 delivery status:** 6.0.1 is development on `dev`. Candidate frozen: no.
+> Live provider certification outstanding: chrome, edge, brave, firefox, opera.
+> Open release gates: fullScopeAcceptance, accessibilityAndFailureUat, artworkApproved, unchangedWindow, storeApproval, publicParity, installedUpgrade. Azure Boards epic: **#395**.
+> This development record does not change prior publication records or inherit prior owner exceptions.
+<!-- captionkeep-6.0.1-status:end -->

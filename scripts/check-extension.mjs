@@ -2,6 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { validateManagedSchemaPatterns } from './managed-schema-validation.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,7 +93,8 @@ async function validateManifest(manifest) {
     errors.push(`Managed storage schema "${managedSchema}" is missing.`);
   } else {
     try {
-      JSON.parse(await readFile(path.join(sourceDir, managedSchema), 'utf8'));
+      const schema=JSON.parse(await readFile(path.join(sourceDir, managedSchema), 'utf8'));
+      errors.push(...validateManagedSchemaPatterns(schema));
     } catch (error) {
       errors.push(`Managed storage schema is not valid JSON: ${error.message}`);
     }

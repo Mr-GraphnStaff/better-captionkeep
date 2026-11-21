@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const defaultProfilePath = path.join(projectRoot, 'deployment', 'intune', 'profile.json');
-const defaultOutputDir = path.join(projectRoot, 'dist', 'prod', 'intune-edge');
+const defaultOutputDir = path.join(projectRoot, 'Production', 'intune-edge');
 
 export const EDGE_STORE_UPDATE_URL = 'https://edge.microsoft.com/extensionwebstorebase/v1/crx';
 export const CHROME_STORE_UPDATE_URL = 'https://clients2.google.com/service/update2/crx';
@@ -36,6 +36,7 @@ export function validateManagedPolicy(policy, schema) {
   for (const [key, value] of Object.entries(policy)) {
     const definition = properties[key];
     if (!definition) throw new Error(`Unknown managed policy key: ${key}`);
+    if (['filenamePattern', 'saveLocation'].includes(key) && value === '__BCK_EMPLOYEE_CHOICE__') throw new Error(`Reserved managed value: ${key}`);
     if (definition.type === 'boolean' && typeof value !== 'boolean') throw new Error(`${key} must be a boolean.`);
     if (definition.type === 'string' && typeof value !== 'string') throw new Error(`${key} must be a string.`);
     if (definition.type === 'integer' && (!Number.isInteger(value)
@@ -46,8 +47,20 @@ export function validateManagedPolicy(policy, schema) {
     if (definition.type === 'array' && (!Array.isArray(value) || value.some(item => typeof item !== definition.items?.type))) {
       throw new Error(`${key} must be an array of ${definition.items?.type || 'valid'} values.`);
     }
+    const assertText = (text, rule) => {
+      if (text.includes('\0') || (rule.minLength !== undefined && text.length < rule.minLength)
+        || (rule.maxLength !== undefined && text.length > rule.maxLength)
+        || (rule.enum && !rule.enum.includes(text)) || (rule.pattern && !new RegExp(rule.pattern).test(text))) throw new Error(`Invalid managed value: ${key}`);
+    };
+    if (definition.type === 'string') assertText(value, definition);
+    if (definition.type === 'array') {
+      if (definition.maxItems !== undefined && value.length > definition.maxItems) throw new Error(`Too many items: ${key}`);
+      value.forEach(item => assertText(item, definition.items));
+    }
     output[key] = value;
   }
+  if (Object.hasOwn(output, 'saveLocation') && (output.saveLocation.startsWith('/') || output.saveLocation.split('/').some(part => !part || part === '.' || part === '..' || /[. ]$|^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part)))) throw new Error('Use a relative Downloads subfolder.');
+  if (output.saveAsType === 'custom' && !Object.hasOwn(output, 'saveLocation')) throw new Error('Managed custom save behavior requires a Downloads subfolder.');
   return output;
 }
 

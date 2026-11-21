@@ -8,7 +8,7 @@ import {installedBrowsers,browserFailureDiagnostic,runFirefoxSurface} from './br
 import {runLoadedExtension} from './loaded-extension-checks.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const prodDir = path.join(projectRoot, 'dist', 'prod');
+const prodDir = path.join(projectRoot, 'Production');
 const evidenceDir = path.join(prodDir, 'certification-evidence');
 const recordPath = path.join(prodDir, 'browser-certification.json');
 

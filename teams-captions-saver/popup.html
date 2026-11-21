@@ -23,7 +23,7 @@
         .all-settings-copy small { display: block; margin-top: 3px; font-size: 0.8rem; line-height: 1.4; }
         .all-settings-arrow { font-size: 1.5rem; }
         html[data-view="settings"] body { width: min(100%, 1180px); margin: 0 auto; padding: 28px; }
-        html[data-view="settings"] .popup-main > :not(.settings-container):not(.brand):not(.settings-page-intro):not(.settings-command-center) { display: none !important; }
+        html[data-view="settings"] .popup-main > :not(.settings-container):not(.brand):not(.settings-page-intro):not(.settings-command-center):not(.policy-unavailable) { display: none !important; }
         html[data-view="settings"] .settings-container { margin-top: 0; }
         html[data-view="settings"] .settings-header { font-size: 28px; }
         html[data-view="settings"] .settings-intro,
@@ -348,11 +348,28 @@
         }
         details.settings-group[open] > summary { border-bottom: 1px solid var(--ck-border); margin-bottom: 8px; }
         .settings-intro { margin: 3px 0 8px; color: var(--ck-text-muted); font-size: 12px; }
-        .graph-actions { display: flex; gap: 8px; margin: 8px 0; }
-        .graph-actions button { flex: 1; border-radius: 6px; background: var(--ck-primary); }
+        .graph-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+        #organizationSetupCard button[hidden] { display: none; }
+        .graph-actions button { flex: 1 1 140px; min-width: 0; white-space: normal; border-radius: 6px; background: var(--ck-primary); }
         #graphDisconnectButton { background: #5f6b73; }
         #graphJoinUrl { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
         #graphRedirectUri { overflow-wrap: anywhere; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+        .graph-managed-summary { display: flex; align-items: start; gap: 10px; margin: 10px 0; padding: 12px; border: 1px solid var(--ck-border); border-radius: 10px; background: var(--ck-surface-soft); }
+        .graph-managed-summary[hidden] { display: none; }
+        .graph-managed-mark { color: var(--ck-primary); font-size: 18px; font-weight: 700; }
+        .graph-managed-summary strong { display: block; color: var(--ck-text); }
+        .graph-identifier-field { display: grid; gap: 6px; min-width: 0; margin-block: 14px; }
+        .graph-identifier-field input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 8px; font: .9rem/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ck-text); background: var(--ck-surface); border: 1px solid var(--ck-border); border-radius: 6px; }
+        .graph-identifier-field input[readonly] { background: var(--ck-surface-soft); }
+        .graph-identifier-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .graph-identifier-actions button { flex: 1 1 90px; min-width: 0; min-height: 32px; padding: 6px 10px; white-space: normal; color: var(--ck-text); background: var(--ck-surface-soft); border: 1px solid var(--ck-border); border-radius: 6px; }
+        .managed-setting-note { display: inline-block; margin-inline-start: 6px; padding: 1px 5px; border: 1px solid var(--ck-border); border-radius: 4px; font-size: .75rem; color: var(--ck-text-muted); }
+        .managed-setting-note[hidden] { display: none; }
+        .policy-unavailable { display: grid; gap: 8px; padding: 14px; margin-block: 12px; border: 1px solid var(--ck-danger); border-radius: 10px; background: var(--ck-surface); color: var(--ck-text); }
+        .policy-unavailable[hidden] { display: none; }
+        .policy-unavailable p { margin: 0; line-height: 1.5; }
+        .policy-unavailable button { min-height: 36px; white-space: normal; border-radius: 6px; background: var(--ck-primary); color: var(--ck-on-primary); font-weight: 650; }
+        #graphSetupActions[hidden] { display: none; }
         .graph-hero { margin: 8px 0; padding: 10px; border: 1px solid var(--ck-border); border-radius: 8px; background: var(--ck-surface); }
         .graph-hero strong { display: block; margin-bottom: 3px; color: var(--ck-text); }
         .graph-recent-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
@@ -563,10 +580,16 @@
     <script src="privacyScrubber.js" defer></script>
     <script src="promptTemplates.js" defer></script>
     <script src="browserCompat.js" defer></script>
+    <script src="adminSetupClient.js" defer></script>
     <script src="popup.js" defer></script>
 </head>
 
 <body data-graph-configured="unknown"><main class="popup-main">
+    <section id="policyStatusBanner" class="policy-unavailable" aria-labelledby="policyStatusHeading" hidden>
+        <strong id="policyStatusHeading">Organization settings unavailable</strong>
+        <p id="policyStatusMessage" role="alert">Could not check organization settings. Actions are paused until these settings can be checked.</p>
+        <button id="retryPolicySettings" type="button">Retry settings</button>
+    </section>
     <header class="brand v6-popup-only">
         <img src="icons/daf-tech-sphere.png" width="44" height="44" alt="">
         <div class="v6-brand-copy"><h2>Better CaptionKeep</h2><p>Meeting record</p></div>
@@ -672,25 +695,48 @@
             </div>
             <div class="graph-settings-layout">
                 <section class="graph-settings-card" aria-labelledby="graphConnectionHeading">
-                    <h4 id="graphConnectionHeading">Connection and administrator setup</h4>
+                    <h4 id="graphConnectionHeading">Microsoft 365 accounts</h4>
                     <p class="small-info-text" id="graphConnectionStatus" role="status" aria-live="polite">Checking managed connection…</p>
+                    <div class="graph-managed-summary" id="graphManagedSetupSummary" hidden>
+                        <span class="graph-managed-mark" aria-hidden="true">✓</span>
+                        <div><strong id="graphManagedSetupHeading">Configured by your organization</strong><p class="small-info-text">Your organization manages the Microsoft 365 connection for this browser.</p></div>
+                    </div>
+                    <div class="graph-hero" id="organizationSetupCard">
+                        <strong>Administrator setup — Development</strong>
+                        <p class="small-info-text">Open the administrator app to connect Microsoft 365 and deploy through Intune. Sign in with Microsoft, choose browsers and a pilot group, and review the permissions and organization-wide changes before approval. Check or continue an earlier deployment using its saved receipt.</p>
+                        <div class="graph-actions">
+                            <button id="launchOrganizationSetup" type="button" aria-describedby="organizationSetupStatus">Open administrator setup</button>
+                            <button id="updateOrganizationSetup" type="button" aria-describedby="organizationSetupStatus" hidden>Update setup</button>
+                            <button id="cancelOrganizationSetup" type="button" hidden>Cancel</button>
+                        </div>
+                        <p class="small-info-text" id="organizationSetupStatus" role="status" aria-live="polite"></p>
+                    </div>
                     <div class="graph-actions">
-                        <button id="graphConnectButton" type="button">Connect Microsoft 365</button>
+                        <button id="graphConnectButton" type="button">Connect employee Microsoft 365 account</button>
                         <button id="graphDisconnectButton" type="button" disabled>Disconnect</button>
                     </div>
-                    <details class="graph-manual graph-admin-details" id="graphAdminDetails" open>
-                        <summary>Administrator connection details</summary>
-                        <p class="small-info-text">Use an Entra app registration owned by your organization. These identifiers are not secrets and stay in this browser. Organization-managed browser policy takes precedence.</p>
-                        <div class="setting-item">
+                    <details class="graph-manual graph-admin-details" id="graphAdminDetails">
+                        <summary>Technical connection details</summary>
+                        <p class="small-info-text" id="graphIdentifierHint">Identifiers are hidden to keep this screen tidy. They identify the organization and app; they are not passwords. Reveal a saved manual ID to inspect or edit it.</p>
+                        <div class="graph-identifier-field">
                             <label for="graphTenantId" class="setting-label">Directory (tenant) ID</label>
-                            <input id="graphTenantId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+                            <input id="graphTenantId" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" aria-describedby="graphIdentifierHint" placeholder="Enter tenant ID">
+                            <div class="graph-identifier-actions">
+                                <button id="graphRevealTenantId" type="button" aria-label="Reveal tenant ID" aria-controls="graphTenantId" aria-pressed="false">Reveal</button>
+                                <button id="graphCopyTenantId" type="button" aria-label="Copy ID for tenant" aria-describedby="graphIdentifierStatus">Copy ID</button>
+                            </div>
                         </div>
-                        <div class="setting-item">
+                        <div class="graph-identifier-field">
                             <label for="graphClientId" class="setting-label">Application (client) ID</label>
-                            <input id="graphClientId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000">
+                            <input id="graphClientId" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" aria-describedby="graphIdentifierHint" placeholder="Enter client ID">
+                            <div class="graph-identifier-actions">
+                                <button id="graphRevealClientId" type="button" aria-label="Reveal client ID" aria-controls="graphClientId" aria-pressed="false">Reveal</button>
+                                <button id="graphCopyClientId" type="button" aria-label="Copy ID for application" aria-describedby="graphIdentifierStatus">Copy ID</button>
+                            </div>
                         </div>
+                        <p class="small-info-text" id="graphIdentifierStatus" role="status" aria-live="polite" aria-atomic="true"></p>
                         <p class="small-info-text" id="graphRedirectUri"></p>
-                        <div class="graph-actions">
+                        <div class="graph-actions" id="graphSetupActions">
                             <button id="graphSaveSetup" type="button">Save Microsoft 365 setup</button>
                             <button id="graphClearSetup" type="button">Clear setup</button>
                         </div>

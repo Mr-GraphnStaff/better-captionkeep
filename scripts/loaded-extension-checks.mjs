@@ -163,7 +163,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const browserName = process.argv[3] || 'chrome';
   const definition = (await installedBrowsers()).find(item => item.browser === browserName && item.chromium);
   if (!definition?.binary) throw new Error(`Requested browser is unavailable: ${browserName}`);
-  const output = path.join(project,'dist','prod','certification-evidence');
+  const output = path.join(project,'Production','certification-evidence');
   await mkdir(output,{recursive:true});
   const result = await runLoadedExtension(definition.binary, directory, {browserName,screenshot:path.join(output,`${browserName}-loaded-extension.png`)});
   await writeFile(path.join(output,`${browserName}-loaded-extension.json`),JSON.stringify(result,null,2)+'\n');

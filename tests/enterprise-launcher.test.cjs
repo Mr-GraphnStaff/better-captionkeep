@@ -34,6 +34,32 @@ async function runFixture(t, body) {
   return JSON.parse(line.slice('LAUNCHER_RESULT:'.length));
 }
 
+test('Azure profile is forwarded separately for setup and continuation, never status or missing-file fallback', {skip:!available}, async t => {
+  const result = await runFixture(t, `
+function Request-SetupPowerShell { return 'synthetic-engine' }
+function Invoke-SetupChild { param($Engine,$Arguments); $script:captured=@($Arguments); return 0 }
+$profile=Join-Path $fixtureRoot 'azure profile.json'
+Set-Content -LiteralPath $profile -Value '{}'
+$results=@()
+foreach($mode in @('Setup','Continue','Status')) {
+  $code=Invoke-EnterpriseLauncher -Mode $mode -PackageRoot $fixtureRoot -ReceiptPath (Join-Path $fixtureRoot 'receipt.json') -AzureSigningConfigPath $profile
+  $results+=@{mode=$mode;code=$code;arguments=$script:captured;profile=$profile}
+}
+$script:captured=@()
+$blocked=$false
+try { Invoke-EnterpriseLauncher -Mode Continue -PackageRoot $fixtureRoot -AzureSigningConfigPath (Join-Path $fixtureRoot 'missing.json') | Out-Null } catch { $blocked=$true }
+Write-Output ('LAUNCHER_RESULT:'+(@{results=$results;blocked=$blocked;childCalled=($script:captured.Count -gt 0)}|ConvertTo-Json -Depth 6 -Compress))`);
+  for (const item of result.results.slice(0,2)) {
+    const index = item.arguments.indexOf('-AzureSigningConfigPath');
+    assert(index >= 0);
+    assert.equal(item.arguments[index + 1], item.profile);
+    assert.equal(item.code, 0);
+  }
+  assert(!result.results[2].arguments.includes('-AzureSigningConfigPath'));
+  assert(result.blocked);
+  assert.equal(result.childCalled, false);
+});
+
 test('status and continue route an existing receipt to the backend without invoking tenant work', {skip:!available}, async t => {
   const result = await runFixture(t, `
 function Request-SetupPowerShell { return 'synthetic-engine' }
@@ -74,6 +100,7 @@ $env:BCK_WINGET_ARGS=Join-Path $fixtureRoot 'winget-args.txt'
 $script:findCount=0
 function Find-SetupPowerShell { param([switch]$IncludeUnsupported); if($IncludeUnsupported){return $null}; $script:findCount++; if($script:findCount -gt 1){return 'installed-synthetic-engine'}; return $null }
 function Read-Host { return '1' }
+function Test-SetupMicrosoftExecutable { param($Path); return $Path -eq $fake }
 function Get-Command { param($Name,$CommandType,$ErrorAction); return [PSCustomObject]@{Source=$fake} }
 $resolved=Request-SetupPowerShell
 $arguments=(Get-Content -LiteralPath $env:BCK_WINGET_ARGS -Raw).Trim()

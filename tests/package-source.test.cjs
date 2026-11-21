@@ -57,7 +57,7 @@ test('actual Edge Store staging preserves Store manifest and packages exact Edge
   try {
     execFileSync(process.execPath,[path.join(root,'scripts/build-browser-targets.mjs'),'edge-store'],
       {cwd:root,env:{...process.env,CAPTIONKEEP_TEST_DIST:dist},stdio:'pipe'});
-    const staged=path.join(dist,'prod/edge-store-unpacked'),output=path.join(dist,'packages');
+    const staged=path.join(dist,'Production/edge-store-unpacked'),output=path.join(dist,'packages');
     const {packageExtension}=await import('../scripts/package-extension.mjs');
     const {verifyPackageSource,zipEntries}=await import('../scripts/verify-package-source.mjs');
     const expectedManifest=path.join(source,'manifest.json');

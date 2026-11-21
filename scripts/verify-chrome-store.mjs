@@ -6,9 +6,9 @@ import { readEnglishMessages, resolveManifestMessage } from './manifest-localiza
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceManifestPath = path.join(projectRoot, 'teams-captions-saver', 'manifest.json');
-const stagedRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store-unpacked');
-const artifactRoot = path.join(projectRoot, 'dist', 'prod', 'chrome-store');
-const finalRoot = path.join(projectRoot, 'dist', 'prod');
+const stagedRoot = path.join(projectRoot, 'Production', 'chrome-store-unpacked');
+const artifactRoot = path.join(projectRoot, 'Production', 'chrome-store');
+const finalRoot = path.join(projectRoot, 'Production');
 const forbidden = /(?:\.captionkeeper|public[ _-]?key|\.pem$|\.env$|^_|^tmp$)/i;
 
 function hasForbiddenPathPart(file) {

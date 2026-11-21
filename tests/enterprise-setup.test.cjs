@@ -40,6 +40,13 @@ test('enterprise package has a bounded inventory, parses PowerShell, and never p
     assert.ok(!files.some(name => /working|node_modules|receipt|\.pem/i.test(name)));
     assert.ok(files.includes('better-captionkeep-enterprise-setup.zip'));
     assert.ok(fs.readFileSync(path.join(output,'SHA256SUMS.txt'),'utf8').includes('Enterprise-Setup.ps1'));
+    const inventory=fs.readFileSync(path.join(output,'SHA256SUMS.txt'),'utf8');
+    for(const file of ['BetterCaptionKeep.Management.v1.admx','en-US/BetterCaptionKeep.Management.v1.adml','contract.json']){
+      assert.ok(inventory.includes(`managed-policy-templates/${file}`));
+    }
+    const templateContract=JSON.parse(fs.readFileSync(path.join(output,'managed-policy-templates/contract.json'),'utf8'));
+    assert.equal(templateContract.editableKeys.length,24);
+    assert.equal(templateContract.requiresNativeIngestionProof,true);
     for (const line of fs.readFileSync(path.join(output,'SHA256SUMS.txt'),'utf8').trim().split('\n')) {
       const file=path.resolve(output,line.slice(66));
       assert.ok(file.startsWith(path.resolve(output)+path.sep));
@@ -450,6 +457,36 @@ test('optional Microsoft 365 creates a single-tenant public app and injects its 
   });
 });
 
+test('Microsoft sign-in discovers the deployment tenant without administrator GUID entry', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory,provisioningMock(output,directory,true,false,true,false,`
+      $extra.signInHadTenant=$global:signInHadTenant
+      $extra.teamsTenant=$global:teamsTenant
+    `,'',`
+      $options.TenantId=''
+      $global:signInHadTenant=$null;$global:teamsTenant=$null
+      function Connect-MgGraph {
+        param($TenantId,$Scopes,$ContextScope,[switch]$NoWelcome)
+        $global:signInHadTenant=$PSBoundParameters.ContainsKey('TenantId')
+        $global:connections+=,@($Scopes)
+      }
+      function Connect-MicrosoftTeams { param($TenantId) $global:teamsTenant=$TenantId }
+    `));
+    assert.equal(result.failed,false,result.error);
+    assert.equal(result.extra.signInHadTenant,false);
+    assert.equal(result.extra.teamsTenant,'11111111-1111-4111-8111-111111111111');
+    assert.equal(result.receipt.plan.tenantId,result.extra.teamsTenant);
+    assert.equal(result.receipt.status,'AssignedPendingEndpointValidation');
+    assert.equal(result.receipt.scripts.length,2);
+    for(const upload of result.calls.filter(call=>call.method==='POST'&&call.path.endsWith('/deviceManagementScripts'))) {
+      const script=Buffer.from(upload.body.scriptContent,'base64').toString('utf8');
+      const encoded=script.match(/FromBase64String\('([^']+)'\)/)[1];
+      const config=JSON.parse(Buffer.from(encoded,'base64').toString('utf8'));
+      assert.equal(config.managedPolicy.graphTenantId,result.receipt.plan.tenantId);
+    }
+  });
+});
+
 test('Continue reconciles a lost app POST response without creating the app twice', async () => {
   await withPackage(async (output,directory) => {
     const result=runPowerShell(directory,provisioningMock(output,directory,true,true,true,true));
@@ -479,12 +516,15 @@ test('Continue reuses reviewed signed scripts without reopening the original sig
       })
     `,'',`
       $options.AllowUnsignedEndpointScripts=$false
-      function Select-SetupCertificate { param($Thumbprint,$AllowUnsigned) [pscustomobject]@{Thumbprint=('a'*40)} }
-      function Set-AuthenticodeSignature { param($FilePath,$Certificate,$HashAlgorithm)
-        [byte[]]$bytes=@(239,187,191)+[IO.File]::ReadAllBytes($FilePath)
-        [IO.File]::WriteAllBytes($FilePath,$bytes)
+      $global:localCertificate=[pscustomobject]@{Thumbprint=('a'*40);RawData=[byte[]]@(1,2,3)}
+      function Select-SetupCertificate { param($Thumbprint,$AllowUnsigned) $global:localCertificate }
+      function Assert-SetupLocalSigningCertificate { param($Certificate) }
+      function Set-AuthenticodeSignature { param($LiteralPath,$Certificate,$HashAlgorithm,$ErrorAction)
+        [byte[]]$bytes=@(239,187,191)+[IO.File]::ReadAllBytes($LiteralPath)
+        [IO.File]::WriteAllBytes($LiteralPath,$bytes)
         @{Status='Valid'}
       }
+      function Get-AuthenticodeSignature { param($LiteralPath,$ErrorAction) @{Status='Valid';SignerCertificate=$global:localCertificate} }
       function Read-Host { param($Prompt) if ($Prompt -like 'Type APPROVE*') { 'APPROVE' } elseif ($Prompt -like 'Type DEPLOY*') { '' } else { throw "Unexpected prompt: $Prompt" } }
     `));
     assert.equal(result.failed,false,result.error);
@@ -766,6 +806,135 @@ test('cancelled approval causes no resource writes; lost create response retains
     assert.equal(failed.receipt.pendingOperation,'CreateApplication');
     assert.equal(failed.calls.filter(call=>call.method==='POST').length,1);
     assert.equal(failed.receipt.scripts.length,0);
+  });
+});
+
+test('create response is not confirmation until independent state readback matches', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory, `
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      $receiptDirectory=${quote(path.join(directory,'create-verification'))}
+      [IO.Directory]::CreateDirectory($receiptDirectory) | Out-Null
+      $results=@()
+      foreach ($scenario in @('match','drift','lag','wrongId','duplicates')) {
+        $receipt=@{operations=@{};pendingOperation=$null}
+        $global:created=$false;$global:posts=0;$global:reads=0
+        $body=@{displayName='Reviewed synthetic app'}
+        $find={
+          $global:reads++
+          if (-not $global:created -or $scenario -eq 'lag') { return @() }
+          $name=if($scenario -eq 'drift'){'Unreviewed app'}else{'Reviewed synthetic app'}
+          $id=if($scenario -eq 'wrongId'){'other-resource'}else{'created-resource'}
+          $item=@{id=$id;displayName=$name;fromReadback=$true}
+          if ($scenario -eq 'duplicates') { return @($item,$item) }
+          return $item
+        }
+        $matches={ param($item) $item.displayName -ceq $body.displayName }
+        $create={ param($request) $global:posts++;$global:created=$true;return @{id='created-resource';displayName=$request.displayName;fromReadback=$false} }
+        $failed=$false;$returned=$null
+        try { $returned=Invoke-RecordedSetupCreate $receipt $receiptDirectory 'CreateApplication' $body $find $matches $create } catch { $failed=$true }
+        $initial=$receipt.operations.CreateApplication.state
+        $pending=$receipt.pendingOperation
+        # Continuation must reconcile the original identity; it must never repeat the POST.
+        if ($failed) { try { Invoke-RecordedSetupCreate $receipt $receiptDirectory 'CreateApplication' $body $find $matches $create | Out-Null } catch {} }
+        $results+=@{scenario=$scenario;failed=$failed;state=$initial;pending=$pending;posts=$global:posts;reads=$global:reads;
+          retainedId=$receipt.operations.CreateApplication.resourceId;fromReadback=($null -ne $returned -and $returned.fromReadback)}
+      }
+      Write-Output ('RESULT:' + (ConvertTo-Json -InputObject @($results) -Depth 6 -Compress))
+    `);
+    for (const observed of result) {
+      assert.equal(observed.posts,1,observed.scenario);
+      assert.equal(observed.retainedId,'created-resource',observed.scenario);
+      assert.ok(observed.reads>=2,observed.scenario);
+      if(observed.scenario==='match') {
+        assert.equal(observed.failed,false);
+        assert.equal(observed.state,'Confirmed');
+        assert.equal(observed.pending,null);
+        assert.equal(observed.fromReadback,true);
+      } else {
+        assert.equal(observed.failed,true,observed.scenario);
+        assert.equal(observed.state,'Ambiguous',observed.scenario);
+        assert.equal(observed.pending,'CreateApplication',observed.scenario);
+      }
+    }
+  });
+});
+
+test('the first live setup holds its recovery lock until deployment finishes', async () => {
+  await withPackage(async (output,directory) => {
+    const result=runPowerShell(directory,provisioningMock(output,directory,false,false,true,false,`
+      $extra.continueBlocked=$global:freshContinueBlocked
+    `,'',`
+      $global:freshContinueBlocked=$false
+      function Read-Host {
+        param($Prompt)
+        if ($Prompt -like 'Type APPROVE*') { return 'APPROVE' }
+        if ($Prompt -like 'Type DEPLOY*') {
+          try { Invoke-EnterpriseSetup @{ResumeReceipt=${quote(path.join(directory,'receipt/receipt.json'))}} ${quote(output)} | Out-Null }
+          catch { $global:freshContinueBlocked=$_.Exception.Message -like '*already open*' }
+          return 'DEPLOY'
+        }
+        throw "Unexpected prompt: $Prompt"
+      }
+    `));
+    assert.equal(result.failed,false,result.error);
+    assert.equal(result.extra.continueBlocked,true);
+    assert.equal(result.receipt.status,'AssignedPendingEndpointValidation');
+    assert.equal(result.calls.filter(call=>call.method==='POST'&&call.path.endsWith('/deviceManagementScripts')).length,2);
+  });
+});
+
+test('another process cannot continue or overwrite an open recovery operation', async () => {
+  await withPackage(async (output,directory) => {
+    const receiptDirectory=path.join(directory,'locked-recovery');
+    fs.mkdirSync(receiptDirectory);
+    const receipt=path.join(receiptDirectory,'receipt.json');
+    fs.writeFileSync(receipt,'{}');
+    const ready=path.join(directory,'lock-ready');
+    const release=path.join(directory,'release-lock');
+    const child=path.join(directory,'hold-recovery.ps1');
+    fs.writeFileSync(child, `
+      $ErrorActionPreference='Stop'
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      function Invoke-EnterpriseSetupCore {
+        param($Options,$PackageRoot)
+        [IO.File]::WriteAllText(${quote(ready)},'ready')
+        $until=[DateTime]::UtcNow.AddSeconds(15)
+        while(-not [IO.File]::Exists(${quote(release)})) {
+          if([DateTime]::UtcNow -ge $until) { throw 'Fixture release timed out.' }
+          Start-Sleep -Milliseconds 40
+        }
+      }
+      Invoke-EnterpriseSetup @{ResumeReceipt=${quote(receipt)}} ${quote(output)}
+    `);
+    const result=runPowerShell(directory, `
+      . ${quote(path.join(output,'Enterprise-Setup.ps1'))}
+      $global:coreCalls=0
+      function Invoke-EnterpriseSetupCore { param($Options,$PackageRoot) $global:coreCalls++;return @{allowed=$true} }
+      $process=[Diagnostics.Process]::new()
+      $process.StartInfo.FileName=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+      $process.StartInfo.UseShellExecute=$false;$process.StartInfo.CreateNoWindow=$true
+      foreach($argument in @('-NoProfile','-NonInteractive','-File',${quote(child)})) { $process.StartInfo.ArgumentList.Add($argument) }
+      $process.Start() | Out-Null
+      try {
+        $until=[DateTime]::UtcNow.AddSeconds(10)
+        while(-not [IO.File]::Exists(${quote(ready)})) {
+          if($process.HasExited -or [DateTime]::UtcNow -ge $until) { throw 'Fixture failed to acquire operation lock.' }
+          Start-Sleep -Milliseconds 40
+        }
+        $resumeBlocked=$false;$statusBlocked=$false
+        try { Invoke-EnterpriseSetup @{ResumeReceipt=${quote(receipt)}} ${quote(output)} | Out-Null } catch { $resumeBlocked=$_.Exception.Message -like '*already open*' }
+        try { Invoke-EnterpriseSetup @{StatusReceipt=${quote(receipt)}} ${quote(output)} | Out-Null } catch { $statusBlocked=$_.Exception.Message -like '*already open*' }
+        $callsWhileHeld=$global:coreCalls
+      } finally {
+        [IO.File]::WriteAllText(${quote(release)},'release')
+        if(-not $process.WaitForExit(5000)) { $process.Kill();$process.WaitForExit();throw 'Fixture failed to release its own lock.' }
+      }
+      $after=Invoke-EnterpriseSetup @{ResumeReceipt=${quote(receipt)}} ${quote(output)}
+      Write-Output ('RESULT:' + (@{resumeBlocked=$resumeBlocked;statusBlocked=$statusBlocked;callsWhileHeld=$callsWhileHeld;
+        callsAfterRelease=$global:coreCalls;allowed=$after.allowed;receipt=[IO.File]::ReadAllText(${quote(receipt)});childExit=$process.ExitCode} | ConvertTo-Json -Compress))
+    `);
+    assert.deepEqual(result,{resumeBlocked:true,statusBlocked:true,callsWhileHeld:0,callsAfterRelease:1,allowed:true,receipt:'{}',childExit:0});
   });
 });
 

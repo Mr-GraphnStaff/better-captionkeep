@@ -1,5 +1,9 @@
 # Chrome Web Store Listing — Better CaptionKeep
 
+**External 6.0.3 correction completed — November 21, 2026:** this owner checkout contains historical/uncommitted Development material below. The published 6.0.3 marketing source is on protected `master`. Chrome's approved English description, DAF-TECH sphere and corrected disclosures were saved and resubmitted; its dashboard confirmed **Pending review**, with automatic publication after approval selected. Edge's corrected description, sphere and disclosures were saved and resubmitted on November 20; **In review** and saved metadata were independently read back. Frozen extension packages were unchanged. Store approval, public parity and installed upgrade remain unverified. Follow [the Store correction receipt](docs/release-state/6.0.3-store-correction-2026-11-20.md) for exact evidence. Do not treat historical source versions below as current Store state.
+
+**6.0.1 Development preparation:** Microsoft 365 administrator setup is being prepared through the protected Dev, QA and Production lanes. This source version is not a frozen candidate or a Store submission. Earlier release approvals and owner exceptions do not apply; acceptance, artwork, publication and upgrade gates remain pending in [the 6.0.1 release record](docs/release-state/6.0.1.json).
+
 Public product boundary and security evidence: [Trust Center](docs/TRUST-CENTER.md).
 
 The Store package contains no shared Microsoft Entra tenant or application identity. An organization that enables Verified Teams Transcript supplies its own single-tenant Entra tenant ID and client ID through local setup or managed browser policy. Better CaptionKeep has no paid tier: every shipped feature is available to every user, while organizational policy and provider authorization requirements still apply.
@@ -15,7 +19,7 @@ coordinator. Store submission, approval, public availability and delivered
 upgrade remain separately recorded outcomes; the dated 5.4 public record below
 is not a claim that 6.0 is already live.
 
-October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The package does not request nativeMessaging, ship a native helper, connect MCP services or expose MCP operation controls. Reviewed BYOAI handoff remains available. Earlier helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
+October 16 scope decision: BYOMCP is deferred from the shipping 6.0 release. The package does not ship an MCP helper, connect MCP services or expose MCP operation controls. The later administrator-setup design uses an optional `nativeMessaging` grant only after the administrator selects organization setup, and only to launch the separately installed, signed Better CaptionKeep setup application through its fixed host. This narrow launcher is not an MCP capability. Reviewed BYOAI handoff remains available. Earlier MCP helper development evidence is retained for future work and does not describe this package. No published Store listing or submission is changed by this source update.
 
 6.0 development review: the Live Workspace now puts chronological conversation
 first, with optional selected-caption actions and explicit Follow latest. Local
@@ -165,6 +169,7 @@ All artwork uses synthetic meetings and identities. Never substitute real partic
 | `unlimitedStorage` | permissions | Lets the user-controlled local transcript archive grow beyond the default local-storage quota without silently evicting meetings. Explicit user deletion and managed retention remain authoritative. |
 | `sidePanel` | permissions | Displays one unified local Live Workspace for captured captions and source-linked evidence beside the supported meeting page. |
 | `identity` | permissions | Opens interactive Microsoft Entra sign-in with PKCE for the customer-configured tenant when the user chooses Connect Microsoft 365. No shared app or client secret is embedded. |
+| `nativeMessaging` | optional_permissions | Requested only after a tenant administrator explicitly opens organization setup. It launches the separately installed, signed Better CaptionKeep setup application through one fixed native host; it does not enable MCP or arbitrary native applications. |
 | `https://teams.microsoft.com/*` | host_permissions | Reads captions and optional attendee information rendered during supported Microsoft Teams meetings. |
 | `https://teams.cloud.microsoft/*` | host_permissions | Reads captions and optional attendee information rendered in the current Microsoft Teams web application. |
 | `https://meet.google.com/*` | host_permissions | Reads captions rendered during Google Meet meetings. |

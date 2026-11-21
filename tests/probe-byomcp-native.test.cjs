@@ -11,11 +11,11 @@ async function fixture(run,{cloudflareModules=false}={}){
         async function write(name,text){const file=path.join(root,name);await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,text);}
         const build=await fs.readFile(path.resolve(__dirname,'../scripts/build-browser-targets.mjs'),'utf8');
         await write('scripts/build-browser-targets.mjs',build);
-        await write('dist/prod/brave-unpacked/manifest.json',JSON.stringify({manifest_version:3,name:'Synthetic',version:'6.0.0',optional_permissions:['nativeMessaging']}));
-        await write('dist/prod/brave-unpacked/browserRuntimeConfig.js','globalThis.CaptionKeepBrowserRuntime=Object.freeze({"target":"brave"});');
-        await write('dist/prod/brave-unpacked/service_worker.js','// Synthetic worker');
+        await write('Production/brave-unpacked/manifest.json',JSON.stringify({manifest_version:3,name:'Synthetic',version:'6.0.0',optional_permissions:['nativeMessaging']}));
+        await write('Production/brave-unpacked/browserRuntimeConfig.js','globalThis.CaptionKeepBrowserRuntime=Object.freeze({"target":"brave"});');
+        await write('Production/brave-unpacked/service_worker.js','// Synthetic worker');
         await write('companion/byomcp/test/fixtures/mcp-server.mjs','// Synthetic peer fixture');
-        const zipName='better-captionkeep-byomcp-helper-6.0.0.zip',zipPath=path.join(root,'dist/prod',zipName);
+        const zipName='better-captionkeep-byomcp-helper-6.0.0.zip',zipPath=path.join(root,'Production',zipName);
         const entries=[['companion/byomcp/cli.mjs',Buffer.from('// Synthetic CLI')]];
         if(cloudflareModules){
             entries.push(['companion/byomcp/cloudflare-oauth.mjs',Buffer.from("export const RESOURCE='https://mcp.cloudflare.com/mcp';export async function getCloudflareAuthorization(){return 'Bearer SYNTHETIC_TEST_ONLY';}")]);
@@ -27,7 +27,7 @@ async function fixture(run,{cloudflareModules=false}={}){
         await new Promise((resolve,reject)=>{const output=createWriteStream(zipPath),archive=new ZipArchive();
             output.on('close',resolve);output.on('error',reject);archive.on('error',reject);archive.pipe(output);
             for(const [name,bytes] of entries)archive.append(bytes,{name});archive.finalize().catch(reject);});
-        await write('dist/prod/byomcp-helper-hashes.json',JSON.stringify({zip:zipName,zipSha256:hash(await fs.readFile(zipPath)),
+        await write('Production/byomcp-helper-hashes.json',JSON.stringify({zip:zipName,zipSha256:hash(await fs.readFile(zipPath)),
             entries:entries.map(([name,bytes])=>({path:name,sha256:hash(bytes)}))}));
         const api=await import('../scripts/probe-byomcp-native.mjs');await run({root,api,write,baseDirectory:path.join(root,'private/BYOMCP-Probe')});
     }finally{assert(path.resolve(root).startsWith(path.resolve(prefix)));await fs.rm(root,{recursive:true,force:true});}
@@ -55,7 +55,7 @@ test('prepare produces only isolated synthetic registration plans with a single 
 });
 test('prepare rejects a package without optional native permission rather than silently granting it',{skip:process.platform!=='win32'},async()=>{
     await fixture(async({root,api,write,baseDirectory})=>{
-        await write('dist/prod/brave-unpacked/manifest.json',JSON.stringify({manifest_version:3,name:'Synthetic',version:'6.0.0'}));
+        await write('Production/brave-unpacked/manifest.json',JSON.stringify({manifest_version:3,name:'Synthetic',version:'6.0.0'}));
         await assert.rejects(api.prepareByomcpNativeProbe({root,baseDirectory}),/optional nativeMessaging/);
     });
 });

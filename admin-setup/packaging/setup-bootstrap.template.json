@@ -1,0 +1,5 @@
+{
+  "publicClientId": "__BETTER_CAPTIONKEEP_SETUP_PUBLIC_CLIENT_ID__",
+  "tenantId": "__BETTER_CAPTIONKEEP_SETUP_TENANT_ID__",
+  "authority": "https://login.microsoftonline.com/__BETTER_CAPTIONKEEP_SETUP_TENANT_ID__"
+}

@@ -713,7 +713,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         try {
-            const {defaultSaveFormat = 'txt'} = await chrome.storage.sync.get('defaultSaveFormat');
+            const userFormat = await chrome.storage.sync.get('defaultSaveFormat');
+            const {settings:{defaultSaveFormat = 'txt'}} = CaptionKeepConfiguration.applyPolicy(userFormat, await CaptionKeepConfiguration.readManaged());
             const output = prepareOutput(visibleCaptions);
             const notice = transcriptVersionNotice();
             const result = await chrome.runtime.sendMessage({message:'download_captions', transcriptArray:output.transcript,

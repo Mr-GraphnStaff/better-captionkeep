@@ -104,7 +104,8 @@ let attendeeData = {
 // --- Timestamp Preferences ---
 (async () => {
     try {
-        const { timestampFormat } = await chrome.storage.sync.get('timestampFormat');
+        const user = await chrome.storage.sync.get('timestampFormat');
+        const {settings:{timestampFormat}} = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
         if (timestampFormat) {
             timestampPreference = timestampFormat;
         }
@@ -153,8 +154,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'managed') {
         void refreshManagedAttendeeState();
     }
-    if (areaName === 'sync' && changes.timestampFormat) {
-        timestampPreference = changes.timestampFormat.newValue || '12hr';
+    if (areaName === 'managed' || (areaName === 'sync' && changes.timestampFormat)) {
+        void (async () => {
+            const user = await chrome.storage.sync.get('timestampFormat');
+            const {settings} = CaptionKeepConfiguration.applyPolicy(user, await CaptionKeepConfiguration.readManaged());
+            timestampPreference = settings.timestampFormat || '12hr';
+        })();
     }
 });
 

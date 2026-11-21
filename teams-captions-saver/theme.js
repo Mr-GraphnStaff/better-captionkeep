@@ -25,14 +25,22 @@
     });
 
     async function set(theme) {
-        const selected = apply(theme);
+        const selected = normalize(theme);
         await chrome.storage.sync.set({ [STORAGE_KEY]: selected });
-        return selected;
+        try {
+            const managed = await chrome.storage.managed.get(STORAGE_KEY);
+            if (VALID_THEMES.has(managed[STORAGE_KEY])) return apply(managed[STORAGE_KEY]);
+        } catch { /* No organization appearance policy. */ }
+        return apply(selected);
     }
 
     async function load() {
         try {
             const settings = await chrome.storage.sync.get(STORAGE_KEY);
+            try {
+                const managed = await chrome.storage.managed.get(STORAGE_KEY);
+                if (VALID_THEMES.has(managed[STORAGE_KEY])) settings[STORAGE_KEY] = managed[STORAGE_KEY];
+            } catch { /* No organization appearance policy. */ }
             return apply(settings[STORAGE_KEY]);
         } catch (error) {
             console.error('[Better CaptionKeep] Unable to load theme:', error);
@@ -59,8 +67,9 @@
 
     void load();
     chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName === 'sync' && changes[STORAGE_KEY]) {
-            apply(changes[STORAGE_KEY].newValue);
+        if ((areaName === 'sync' || areaName === 'managed') && changes[STORAGE_KEY]) {
+            if (!chrome.storage.managed && areaName === 'sync') apply(changes[STORAGE_KEY].newValue);
+            else void load();
         }
     });
 })();

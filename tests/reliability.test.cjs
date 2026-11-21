@@ -1061,7 +1061,8 @@ test('local archive retains more than a workday without automatic eviction',asyn
 test('managed history options prune expired sessions and lower the session maximum',async()=>{
     const h=harness();
     const now=Date.parse('2026-09-26T12:00:00Z');
-    // Freeze this VM's clock so synthetic recent sessions cannot age out.
+    // Freeze this VM's clock so the synthetic recent sessions do not age out
+    // when saveSession performs its own retention check on a later calendar date.
     h.context.Date=class extends Date {
         constructor(...args) { super(...(args.length ? args : [now])); }
         static now() { return now; }
@@ -1418,6 +1419,18 @@ test('automatic saving skips prompts while ask-each-time always prompts',async()
     assert.equal((await h.run('resolveSavePreferences({forAutoSave:false})')).saveAs,true);
     assert.equal((await h.run('resolveSavePreferences({forAutoSave:true})')).saveAs,true);
 });
+
+test('managed transcript save preferences override synced choices without writing them back',async()=>{
+    const h=harness();h.run(read('service_worker.js'));
+    Object.assign(h.data,{saveAsType:'prompt',saveLocation:'Personal',filenamePattern:'personal'});
+    Object.assign(h.managedData,{saveAsType:'custom',saveLocation:'Organization/Transcripts',filenamePattern:'managed-{title}'});
+    const settings=await h.run('resolveSavePreferences({forAutoSave:true})');
+    assert.equal(settings.saveAs,false);assert.equal(settings.subfolder,'Organization/Transcripts');
+    await h.run(`generateFilename=async pattern=>pattern;saveTranscript('Synthetic',[],{},'txt',null)`);
+    const job=Object.entries(h.data).find(([key])=>key.startsWith('export_'))?.[1];
+    assert.equal(job.filename,'managed-{title}.txt');
+    assert.equal(h.data.filenamePattern,'personal');assert.equal(h.data.saveLocation,'Personal');
+});
 test('AI handoff never navigates transcript text to a provider',async()=>{
     const h=harness();h.run(read('service_worker.js'));await h.run("openAiAssistantTabs(['chatgpt'],'Synthetic private words','Test',{transcript:[{key:'caption-1',Text:'Synthetic private words'}],sessionId:'meeting-1',providerLabel:'Teams'})");
     assert(h.tabs[0].url.startsWith('chrome-extension://test/handoff.html?'));
@@ -1727,8 +1740,9 @@ test('extension pages use only packaged scripts and settings use progressive dis
     assert(!popup.includes('assistantBridgeAuth.js'));
     const manifest=JSON.parse(read('manifest.json'));
     assert(!manifest.permissions.includes('alarms'));
-    assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
-    assert(!manifest.permissions.includes('nativeMessaging'), '6.0 does not ship native messaging');
+    assert((manifest.optional_permissions || []).includes('nativeMessaging'));
+    assert(!manifest.permissions.includes('nativeMessaging'), 'organization setup native access remains optional');
+    assert(read('adminSetupClient.js').includes('com.daftech.bettercaptionkeep.adminsetup'));
     assert(!manifest.optional_host_permissions.includes('https://*/*'));
 });
 test('managed release restrictions are enforced across extension action surfaces',()=>{
@@ -1996,7 +2010,7 @@ test('Graph controls remain available in every lane but render only in All Setti
     assert(popup.includes('#graphTranscriptSection { display: none; }'));
     assert(popup.includes('html[data-view="settings"] #graphTranscriptSection { display: block; }'));
     assert(popup.includes('class="graph-settings-layout"'));
-    assert(popup.includes('Connection and administrator setup'));
+    assert(popup.includes('Microsoft 365 accounts'));
     assert(popup.includes('Choose a Teams transcript'));
     assert(popup.includes('grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr)'));
     assert(popup.indexOf('class="settings-heading"') < popup.indexOf('id="graphTranscriptSection"'));
@@ -2022,7 +2036,7 @@ test('worker accepts local overlays only in Dev and UAT while production reads c
     assert(read('configuration.js').includes('sanitizeGraphUserConfig(runtimeConfig)'));
     assert(overlayScript.includes("['dev', 'uat'].includes(target)"));
     assert(!overlayScript.includes("'prod'"));
-    assert(overlayScript.includes("path.join(projectRoot, 'dist', target)"));
+    assert(overlayScript.includes("path.join(projectRoot, target === 'dev' ? 'Dev' : 'QA')"));
     assert(overlayScript.includes('without changing a Store package'));
 });
 test('every service worker loads an inert Store-safe Graph configuration without a shared tenant identity',()=>{

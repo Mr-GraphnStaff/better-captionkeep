@@ -1,4 +1,5 @@
 import {excludedShippingPath,assertShippingDirectory} from './shipping-boundary.mjs';
+import {assertBuildLaneCanReset,assertBuildSourceCanStage} from './build-lane-guard.mjs';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -9,10 +10,10 @@ const projectRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(projectRoot, 'teams-captions-saver');
 const manifestsDir = path.join(projectRoot, 'manifests');
 const canonicalDist = process.env.CAPTIONKEEP_TEST_DIST
-  ? path.resolve(process.env.CAPTIONKEEP_TEST_DIST) : path.join(projectRoot, 'dist');
-const devDir = path.join(canonicalDist, 'dev');
-const uatDir = path.join(canonicalDist, 'uat');
-const prodDir = path.join(canonicalDist, 'prod');
+  ? path.resolve(process.env.CAPTIONKEEP_TEST_DIST) : projectRoot;
+const devDir = path.join(canonicalDist, 'Dev');
+const uatDir = path.join(canonicalDist, 'QA');
+const prodDir = path.join(canonicalDist, 'Production');
 const DEV_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAos0GuSScxwgzbTlJj4+zX7kkKq13nZpSIHP3FBm73Mjgjj1wYlmyAyb+bPi2sV9H3VPRGpja2Nn/4ACJ5YemK0rEvyqLEDbRl4cbIT4P+9B2LFnKMHMLTGba9pVI6t6nGG50CDhVLdHQj1Bn2hygi9EAmygFTK4BXap8qtPmd//vXlOUY2Emt1Qb1IusZY3q7WXxn5Zklx5S8gDcDPbi4XLmB9qmDuKA7lGsQYannLOQTKS/H6WpJvNMYR/abTmfxmhiEYD53ZwCTTaYJ7t747dm2M15T7hNTsvLLiEQV+3iY+6mKGFbBKHeUTqL/LjDIDpj3VAt+jQhTO8Fd24epQIDAQAB';
 const UAT_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmSxpyAJ/mAN0vL+TWksWy3QEdjWiO7F440uqHoPX7tYFX0kVNMMp9Xgl6juMKX47ANPBZjwWhSRc8uZlaneF/lYooxKV3vee/uH5YaBLzQ60ejLr1XZb4jOsOhM3Xz+aaKDPfSDx4epZHZKGZ92XgSNjEuafdkT/4TMCqyYjQm/eeqCjLBA4ktHTXG5R313nrEh+DzEqX+tXArlDYmXPnxDsycqVjZmqfXTfMBzsmaDFgmu7zbp04wZToHIGKg4u/KPYrhe3cmn5Na29V/rbl1LoRl0r/fskAa6aP6srVQeSUd8K9c6OoSNyElhWv0HsWAut9QCVaEa5PjiqQUy0ZwIDAQAB';
 const PROD_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypItlpcGeN7eROd+0GuGk5yMLmka719pWqHFcBjbUP+a7L+yUetQIOCAvHLZfFPgZQ+3MuOUg8IYBpWlhyD8T500jvCFPJ38G8T5cpKv7WsOM8c9r4gZ5HQuvHkbh2+swvfiNhDD1F87kZil31wKjJIzAvR2GXKQy4ladRRLU0RxLpw9Ch45DiloWEM+TixVyoufwHPQboO2uR8nn/+TqfWiSu8/AQtVhgHG64N5mXRa53en5bRM5GBkfrHExoQ9+HDiJSxoieIYp4r9DfNZzn/Ji59FN+lthcf3vmHKi2e9fRg3lqEVy8MVTGSjUbZxlAuSlrcihSxJhKGJ9OzCnQIDAQAB';
@@ -41,8 +42,8 @@ function assertStagingChild(targetPath) {
   if(!relative || relative==='..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) throw new Error('Staging target escapes the selected dist directory');
 }
 
-async function stageTarget(target) {
-  const targetDir = target === 'dev'
+function directoryForTarget(target) {
+  return target === 'dev'
     ? devDir
     : target === 'uat'
       ? uatDir
@@ -51,14 +52,17 @@ async function stageTarget(target) {
         : target === 'chrome-store' || target === 'edge-store'
           ? path.join(prodDir, `${target}-unpacked`)
           : path.join(prodDir, `${target}-unpacked`);
-  const manifestPath = targetManifests.get(target);
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+}
+
+async function stageTarget({target,targetDirectory:targetDir,manifest,backgroundScripts}) {
 
   assertStagingChild(targetDir);
+  await assertBuildLaneCanReset(canonicalDist,targetDir);
   await rm(targetDir, { recursive: true, force: true });
   if (target === 'chrome-store') {
     const archiveDir=path.join(prodDir,'chrome-store');
     assertStagingChild(archiveDir);
+    await assertBuildLaneCanReset(canonicalDist,archiveDir);
     await rm(archiveDir, { recursive: true, force: true });
   }
   await mkdir(targetDir, { recursive: true });
@@ -83,7 +87,7 @@ async function stageTarget(target) {
     delete manifest.side_panel;
     delete manifest.storage;
     delete manifest.key;
-    manifest.background = {scripts: await documentBackgroundScripts()};
+    manifest.background = {scripts: backgroundScripts};
     manifest.sidebar_action = {
       default_title: '__MSG_extensionName__',
       default_panel: 'sidepanel.html',
@@ -132,6 +136,16 @@ async function documentBackgroundScripts() {
 }
 
 const targets = selectTargets(process.argv[2]?.toLowerCase());
-for (const target of targets) {
-  await stageTarget(target);
+const plans=[];
+for(const target of targets) plans.push({target,targetDirectory:directoryForTarget(target),
+  manifest:JSON.parse(await readFile(targetManifests.get(target),'utf8')),
+  backgroundScripts:target==='firefox'?await documentBackgroundScripts():null});
+await assertBuildSourceCanStage(projectRoot,canonicalDist,plans);
+// Reject a protected later lane before an earlier lane has been replaced.
+for(const target of targets) {
+  await assertBuildLaneCanReset(canonicalDist,directoryForTarget(target));
+  if(target==='chrome-store') await assertBuildLaneCanReset(canonicalDist,path.join(prodDir,'chrome-store'));
+}
+for (const plan of plans) {
+  await stageTarget(plan);
 }

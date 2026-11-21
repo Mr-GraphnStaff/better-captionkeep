@@ -104,7 +104,7 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
   const metadata = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'store-metadata', 'chrome.json')));
   const dossier = fs.readFileSync(path.join(__dirname, '..', 'CHROMEWEBSTORE.md'), 'utf8');
   assert.deepEqual(validateChromeWebStoreDossier(manifest, metadata, dossier), {
-    version:'6.0.0', synchronized:true
+    version:manifest.version, synchronized:true
   });
   assert.throws(
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace(
@@ -117,8 +117,8 @@ test('Chrome Store publication dossier stays synchronized with manifest and disc
     () => validateChromeWebStoreDossier(manifest, metadata, dossier.replace('`identity`', '`removed-identity`')),
     /missing current Store value: `identity`/
   );
-  assert(!(manifest.optional_permissions || []).includes('nativeMessaging'));
-  assert(!Object.hasOwn(metadata.optionalPermissionJustifications || {}, 'nativeMessaging'));
+  assert((manifest.optional_permissions || []).includes('nativeMessaging'));
+  assert.match(metadata.optionalPermissionJustifications.nativeMessaging,/tenant administrator.*fixed native host/i);
 });
 
 test('retained 5.4 Store artwork has the exact Chrome listing dimensions', () => {

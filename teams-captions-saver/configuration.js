@@ -20,7 +20,8 @@
         'disableClipboard', 'disableFileExport', 'disableEvidenceEmail',
         'disableAttendeeCapture', 'disableSessionHistory', 'maxStoredSessions',
         'sessionRetentionDays', 'enableGraphTranscriptImport', 'graphTenantId',
-        'graphClientId', 'forceUiLocale'
+        'graphClientId', 'forceUiLocale', 'defaultSaveFormat', 'saveAsType',
+        'saveLocation', 'timestampFormat', 'filenamePattern', 'uiTheme', 'webmailDestination'
     ]);
 
     const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'claude_console', 'copilot', 'gemini']);
@@ -39,6 +40,41 @@
         onTheFlyAiDestination: ALLOWED_PROVIDERS,
         uiTheme: new Set(['captionkeep', 'light', 'midnight', 'slate', 'high-contrast', 'system'])
     });
+
+    const MANAGED_PREFERENCES = Object.freeze(['defaultSaveFormat', 'saveAsType', 'saveLocation',
+        'timestampFormat', 'filenamePattern', 'uiTheme', 'webmailDestination']);
+    function validManagedPreference(key, value) {
+        if (value === '__BCK_EMPLOYEE_CHOICE__') return false;
+        if (ENUMS[key]) return ENUMS[key].has(value);
+        if (typeof value !== 'string' || value.length < 1 || value.length > 200 || /[\x00-\x1f]/.test(value)) return false;
+        if (key === 'saveLocation') return !/[<>:"\\|?*]/.test(value) && !value.startsWith('/')
+            && value.split('/').every(part => part && part !== '.' && part !== '..' && !/[. ]$/.test(part)
+                && !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part));
+        return key === 'filenamePattern' && !/[<>:"/\\|?*]/.test(value);
+    }
+
+    function validManagedValue(key, value) {
+        if (MANAGED_PREFERENCES.includes(key)) return validManagedPreference(key, value);
+        if (key === 'forceUiLocale') return UI_LOCALES.has(value);
+        if (key === 'graphTenantId' || key === 'graphClientId') return typeof value === 'string' && GUID_PATTERN.test(value);
+        if (key === 'maxStoredSessions') return Number.isInteger(value) && value >= 1 && value <= 10000;
+        if (key === 'sessionRetentionDays') return Number.isInteger(value) && value >= 1 && value <= 365;
+        if (key === 'allowedAiProviders') return Array.isArray(value) && value.length <= 5
+            && value.every(item => ALLOWED_PROVIDERS.has(item));
+        if (key === 'customScrubTerms') return Array.isArray(value) && value.length <= 100
+            && value.every(item => typeof item === 'string' && item.length >= 2 && item.length <= 80 && !/[\x00-\x1f]/.test(item));
+        const origins = {chatgptWorkspaceUrl:'https://chatgpt.com',claudeWorkspaceUrl:'https://claude.ai',claudeConsoleUrl:'https://console.anthropic.com'};
+        if (origins[key]) {
+            if (typeof value !== 'string' || value.length > 2048 || /[\x00-\x20]/.test(value)
+                || !(value === origins[key] || value.startsWith(origins[key] + '/'))) return false;
+            try {
+                const url = new URL(value);
+                return url.protocol === 'https:' && url.origin === origins[key] && !url.port
+                    && !url.username && !url.password && !url.search && !url.hash;
+            } catch { return false; }
+        }
+        return POLICY_KEYS.includes(key) && typeof value === 'boolean';
+    }
 
     function normalizeTerms(value) {
         const input = Array.isArray(value) ? value : String(value || '').split(/[\r\n,]+/);
@@ -87,20 +123,40 @@
         return sanitizeGraphUserConfig(await chrome.storage.local.get(GRAPH_USER_KEYS));
     }
 
+    let managedPolicyObserved = false;
     async function readManaged() {
         if (!chrome.storage?.managed) return {};
         try {
-            return await chrome.storage.managed.get(POLICY_KEYS);
-        } catch {
-            return {};
+            const policy = await chrome.storage.managed.get(POLICY_KEYS);
+            if (policy && Object.keys(policy).length) managedPolicyObserved = true;
+            return policy;
+        } catch (error) {
+            // Firefox reports an unconfigured managed-storage provider as this exact
+            // error. Confirm the browser API identity; generic provider failures and
+            // loss of a previously observed policy remain failures, never permission.
+            if (!managedPolicyObserved && error?.message === 'Managed storage manifest not found'
+                && typeof chrome.runtime?.getBrowserInfo === 'function') {
+                try { if ((await chrome.runtime.getBrowserInfo())?.name === 'Firefox') return {}; } catch { /* Not a verified no-policy provider. */ }
+            }
+            // An unavailable managed store is not evidence that restrictions were removed.
+            throw new Error('Organization settings could not be read. Try again before exporting or sharing.');
         }
     }
 
     function applyPolicy(userSettings = {}, managed = {}) {
+        managed = Object.fromEntries(Object.entries(managed).filter(([key, value]) => validManagedValue(key, value)));
         const settings = { ...userSettings };
         for (const key of GRAPH_USER_KEYS) delete settings[key];
         Object.assign(settings, sanitizeGraphUserConfig(userSettings));
         const locked = new Set();
+        for (const key of MANAGED_PREFERENCES) {
+            if (!Object.hasOwn(managed, key) || !validManagedPreference(key, managed[key])) continue;
+            // A locked custom destination must include a valid managed subfolder.
+            if (key === 'saveAsType' && managed[key] === 'custom'
+                && !validManagedPreference('saveLocation', managed.saveLocation)) continue;
+            settings[key] = managed[key];
+            locked.add(key);
+        }
         if (managed.forcePrivacyScrubber === true) {
             settings.privacyScrubberEnabled = true;
             locked.add('privacyScrubberEnabled');
@@ -211,7 +267,7 @@
     }
 
     globalThis.CaptionKeepConfiguration = Object.freeze({
-        USER_KEYS, GRAPH_USER_KEYS, POLICY_KEYS, normalizeTerms, sanitize,
+        USER_KEYS, GRAPH_USER_KEYS, POLICY_KEYS, MANAGED_PREFERENCES, validManagedPreference, validManagedValue, normalizeTerms, sanitize,
         sanitizeGraphUserConfig, readGraphUserConfig, readManaged, applyPolicy,
         applyGraphRuntimeConfig, createExport, parseImport
     });

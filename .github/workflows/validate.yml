@@ -113,9 +113,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
           path: |
-            dist/prod/browser-certification.json
-            dist/prod/certification-evidence/
-            dist/prod/browser-package-hashes.json
-            dist/prod/release-provenance.json
-            dist/prod/*.cdx.json
-            dist/prod/browser-packages/
+            Production/browser-certification.json
+            Production/certification-evidence/
+            Production/browser-package-hashes.json
+            Production/release-provenance.json
+            Production/*.cdx.json
+            Production/browser-packages/

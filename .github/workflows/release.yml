@@ -82,7 +82,7 @@ jobs:
 
       - name: Generate root production-dependency SBOM
         shell: bash
-        run: npm sbom --omit=dev --sbom-format=cyclonedx | node scripts/canonicalize-sbom.mjs > dist/prod/better-captionkeep-sbom.cdx.json
+        run: npm sbom --omit=dev --sbom-format=cyclonedx | node scripts/canonicalize-sbom.mjs > Production/better-captionkeep-sbom.cdx.json
 
       - name: Record package checksums
         shell: bash
@@ -92,7 +92,7 @@ jobs:
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]
           printf 'RELEASE_VERSION=%s\n' "$version" >> "$GITHUB_ENV"
           (
-            cd dist/prod
+            cd Production
             if find . -iname "*byomcp*" -print -quit | grep -q .; then
               echo "Deferred MCP payload cannot be promoted with 6.0."
               exit 1
@@ -126,21 +126,21 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: |
-            dist/prod/better_captionkeep-*.zip
-            dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
-            dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
-            dist/prod/browser-package-hashes.json
-            dist/prod/browser-certification.json
-            dist/prod/release-provenance.json
-            dist/prod/SHA256SUMS.txt
-            dist/prod/RELEASE-SHA256SUMS.txt
-            dist/prod/better-captionkeep-sbom.cdx.json
+            Production/better_captionkeep-*.zip
+            Production/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
+            Production/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
+            Production/browser-package-hashes.json
+            Production/browser-certification.json
+            Production/release-provenance.json
+            Production/SHA256SUMS.txt
+            Production/RELEASE-SHA256SUMS.txt
+            Production/better-captionkeep-sbom.cdx.json
 
       - name: Preserve offline attestation bundle
         env:
           ATTESTATION_BUNDLE: ${{ steps.attest_release.outputs.bundle-path }}
         shell: bash
-        run: cp -- "$ATTESTATION_BUNDLE" dist/prod/release-attestation.sigstore.json
+        run: cp -- "$ATTESTATION_BUNDLE" Production/release-attestation.sigstore.json
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -148,16 +148,16 @@ jobs:
           name: better-captionkeep-${{ github.run_id }}
           if-no-files-found: error
           path: |
-            dist/prod/better_captionkeep-*.zip
-            dist/prod/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
-            dist/prod/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
-            dist/prod/browser-package-hashes.json
-            dist/prod/browser-certification.json
-            dist/prod/release-provenance.json
-            dist/prod/SHA256SUMS.txt
-            dist/prod/RELEASE-SHA256SUMS.txt
-            dist/prod/better-captionkeep-sbom.cdx.json
-            dist/prod/release-attestation.sigstore.json
+            Production/better_captionkeep-*.zip
+            Production/browser-packages/better-captionkeep-*-${{ env.RELEASE_VERSION }}.zip
+            Production/better-captionkeep-${{ env.RELEASE_VERSION }}.cdx.json
+            Production/browser-package-hashes.json
+            Production/browser-certification.json
+            Production/release-provenance.json
+            Production/SHA256SUMS.txt
+            Production/RELEASE-SHA256SUMS.txt
+            Production/better-captionkeep-sbom.cdx.json
+            Production/release-attestation.sigstore.json
 
       - name: Create draft GitHub release
         if: github.event_name == 'push'
@@ -172,14 +172,14 @@ jobs:
             exit 1
           fi
           gh release create "$RELEASE_TAG" \
-            dist/prod/better_captionkeep-*.zip \
-            dist/prod/browser-packages/better-captionkeep-*-${RELEASE_VERSION}.zip \
-            "dist/prod/better-captionkeep-${RELEASE_VERSION}.cdx.json" \
-            dist/prod/browser-package-hashes.json \
-            dist/prod/browser-certification.json \
-            dist/prod/release-provenance.json \
-            dist/prod/SHA256SUMS.txt \
-            dist/prod/RELEASE-SHA256SUMS.txt \
-            dist/prod/better-captionkeep-sbom.cdx.json \
-            dist/prod/release-attestation.sigstore.json \
+            Production/better_captionkeep-*.zip \
+            Production/browser-packages/better-captionkeep-*-${RELEASE_VERSION}.zip \
+            "Production/better-captionkeep-${RELEASE_VERSION}.cdx.json" \
+            Production/browser-package-hashes.json \
+            Production/browser-certification.json \
+            Production/release-provenance.json \
+            Production/SHA256SUMS.txt \
+            Production/RELEASE-SHA256SUMS.txt \
+            Production/better-captionkeep-sbom.cdx.json \
+            Production/release-attestation.sigstore.json \
             --draft --verify-tag --title "$title" --generate-notes

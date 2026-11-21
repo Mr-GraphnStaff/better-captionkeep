@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/WorkerConfiguration.cs" Link="WorkerConfiguration.cs" />
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/ManagedPolicyBridge.cs" Link="ManagedPolicyBridge.cs" />
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/EndpointBridgeHost.cs" Link="EndpointBridgeHost.cs" />
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/WindowsBridgePlatform.cs" Link="WindowsBridgePlatform.cs" />
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/RegistryStore.cs" Link="RegistryStore.cs" />
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/EndpointEngine.cs" Link="EndpointEngine.cs" />
+    <Compile Include="../../src/BetterCaptionKeep.EndpointWorker/InstallationEvidence.cs" Link="InstallationEvidence.cs" />
+    <EmbeddedResource Include="../../../teams-captions-saver/managed-schema.json" Link="managed-schema.json" />
+  </ItemGroup>
+</Project>

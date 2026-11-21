@@ -1,28 +1,39 @@
-import { mkdir, readFile, writeFile, copyFile, readdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, copyFile, readdir, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { ZipArchive } from 'archiver';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildIntuneBundle } from './build-intune-bundle.mjs';
+import { buildManagedPolicyTemplates } from './build-managed-policy-templates.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // This is a deployment-tool package, not a repackaged or re-signed extension.
-export async function buildEnterprisePackage(outputDir = path.join(root, 'output/enterprise-setup-dev')) {
+export async function buildEnterprisePackage(outputDir = path.join(root, 'Dev/enterprise-setup-dev'), {publicDelivery=false, endpointWorkerPath, contentPrepPath} = {}) {
   outputDir = path.resolve(outputDir);
   await mkdir(outputDir, { recursive: true });
   if ((await readdir(outputDir)).length) throw new Error('Enterprise package output must be empty; preserve prior packages and receipts.');
-  for (const file of ['Enterprise-Setup.ps1', 'Enterprise-Endpoint.ps1', 'Enterprise-Launcher.ps1']) {
+  for (const file of ['Enterprise-Setup.ps1', 'Enterprise-Endpoint.ps1', 'Enterprise-Launcher.ps1', 'Enterprise-Dialogs.ps1', 'Enterprise-Runtime.ps1', 'Enterprise-Signing.ps1', 'Enterprise-SignerMigration.ps1']) {
     await copyFile(path.join(root, 'deployment/intune', file), path.join(outputDir, file));
   }
+  if(publicDelivery){
+    if(!endpointWorkerPath)throw Error('The public administrator package requires its static endpoint executable.');
+    await copyFile(path.join(root,'deployment/intune/Enterprise-Win32.ps1'),path.join(outputDir,'Enterprise-Win32.ps1'));
+    await copyFile(endpointWorkerPath,path.join(outputDir,'EndpointWorker.exe'));
+  }
   await copyFile(path.join(root, 'teams-captions-saver/managed-schema.json'), path.join(outputDir, 'managed-schema.json'));
+  // Keep the console templates in the reviewed package inventory. Packaging
+  // never imports, assigns or changes a tenant configuration profile.
+  await buildManagedPolicyTemplates(path.join(outputDir, 'managed-policy-templates'));
   await copyFile(path.join(root, 'LICENSE'), path.join(outputDir, 'LICENSE'));
   await copyFile(path.join(root, 'docs/wiki/Deployment-Security-and-Permissions.md'), path.join(outputDir, 'SECURITY-AND-PERMISSIONS.md'));
   for (const [name, browser] of [['profile.json','edge'], ['profile.chrome.json','chrome'], ['profile.local-only.json','edge']]) {
     await copyFile(path.join(root, 'deployment/intune', name), path.join(outputDir, name));
     await buildIntuneBundle({browser, profilePath:path.join(root, 'deployment/intune', name), outputDir:path.join(outputDir, name.replace('.json',''))});
+    if(publicDelivery)for(const script of ['detect-managed-policy.ps1','remediate-managed-policy.ps1'])await unlink(path.join(outputDir,name.replace('.json',''),script));
   }
+  if(publicDelivery){const {buildEndpointWin32Package}=await import('./build-endpoint-win32-package.mjs');await buildEndpointWin32Package(outputDir,{toolPath:contentPrepPath});}
   await writeFile(path.join(outputDir, 'START-HERE.txt'), [
     'Better CaptionKeep administrator setup - development pilot, not tenant-certified.',
     'Extract the complete ZIP, then double-click Start-Setup.cmd.',
