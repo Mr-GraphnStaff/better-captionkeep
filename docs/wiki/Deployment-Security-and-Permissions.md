@@ -78,7 +78,7 @@ The extension does not record microphone, tab audio, system audio or video. An e
 
 ## Signing and distribution
 
-The 6.0.3 release was downloaded anonymously and checked against its SHA-256 sidecar and valid public timestamped signature. Windows publisher: **DAVID ANTHONY FARRIS**, for this DAF-TECH release. Obtain the installer only from the [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3) or an approved organizational distribution.
+The 6.0.3 release was downloaded anonymously and checked against its SHA-256 sidecar and valid public timestamped signature. Windows publisher: **DAVID ANTHONY FARRIS**, for this DAF-TECH release. Obtain the installer only from the [versioned release](https://github.com/Mr-GraphnStaff/better-captionkeep/releases/tag/admin-setup-v6.0.3-r2) or an approved organizational distribution.
 
 A valid signature identifies the publisher and protects signed bytes. It is not a promise of harmless code, permission approval or an absence of Windows warnings. SmartScreen also evaluates reputation, including a new file's history. Follow your organization's software approval process when Windows blocks execution. [Microsoft's explanation](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation).
 

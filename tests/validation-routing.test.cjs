@@ -57,7 +57,15 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
     'deployment/intune/Enterprise-Launcher.ps1', 'scripts/build-enterprise-package.mjs',
     'tests/enterprise-setup.test.cjs', 'tests/enterprise-launcher.test.cjs',
     'tests/enterprise-endpoint-verification.test.cjs', 'tests/fixtures/enterprise-registry-harness.ps1',
-    'docs/wiki/Deployment-Security-and-Permissions.md', 'docs/wiki/Administrator-Deployment.md'
+    'docs/wiki/Deployment-Security-and-Permissions.md', 'docs/wiki/Administrator-Deployment.md',
+    'docs/BROWSER-INSTALLATION-AND-MICROSOFT-365.md',
+    'docs/ENTRA-GRAPH-APP-REGISTRATION.md',
+    'docs/wiki/Browser-Installation-and-Microsoft-365.md',
+    'docs/wiki/Installation.md', 'docs/wiki/Microsoft-365-Connection.md', 'docs/wiki/_Sidebar.md',
+    'PRIVACY.md', 'SUPPORT.md', 'docs/wiki/Home.md', 'docs/wiki/Getting-Started.md',
+    'docs/wiki/Troubleshooting.md', 'docs/wiki/Support.md', 'docs/wiki/Release-Status.md',
+    'docs/wiki/Privacy-and-Data-Boundaries.md',
+    'docs/wiki/Development-and-UAT.md', 'docs/wiki/Three-Lane-Release-Workflow.md'
   ]);
   const permitted = [...NONSHIPPING_CONTROL_FILES, '.agents/skills/software-team/SKILL.md',
     '.agents/skills/software-team/references/people-operations.md', 'docs/software-team/research.md'];
@@ -73,6 +81,25 @@ test('the nonshipping boundary permits only the two scoped trees and explicit co
   }
   assert.equal(classifyChangedPaths([]), 'candidate');
   assert.equal(classifyChangedPaths(null), 'candidate');
+});
+
+test('five-browser documentation routes without repackaging, while mixed runtime and adjacent unknown files require the candidate gate', async t => {
+  const {determineValidationMode} = await load();
+  const fixture = repository(t);
+  for (const file of ['docs/BROWSER-INSTALLATION-AND-MICROSOFT-365.md',
+    'docs/ENTRA-GRAPH-APP-REGISTRATION.md', 'docs/wiki/Browser-Installation-and-Microsoft-365.md',
+    'docs/wiki/Installation.md', 'docs/wiki/Microsoft-365-Connection.md', 'docs/wiki/_Sidebar.md']) {
+    fixture.write(file, '# Synthetic browser setup instructions\n');
+  }
+  fixture.commit('six-file browser documentation update');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base, 'codex/browser-docs', 'dev'), root:fixture.root}), 'nonshipping');
+  fixture.write('teams-captions-saver/runtime.js', 'changed runtime\n');
+  fixture.commit('runtime change alongside documentation');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base, 'codex/browser-docs', 'dev'), root:fixture.root}), 'candidate');
+  fixture.write('teams-captions-saver/runtime.js', 'original runtime\n');
+  fixture.write('docs/ENTRA-GRAPH-APP-REGISTRATION.json', '{"not":"approved Markdown"}\n');
+  fixture.commit('unrecognized adjacent file');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base, 'codex/browser-docs', 'dev'), root:fixture.root}), 'candidate');
 });
 
 test('admin npm convenience command cannot hide dependency or extension build changes', async () => {
@@ -101,6 +128,80 @@ test('administrator README discovery permits only its marked pilot section', asy
   assert.equal(isAdminReadmeOnly(before,after.replace('Start-Setup.cmd','unknown.exe')),false);
   assert.throws(()=>isAdminReadmeOnly(before,after+'\n'+block),/Malformed/);
   assert.throws(()=>isAdminReadmeOnly(before,after.replace('<!-- administrator-setup-pilot:end -->','')),/Malformed/);
+});
+
+const statusBlock=(key,body='Recorded release state remains unchanged.')=>`<!-- captionkeep-${key}-status:start -->\n${body}\n<!-- captionkeep-${key}-status:end -->`;
+
+test('customer README prose may change only with an identical unique generated-status block map',async()=>{
+  const {isReadmeDocumentationOnly}=await load();
+  const current=statusBlock('6.0.3'),historical=statusBlock('6.0');
+  const before=`# Engineering notes\n\n${current}\n\nOld instructions\n\n${historical}\n`;
+  const after=`# Better CaptionKeep\n\nCustomer installation and support.\n\n<details><summary>Release records</summary>\n\n${historical}\n\n${current}\n\n</details>\n`;
+  assert.equal(isReadmeDocumentationOnly(before,after),true);
+  for(const invalid of [
+    '# No generated state\n',
+    after.replace(current,''),
+    after.replace('Recorded release state remains unchanged.','Forged approval'),
+    after+'\n'+current,
+    after.replace('<!-- captionkeep-6.0.3-status:end -->',''),
+    after.replace('captionkeep-6.0.3-status:end','captionkeep-6.0-status:end'),
+    after.replace('<!-- captionkeep-6.0.3-status:start -->','<!-- captionkeep-6.0.3-status:start-- >'),
+    after.replace('captionkeep-6.0.3-status:start','CAPTIONKEEP-6.0.3-status:start'),
+    after.replace(current,statusBlock('6.0.4')),
+    after.replace(current,statusBlock('6.0.3',historical)),
+    after.replace(current,statusBlock('6.0.3','Uncertain encoding \uFFFD'))
+  ]) assert.equal(isReadmeDocumentationOnly(before,invalid),false);
+  assert.equal(isReadmeDocumentationOnly('# No machine blocks\n',after),false);
+  assert.equal(isReadmeDocumentationOnly(before+'\n'+current,after),false);
+  assert.equal(isReadmeDocumentationOnly(undefined,after),false);
+});
+
+test('public Markdown and customer-first README updates use nonshipping validation only while machine state remains intact',async t=>{
+  const {determineValidationMode,isNonshippingPath}=await load();
+  const fixture=repository(t);
+  const blocks=[statusBlock('6.0.3'),statusBlock('6.0')].join('\n\n');
+  fixture.write('readme.md',`# Internal orientation\n\n${blocks}\n`);
+  const base=fixture.commit('synthetic generated release-state baseline');
+  const customer=`# Better CaptionKeep\n\nInstallation, privacy and support for customers.\n\n<details><summary>Recorded release status</summary>\n\n${blocks}\n\n</details>\n`;
+  for(const file of ['PRIVACY.md','SUPPORT.md','docs/wiki/Home.md','docs/wiki/Getting-Started.md',
+    'docs/wiki/Troubleshooting.md','docs/wiki/Support.md','docs/wiki/Release-Status.md',
+    'docs/wiki/Privacy-and-Data-Boundaries.md','docs/wiki/Development-and-UAT.md',
+    'docs/wiki/Three-Lane-Release-Workflow.md']) fixture.write(file,'# Synthetic customer instructions\n');
+  fixture.write('readme.md',customer);
+  fixture.commit('public documentation and customer-first README');
+  const classify=()=>determineValidationMode({...pullRequest(base,'codex/customer-docs','dev'),root:fixture.root});
+  assert.equal(isNonshippingPath('readme.md'),false);
+  assert.equal(classify(),'nonshipping');
+
+  fixture.write('readme.md',customer.replace('Recorded release state remains unchanged.','Forged release approval'));
+  fixture.commit('modified generated state');
+  assert.equal(classify(),'candidate');
+
+  fixture.write('readme.md',customer);
+  fixture.write('docs/wiki/Privacy-and-Data-Boundaries.json','{"unknown":"adjacent JSON"}\n');
+  fixture.commit('unknown adjacent public document');
+  assert.equal(classify(),'candidate');
+  fs.unlinkSync(path.join(fixture.root,'docs/wiki/Privacy-and-Data-Boundaries.json'));
+  fixture.write('teams-captions-saver/runtime.js','changed runtime\n');
+  fixture.commit('mixed runtime with customer documentation');
+  let readmeReads=0;
+  assert.equal(determineValidationMode({...pullRequest(base,'codex/customer-docs','dev'),readGit:args=>{
+    if(args[0]==='show'&&args[1].endsWith(':readme.md')) readmeReads++;
+    return fixture.git(args);
+  }}),'candidate');
+  assert.equal(readmeReads,0,'README exception must not run for mixed runtime paths');
+});
+
+test('the older administrator README exception cannot launder added generated-status blocks',async t=>{
+  const {determineValidationMode,isAdminReadmeOnly}=await load();
+  const fixture=repository(t);
+  const before=fs.readFileSync(path.join(fixture.root,'readme.md'),'utf8');
+  const pilot=`<!-- administrator-setup-pilot:start -->\nDevelopment pilot: Start-Setup.cmd; docs/wiki/Administrator-Deployment.md; docs/wiki/Deployment-Security-and-Permissions.md\n${statusBlock('6.0.3')}\n<!-- administrator-setup-pilot:end -->`;
+  const after=before.trimEnd()+'\n\n'+pilot+'\n';
+  assert.equal(isAdminReadmeOnly(before,after),true,'the existing pilot check alone would accept this block');
+  fixture.write('readme.md',after);
+  fixture.commit('synthetic pilot with forged generated state');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base),root:fixture.root}),'candidate');
 });
 
 test('path traversal, absolute paths and control characters never qualify as nonshipping', async () => {
