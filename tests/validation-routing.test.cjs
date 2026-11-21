@@ -286,6 +286,61 @@ test('a docs-only codex branch compares against the master merge base', async t 
     root:fixture.root}), 'nonshipping');
 });
 
+test('a content-identical ancestry merge requires no new artifact build but an earlier runtime change still does',async t=>{
+  const {determineValidationMode}=await load();
+  const fixture=repository(t);
+  fixture.git(['checkout','-b','production-ancestry']);
+  fixture.git(['commit','--allow-empty','-m','synthetic production-only ancestry']);
+  fixture.git(['commit','--allow-empty','-m','second synthetic production-only ancestry']);
+  fixture.git(['checkout','-b','codex/sync-production-ancestry',fixture.base]);
+  fixture.git(['merge','--no-ff','production-ancestry','-m','return production ancestry without content changes']);
+  const head=fixture.git(['rev-parse','HEAD']).trim();
+  assert.notEqual(head,fixture.base);
+  assert.equal(fixture.git(['diff','--name-only','-z',fixture.base,head]),'');
+  assert.equal(fixture.git(['rev-parse',`${fixture.base}^{tree}`]),fixture.git(['rev-parse',`${head}^{tree}`]));
+  assert.equal(determineValidationMode({...pullRequest(fixture.base,'codex/sync-production-ancestry','dev'),root:fixture.root}),'nonshipping');
+  assert.equal(determineValidationMode({...push('refs/heads/codex/sync-production-ancestry',fixture.base,head),root:fixture.root}),'nonshipping');
+  assert.equal(determineValidationMode({...pullRequest(fixture.base,'release/ancestry','dev'),root:fixture.root}),'candidate');
+
+  fixture.git(['tag','-a','synthetic-base-alias',fixture.base,'-m','annotated tag is not the pinned commit identity']);
+  const tag=fixture.git(['rev-parse','refs/tags/synthetic-base-alias']).trim();
+  assert.notEqual(tag,fixture.base);
+  assert.equal(determineValidationMode({...pullRequest(tag,'codex/sync-production-ancestry','dev'),root:fixture.root}),'candidate');
+
+  fixture.write('teams-captions-saver/runtime.js','changed runtime remains on the branch\n');
+  const runtime=fixture.commit('runtime change before empty final commit');
+  fixture.git(['commit','--allow-empty','-m','empty final event must not hide the earlier runtime']);
+  const runtimeHead=fixture.git(['rev-parse','HEAD']).trim();
+  assert.equal(fixture.git(['diff','--name-only','-z',runtime,runtimeHead]),'');
+  assert.equal(determineValidationMode({...push('refs/heads/codex/sync-production-ancestry',runtime,runtimeHead),root:fixture.root}),'candidate');
+});
+
+test('empty diff output reduces validation only with literal commit and complete equal-tree proof',async()=>{
+  const {determineValidationMode,classifyChangedPaths}=await load();
+  const base='a'.repeat(40),head='b'.repeat(40),tree='c'.repeat(40),other='d'.repeat(40);
+  const readGit=args=>{
+    if(args[0]==='rev-parse') return ({'HEAD^{commit}':head,[`${base}^{commit}`]:base,
+      [`${head}^{commit}`]:head,[`${base}^{tree}`]:tree,[`${head}^{tree}`]:tree})[args[2]];
+    if(args[0]==='merge-base'&&args[1]==='--all') return base;
+    return '';
+  };
+  const classify=reader=>determineValidationMode({...pullRequest(base,'codex/ancestry','dev'),readGit:reader});
+  assert.equal(classify(readGit),'nonshipping');
+  assert.equal(classifyChangedPaths([]),'candidate','an empty path array alone is never proof');
+  for(const invalid of ['',undefined,'malformed','0'.repeat(40),other]) {
+    assert.equal(classify(args=>args[0]==='rev-parse'&&args[2]===`${base}^{tree}`?invalid:readGit(args)),'candidate');
+    assert.equal(classify(args=>args[0]==='rev-parse'&&args[2]===`${head}^{tree}`?invalid:readGit(args)),'candidate');
+  }
+  for(const pinned of [base,head]) {
+    assert.equal(classify(args=>args[0]==='rev-parse'&&args[2]===`${pinned}^{commit}`?other:readGit(args)),'candidate');
+  }
+  for(const failingCommand of ['cat-file','merge-base','diff']) {
+    assert.equal(classify(args=>{if(args[0]===failingCommand) throw new Error('synthetic Git failure');return readGit(args);}),'candidate');
+  }
+  assert.equal(classify(args=>{if(args[0]==='rev-parse'&&args[2]===`${head}^{tree}`) throw new Error('missing tree');return readGit(args);}),'candidate');
+  assert.equal(determineValidationMode({...pullRequest(head,'codex/ancestry','dev'),readGit}),'candidate','same-commit no-op events remain full-validation');
+});
+
 test('master pushes use event.before and reject a new or missing baseline', async t => {
   const {determineValidationMode} = await load();
   const fixture = repository(t);
