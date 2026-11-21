@@ -1,12 +1,12 @@
 # Better CaptionKeep 6.0.3 release status
 
-Updated November 20, 2026. **6.0.3 is the current release being submitted to Chrome Web Store and Microsoft Edge Add-ons.** Store review and public availability must be confirmed separately; this page does not claim either is complete.
+Updated November 20, 2026. **6.0.3 is the current repaired release being prepared for Chrome Web Store and Microsoft Edge Add-ons.** Store review and public availability must be confirmed separately; this page does not claim either is complete.
 
 ## Current versions
 
 | Component | Current version and status |
 | --- | --- |
-| Extension release | 6.0.3 — setup/capture repairs under verification; not submitted |
+| Extension release | 6.0.3 — setup/capture repairs verified as recorded below; Store submission pending |
 | Signed Windows Administrator Setup | 6.0.3 — downloadable signed installer |
 | Public Store baseline | Last recorded observation: 6.0.0; refresh after 6.0.3 approval |
 
