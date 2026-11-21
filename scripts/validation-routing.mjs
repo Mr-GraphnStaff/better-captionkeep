@@ -174,6 +174,19 @@ export function determineValidationMode({eventName, ref, event, root,
     readGit(['merge-base', '--is-ancestor', base, head]);
     const diff = readGit(['diff', '--name-only', '-z', '--no-renames', '--no-ext-diff',
       '--no-textconv', base, head, '--']);
+    if(diff==='') {
+      // An ancestry-only synchronization is not a new artifact candidate. Empty
+      // output alone is insufficient: prove distinct, literal commit identities
+      // and identical complete Git trees after the event/full-range checks above.
+      if(base===head) return 'candidate';
+      const baseCommit=readGit(['rev-parse','--verify',`${base}^{commit}`]).trim();
+      const headCommit=readGit(['rev-parse','--verify',`${head}^{commit}`]).trim();
+      if(baseCommit!==base||headCommit!==head) return 'candidate';
+      const baseTree=readGit(['rev-parse','--verify',`${base}^{tree}`]).trim();
+      const headTree=readGit(['rev-parse','--verify',`${head}^{tree}`]).trim();
+      return validCommit(baseTree)&&validCommit(headTree)&&baseTree===headTree
+        ? 'nonshipping' : 'candidate';
+    }
     if (!diff || !diff.endsWith('\0')) return 'candidate';
     const paths = diff.slice(0, -1).split('\0');
     // Admin tooling has its own executed tests/package checks; this narrow npm
